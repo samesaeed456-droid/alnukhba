@@ -78,6 +78,8 @@ const SystemAlert = () => {
   );
 };
 
+const FirebaseTest = lazy(() => import('./pages/FirebaseTest.tsx'));
+
 // Prefetch utility for lazy components using Vite's glob import for better reliability
 const pages = import.meta.glob('./pages/**/*.tsx');
 export const prefetch = (componentPath: string) => {
@@ -226,6 +228,7 @@ const MainRoutes = () => {
               <Route path="/returns" element={<Returns />} />
               <Route path="/shipping" element={<Shipping />} />
               <Route path="/dev-verify" element={<DevVerify />} />
+              <Route path="/firebase-test" element={<FirebaseTest />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>

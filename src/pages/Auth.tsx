@@ -333,12 +333,12 @@ export default function Auth() {
         }
       }
     } catch (err: any) {
-      console.error("Error in handleSubmit:", err);
+      console.error("Full Auth Error Object:", err);
       const smartError = parseSmartError(err);
       setError(smartError.message);
       
-      if (smartError.isConfigError) {
-        console.error("Technical Details:", smartError.technicalDetails || "Check Vercel Environment Variables");
+      if (smartError.isConfigError || smartError.message === 'حدث خطأ غير متوقع، يرجى المحاولة لاحقاً') {
+        console.error("Technical Details:", smartError.technicalDetails || err.message || err);
       }
     } finally {
       setIsLoading(false);

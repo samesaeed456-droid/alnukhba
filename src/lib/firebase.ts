@@ -28,6 +28,16 @@ const firebaseConfig = {
   firestoreDatabaseId: import.meta.env.VITE_FIREBASE_DATABASE_ID || firebaseConfigJson.firestoreDatabaseId || '(default)'
 };
 
+// Debug log for production (only logs keys presence, not values)
+if (process.env.NODE_ENV === 'production') {
+  console.log('Firebase Config Check:', {
+    hasApiKey: !!firebaseConfig.apiKey,
+    hasProjectId: !!firebaseConfig.projectId,
+    hasAppId: !!firebaseConfig.appId,
+    dbId: firebaseConfig.firestoreDatabaseId
+  });
+}
+
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 

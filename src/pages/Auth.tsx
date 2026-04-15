@@ -211,7 +211,8 @@ export default function Auth() {
           name: formData.name,
           phone: formData.phone,
           countryCode: formData.countryCode,
-          role: 'client',
+          role: 'user',
+          walletBalance: 0,
           createdAt: serverTimestamp()
         });
 

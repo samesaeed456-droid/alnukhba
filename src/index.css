@@ -1,0 +1,358 @@
+@import "tailwindcss";
+
+:root {
+  /* Luxury Elite Theme Palette (Champagne Gold & Deep Charcoal) */
+  --bg-general: #F8FAFC; /* Clean Slate 50 */
+  --bg-card: #FFFFFF;
+  --bg-section: #F1F5F9; /* Slate 100 */
+  --bg-hover: #E2E8F0; /* Slate 200 */
+  
+  --text-main: #0F172A; /* Slate 900 */
+  --text-muted: #64748B; /* Slate 500 */
+  --text-light: #94A3B8; /* Slate 400 */
+
+  --primary-dark: #0F172A; /* Deep Charcoal / Slate Navy */
+  --primary-dark-hover: #1E293B; /* Slate 800 */
+  
+  /* Champagne Gold (Luxury & Elite) */
+  --primary-gold: #C5A059; /* Sophisticated Bronze/Champagne Gold */
+  --primary-gold-hover: #A68446; /* Darker Gold for hover states */
+  --primary-glow: rgba(197, 160, 89, 0.15);
+
+  /* Semantic States */
+  --state-success: #10B981;
+  --state-success-bg: rgba(16, 185, 129, 0.1);
+  --state-error: #EF4444;
+  --state-error-bg: rgba(239, 68, 68, 0.1);
+  --state-warning: #F59E0B;
+  --state-warning-bg: rgba(245, 158, 11, 0.1);
+  --state-info: #3B82F6;
+  --state-info-bg: rgba(59, 130, 246, 0.1);
+}
+
+@theme {
+  --font-sans: "Cairo", ui-sans-serif, system-ui, sans-serif;
+  
+  /* Map legacy colors to new palette */
+  --color-carbon: var(--primary-dark);
+  --color-space-gray: var(--bg-section);
+  --color-solar: var(--primary-gold); 
+  --color-solar-dark: var(--primary-gold-hover);
+  --color-cool-gray: var(--text-muted);
+  
+  /* New Semantic Colors */
+  --color-secondary-gold: var(--primary-gold);
+  
+  --color-bg-general: var(--bg-general);
+  --color-bg-card: var(--bg-card);
+  --color-bg-section: var(--bg-section);
+  --color-bg-hover: var(--bg-hover);
+  
+  /* State Colors */
+  --color-state-success: var(--state-success);
+  --color-state-success-bg: var(--state-success-bg);
+  --color-state-error: var(--state-error);
+  --color-state-error-bg: var(--state-error-bg);
+  --color-state-warning: var(--state-warning);
+  --color-state-warning-bg: var(--state-warning-bg);
+  --color-state-info: var(--state-info);
+  --color-state-info-bg: var(--state-info-bg);
+
+  /* Override Tailwind v4 oklch colors with hex for html2canvas compatibility */
+  --color-slate-50: #F8FAF0;
+  --color-slate-100: #F1F5F9;
+  --color-slate-200: #E2E8F0;
+  --color-slate-300: #CBD5E1;
+  --color-slate-400: #94A3B8;
+  --color-slate-500: #64748B;
+  --color-slate-600: #475569;
+  --color-slate-700: #334155;
+  --color-slate-800: #1E293B;
+  --color-slate-900: #0F172A;
+  
+  --color-white: #FFFFFF;
+  --color-black: #000000;
+  --color-transparent: transparent;
+}
+
+body {
+  font-family: 'Cairo', sans-serif;
+  background-color: var(--bg-general);
+  direction: rtl;
+  color: var(--text-main);
+}
+
+/* Global Scale Down for Desktop */
+@media (min-width: 1024px) {
+  html {
+    font-size: 14px; /* Scales down all rem-based units further */
+  }
+}
+
+@media (min-width: 1536px) {
+  html {
+    font-size: 13.5px; /* Even more compact on very large screens */
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/* Refined Color System Overrides                                             */
+/* -------------------------------------------------------------------------- */
+
+/* Dark Elements (Headers, Footers, Dark text) */
+.bg-carbon {
+  background-color: var(--primary-dark) !important;
+  color: #FFFFFF !important;
+}
+.bg-carbon-pattern {
+  background-color: var(--primary-dark) !important;
+  background-image: 
+    linear-gradient(rgba(197, 160, 89, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(197, 160, 89, 0.05) 1px, transparent 1px);
+  background-size: 30px 30px;
+  color: #FFFFFF !important;
+}
+.text-carbon {
+  color: var(--primary-dark) !important;
+}
+.border-carbon {
+  border-color: var(--primary-dark) !important;
+}
+
+/* Solar Accent Classes -> Now Luxury Gold */
+.bg-solar {
+  background: var(--primary-gold) !important;
+  color: #000000 !important;
+  border: none !important;
+  transition: all 0.3s ease !important;
+}
+.bg-solar:hover {
+  background: var(--primary-gold-hover) !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 10px 25px -5px rgba(212, 175, 55, 0.4) !important;
+  transform: translateY(-1px);
+}
+.bg-solar-dark {
+  background: var(--primary-gold-hover) !important;
+  color: #FFFFFF !important;
+}
+.text-solar {
+  color: var(--primary-gold) !important;
+}
+.border-solar {
+  border-color: var(--primary-gold) !important;
+}
+
+/* Luxury Gradients & Shadows */
+.bg-gold-gradient {
+  background: linear-gradient(135deg, #E6C27A 0%, #C5A059 50%, #8A6D3B 100%) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.4), 0 4px 15px rgba(0,0,0,0.1) !important;
+  color: #0F172A !important; /* Dark text on gold for better contrast */
+  border: 1px solid rgba(255,255,255,0.1) !important;
+}
+.bg-gold-gradient:hover {
+  background: linear-gradient(135deg, #C5A059 0%, #8A6D3B 50%, #A68446 100%) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.2), 0 15px 35px -10px rgba(197, 160, 89, 0.5) !important;
+  transform: translateY(-2px);
+}
+
+.shadow-gold {
+  box-shadow: 0 10px 30px -10px rgba(197, 160, 89, 0.3) !important;
+}
+.shadow-gold-lg {
+  box-shadow: 0 20px 50px -15px rgba(197, 160, 89, 0.4) !important;
+}
+
+.bg-gold-shimmer {
+  background: linear-gradient(135deg, #FDFCFB 0%, #C5A059 25%, #A68446 50%, #C5A059 75%, #FDFCFB 100%) !important;
+  background-size: 200% auto !important;
+  animation: shimmer 3s linear infinite !important;
+  color: #FFFFFF !important;
+}
+
+@keyframes shimmer {
+  to {
+    background-position: 200% center;
+  }
+}
+
+/* Backgrounds & Cards */
+.bg-space-gray {
+  background-color: var(--bg-section) !important;
+  color: var(--text-main) !important;
+}
+.bg-white {
+  background-color: #FFFFFF !important;
+}
+
+/* Text Colors */
+.text-gray-400, .text-slate-400 {
+  color: var(--text-light) !important;
+}
+.text-gray-500, .text-slate-500 {
+  color: var(--text-muted) !important;
+}
+
+/* Borders & Dividers */
+.border-slate-50, .border-gray-50, .border-slate-100, .border-gray-100 {
+  border-color: var(--bg-hover) !important;
+}
+.border-slate-200, .border-gray-200 {
+  border-color: #E5E5E5 !important;
+}
+.divide-slate-100 > *, .divide-gray-100 > *, .divide-y > *, .divide-x > * {
+  border-color: var(--bg-hover) !important;
+}
+
+/* Premium Shadows */
+.bg-white.rounded-2xl, .bg-white.rounded-3xl, .bg-white.rounded-[32px], .bg-card {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.02) !important;
+  border: 1px solid var(--bg-hover);
+}
+
+/* Form Inputs */
+input, textarea, select {
+  background-color: var(--bg-card);
+  border-color: var(--bg-hover);
+  color: var(--text-main);
+  transition: all 0.2s ease;
+}
+input:focus, textarea:focus, select:focus {
+  border-color: var(--primary-gold) !important;
+  box-shadow: 0 0 0 3px var(--primary-glow) !important;
+  outline: none;
+}
+input::placeholder, textarea::placeholder {
+  color: var(--text-light);
+}
+
+/* Scrollbar */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #E2E8F0;
+  border-radius: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #CBD5E1;
+}
+
+/* Animations */
+@keyframes bounce-x {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(-10px); }
+}
+.animate-bounce-x {
+  animation: bounce-x 1s infinite ease-in-out;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px) rotate(-4deg); }
+  50% { transform: translateX(4px) rotate(4deg); }
+  75% { transform: translateX(-4px) rotate(-4deg); }
+}
+.animate-shake {
+  animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+}
+
+@keyframes sweep {
+  0% { transform: translateX(-100%); }
+  50% { transform: translateX(100%); }
+  100% { transform: translateX(100%); }
+}
+.animate-sweep {
+  animation: sweep 3s infinite ease-in-out;
+}
+
+/* Markdown Styling */
+.markdown-body {
+  font-family: 'Cairo', sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-main);
+  direction: rtl;
+}
+.markdown-body p {
+  margin-bottom: 0.75rem;
+}
+.markdown-body p:last-child {
+  margin-bottom: 0;
+}
+.markdown-body ul, .markdown-body ol {
+  margin-bottom: 0.75rem;
+  padding-right: 1.5rem;
+}
+.markdown-body ul {
+  list-style-type: disc;
+}
+.markdown-body ol {
+  list-style-type: decimal;
+}
+.markdown-body li {
+  margin-bottom: 0.25rem;
+}
+.markdown-body strong {
+  font-weight: 700;
+  color: var(--primary-dark);
+}
+.markdown-body h1, .markdown-body h2, .markdown-body h3 {
+  font-weight: 800;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+  color: var(--text-main);
+}
+.markdown-body h1 { font-size: 1.25rem; }
+.markdown-body h2 { font-size: 1.15rem; }
+.markdown-body h3 { font-size: 1.05rem; }
+
+/* Print Styles for Invoice */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  
+  /* Show only the invoice section */
+  .print-header {
+    display: block !important;
+    visibility: visible;
+  }
+
+  /* Target the invoice container using a specific class or structure */
+  .overflow-hidden.border-t.border-slate-100.bg-slate-50,
+  .overflow-hidden.border-t.border-slate-100.bg-slate-50 * {
+    visibility: visible;
+  }
+
+  .overflow-hidden.border-t.border-slate-100.bg-slate-50 {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    padding: 20px;
+    background: white !important;
+  }
+
+  /* Hide the toggle button in print */
+  button[onClick*="setShowItems"] {
+    display: none !important;
+  }
+
+  /* Ensure images print */
+  img {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}

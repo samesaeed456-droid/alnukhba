@@ -3,6 +3,7 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Lock, User, ArrowRight, AlertCircle, CheckCircle2, Eye, EyeOff, Zap, ChevronDown, ShieldCheck, Loader2, Smartphone } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useStore } from '../context/StoreContext';
+import { parseSmartError } from '../lib/errorUtils';
 import { 
   auth, db, doc, getDoc, setDoc, serverTimestamp, loginWithEmail, signupWithEmail
 } from '../lib/firebase';
@@ -223,13 +224,8 @@ export default function Auth() {
       }
     } catch (err: any) {
       console.error('Verification Error:', err);
-      if (err.code === 'auth/email-already-in-use') {
-        setError('رقم الجوال مسجل مسبقاً. يرجى تسجيل الدخول.');
-        setStep('form');
-        setIsLogin(true);
-      } else {
-        setError('حدث خطأ أثناء إنشاء الحساب');
-      }
+      const smartError = parseSmartError(err);
+      setError(smartError.message);
     } finally {
       setIsLoading(false);
     }
@@ -338,10 +334,11 @@ export default function Auth() {
       }
     } catch (err: any) {
       console.error("Error in handleSubmit:", err);
-      if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
-        setError('رقم الجوال أو كلمة المرور غير صحيحة');
-      } else {
-        setError('حدث خطأ أثناء الاتصال بالخادم');
+      const smartError = parseSmartError(err);
+      setError(smartError.message);
+      
+      if (smartError.isConfigError) {
+        console.error("Technical Details:", smartError.technicalDetails || "Check Vercel Environment Variables");
       }
     } finally {
       setIsLoading(false);

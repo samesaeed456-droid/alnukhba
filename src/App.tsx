@@ -48,6 +48,35 @@ const AdminMessages = lazy(() => import('./pages/admin/Messages.tsx'));
 const AdminLogistics = lazy(() => import('./pages/admin/Logistics.tsx'));
 const DevVerify = lazy(() => import('./pages/DevVerify.tsx'));
 import Maintenance from './pages/Maintenance';
+import { AlertCircle, X } from 'lucide-react';
+
+const SystemAlert = () => {
+  const { systemError } = useStore();
+  const [dismissed, setDismissed] = useState(false);
+
+  if (!systemError || dismissed) return null;
+
+  return (
+    <motion.div 
+      initial={{ height: 0, opacity: 0 }}
+      animate={{ height: 'auto', opacity: 1 }}
+      className="bg-red-500/10 border-b border-red-500/20 backdrop-blur-md z-[9999] relative"
+    >
+      <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2 text-red-400 text-sm font-medium">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          <span>{systemError}</span>
+        </div>
+        <button 
+          onClick={() => setDismissed(true)}
+          className="p-1 hover:bg-red-500/10 rounded-full transition-colors text-red-400"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+    </motion.div>
+  );
+};
 
 // Prefetch utility for lazy components using Vite's glob import for better reliability
 const pages = import.meta.glob('./pages/**/*.tsx');
@@ -209,6 +238,7 @@ const MainRoutes = () => {
 export default function App() {
   return (
     <StoreProvider>
+      <SystemAlert />
       <MotionConfig reducedMotion="user">
         <Toaster 
           position="top-center" 

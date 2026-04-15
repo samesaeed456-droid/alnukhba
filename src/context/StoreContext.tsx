@@ -15,7 +15,7 @@ import { smsService } from '../services/smsService';
 
 import { 
   auth, db, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, collection, query, where, onSnapshot, 
-  onAuthStateChanged, serverTimestamp, increment, OperationType, handleFirestoreError 
+  onAuthStateChanged, serverTimestamp, increment, OperationType, handleFirestoreError, getDocFromServer 
 } from '../lib/firebase';
 
 interface StoreContextType {
@@ -153,6 +153,7 @@ interface StoreState {
   abandonedCarts: AbandonedCart[];
   searchTerms: SearchTerm[];
   visits: Visit[];
+  systemError: string | null;
 }
 
 interface StoreActions {
@@ -317,8 +318,22 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   
   const [user, setUser] = useState<UserProfile | null>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
+  const [systemError, setSystemError] = useState<string | null>(null);
 
-  // One-time migration from localStorage to Firebase
+  // Test Firebase Connection on boot
+  useEffect(() => {
+    const testConnection = async () => {
+      try {
+        // Try to fetch a non-existent doc just to check connectivity
+        await getDocFromServer(doc(db, '_health_check', 'ping'));
+      } catch (error: any) {
+        if (error.message?.includes('the client is offline') || error.message?.includes('Could not reach Cloud Firestore backend')) {
+          setSystemError('تعذر الاتصال بقاعدة البيانات. يرجى التأكد من إعدادات Firebase في Vercel.');
+        }
+      }
+    };
+    testConnection();
+  }, []);
   useEffect(() => {
     if (!isAuthReady || !user || user.role !== 'admin') return;
 
@@ -1975,8 +1990,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     products, cart, wishlist, orders, user,
     notifications, notificationSettings, subscriptions, recentlyViewed, language, settings, categories, inventoryLogs, customers, discount, coupons,
     banners, marketingNotifications, adminUsers, activityLogs,
-    supportTickets, blogPosts, staticPages, shippingZones, abandonedCarts, searchTerms, visits
-  }), [products, cart, wishlist, orders, user, notifications, notificationSettings, subscriptions, recentlyViewed, language, settings, categories, inventoryLogs, customers, discount, coupons, banners, marketingNotifications, adminUsers, activityLogs, supportTickets, blogPosts, staticPages, shippingZones, abandonedCarts, searchTerms, visits]);
+    supportTickets, blogPosts, staticPages, shippingZones, abandonedCarts, searchTerms, visits, systemError
+  }), [products, cart, wishlist, orders, user, notifications, notificationSettings, subscriptions, recentlyViewed, language, settings, categories, inventoryLogs, customers, discount, coupons, banners, marketingNotifications, adminUsers, activityLogs, supportTickets, blogPosts, staticPages, shippingZones, abandonedCarts, searchTerms, visits, systemError]);
 
   const actionsValue = useMemo(() => ({
     addProduct, updateProduct, deleteProduct,

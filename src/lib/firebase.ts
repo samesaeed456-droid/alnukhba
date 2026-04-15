@@ -143,5 +143,6 @@ export {
   onSnapshot,
   serverTimestamp,
   increment,
-  onAuthStateChanged
+  onAuthStateChanged,
+  getDocFromServer
 };

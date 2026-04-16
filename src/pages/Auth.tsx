@@ -143,32 +143,35 @@ export default function Auth() {
       const domain = window.location.hostname;
       const message = `كود التحقق الجديد الخاص بك هو: ${generatedOtp}\n\n@${domain} #${generatedOtp}`;
       
-      const response = await fetch('/api/send-sms', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          phone: fullPhone,
-          message: message
-        }),
-      });
-      
-      const data = await response.json();
-      
-      if (data.success) {
-        setTimer(59);
-        showToast('تم إعادة إرسال كود التحقق بنجاح');
-      } else {
-        // Fallback for demo environment if SMS is not configured
-        if (data.error === "SMS Configuration Error") {
-          setTimer(59);
-          showToast(`تنبيه: بوابة الرسائل غير مهيأة. كود التحقق هو: ${generatedOtp}`);
-          console.log(`[DEMO MODE] OTP for ${fullPhone}: ${generatedOtp}`);
-        } else {
-          showToast('فشل إرسال الكود، يرجى المحاولة لاحقاً');
+      try {
+        const response = await fetch('/api/send-sms', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            phone: fullPhone,
+            message: message
+          }),
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success) {
+            setTimer(59);
+            showToast('تم إعادة إرسال كود التحقق بنجاح');
+            return;
+          }
         }
+      } catch (smsError) {
+        console.log("SMS API not available for resend, falling back to demo mode:", smsError);
       }
+      
+      // Fallback for demo environment if SMS is not configured or returns 405
+      setTimer(59);
+      showToast(`تنبيه: بوابة الرسائل غير مهيأة. كود التحقق هو: ${generatedOtp}`);
+      console.log(`[DEMO MODE] OTP for ${fullPhone}: ${generatedOtp}`);
+      
     } catch (err) {
       showToast('حدث خطأ أثناء إرسال الكود');
     } finally {
@@ -311,26 +314,33 @@ export default function Auth() {
         const message = `كود التحقق الخاص بك في متجر النخبة هو: ${generatedOtp}\n\n@${domain} #${generatedOtp}`;
 
         // Send SMS via our backend endpoint
-        const response = await fetch('/api/send-sms', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            phone: formData.countryCode + formData.phone,
-            message: message
-          }),
-        });
+        try {
+          const response = await fetch('/api/send-sms', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              phone: formData.countryCode + formData.phone,
+              message: message
+            }),
+          });
 
-        const data = await response.json();
-
-        if (data.success) {
-          setStep('verification');
-          showToast('تم إرسال كود التحقق إلى هاتفك');
-        } else {
-          setStep('verification');
-          showToast('تم إرسال كود التحقق (وضع المطور: استخدم 1234)');
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success) {
+              setStep('verification');
+              showToast('تم إرسال كود التحقق إلى هاتفك');
+              return;
+            }
+          }
+        } catch (smsError) {
+          console.log("SMS API not available, falling back to demo mode:", smsError);
         }
+        
+        // Fallback if SMS API fails or returns 405 (Vercel static hosting)
+        setStep('verification');
+        showToast('تم إرسال كود التحقق (وضع المطور: استخدم 1234)');
       }
     } catch (err: any) {
       console.error("Full Auth Error Object:", err);

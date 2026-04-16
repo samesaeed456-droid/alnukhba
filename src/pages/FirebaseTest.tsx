@@ -15,10 +15,13 @@ export default function FirebaseTest() {
     
     try {
       // 1. Check if config is loaded
+      const envVars = Object.keys(import.meta.env).filter(key => key.startsWith('VITE_FIREBASE_'));
+      
       const config = {
         apiKey: import.meta.env.VITE_FIREBASE_API_KEY || firebaseConfigJson.apiKey,
         projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || firebaseConfigJson.projectId,
         appId: import.meta.env.VITE_FIREBASE_APP_ID || firebaseConfigJson.appId,
+        detectedKeys: envVars
       };
       setConfigInfo(config);
 
@@ -98,16 +101,20 @@ export default function FirebaseTest() {
             <div className="p-4 bg-white/5 rounded-xl border border-white/5">
               <div className="flex items-center gap-2 text-slate-400 text-xs mb-2">
                 <Key className="w-3 h-3" />
-                <span>API Key</span>
+                <span>المفاتيح المكتشفة في Vercel</span>
               </div>
-              <div className="text-white font-mono text-xs truncate">
-                {configInfo.apiKey ? '✅ موجود' : '❌ مفقود'}
+              <div className="text-white font-mono text-[10px] space-y-1">
+                {configInfo.detectedKeys?.length > 0 ? (
+                  configInfo.detectedKeys.map((k: string) => <div key={k} className="text-green-400">{k}</div>)
+                ) : (
+                  <div className="text-red-400">لم يتم اكتشاف أي مفاتيح تبدأ بـ VITE_FIREBASE_</div>
+                )}
               </div>
             </div>
             <div className="p-4 bg-white/5 rounded-xl border border-white/5">
               <div className="flex items-center gap-2 text-slate-400 text-xs mb-2">
                 <Globe className="w-3 h-3" />
-                <span>Project ID</span>
+                <span>Project ID المستخدم</span>
               </div>
               <div className="text-white font-mono text-xs truncate">
                 {configInfo.projectId || '❌ مفقود'}

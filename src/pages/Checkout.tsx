@@ -531,7 +531,7 @@ export default function Checkout() {
                 <div className="space-y-3 max-h-[200px] overflow-y-auto pr-2 custom-scrollbar">
                   {cart.map((item) => (
                     <div key={item.id} className="flex gap-3">
-                      <img src={item.product.image} alt={item.product.name} className="w-12 h-12 rounded-lg object-cover border border-slate-100" />
+                      <img src={item.product.image || undefined} alt={item.product.name} className="w-12 h-12 rounded-lg object-cover border border-slate-100" />
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-bold text-carbon truncate">{item.product.name}</p>
                         <div className="text-[10px] text-titanium/40 flex items-center gap-1">
@@ -1161,7 +1161,7 @@ export default function Checkout() {
                                       }`}>
                                         {formData.paymentProof ? (
                                           <div className="relative w-full h-32 sm:h-40 rounded-xl overflow-hidden group/preview">
-                                            <img src={formData.paymentProof} alt="الإيصال" className="w-full h-full object-cover" />
+                                            <img src={formData.paymentProof || undefined} alt="الإيصال" className="w-full h-full object-cover" />
                                             <div className="absolute inset-0 bg-carbon/50 opacity-0 group-hover/preview:opacity-100 transition-opacity flex items-center justify-center">
                                               <button 
                                                 onClick={(e) => {
@@ -1437,7 +1437,7 @@ export default function Checkout() {
               {cart.map((item) => (
                 <div key={item.id} className="flex gap-4 group">
                   <div className="w-16 h-16 bg-slate-50 rounded-2xl p-2 shrink-0 border border-slate-100 group-hover:border-slate-900/30 transition-colors">
-                    <img src={item.product.image} alt={item.product.name} className="w-full h-full object-cover" />
+                    <img src={item.product.image || undefined} alt={item.product.name} className="w-full h-full object-cover" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <h4 className="text-sm font-bold text-carbon truncate group-hover:text-slate-900 transition-colors">{item.product.name}</h4>

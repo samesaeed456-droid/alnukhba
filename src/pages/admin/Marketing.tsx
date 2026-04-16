@@ -157,7 +157,7 @@ export default function Marketing() {
               >
                 <div className="relative aspect-[21/9] sm:aspect-video bg-gray-100 overflow-hidden">
                   {banner.image ? (
-                    <img src={banner.image || null} alt={banner.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                    <img src={banner.image || undefined} alt={banner.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-gray-400">بدون صورة</div>
                   )}
@@ -442,7 +442,7 @@ export default function Marketing() {
                         {/* If we have images array, map it. Otherwise fallback to single image */}
                         {(bannerForm.images?.length ? bannerForm.images : [bannerForm.image]).map((img, idx) => (
                           <div key={idx} className="relative aspect-[21/9] rounded-xl overflow-hidden border border-gray-200 group">
-                            <img src={img || null} alt={`Preview ${idx}`} className="w-full h-full object-cover" />
+                            <img src={img || undefined} alt={`Preview ${idx}`} className="w-full h-full object-cover" />
                             <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                               <button
                                 type="button"

@@ -100,7 +100,7 @@ export default React.memo(function ImageSlider({ slides, height = "350px", mobil
                 initial={{ scale: 1.1 }}
                 animate={{ scale: 1 }}
                 transition={{ duration: 8, ease: "linear" }}
-                src={slides[activeSlide].image}
+                src={slides[activeSlide].image || undefined}
                 alt="Banner"
                 referrerPolicy="no-referrer-when-downgrade"
                 loading={activeSlide === 0 ? "eager" : "lazy"}

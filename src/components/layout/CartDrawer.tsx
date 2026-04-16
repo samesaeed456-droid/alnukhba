@@ -150,7 +150,7 @@ export default React.memo(function CartDrawer({}: CartDrawerProps) {
                           </div>
                         )}
                         <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-lg bg-white p-2 shrink-0 border border-slate-100">
-                          <img src={item.product.image} alt={item.product.name} className="w-full h-full object-cover" />
+                          <img src={item.product.image || undefined} alt={item.product.name} className="w-full h-full object-cover" />
                         </div>
                         <div className="flex-1 flex flex-col justify-between py-0.5 sm:py-1">
                           <div>

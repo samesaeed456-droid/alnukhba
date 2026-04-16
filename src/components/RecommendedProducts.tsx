@@ -65,7 +65,7 @@ export default React.memo(function RecommendedProducts({
           ) : (
             recommendations.map((product) => (
               <div key={product.id} className="flex gap-3 bg-slate-50 p-2 rounded-xl border border-slate-100">
-                <FastImage src={product.image} alt={product.name} className="w-12 h-12 rounded-lg object-cover" />
+                <FastImage src={product.image || undefined} alt={product.name} className="w-12 h-12 rounded-lg object-cover" />
                 <div className="flex-1 min-w-0">
                   <h4 className="text-xs font-bold text-carbon truncate">{product.name}</h4>
                   <p className="text-[10px] text-solar font-black mt-1">{formatPrice(product.price)}</p>

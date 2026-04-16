@@ -44,7 +44,7 @@ export const FastImage: React.FC<FastImageProps> = ({
       {/* Low-res placeholder */}
       {lowRes && !isLoaded && (
         <img 
-          src={lowRes} 
+          src={lowRes || undefined} 
           alt={alt} 
           className={`w-full h-full object-cover blur-lg scale-110 ${className}`}
           referrerPolicy="no-referrer-when-downgrade"
@@ -55,7 +55,7 @@ export const FastImage: React.FC<FastImageProps> = ({
       <AnimatePresence>
         <motion.img
           key={displaySrc}
-          src={displaySrc}
+          src={displaySrc || undefined}
           alt={alt}
           initial={{ opacity: 0 }}
           animate={{ opacity: isLoaded ? 1 : 0 }}

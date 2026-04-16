@@ -168,7 +168,7 @@ export default function Cart() {
               >
                 <Link to={`/product/${item.product.id}`} className="w-full sm:w-32 h-32 bg-white rounded-lg overflow-hidden shrink-0 p-2 relative">
                   <img 
-                    src={item.product.image} 
+                    src={item.product.image || undefined} 
                     alt={item.product.name} 
                     className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" 
                   />

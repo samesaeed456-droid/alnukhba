@@ -180,7 +180,7 @@ export default function NotificationsDrawer() {
                           }`}>
                             {notification.productId ? (
                               <img 
-                                src={getProductImage(notification.productId) || ''} 
+                                src={getProductImage(notification.productId) || undefined} 
                                 alt="" 
                                 className="w-full h-full object-cover rounded-lg" 
                                 referrerPolicy="no-referrer"

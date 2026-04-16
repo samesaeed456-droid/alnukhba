@@ -638,7 +638,7 @@ export default function Customers() {
                   <div className="flex items-center gap-4 mb-6 relative z-10">
                     <div className="w-16 h-16 rounded-[24px] bg-bg-general overflow-hidden border-2 border-white shadow-xl group-hover:scale-110 transition-transform duration-500 flex items-center justify-center text-2xl font-black text-slate-400 relative">
                       {customer.avatar ? (
-                        <img src={customer.avatar} alt={customer.name} className="w-full h-full object-cover absolute inset-0 z-10" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                        <img src={customer.avatar || undefined} alt={customer.name} className="w-full h-full object-cover absolute inset-0 z-10" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                       ) : null}
                       <span className="relative z-0">{customer.name.charAt(0).toUpperCase()}</span>
                     </div>
@@ -893,7 +893,7 @@ export default function Customers() {
                         <div className="w-20 h-20 sm:w-28 sm:h-28 rounded-[2.5rem] bg-white p-1 shadow-xl shadow-solar/10">
                           <div className="w-full h-full rounded-[2.2rem] bg-gradient-to-br from-solar to-solar/80 text-white flex items-center justify-center text-3xl font-bold overflow-hidden">
                             {customer.avatar ? (
-                              <img src={customer.avatar} alt={customer.name} className="w-full h-full object-cover" />
+                              <img src={customer.avatar || undefined} alt={customer.name} className="w-full h-full object-cover" />
                             ) : (
                               <span>{customer.name.charAt(0).toUpperCase()}</span>
                             )}

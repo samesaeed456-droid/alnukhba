@@ -95,7 +95,7 @@ const FeaturedDeal = React.memo(({ deals, formatPrice }: FeaturedDealProps) => {
         <motion.div whileHover={{ scale: 1.01 }} className="relative bg-bg-card border border-solar/30 rounded-[32px] overflow-hidden shadow-2xl group">
           <FastLink to={`/product/${deals[0].id}`} className="block">
             <div className="relative h-[280px] bg-bg-general overflow-hidden">
-              <FastImage src={deals[0].image} alt={deals[0].name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+              <FastImage src={deals[0].image || undefined} alt={deals[0].name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
               <div className="absolute top-3 right-3 flex flex-col gap-2">
                 <motion.span animate={{ scale: [1, 1.05, 1] }} transition={{ duration: 2, repeat: Infinity }} className="bg-gold-gradient text-white px-3 py-1 rounded-full text-[10px] font-black shadow-lg flex items-center gap-1">
                   <Flame className="w-3 h-3 animate-pulse" />
@@ -225,7 +225,7 @@ const FeaturedDeal = React.memo(({ deals, formatPrice }: FeaturedDealProps) => {
           <div className="w-full lg:w-1/2 bg-bg-general flex justify-center items-center relative order-1 lg:order-2 overflow-hidden min-h-[250px] lg:min-h-[320px]">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,193,7,0.05)_0%,transparent_70%)]" />
             <motion.div whileHover={{ scale: 1.05 }} transition={{ type: "spring", stiffness: 300 }} className="relative z-10 w-full h-full flex items-center justify-center p-6 lg:p-8">
-              <FastImage src={deals[0].image} alt={deals[0].name} priority={true} className="w-full h-full object-contain drop-shadow-xl max-h-[280px]" />
+              <FastImage src={deals[0].image || undefined} alt={deals[0].name} priority={true} className="w-full h-full object-contain drop-shadow-xl max-h-[280px]" />
               {deals[0].originalPrice && (
                 <div className="absolute top-4 right-4 bg-bg-card text-white px-3 py-2 rounded-xl font-black shadow-lg border border-bg-hover flex flex-col items-center transform rotate-3">
                   <span className="text-[10px] text-slate-500 uppercase tracking-wider">خصم</span>

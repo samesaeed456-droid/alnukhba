@@ -66,7 +66,7 @@ const ProductGallery: React.FC<ProductGalleryProps> = React.memo(({ images, onZo
             className="absolute inset-0 w-full h-full cursor-grab active:cursor-grabbing"
           >
             <FastImage
-              src={images[currentIndex]}
+              src={images[currentIndex] || undefined}
               alt={`Product image ${currentIndex + 1}`}
               priority={true}
               className="w-full h-full object-cover"
@@ -136,7 +136,7 @@ const ProductGallery: React.FC<ProductGalleryProps> = React.memo(({ images, onZo
             }`}
           >
             <FastImage
-              src={image}
+              src={image || undefined}
               alt={`Thumbnail ${index + 1}`}
               className="w-full h-full object-cover"
             />

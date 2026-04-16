@@ -138,7 +138,7 @@ const ProductCardInner = React.memo(function ProductCardInner({
 
           <FastLink to={`/product/${p.id}`} prefetchPage="ProductDetail" className="w-full h-full block">
             <FastImage 
-              src={p.image} 
+              src={p.image || undefined} 
               alt={p.name} 
               priority={priority}
               loading={priority ? "eager" : "lazy"}

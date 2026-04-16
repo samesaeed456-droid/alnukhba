@@ -209,7 +209,7 @@ export default function ProductDetail() {
                       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,#ffffff_0%,transparent_70%)] opacity-60 pointer-events-none" />
                       
                       <FastImage 
-                        src={allImages[activeImage]} 
+                        src={allImages[activeImage] || undefined} 
                         alt={product.name} 
                         priority={true}
                         className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 drop-shadow-[0_30px_60px_rgba(0,0,0,0.15)] relative z-10"
@@ -263,7 +263,7 @@ export default function ProductDetail() {
                         : 'ring-1 ring-slate-200/50 hover:ring-slate-300 opacity-70 hover:opacity-100'
                     }`}
                   >
-                    <FastImage src={img} alt={`${product.name} ${idx + 1}`} className="w-full h-full object-cover" />
+                    <FastImage src={img || undefined} alt={`${product.name} ${idx + 1}`} className="w-full h-full object-cover" />
                   </motion.button>
                 ))}
               </div>
@@ -663,7 +663,7 @@ export default function ProductDetail() {
                 className="relative max-w-full max-h-full rounded-[40px] overflow-hidden shadow-2xl"
               >
                       <img
-                        src={allImages[activeImage] || null}
+                        src={allImages[activeImage] || undefined}
                         alt={product.name}
                         referrerPolicy="no-referrer"
                         className="w-full h-full object-cover bg-white"
@@ -692,7 +692,7 @@ export default function ProductDetail() {
                   onClick={() => setActiveImage(idx)}
                   className={`w-16 h-16 rounded-xl overflow-hidden border-2 transition-all bg-white/5 ${activeImage === idx ? 'border-solar scale-110' : 'border-transparent opacity-40'}`}
                 >
-                  <img src={img || null} alt="" className="w-full h-full object-cover p-1" />
+                  <img src={img || undefined} alt="" className="w-full h-full object-cover p-1" />
                 </button>
               ))}
             </div>

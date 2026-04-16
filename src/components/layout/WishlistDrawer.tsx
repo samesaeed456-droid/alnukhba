@@ -102,7 +102,7 @@ export default React.memo(function WishlistDrawer({}: WishlistDrawerProps) {
                             navigate(`/product/${product.id}`);
                           }}
                         >
-                          <img src={product.image} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                          <img src={product.image || undefined} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                         </div>
                         
                         <div className="flex-1 min-w-0 flex flex-col justify-between h-full py-1">

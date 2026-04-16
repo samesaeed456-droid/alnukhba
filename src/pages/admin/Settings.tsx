@@ -225,7 +225,7 @@ const Settings = () => {
                       />
                       {formData.storeLogo && (
                         <div className="mt-2 w-16 h-16 bg-slate-50 rounded-2xl border border-slate-200 overflow-hidden flex items-center justify-center">
-                          <img src={formData.storeLogo || null} alt="Logo Preview" className="max-w-full max-h-full object-contain" />
+                          <img src={formData.storeLogo || undefined} alt="Logo Preview" className="max-w-full max-h-full object-contain" />
                         </div>
                       )}
                     </div>
@@ -631,7 +631,7 @@ const Settings = () => {
                           {formData.seo?.favicon && (
                             <div className="flex items-center gap-4 p-4 bg-white rounded-2xl border border-slate-100">
                               <div className="w-10 h-10 bg-slate-50 rounded-lg border border-slate-200 overflow-hidden flex items-center justify-center">
-                                <img src={formData.seo.favicon || null} alt="Favicon" className="w-full h-full object-contain" />
+                                <img src={formData.seo.favicon || undefined} alt="Favicon" className="w-full h-full object-contain" />
                               </div>
                               <p className="text-xs text-slate-500 font-medium">معاينة الأيقونة التي ستظهر في تبويب المتصفح</p>
                             </div>
@@ -665,7 +665,7 @@ const Settings = () => {
                             <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
                               <div className="aspect-[1.91/1] bg-slate-100 flex items-center justify-center overflow-hidden">
                                 {formData.seo?.ogImage ? (
-                                  <img src={formData.seo.ogImage || null} alt="OG Preview" className="w-full h-full object-cover" />
+                                  <img src={formData.seo.ogImage || undefined} alt="OG Preview" className="w-full h-full object-cover" />
                                 ) : (
                                   <ImageIcon className="w-12 h-12 text-slate-300" />
                                 )}
@@ -749,7 +749,7 @@ const Settings = () => {
                           <div className="flex items-center gap-4 flex-1">
                             <div className="w-14 h-14 bg-slate-50 rounded-2xl flex items-center justify-center border border-slate-100 overflow-hidden shrink-0">
                               {method.logo ? (
-                                <img src={method.logo || null} alt={method.name} className="w-full h-full object-cover" />
+                                <img src={method.logo || undefined} alt={method.name} className="w-full h-full object-cover" />
                               ) : (
                                 <CreditCard className="w-6 h-6 text-slate-400" />
                               )}

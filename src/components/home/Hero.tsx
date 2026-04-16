@@ -132,7 +132,7 @@ const Hero = React.memo(() => {
                 className="absolute inset-0 w-full h-full"
               >
                 <FastImage
-                  src={activeBanners[activeSlide].image}
+                  src={activeBanners[activeSlide].image || undefined}
                   alt={activeBanners[activeSlide].title}
                   priority={true}
                   className="w-full h-full object-cover select-none"

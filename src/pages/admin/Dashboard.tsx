@@ -518,7 +518,7 @@ export default function Dashboard() {
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-xl bg-white border border-slate-200 overflow-hidden flex items-center justify-center text-slate-400">
                     {item.image ? (
-                      <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                      <img src={item.image || undefined} alt={item.name} className="w-full h-full object-cover" />
                     ) : (
                       <Package className="w-6 h-6" />
                     )}

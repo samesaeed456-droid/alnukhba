@@ -1085,7 +1085,7 @@ export default function Orders() {
                                 className="flex items-center gap-3 sm:gap-5 p-3 sm:p-5 bg-white rounded-[16px] sm:rounded-[32px] border border-bg-hover shadow-sm hover:shadow-md transition-all group"
                               >
                                 <div className="w-12 h-12 sm:w-20 sm:h-20 rounded-[12px] sm:rounded-[20px] overflow-hidden border border-bg-hover shrink-0 group-hover:scale-105 transition-transform">
-                                  <img src={item.product.image} alt={item.product.name} className="w-full h-full object-cover" />
+                                  <img src={item.product.image || undefined} alt={item.product.name} className="w-full h-full object-cover" />
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   <div className="text-xs sm:text-base font-black text-carbon truncate leading-tight mb-1">{item.product.name}</div>
@@ -1187,7 +1187,7 @@ export default function Orders() {
                                 <div className="text-[8px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 sm:mb-2">إثبات الدفع</div>
                                 <div className="relative group cursor-zoom-in rounded-xl sm:rounded-2xl overflow-hidden border border-bg-hover">
                                   <img 
-                                    src={selectedOrder.paymentProof} 
+                                    src={selectedOrder.paymentProof || undefined} 
                                     alt="إثبات الدفع" 
                                     className="w-full h-auto max-h-32 sm:max-h-48 object-cover transition-transform group-hover:scale-110" 
                                     referrerPolicy="no-referrer"

@@ -586,7 +586,7 @@ export default function Products() {
                               <td className="p-6">
                                 <div className="flex items-center gap-4">
                                   <div className="relative w-14 h-14 rounded-2xl overflow-hidden border border-bg-hover group-hover:scale-105 transition-transform shadow-sm">
-                                    <img src={product.image} alt={product.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                                    <img src={product.image || undefined} alt={product.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                                   </div>
                                   <div>
                                     <p className="font-black text-carbon line-clamp-1 text-sm">{product.name}</p>
@@ -700,7 +700,7 @@ export default function Products() {
                               onChange={() => toggleSelectProduct(product.id)}
                               className="w-5 h-5 rounded-lg border-slate-300 text-solar"
                             />
-                            <img src={product.image} alt={product.name} className="w-12 h-12 rounded-xl object-cover border border-bg-hover" referrerPolicy="no-referrer" />
+                            <img src={product.image || undefined} alt={product.name} className="w-12 h-12 rounded-xl object-cover border border-bg-hover" referrerPolicy="no-referrer" />
                             <div className="flex-1 min-w-0">
                               <p className="font-black text-carbon text-sm truncate">{product.name}</p>
                               <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">{product.brand}</p>
@@ -778,7 +778,7 @@ export default function Products() {
                         className="bg-white rounded-2xl sm:rounded-[40px] border border-bg-hover shadow-sm overflow-hidden group hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 flex flex-col"
                       >
                         <div className="relative aspect-[4/5] overflow-hidden">
-                          <img src={product.image} alt={product.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" referrerPolicy="no-referrer" />
+                          <img src={product.image || undefined} alt={product.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" referrerPolicy="no-referrer" />
                           <div className="absolute inset-0 bg-gradient-to-t from-carbon/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                           
                           <div className="absolute top-3 sm:top-5 right-3 sm:right-5 flex flex-col gap-2 sm:gap-3 transition-all duration-500 opacity-0 group-hover:opacity-100 translate-x-10 group-hover:translate-x-0">
@@ -932,7 +932,7 @@ export default function Products() {
                       <label className="flex flex-col items-center justify-center w-full aspect-square max-w-[280px] border-2 border-slate-200 border-dashed rounded-3xl cursor-pointer bg-slate-50 hover:bg-slate-100 transition-all relative overflow-hidden group shadow-sm">
                         {formData.image ? (
                           <>
-                            <img src={formData.image} alt="Preview" className="w-full h-full object-cover" />
+                            <img src={formData.image || undefined} alt="Preview" className="w-full h-full object-cover" />
                             <div className="absolute inset-0 bg-carbon/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                               <Upload className="w-6 h-6 text-white" />
                             </div>
@@ -951,7 +951,7 @@ export default function Products() {
                         <div className="grid grid-cols-3 gap-2">
                           {formData.images?.map((img, idx) => (
                             <div key={idx} className="relative aspect-square rounded-xl overflow-hidden border border-slate-200 group">
-                              <img src={img} alt={`Gallery ${idx}`} className="w-full h-full object-cover" />
+                              <img src={img || undefined} alt={`Gallery ${idx}`} className="w-full h-full object-cover" />
                               <button 
                                 type="button"
                                 onClick={() => setFormData(prev => ({ ...prev, images: prev.images?.filter((_, i) => i !== idx) }))}

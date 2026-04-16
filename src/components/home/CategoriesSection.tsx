@@ -66,7 +66,7 @@ const CategoriesSection = React.memo(({ activeCategory, onCategoryChange }: Cate
                 : `bg-slate-100 border border-slate-200/50`
               }`}>
                 <img 
-                  src={c.image} 
+                  src={c.image || undefined} 
                   alt={c.name} 
                   className={`w-full h-full object-cover transition-all duration-500 ${
                     activeCategory === c.name ? 'scale-110 brightness-110' : 'opacity-90 group-hover:opacity-100 group-hover:scale-110'

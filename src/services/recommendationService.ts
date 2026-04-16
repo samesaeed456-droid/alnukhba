@@ -8,7 +8,12 @@ export async function getAIRecommendations(
   currentProduct?: Product
 ): Promise<Product[]> {
   try {
-    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey || apiKey === "MY_GEMINI_API_KEY") {
+      return getRuleBasedRecommendations(recentlyViewed, cart, products, currentProduct);
+    }
+
+    const ai = new GoogleGenAI({ apiKey });
     
     const productsSummary = products.map(p => `ID: ${p.id}, Name: ${p.name}, Category: ${p.category}`).join("\n");
 
@@ -30,10 +35,9 @@ export async function getAIRecommendations(
       3. If they are viewing a product now, suggest alternatives or accessories for it.
     `;
 
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-      config: {
+    const model = ai.getGenerativeModel({
+      model: "gemini-1.5-flash",
+      generationConfig: {
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
@@ -48,7 +52,11 @@ export async function getAIRecommendations(
       }
     });
 
-    const data = JSON.parse(response.text || '{"recommendedIds":[]}');
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text();
+
+    const data = JSON.parse(text || '{"recommendedIds":[]}');
     const recommendedIds: string[] = data.recommendedIds || [];
     const recommendedProducts = products.filter(p => recommendedIds.includes(p.id));
     
@@ -58,6 +66,7 @@ export async function getAIRecommendations(
       .filter(p => !cartIds.includes(p.id) && p.id !== currentProduct?.id)
       .slice(0, 6);
   } catch (error: any) {
+    console.error("AI Recommendation Error:", error);
     // Silently handle AI recommendation errors and fallback to rule-based recommendations
     return getRuleBasedRecommendations(recentlyViewed, cart, products, currentProduct);
   }

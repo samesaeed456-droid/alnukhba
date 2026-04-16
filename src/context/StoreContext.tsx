@@ -400,11 +400,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, 'products'), (snapshot) => {
       const productsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as Product[];
-      if (productsData.length > 0) {
-        setProducts(productsData);
-      }
+      setProducts(productsData);
     }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, 'products');
+      console.error('Products sync error:', error);
+      setSystemError('فشل مزامنة المنتجات. يرجى التحقق من الاتصال.');
     });
     return () => unsubscribe();
   }, []);
@@ -426,7 +425,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const ordersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as Order[];
       setOrders(ordersData);
     }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, 'orders');
+      console.error('Orders sync error:', error);
+      // Don't set global system error for orders to avoid blocking the whole app
     });
     return () => unsubscribe();
   }, [user]);

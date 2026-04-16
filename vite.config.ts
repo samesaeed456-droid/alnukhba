@@ -15,7 +15,7 @@ export default defineConfig(({mode}) => {
         injectRegister: 'auto',
         filename: 'manifest.json',
         devOptions: {
-          enabled: true,
+          enabled: false,
           type: 'module'
         },
         workbox: {

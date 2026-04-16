@@ -111,7 +111,7 @@ export default React.memo(function MobileMenu({ isOpen, onClose }: MobileMenuPro
                   <Link to="/profile" onClick={onClose} className="flex items-center gap-2.5 group">
                     <div className="w-9 h-9 bg-slate-800 rounded-full flex items-center justify-center border border-slate-700 overflow-hidden shadow-inner group-hover:border-solar/50 transition-colors">
                       {user.avatar ? (
-                        <img src={user.avatar || null} alt={user.name} className="w-full h-full object-cover" />
+                        <img src={user.avatar || undefined} alt={user.name} className="w-full h-full object-cover" />
                       ) : (
                         <User className="w-4 h-4 text-slate-400" strokeWidth={1.5} />
                       )}

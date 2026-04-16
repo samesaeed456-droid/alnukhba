@@ -377,7 +377,7 @@ export default function TrackOrder() {
                                   <td className="py-4 px-2">
                                     <div className="flex items-center gap-3">
                                       <div className="w-12 h-12 bg-white rounded-lg border border-bg-hover overflow-hidden shrink-0">
-                                        <img src={item.product.image} alt={item.product.name} className="w-full h-full object-cover" crossOrigin="anonymous" />
+                                        <img src={item.product.image || undefined} alt={item.product.name} className="w-full h-full object-cover" crossOrigin="anonymous" />
                                       </div>
                                       <div>
                                         <p className="font-bold text-carbon text-sm">{item.product.name}</p>

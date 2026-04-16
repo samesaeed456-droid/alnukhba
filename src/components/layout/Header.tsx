@@ -387,7 +387,7 @@ export default function Header({
                                   className="flex items-center gap-4 px-5 py-3.5 hover:bg-bg-hover transition-colors group"
                                 >
                                   <div className="w-12 h-12 bg-bg-general rounded-xl overflow-hidden shrink-0">
-                                    <img src={product.image || undefined} alt={product.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                                    <img src={product.image || null} alt={product.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                                   </div>
                                   <div className="flex-1 min-w-0">
                                     <h4 className="text-sm font-bold text-carbon truncate group-hover:text-solar transition-colors">{product.name}</h4>
@@ -456,7 +456,7 @@ export default function Header({
                   <FastLink to={user ? "/profile" : "/auth"} prefetchPage={user ? 'Profile' : 'Auth'} className="relative p-1 text-white/70 hover:text-white hover:bg-white/10 rounded-xl transition-all group" title="حسابي">
                     <div className="w-8 h-8 rounded-full overflow-hidden border border-white/10 flex items-center justify-center bg-white/5 group-hover:scale-110 transition-transform">
                       {user?.photoURL ? (
-                        <img src={user.photoURL || undefined} alt={user.displayName} className="w-full h-full object-cover" />
+                        <img src={user.photoURL || null} alt={user.displayName} className="w-full h-full object-cover" />
                       ) : (
                         <User className="w-4 h-4" />
                       )}

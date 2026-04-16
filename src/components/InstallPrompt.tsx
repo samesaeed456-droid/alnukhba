@@ -76,7 +76,7 @@ export default function InstallPrompt() {
             {/* Logo Container - Rounded square like in screenshot */}
             <div className="bg-white p-5 rounded-[2.5rem] shadow-2xl mb-4 relative z-10 w-24 h-24 flex items-center justify-center">
               {settings.storeLogo ? (
-                <img src={settings.storeLogo || undefined} alt={settings.storeName} className="w-16 h-16 object-contain" />
+                <img src={settings.storeLogo || null} alt={settings.storeName} className="w-16 h-16 object-contain" />
               ) : (
                 <div className="w-16 h-16 flex items-center justify-center text-4xl font-black" style={{ color: settings.primaryColor }}>
                   {settings.storeName.charAt(0)}

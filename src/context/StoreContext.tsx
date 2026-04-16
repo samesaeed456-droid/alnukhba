@@ -731,7 +731,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       <div className="flex items-center justify-between w-full gap-3 py-0.5">
         <div className="flex items-center gap-3 flex-1 min-w-0">
           {options?.image && (
-            <img src={options.image || undefined} alt="toast-img" className="w-10 h-10 rounded-full object-cover border border-white/10 shrink-0" />
+            <img src={options.image || null} alt="toast-img" className="w-10 h-10 rounded-full object-cover border border-white/10 shrink-0" />
           )}
           <span className="text-sm font-medium text-white truncate">{message}</span>
         </div>

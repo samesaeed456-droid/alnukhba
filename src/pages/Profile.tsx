@@ -799,7 +799,7 @@ export default function Profile() {
               <div className="relative group/avatar shrink-0">
                 <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center border border-slate-200 overflow-hidden">
                   {user.avatar ? (
-                    <img src={user.avatar || undefined} alt={user.name} className="w-full h-full object-cover" />
+                    <img src={user.avatar || null} alt={user.name} className="w-full h-full object-cover" />
                   ) : (
                     <User className="w-6 h-6 text-slate-400" />
                   )}
@@ -1410,7 +1410,7 @@ export default function Profile() {
                     <div className="absolute -inset-1 bg-gradient-to-tr from-carbon to-solar rounded-full blur opacity-30 group-hover:opacity-60 transition duration-500"></div>
                     <div className="relative w-32 h-32 bg-slate-50 rounded-full flex items-center justify-center border-4 border-white shadow-xl overflow-hidden z-10">
                       {formData.avatar ? (
-                        <img src={formData.avatar || undefined} alt="Profile" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                        <img src={formData.avatar || null} alt="Profile" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
                       ) : (
                         <User className="w-12 h-12 text-slate-300" />
                       )}

@@ -117,7 +117,7 @@ export default function Orders() {
                 <div className="flex -space-x-2 space-x-reverse mb-3">
                   {order.items.slice(0, 4).map((item, idx) => (
                     <div key={idx} className="w-10 h-10 rounded-lg border-2 border-white bg-slate-50 overflow-hidden relative z-10 shadow-sm">
-                      <img src={item.product.image || undefined} alt={item.product.name} className="w-full h-full object-cover" />
+                      <img src={item.product.image} alt={item.product.name} className="w-full h-full object-cover" />
                     </div>
                   ))}
                   {order.items.length > 4 && (

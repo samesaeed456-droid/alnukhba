@@ -546,7 +546,7 @@ const Analytics = () => {
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-lg bg-slate-100 overflow-hidden flex items-center justify-center">
                     {product.image ? (
-                      <img src={product.image || undefined} alt={product.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                      <img src={product.image} alt={product.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                     ) : (
                       <Package className="w-5 h-5 text-slate-400" />
                     )}

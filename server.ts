@@ -5,15 +5,18 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
+const app = express();
+
 async function startServer() {
   console.log("Starting Alnokhba Server...");
-  const app = express();
   const PORT = 3000;
 
   // Start listening immediately to avoid "site not opening" issues
-  const server = app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server listening on http://0.0.0.0:${PORT}`);
-  });
+  if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+    app.listen(PORT, "0.0.0.0", () => {
+      console.log(`Server listening on http://0.0.0.0:${PORT}`);
+    });
+  }
 
   // Increase payload limit for base64 images
   app.use(express.json({ limit: "50mb" }));
@@ -164,4 +167,74 @@ async function startServer() {
   }
 }
 
-startServer();
+if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+  startServer();
+} else {
+  // In Vercel, we need to initialize the routes synchronously
+  // Increase payload limit for base64 images
+  app.use(express.json({ limit: "50mb" }));
+
+  // API Routes
+  app.get("/api/health", (req, res) => {
+    res.json({ status: "ok" });
+  });
+
+  // SMS Gateway Endpoint
+  app.post("/api/send-sms", async (req, res) => {
+    const { phone, message } = req.body;
+
+    if (!phone || !message) {
+      return res.status(400).json({ success: false, error: "Phone and message are required" });
+    }
+
+    try {
+      const axios = (await import('axios')).default;
+      
+      // Clean up credentials
+      const username = (process.env.SMSGATE_USERNAME || "").trim();
+      const password = (process.env.SMSGATE_PASSWORD || "").trim();
+      const deviceId = (process.env.SMSGATE_DEVICE_ID || "").trim();
+
+      if (!username || !password || !deviceId) {
+        return res.status(500).json({ success: false, error: "إعدادات الرسائل غير مكتملة" });
+      }
+
+      // Smart phone number formatting
+      let cleanPhone = phone.replace(/\D/g, '');
+      if (cleanPhone.startsWith('00')) cleanPhone = cleanPhone.substring(2);
+      if (cleanPhone.length === 9 && cleanPhone.startsWith('7')) cleanPhone = '967' + cleanPhone;
+      else if (cleanPhone.length === 10 && cleanPhone.startsWith('07')) cleanPhone = '967' + cleanPhone.substring(1);
+
+      const formattedPhone = `+${cleanPhone}`;
+      const targetUrl = (process.env.SMSGATE_URL || "https://api.sms-gate.app/3rdparty/v1/messages").trim();
+      
+      console.log(`[SMS] Sending to: ${formattedPhone} | Device: ${deviceId}`);
+      
+      const response = await axios.post(
+        targetUrl,
+        {
+          message: message,
+          phoneNumbers: [formattedPhone],
+          deviceId: deviceId,
+          isUrgent: true
+        },
+        {
+          headers: {
+            'Authorization': `Basic ${Buffer.from(`${username}:${password}`).toString('base64')}`,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          timeout: 20000
+        }
+      );
+
+      res.json({ success: true, data: response.data });
+    } catch (error: any) {
+      const errorDetail = error.response?.data || error.message;
+      console.error("[SMS Error]", errorDetail);
+      res.status(500).json({ success: false, error: "فشل إرسال الرسالة", details: errorDetail });
+    }
+  });
+}
+
+export default app;

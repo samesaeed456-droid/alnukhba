@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
-import { Shield, UserPlus, Trash2, UserCheck, UserX, Mail, User, Lock, X, Edit2 } from 'lucide-react';
+import { 
+  Shield, UserPlus, Trash2, UserCheck, UserX, Mail, User, Lock, X, Edit2, 
+  ChevronDown, ChevronUp, Settings2 
+} from 'lucide-react';
 import { useStore } from '../../context/StoreContext';
 import { motion, AnimatePresence } from 'motion/react';
 import { AdminUser, AdminRole, AdminPermission } from '../../types';
@@ -15,6 +18,8 @@ export default function Security() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingAdminId, setEditingAdminId] = useState<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  
   const [adminForm, setAdminForm] = useState<Omit<AdminUser, 'id'>>({
     name: '',
     email: '',
@@ -247,119 +252,177 @@ export default function Security() {
       {/* Add Admin Modal */}
       <AnimatePresence>
         {isAddModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={() => setIsAddModalOpen(false)}
+              onClick={() => {
+                setIsAddModalOpen(false);
+                setShowAdvanced(false);
+              }}
               className="absolute inset-0 bg-carbon/60 backdrop-blur-sm"
             />
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden"
+              initial={{ opacity: 0, y: '100%' }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="relative bg-white rounded-t-[2.5rem] sm:rounded-[2.5rem] shadow-2xl w-full max-w-md max-h-[90vh] sm:max-h-none flex flex-col overflow-hidden"
             >
-              <div className="p-6 border-b border-gray-100 flex justify-between items-center">
-                <h3 className="text-xl font-bold text-carbon">إضافة مشرف جديد</h3>
-                <button onClick={() => setIsAddModalOpen(false)} className="p-2 hover:bg-gray-100 rounded-full">
+              {/* Mobile Handle */}
+              <div className="sm:hidden w-full flex justify-center p-3">
+                <div className="w-12 h-1.5 bg-gray-200 rounded-full" />
+              </div>
+
+              <div className="p-6 border-b border-gray-50 flex justify-between items-center bg-white sticky top-0 z-10">
+                <div>
+                  <h3 className="text-xl font-black text-carbon">إضافة مشرف جديد</h3>
+                  <p className="text-xs text-gray-400 mt-0.5">قم بتعيين صلاحيات الفريق</p>
+                </div>
+                <button onClick={() => {
+                  setIsAddModalOpen(false);
+                  setShowAdvanced(false);
+                }} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
                   <X className="w-5 h-5 text-gray-400" />
                 </button>
               </div>
-              <form onSubmit={handleAddAdmin} className="p-6 space-y-4">
-                <FloatingInput
-                  id="adminName"
-                  label="الاسم الكامل"
-                  type="text"
-                  required
-                  value={adminForm.name}
-                  onChange={(e) => setAdminForm({ ...adminForm, name: e.target.value })}
-                  icon={<User className="w-4 h-4" />}
-                  iconPosition="start"
-                />
-                <FloatingInput
-                  id="adminEmail"
-                  label="البريد الإلكتروني"
-                  type="email"
-                  required
-                  value={adminForm.email}
-                  onChange={(e) => setAdminForm({ ...adminForm, email: e.target.value })}
-                  icon={<Mail className="w-4 h-4" />}
-                  iconPosition="start"
-                />
-                <FloatingInput
-                  id="adminPassword"
-                  label="كلمة المرور"
-                  type="password"
-                  required
-                  value={adminForm.password || ''}
-                  onChange={(e) => setAdminForm({ ...adminForm, password: e.target.value })}
-                  icon={<Lock className="w-4 h-4" />}
-                  iconPosition="start"
-                />
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">قالب الدور (اختياري)</label>
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    {(['super_admin', 'manager', 'editor', 'support'] as AdminRole[]).map((role) => (
-                      <button
-                        key={role}
-                        type="button"
-                        onClick={() => handleRoleChange(role)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${
-                          adminForm.role === role 
-                            ? 'bg-solar text-white border-solar shadow-sm' 
-                            : 'bg-white text-gray-500 border-gray-100 hover:border-gray-200'
-                        }`}
-                      >
-                        {getRoleLabel(role)}
-                      </button>
-                    ))}
+
+              <div className="flex-1 overflow-y-auto p-6 pt-2 custom-scrollbar pb-24 sm:pb-6">
+                <form id="add-admin-form" onSubmit={handleAddAdmin} className="space-y-6">
+                  {/* Basic Info Group */}
+                  <div className="space-y-4">
+                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block">المعلومات الأساسية</span>
+                    <FloatingInput
+                      id="adminName"
+                      label="الاسم الكامل"
+                      type="text"
+                      required
+                      value={adminForm.name}
+                      onChange={(e) => setAdminForm({ ...adminForm, name: e.target.value })}
+                      icon={<User className="w-4 h-4" />}
+                      iconPosition="start"
+                    />
+                    <FloatingInput
+                      id="adminEmail"
+                      label="البريد الإلكتروني"
+                      type="email"
+                      required
+                      value={adminForm.email}
+                      onChange={(e) => setAdminForm({ ...adminForm, email: e.target.value })}
+                      icon={<Mail className="w-4 h-4" />}
+                      iconPosition="start"
+                    />
+                    <FloatingInput
+                      id="adminPassword"
+                      label="كلمة المرور"
+                      type="password"
+                      required
+                      value={adminForm.password || ''}
+                      onChange={(e) => setAdminForm({ ...adminForm, password: e.target.value })}
+                      icon={<Lock className="w-4 h-4" />}
+                      iconPosition="start"
+                    />
                   </div>
 
-                  <label className="block text-sm font-bold text-gray-700 mb-3 flex items-center justify-between">
-                    <span>تخصيص الصلاحيات يدوياً</span>
-                    <span className="text-[10px] font-normal text-gray-400">({adminForm.permissions.length} مختارة)</span>
-                  </label>
-                  <div className="grid grid-cols-2 gap-2 max-h-[200px] overflow-y-auto pr-1 custom-scrollbar">
-                    {allPermissions.map((perm) => (
-                      <button
-                        key={perm.id}
-                        type="button"
-                        onClick={() => togglePermission(perm.id)}
-                        className={`flex items-center gap-2 p-2.5 rounded-xl border transition-all text-right ${
-                          adminForm.permissions.includes(perm.id)
-                            ? 'bg-solar/5 border-solar text-solar shadow-[0_0_15px_rgba(244,191,48,0.1)]'
-                            : 'bg-white border-gray-100 text-gray-500 hover:border-gray-200'
-                        }`}
-                      >
-                        <div className={`w-5 h-5 rounded-lg flex items-center justify-center transition-all ${
-                          adminForm.permissions.includes(perm.id) ? 'bg-solar text-white' : 'bg-gray-50 text-gray-300'
-                        }`}>
-                          {adminForm.permissions.includes(perm.id) ? <UserCheck className="w-3 h-3" /> : <Shield className="w-3 h-3" />}
-                        </div>
-                        <span className="text-xs font-bold">{perm.label}</span>
-                      </button>
-                    ))}
+                  {/* Role Template Group */}
+                  <div>
+                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-4">اختيار قالب الدور</span>
+                    <div className="grid grid-cols-2 gap-2">
+                      {(['super_admin', 'manager', 'editor', 'support'] as AdminRole[]).map((role) => (
+                        <button
+                          key={role}
+                          type="button"
+                          onClick={() => handleRoleChange(role)}
+                          className={`flex flex-col items-start p-3 rounded-2xl border-2 transition-all text-right ${
+                            adminForm.role === role 
+                              ? 'bg-solar border-solar text-white shadow-lg shadow-solar/20' 
+                              : 'bg-white text-gray-500 border-gray-100 hover:border-gray-200'
+                          }`}
+                        >
+                          <span className="text-xs font-black">{getRoleLabel(role)}</span>
+                          <span className={`text-[9px] mt-1 ${adminForm.role === role ? 'text-white/80' : 'text-gray-400'}`}>التحكم الافتراضي</span>
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </div>
+
+                  {/* Advanced Permissions Toggle */}
+                  <div className="border-t border-gray-50 pt-4">
+                    <button
+                      type="button"
+                      onClick={() => setShowAdvanced(!showAdvanced)}
+                      className="w-full flex items-center justify-between p-4 bg-gray-50 rounded-2xl hover:bg-gray-100 transition-all border border-gray-100"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-white border border-gray-200 flex items-center justify-center">
+                          <Settings2 className="w-4 h-4 text-solar" />
+                        </div>
+                        <div className="text-right">
+                          <span className="text-sm font-bold block text-carbon">الصلاحيات المتقدمة</span>
+                          <span className="text-[10px] text-gray-500">تحكم بكلمة صلاحية على حدة</span>
+                        </div>
+                      </div>
+                      {showAdvanced ? <ChevronUp className="w-5 h-5 text-gray-400" /> : <ChevronDown className="w-5 h-5 text-gray-400" />}
+                    </button>
+
+                    <AnimatePresence>
+                      {showAdvanced && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          className="overflow-hidden"
+                        >
+                          <div className="grid grid-cols-2 gap-2 mt-4">
+                            {allPermissions.map((perm) => (
+                              <button
+                                key={perm.id}
+                                type="button"
+                                onClick={() => togglePermission(perm.id)}
+                                className={`flex items-center gap-2 p-3 rounded-xl border-2 transition-all text-right ${
+                                  adminForm.permissions.includes(perm.id)
+                                    ? 'bg-solar/5 border-solar text-solar'
+                                    : 'bg-white border-gray-100 text-gray-500 hover:border-gray-200'
+                                }`}
+                              >
+                                <div className={`w-5 h-5 rounded-md flex items-center justify-center transition-all ${
+                                  adminForm.permissions.includes(perm.id) ? 'bg-solar text-white' : 'bg-gray-50 text-gray-300'
+                                }`}>
+                                  {adminForm.permissions.includes(perm.id) ? <UserCheck className="w-3 h-3" /> : <Shield className="w-3 h-3" />}
+                                </div>
+                                <span className="text-[10px] font-bold">{perm.label}</span>
+                              </button>
+                            ))}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                </form>
+              </div>
+
+              {/* Sticky Footer Button */}
+              <div className="p-6 bg-white border-t border-gray-50 sticky bottom-0 z-20">
                 <button
+                  form="add-admin-form"
                   type="submit"
-                  className="w-full bg-solar text-white py-3 rounded-xl font-bold hover:bg-solar/90 transition-all shadow-lg shadow-solar/20 flex items-center justify-center gap-2"
+                  className="w-full bg-solar text-white h-14 rounded-2xl font-black text-sm flex items-center justify-center gap-3 hover:bg-solar/90 transition-all shadow-xl shadow-solar/20 active:scale-[0.98]"
                 >
                   <UserPlus className="w-5 h-5" />
-                  <span>إضافة المشرف</span>
+                  <span>إضافة المشرف الجديد</span>
                 </button>
-              </form>
+              </div>
             </motion.div>
           </div>
         )}
       </AnimatePresence>
 
+
       {/* Edit Admin Modal */}
       <AnimatePresence>
         {isEditModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -367,112 +430,166 @@ export default function Security() {
               onClick={() => {
                 setIsEditModalOpen(false);
                 setEditingAdminId(null);
+                setShowAdvanced(false);
               }}
               className="absolute inset-0 bg-carbon/60 backdrop-blur-sm"
             />
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden"
+              initial={{ opacity: 0, y: '100%' }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="relative bg-white rounded-t-[2.5rem] sm:rounded-[2.5rem] shadow-2xl w-full max-w-md max-h-[90vh] sm:max-h-none flex flex-col overflow-hidden"
             >
-              <div className="p-6 border-b border-gray-100 flex justify-between items-center">
-                <h3 className="text-xl font-bold text-carbon">تعديل بيانات المشرف</h3>
+              {/* Mobile Handle */}
+              <div className="sm:hidden w-full flex justify-center p-3">
+                <div className="w-12 h-1.5 bg-gray-200 rounded-full" />
+              </div>
+
+              <div className="p-6 border-b border-gray-50 flex justify-between items-center bg-white sticky top-0 z-10">
+                <div>
+                  <h3 className="text-xl font-black text-carbon">تعديل بيانات المشرف</h3>
+                  <p className="text-xs text-gray-400 mt-0.5">تحديث صلاحيات الحساب</p>
+                </div>
                 <button onClick={() => {
                   setIsEditModalOpen(false);
                   setEditingAdminId(null);
-                }} className="p-2 hover:bg-gray-100 rounded-full">
+                  setShowAdvanced(false);
+                }} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
                   <X className="w-5 h-5 text-gray-400" />
                 </button>
               </div>
-              <form onSubmit={handleEditAdmin} className="p-6 space-y-4">
-                <FloatingInput
-                  id="editAdminName"
-                  label="الاسم الكامل"
-                  type="text"
-                  required
-                  value={adminForm.name}
-                  onChange={(e) => setAdminForm({ ...adminForm, name: e.target.value })}
-                  icon={<User className="w-4 h-4" />}
-                  iconPosition="start"
-                />
-                <FloatingInput
-                  id="editAdminEmail"
-                  label="البريد الإلكتروني"
-                  type="email"
-                  required
-                  value={adminForm.email}
-                  onChange={(e) => setAdminForm({ ...adminForm, email: e.target.value })}
-                  icon={<Mail className="w-4 h-4" />}
-                  iconPosition="start"
-                />
-                <FloatingInput
-                  id="editAdminPassword"
-                  label="كلمة المرور"
-                  type="password"
-                  required
-                  value={adminForm.password || ''}
-                  onChange={(e) => setAdminForm({ ...adminForm, password: e.target.value })}
-                  icon={<Lock className="w-4 h-4" />}
-                  iconPosition="start"
-                />
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">قالب الدور (اختياري)</label>
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    {(['super_admin', 'manager', 'editor', 'support'] as AdminRole[]).map((role) => (
-                      <button
-                        key={role}
-                        type="button"
-                        onClick={() => handleRoleChange(role)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${
-                          adminForm.role === role 
-                            ? 'bg-solar text-white border-solar shadow-sm' 
-                            : 'bg-white text-gray-500 border-gray-100 hover:border-gray-200'
-                        }`}
-                      >
-                        {getRoleLabel(role)}
-                      </button>
-                    ))}
+
+              <div className="flex-1 overflow-y-auto p-6 pt-2 custom-scrollbar pb-24 sm:pb-6">
+                <form id="edit-admin-form" onSubmit={handleEditAdmin} className="space-y-6">
+                  {/* Basic Info Group */}
+                  <div className="space-y-4">
+                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block">المعلومات الأساسية</span>
+                    <FloatingInput
+                      id="editAdminName"
+                      label="الاسم الكامل"
+                      type="text"
+                      required
+                      value={adminForm.name}
+                      onChange={(e) => setAdminForm({ ...adminForm, name: e.target.value })}
+                      icon={<User className="w-4 h-4" />}
+                      iconPosition="start"
+                    />
+                    <FloatingInput
+                      id="editAdminEmail"
+                      label="البريد الإلكتروني"
+                      type="email"
+                      required
+                      value={adminForm.email}
+                      onChange={(e) => setAdminForm({ ...adminForm, email: e.target.value })}
+                      icon={<Mail className="w-4 h-4" />}
+                      iconPosition="start"
+                    />
+                    <FloatingInput
+                      id="editAdminPassword"
+                      label="كلمة المرور"
+                      type="password"
+                      required
+                      value={adminForm.password || ''}
+                      onChange={(e) => setAdminForm({ ...adminForm, password: e.target.value })}
+                      icon={<Lock className="w-4 h-4" />}
+                      iconPosition="start"
+                    />
                   </div>
 
-                  <label className="block text-sm font-bold text-gray-700 mb-3 flex items-center justify-between">
-                    <span>تخصيص الصلاحيات يدوياً</span>
-                    <span className="text-[10px] font-normal text-gray-400">({adminForm.permissions.length} مختارة)</span>
-                  </label>
-                  <div className="grid grid-cols-2 gap-2 max-h-[200px] overflow-y-auto pr-1 custom-scrollbar">
-                    {allPermissions.map((perm) => (
-                      <button
-                        key={perm.id}
-                        type="button"
-                        onClick={() => togglePermission(perm.id)}
-                        className={`flex items-center gap-2 p-2.5 rounded-xl border transition-all text-right ${
-                          adminForm.permissions.includes(perm.id)
-                            ? 'bg-solar/5 border-solar text-solar shadow-[0_0_15px_rgba(244,191,48,0.1)]'
-                            : 'bg-white border-gray-100 text-gray-500 hover:border-gray-200'
-                        }`}
-                      >
-                        <div className={`w-5 h-5 rounded-lg flex items-center justify-center transition-all ${
-                          adminForm.permissions.includes(perm.id) ? 'bg-solar text-white' : 'bg-gray-50 text-gray-300'
-                        }`}>
-                          {adminForm.permissions.includes(perm.id) ? <UserCheck className="w-3 h-3" /> : <Shield className="w-3 h-3" />}
-                        </div>
-                        <span className="text-xs font-bold">{perm.label}</span>
-                      </button>
-                    ))}
+                  {/* Role Template Group */}
+                  <div>
+                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-4">تغيير قالب الدور</span>
+                    <div className="grid grid-cols-2 gap-2">
+                      {(['super_admin', 'manager', 'editor', 'support'] as AdminRole[]).map((role) => (
+                        <button
+                          key={role}
+                          type="button"
+                          onClick={() => handleRoleChange(role)}
+                          className={`flex flex-col items-start p-3 rounded-2xl border-2 transition-all text-right ${
+                            adminForm.role === role 
+                              ? 'bg-solar border-solar text-white shadow-lg shadow-solar/20' 
+                              : 'bg-white text-gray-500 border-gray-100 hover:border-gray-200'
+                          }`}
+                        >
+                          <span className="text-xs font-black">{getRoleLabel(role)}</span>
+                          <span className={`text-[9px] mt-1 ${adminForm.role === role ? 'text-white/80' : 'text-gray-400'}`}>التحكم الحالي</span>
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </div>
+
+                  {/* Advanced Permissions Toggle */}
+                  <div className="border-t border-gray-50 pt-4">
+                    <button
+                      type="button"
+                      onClick={() => setShowAdvanced(!showAdvanced)}
+                      className="w-full flex items-center justify-between p-4 bg-gray-50 rounded-2xl hover:bg-gray-100 transition-all border border-gray-100"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-white border border-gray-200 flex items-center justify-center">
+                          <Settings2 className="w-4 h-4 text-solar" />
+                        </div>
+                        <div className="text-right">
+                          <span className="text-sm font-bold block text-carbon">الصلاحيات المتقدمة</span>
+                          <span className="text-[10px] text-gray-500">تحويل يدوي للصلاحيات</span>
+                        </div>
+                      </div>
+                      {showAdvanced ? <ChevronUp className="w-5 h-5 text-gray-400" /> : <ChevronDown className="w-5 h-5 text-gray-400" />}
+                    </button>
+
+                    <AnimatePresence>
+                      {showAdvanced && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          className="overflow-hidden"
+                        >
+                          <div className="grid grid-cols-2 gap-2 mt-4">
+                            {allPermissions.map((perm) => (
+                              <button
+                                key={perm.id}
+                                type="button"
+                                onClick={() => togglePermission(perm.id)}
+                                className={`flex items-center gap-2 p-3 rounded-xl border-2 transition-all text-right ${
+                                  adminForm.permissions.includes(perm.id)
+                                    ? 'bg-solar/5 border-solar text-solar'
+                                    : 'bg-white border-gray-100 text-gray-500 hover:border-gray-200'
+                                }`}
+                              >
+                                <div className={`w-5 h-5 rounded-md flex items-center justify-center transition-all ${
+                                  adminForm.permissions.includes(perm.id) ? 'bg-solar text-white' : 'bg-gray-50 text-gray-300'
+                                }`}>
+                                  {adminForm.permissions.includes(perm.id) ? <UserCheck className="w-3 h-3" /> : <Shield className="w-3 h-3" />}
+                                </div>
+                                <span className="text-[10px] font-bold">{perm.label}</span>
+                              </button>
+                            ))}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                </form>
+              </div>
+
+              {/* Sticky Footer Button */}
+              <div className="p-6 bg-white border-t border-gray-50 sticky bottom-0 z-20">
                 <button
+                  form="edit-admin-form"
                   type="submit"
-                  className="w-full bg-solar text-white py-3 rounded-xl font-bold hover:bg-solar/90 transition-all shadow-lg shadow-solar/20 flex items-center justify-center gap-2"
+                  className="w-full bg-solar text-white h-14 rounded-2xl font-black text-sm flex items-center justify-center gap-3 hover:bg-solar/90 transition-all shadow-xl shadow-solar/20 active:scale-[0.98]"
                 >
                   <Edit2 className="w-5 h-5" />
-                  <span>حفظ التعديلات</span>
+                  <span>حفظ التعديلات الحالية</span>
                 </button>
-              </form>
+              </div>
             </motion.div>
           </div>
         )}
       </AnimatePresence>
+
 
       <ConfirmationModal
         isOpen={!!deleteConfirmId}

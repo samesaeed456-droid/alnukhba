@@ -400,7 +400,7 @@ export default function Profile() {
     const fullPhone = user.countryCode + user.phone;
     const storedOtp = localStorage.getItem(`otp_recovery_${fullPhone}`);
 
-    if (code !== storedOtp && code !== '1234') {
+    if (code !== storedOtp) {
       setError('كود التحقق غير صحيح');
       return;
     }

@@ -24,6 +24,7 @@ export default function Auth() {
   const [timer, setTimer] = useState(59);
   const [isResending, setIsResending] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [verificationToken, setVerificationToken] = useState('');
   const navigate = useNavigate();
   const location = useLocation();
   const { user, updateUser, showToast } = useStore();
@@ -134,44 +135,29 @@ export default function Auth() {
 
   const handleResendCode = useCallback(async () => {
     setIsResending(true);
+    setError('');
     
     try {
-      const generatedOtp = Math.floor(1000 + Math.random() * 9000).toString();
       const fullPhone = formData.countryCode + formData.phone;
-      localStorage.setItem(`otp_${fullPhone}`, generatedOtp);
       
-      const domain = window.location.hostname;
-      const message = `كود التحقق الجديد الخاص بك هو: ${generatedOtp}\n\n@${domain} #${generatedOtp}`;
+      const response = await fetch('/api/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: fullPhone }),
+      });
       
-      try {
-        const response = await fetch('/api/send-sms', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            phone: fullPhone,
-            message: message
-          }),
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          if (data.success) {
-            setTimer(59);
-            showToast('تم إعادة إرسال كود التحقق بنجاح');
-            return;
-          }
-        }
-      } catch (smsError) {
-        console.log("SMS API not available for resend, falling back to demo mode:", smsError);
+      const data = await response.json();
+      
+      if (response.ok && data.success) {
+        setVerificationToken(data.token);
+        setTimer(59);
+        showToast('تم إعادة إرسال كود التحقق بنجاح');
+      } else {
+        setError(data.error || 'تعذر إرسال الكود. يرجى المحاولة لاحقاً');
+        // Fallback for demo environment if SMS is not configured or returns 405
+        setTimer(59);
+        showToast('تم إرسال كود التحقق (وضع ديمو مفعل)');
       }
-      
-      // Fallback for demo environment if SMS is not configured or returns 405
-      setTimer(59);
-      showToast(`تنبيه: بوابة الرسائل غير مهيأة. كود التحقق هو: ${generatedOtp}`);
-      console.log(`[DEMO MODE] OTP for ${fullPhone}: ${generatedOtp}`);
-      
     } catch (err) {
       showToast('حدث خطأ أثناء إرسال الكود');
     } finally {
@@ -195,9 +181,21 @@ export default function Auth() {
     setError('');
 
     try {
-      const isValid = code === '1234' || code === (window as any)._tempAuthOtp;
+      const fullPhone = formData.countryCode + formData.phone;
+      
+      const response = await fetch('/api/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          phone: fullPhone, 
+          otp: code, 
+          token: verificationToken 
+        }),
+      });
 
-      if (isValid) {
+      const data = await response.json();
+
+      if (response.ok && data.success) {
         const prevStep = (window as any)._authPrevStep;
         if (prevStep === 'forgot_password') {
           setStep('reset_password');
@@ -223,7 +221,7 @@ export default function Auth() {
         showToast('تم إنشاء الحساب بنجاح');
         navigate(redirectPath);
       } else {
-        setError('كود التحقق غير صحيح');
+        setError(data.error || 'كود التحقق غير صحيح');
       }
     } catch (err: any) {
       console.error('Verification Error:', err);
@@ -306,41 +304,29 @@ export default function Auth() {
         showToast('تم تسجيل الدخول بنجاح');
         navigate(redirectPath);
       } else {
-        // Signup requires OTP
-        const generatedOtp = Math.floor(1000 + Math.random() * 9000).toString();
-        (window as any)._tempAuthOtp = generatedOtp;
+        // Signup requires OTP via backend
+        const fullPhone = formData.countryCode + formData.phone;
 
-        const domain = window.location.hostname;
-        const message = `كود التحقق الخاص بك في متجر النخبة هو: ${generatedOtp}\n\n@${domain} #${generatedOtp}`;
-
-        // Send SMS via our backend endpoint
         try {
-          const response = await fetch('/api/send-sms', {
+          const response = await fetch('/api/send-otp', {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              phone: formData.countryCode + formData.phone,
-              message: message
-            }),
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ phone: fullPhone }),
           });
 
-          if (response.ok) {
-            const data = await response.json();
-            if (data.success) {
-              setStep('verification');
-              showToast('تم إرسال كود التحقق إلى هاتفك');
-              return;
-            }
+          const data = await response.json();
+
+          if (response.ok && data.success) {
+            setVerificationToken(data.token);
+            setStep('verification');
+            showToast('تم إرسال كود التحقق إلى هاتفك');
+          } else {
+            setError(data.error || 'تعذر إرسال كود التحقق');
           }
         } catch (smsError) {
-          console.log("SMS API not available, falling back to demo mode:", smsError);
+          console.error("SMS API not available:", smsError);
+          setError('حدث خطأ أثناء الاتصال بخادم الرسائل');
         }
-        
-        // Fallback if SMS API fails or returns 405 (Vercel static hosting)
-        setStep('verification');
-        showToast('تم إرسال كود التحقق (وضع المطور: استخدم 1234)');
       }
     } catch (err: any) {
       console.error("Full Auth Error Object:", err);
@@ -372,35 +358,23 @@ export default function Auth() {
     setIsLoading(true);
 
     try {
-      // Generate a 4-digit OTP
-      const generatedOtp = Math.floor(1000 + Math.random() * 9000).toString();
-      (window as any)._tempAuthOtp = generatedOtp;
-
-      const domain = window.location.hostname;
-      const message = `كود استعادة كلمة المرور الخاص بك في متجر النخبة هو: ${generatedOtp}\n\n@${domain} #${generatedOtp}`;
-
-      // Send SMS via our backend endpoint
-      const response = await fetch('/api/send-sms', {
+      const fullPhone = formData.countryCode + formData.phone;
+      
+      const response = await fetch('/api/send-otp', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          phone: formData.countryCode + formData.phone,
-          message: message
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: fullPhone }),
       });
 
       const data = await response.json();
 
-      if (data.success) {
+      if (response.ok && data.success) {
+        setVerificationToken(data.token);
         (window as any)._authPrevStep = 'forgot_password';
         setStep('verification');
         showToast('تم إرسال كود التحقق لاستعادة كلمة المرور');
       } else {
-        (window as any)._authPrevStep = 'forgot_password';
-        setStep('verification');
-        showToast('تم إرسال كود التحقق (وضع المطور: استخدم 1234)');
+        setError(data.error || 'تعذر إرسال كود التحقق');
       }
     } catch (err) {
       console.error("Error in handleForgotPassword:", err);

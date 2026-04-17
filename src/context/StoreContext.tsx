@@ -316,7 +316,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return saved ? JSON.parse(saved) : [];
   });
   
-  const [user, setUser] = useState<UserProfile | null>(null);
+  const [user, setUser] = useState<UserProfile | null>(() => {
+    const saved = localStorage.getItem('store_user');
+    return saved ? JSON.parse(saved) : null;
+  });
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [systemError, setSystemError] = useState<string | null>(null);
 
@@ -356,7 +359,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         // Set up real-time listener for user document
         unsubUser = onSnapshot(doc(db, 'users', firebaseUser.uid), (docSnap) => {
           if (docSnap.exists()) {
-            setUser(docSnap.data() as UserProfile);
+            const userData = docSnap.data() as UserProfile;
+            setUser(userData);
+            localStorage.setItem('store_user', JSON.stringify(userData));
           } else {
             // Create new user profile in Firestore if it doesn't exist
             const newUser: UserProfile = {
@@ -387,6 +392,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       } else {
         if (unsubUser) unsubUser();
         setUser(null);
+        localStorage.removeItem('store_user');
         setIsAuthReady(true);
       }
     });
@@ -401,9 +407,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const unsubscribe = onSnapshot(collection(db, 'products'), (snapshot) => {
       const productsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as Product[];
       setProducts(productsData);
+      localStorage.setItem('store_products', JSON.stringify(productsData));
     }, (error) => {
       console.error('Products sync error:', error);
-      setSystemError('فشل مزامنة المنتجات. يرجى التحقق من الاتصال.');
+      // setSystemError('فشل مزامنة المنتجات. يرجى التحقق من الاتصال.');
     });
     return () => unsubscribe();
   }, []);
@@ -493,26 +500,40 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   // Sync Public Data
   useEffect(() => {
     const unsubCategories = onSnapshot(collection(db, 'categories'), (snapshot) => {
-      setCategories(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as Category[]);
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as Category[];
+      setCategories(data);
+      localStorage.setItem('store_categories', JSON.stringify(data));
     });
     const unsubCoupons = onSnapshot(collection(db, 'coupons'), (snapshot) => {
-      setCoupons(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as Coupon[]);
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as Coupon[];
+      setCoupons(data);
+      localStorage.setItem('store_coupons', JSON.stringify(data));
     });
     const unsubPosts = onSnapshot(collection(db, 'blog_posts'), (snapshot) => {
-      setBlogPosts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as BlogPost[]);
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as BlogPost[];
+      setBlogPosts(data);
+      localStorage.setItem('store_blog', JSON.stringify(data));
     });
     const unsubPages = onSnapshot(collection(db, 'static_pages'), (snapshot) => {
-      setStaticPages(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as StaticPage[]);
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as StaticPage[];
+      setStaticPages(data);
+      localStorage.setItem('store_pages', JSON.stringify(data));
     });
     const unsubZones = onSnapshot(collection(db, 'shipping_zones'), (snapshot) => {
-      setShippingZones(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as ShippingZone[]);
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as ShippingZone[];
+      setShippingZones(data);
+      localStorage.setItem('store_shipping_zones', JSON.stringify(data));
     });
     const unsubBanners = onSnapshot(collection(db, 'banners'), (snapshot) => {
-      setBanners(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as Banner[]);
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as Banner[];
+      setBanners(data);
+      localStorage.setItem('store_banners', JSON.stringify(data));
     });
     const unsubSettings = onSnapshot(doc(db, 'settings', 'store'), (docSnap) => {
       if (docSnap.exists()) {
-        setSettings(docSnap.data() as StoreSettings);
+        const data = docSnap.data() as StoreSettings;
+        setSettings(data);
+        localStorage.setItem('store_settings', JSON.stringify(data));
       }
     });
 

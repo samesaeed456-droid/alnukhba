@@ -16,12 +16,9 @@ export default function Maintenance({ onBypass }: MaintenanceProps) {
 
   const handleVerify = (e: React.FormEvent) => {
     e.preventDefault();
-    if (code === '1234') {
-      onBypass?.();
-    } else {
-      setError(true);
-      setTimeout(() => setError(false), 2000);
-    }
+    // Bypass disabled for security
+    setError(true);
+    setTimeout(() => setError(false), 2000);
   };
 
   return (
@@ -86,7 +83,7 @@ export default function Maintenance({ onBypass }: MaintenanceProps) {
                 type="password"
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
-                placeholder="أدخل رمز التحقق (1234)"
+                placeholder="أدخل رمز التحقق"
                 className={`w-full bg-white/5 border ${error ? 'border-red-500' : 'border-white/10'} rounded-xl py-4 px-6 text-center text-2xl text-white focus:outline-none focus:ring-2 focus:ring-solar/50 transition-all`}
                 maxLength={4}
                 autoFocus

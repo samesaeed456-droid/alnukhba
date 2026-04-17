@@ -18,7 +18,7 @@ export async function getAIRecommendations(
     const productsSummary = products.map(p => `ID: ${p.id}, Name: ${p.name}, Category: ${p.category}`).join("\n");
 
     const prompt = `
-      You are an expert e-commerce recommendation engine for a store called "Alnokhba" (The Elite) in Yemen.
+      You are an expert e-commerce recommendation engine for a store called "HORIZON" (The Elite) in Yemen.
       Based on the following user data, suggest 4-6 products from our catalog that the user is most likely to be interested in.
       
       User Data:
@@ -35,9 +35,10 @@ export async function getAIRecommendations(
       3. If they are viewing a product now, suggest alternatives or accessories for it.
     `;
 
-    const model = ai.getGenerativeModel({
-      model: "gemini-1.5-flash",
-      generationConfig: {
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: prompt,
+      config: {
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
@@ -52,10 +53,7 @@ export async function getAIRecommendations(
       }
     });
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
-
+    const text = response.text;
     const data = JSON.parse(text || '{"recommendedIds":[]}');
     const recommendedIds: string[] = data.recommendedIds || [];
     const recommendedProducts = products.filter(p => recommendedIds.includes(p.id));

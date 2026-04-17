@@ -56,17 +56,16 @@ export default function AdminLogin() {
       const userDoc = await getDoc(doc(db, 'users', user.uid));
       const userData = userDoc.data();
       
-      // TEMPORARY BYPASS: Allow login if the role is 'client' but we want to force admin access for setup
-      // We will also update their role in Firestore to 'admin' so they have permanent access
-      const isTemporaryAdmin = true; // Set this to true to allow the first login to become admin
+      // RESTRICTED BYPASS: Only allow specific emails to become admin on first login
+      const authorizedEmails = ['samesaeed456@gmail.com', 'samisaeed2027@gmail.com'];
+      const isTemporaryAdmin = user.email && authorizedEmails.includes(user.email);
 
       if (userData?.role === 'admin' || isTemporaryAdmin) {
         
         // If they used the bypass, upgrade them in the database
         if (userData?.role !== 'admin' && isTemporaryAdmin) {
-           import('../../lib/firebase').then(({ updateDoc }) => {
-              updateDoc(doc(db, 'users', user.uid), { role: 'admin' }).catch(console.error);
-           });
+           const { updateDoc } = await import('../../lib/firebase');
+           await updateDoc(doc(db, 'users', user.uid), { role: 'admin' });
         }
 
         localStorage.setItem('admin_auth', 'true');

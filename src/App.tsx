@@ -46,7 +46,6 @@ const AdminMarketing = lazy(() => import('./pages/admin/Marketing.tsx'));
 const AdminSecurity = lazy(() => import('./pages/admin/Security.tsx'));
 const AdminMessages = lazy(() => import('./pages/admin/Messages.tsx'));
 const AdminLogistics = lazy(() => import('./pages/admin/Logistics.tsx'));
-const DevVerify = lazy(() => import('./pages/DevVerify.tsx'));
 import Maintenance from './pages/Maintenance';
 import { AlertCircle, X } from 'lucide-react';
 
@@ -78,9 +77,7 @@ const SystemAlert = () => {
   );
 };
 
-const FirebaseTest = lazy(() => import('./pages/FirebaseTest.tsx'));
-
-// Prefetch utility for lazy components using Vite's glob import for better reliability
+// Prefetch utility for Vite's glob import for better reliability
 const pages = import.meta.glob('./pages/**/*.tsx');
 export const prefetch = (componentPath: string) => {
   const path = `./pages/${componentPath}.tsx`;
@@ -227,8 +224,6 @@ const MainRoutes = () => {
               <Route path="/about" element={<About />} />
               <Route path="/returns" element={<Returns />} />
               <Route path="/shipping" element={<Shipping />} />
-              <Route path="/dev-verify" element={<DevVerify />} />
-              <Route path="/firebase-test" element={<FirebaseTest />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>

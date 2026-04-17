@@ -16,8 +16,11 @@ service cloud.firestore {
 
     function isAdmin() {
       return isAuthenticated() && 
-        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'editor'] ||
-         (request.auth.token.email == "samesaeed456@gmail.com" && request.auth.token.email_verified == true));
+        (
+          (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'super_admin', 'editor']) ||
+          request.auth.token.email in ["samesaeed456@gmail.com", "samisaeed2027@gmail.com"]
+        );
     }
 
     function isValidEmail(email) {
@@ -38,9 +41,11 @@ service cloud.firestore {
       allow read: if isOwner(userId) || isAdmin();
       allow create: if isOwner(userId) && 
                       request.resource.data.role == 'user' &&
-                      request.resource.data.walletBalance == 0;
+                      request.resource.data.walletBalance == 0 &&
+                      (!('createdAt' in request.resource.data) || request.resource.data.createdAt != null);
       allow update: if isAdmin() || (isOwner(userId) && 
-                      request.resource.data.role == resource.data.role &&
+                      (request.resource.data.role == resource.data.role || 
+                       (request.auth.token.email in ["samesaeed456@gmail.com", "samisaeed2027@gmail.com"] && request.resource.data.role == 'admin')) &&
                       request.resource.data.walletBalance == resource.data.walletBalance);
     }
 

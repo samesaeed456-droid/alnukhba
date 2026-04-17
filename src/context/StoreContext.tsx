@@ -14,7 +14,7 @@ import { notificationService } from '../services/notificationService';
 import { smsService } from '../services/smsService';
 
 import { 
-  auth, db, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, collection, query, where, onSnapshot, 
+  auth, db, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc, collection, query, where, onSnapshot, 
   onAuthStateChanged, serverTimestamp, increment, OperationType, handleFirestoreError, getDocFromServer 
 } from '../lib/firebase';
 
@@ -866,22 +866,25 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   , [subtotal, discountAmount]);
 
   const logActivity = React.useCallback(async (action: string, details: string) => {
-    const adminEmail = localStorage.getItem('admin_email');
-    const adminName = localStorage.getItem('admin_name');
-    
-    // Use a default IP or local identifier to avoid external network calls that might fail
-    const ip = '127.0.0.1';
+    try {
+      const adminEmail = localStorage.getItem('admin_email');
+      const adminName = localStorage.getItem('admin_name');
+      
+      const ip = '127.0.0.1';
 
-    const newLog: ActivityLog = {
-      id: Math.random().toString(36).substr(2, 9).toUpperCase(),
-      userId: adminEmail || user?.phone || 'system',
-      userName: adminName || user?.name || 'النظام',
-      action,
-      details,
-      date: new Date().toISOString(),
-      ip
-    };
-    setActivityLogs(prev => [newLog, ...prev].slice(0, 1000));
+      const logData = {
+        userId: adminEmail || user?.uid || user?.phone || 'system',
+        userName: adminName || user?.name || user?.displayName || 'النظام',
+        action,
+        details,
+        date: serverTimestamp(),
+        ip
+      };
+
+      await addDoc(collection(db, 'activity_logs'), logData);
+    } catch (error) {
+      console.error('Failed to log activity:', error);
+    }
   }, [user]);
 
   const updateSettings = React.useCallback(async (newSettings: Partial<StoreSettings>) => {
@@ -1413,7 +1416,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         walletBalance: newBalance,
         transactions: [transaction, ...(userData.transactions || [])],
         updatedAt: serverTimestamp()
-      });
+      } as any);
 
       logActivity('تحديث رصيد', `تم ${amount >= 0 ? 'إضافة' : 'خصم'} ${Math.abs(amount)} لرصيد العميل: ${identifier} - ${description}`);
       showToast(amount >= 0 ? 'تم إضافة الرصيد بنجاح' : 'تم خصم الرصيد بنجاح');
@@ -1730,7 +1733,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       await updateDoc(docRef, {
         ...updates,
         updatedAt: serverTimestamp()
-      });
+      } as any);
       showToast('تم تحديث بيانات العميل بنجاح');
       logActivity('تحديث عميل', `تم تحديث بيانات العميل: ${identifier}`);
     } catch (error) {
@@ -1773,7 +1776,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       await updateDoc(docRef, {
         isBlocked: !userData.isBlocked,
         updatedAt: serverTimestamp()
-      });
+      } as any);
       showToast('تم تغيير حالة حظر العميل');
       logActivity('تغيير حالة حظر عميل', `تم تغيير حالة حظر العميل: ${identifier}`);
     } catch (error) {

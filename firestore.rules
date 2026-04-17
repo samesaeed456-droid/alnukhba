@@ -19,7 +19,7 @@ service cloud.firestore {
         (
           (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
            get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'super_admin', 'editor']) ||
-          request.auth.token.email in ["samesaeed456@gmail.com", "samisaeed2027@gmail.com"]
+          request.auth.token.email in ["samesaeed456@gmail.com", "samisaeed2027@gmail.com", "967776668370@elite-store.local"]
         );
     }
 
@@ -45,7 +45,7 @@ service cloud.firestore {
                       (!('createdAt' in request.resource.data) || request.resource.data.createdAt != null);
       allow update: if isAdmin() || (isOwner(userId) && 
                       (request.resource.data.role == resource.data.role || 
-                       (request.auth.token.email in ["samesaeed456@gmail.com", "samisaeed2027@gmail.com"] && request.resource.data.role == 'admin')) &&
+                       (request.auth.token.email in ["samesaeed456@gmail.com", "samisaeed2027@gmail.com", "967776668370@elite-store.local"] && request.resource.data.role == 'admin')) &&
                       request.resource.data.walletBalance == resource.data.walletBalance);
     }
 
@@ -122,6 +122,11 @@ service cloud.firestore {
 
     match /banners/{bannerId} {
       allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /admin_users/{adminId} {
+      allow read: if isAuthenticated();
       allow write: if isAdmin();
     }
 

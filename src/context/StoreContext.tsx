@@ -262,8 +262,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        // Deduplicate products by id
-        const uniqueProducts = Array.from(new Map(parsed.map((p: any) => [p.id, p])).values()) as Product[];
+        // Deduplicate products by id and ensure string IDs
+        const uniqueProducts = Array.from(new Map(parsed.map((p: any) => [String(p.id), { ...p, id: String(p.id) }])).values()) as Product[];
         return uniqueProducts;
       } catch (e) {
         // Fallback to initial products if parsing fails
@@ -307,8 +307,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       } catch (e) {}
     }
     
-    // Deduplicate wishlist by id
-    return Array.from(new Map(loadedWishlist.map((p: any) => [p.id, p])).values()) as Product[];
+    // Deduplicate wishlist by id and ensure string IDs
+    return Array.from(new Map(loadedWishlist.map((p: any) => [String(p.id), { ...p, id: String(p.id) }])).values()) as Product[];
   });
 
   const [orders, setOrders] = useState<Order[]>(() => {
@@ -405,7 +405,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   // Sync Products from Firestore
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, 'products'), (snapshot) => {
-      const productsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as Product[];
+      const productsData = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return { 
+          ...data, 
+          id: String(doc.id) 
+        };
+      }) as unknown as Product[];
       setProducts(productsData);
       localStorage.setItem('store_products', JSON.stringify(productsData));
     }, (error) => {
@@ -706,6 +712,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (saved) return JSON.parse(saved);
 
     const defaultAdmins: AdminUser[] = [
+      { id: '1', name: 'المدير العام', email: 'samesaeed456@gmail.com', role: 'super_admin', permissions: getPermissionsByRole('super_admin'), isActive: true },
+      { id: '2', name: 'المدير العام (هاتف)', email: '967776668370@elite-store.local', role: 'super_admin', permissions: getPermissionsByRole('super_admin'), isActive: true },
       { id: '5', name: 'سامي سعيد', email: 'samisaeed2027@gmail.com', role: 'super_admin', permissions: getPermissionsByRole('super_admin'), isActive: true }
     ];
     return defaultAdmins;
@@ -1572,12 +1580,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const toggleWishlist = React.useCallback((product: Product) => {
     setWishlist(prev => {
-      const exists = prev.some(p => p.id === product.id);
+      const exists = prev.some(p => String(p.id) === String(product.id));
       let newWishlist: Product[];
       
       if (exists) {
         showToast(`تم إزالة ${product.name} من المفضلة`);
-        newWishlist = prev.filter(p => p.id !== product.id);
+        newWishlist = prev.filter(p => String(p.id) !== String(product.id));
       } else {
         showToast(`تم إضافة ${product.name} إلى المفضلة`);
         newWishlist = [...prev, product];
@@ -1600,7 +1608,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [showToast, user]);
 
   const isInWishlist = React.useCallback((productId: string) => {
-    return wishlist.some(p => p.id === productId);
+    return wishlist.some(p => String(p.id) === String(productId));
   }, [wishlist]);
 
   const updateUser = React.useCallback(async (newUser: UserProfile) => {
@@ -1928,8 +1936,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const addProduct = React.useCallback(async (product: Omit<Product, 'id'>) => {
     try {
-      const newId = Date.now(); // Use timestamp as ID for simplicity or let Firestore generate
-      await setDoc(doc(db, 'products', String(newId)), {
+      const newId = String(Date.now()); 
+      await setDoc(doc(db, 'products', newId), {
         ...product,
         id: newId,
         createdAt: serverTimestamp()

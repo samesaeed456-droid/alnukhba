@@ -39,7 +39,7 @@ export default function ProductDetail() {
   const { products, user, recentlyViewed, subscriptions } = useStoreState();
   const { addToCart, toggleWishlist, isInWishlist, formatPrice, addToRecentlyViewed, subscribeToProduct, setNotifications } = useStoreActions();
   const { showToast } = useStoreUI();
-  const product = products.find(p => p.id === id);
+  const product = products.find(p => String(p.id) === String(id));
 
   useEffect(() => {
     if (product) {

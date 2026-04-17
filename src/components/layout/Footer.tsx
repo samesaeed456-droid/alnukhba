@@ -175,6 +175,12 @@ export default React.memo(function Footer() {
             
             {/* Clickable Developer Signature */}
             <div className="flex items-center gap-4">
+              <FastLink 
+                to="/dev-verify" 
+                className="text-[10px] text-slate-600 hover:text-solar transition-colors opacity-0 hover:opacity-100"
+              >
+                Dev
+              </FastLink>
               <motion.button 
                 onClick={handleOpenDevModal}
                 initial={{ opacity: 0 }}

@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Zap, Lock, Mail, ArrowRight, ShieldCheck, Eye, EyeOff, Check, KeyRound, ArrowLeft } from 'lucide-react';
+import { Zap, Lock, Mail, ArrowRight, ShieldCheck, Eye, EyeOff, Check, KeyRound, ArrowLeft, Loader2, Smartphone, ChevronDown } from 'lucide-react';
 import { FloatingInput } from '../../components/FloatingInput';
 import { Toaster, toast } from 'sonner';
 import { useStore } from '../../context/StoreContext';
@@ -12,35 +12,64 @@ import {
 export default function AdminLogin() {
   const navigate = useNavigate();
   const { adminUsers, logActivity } = useStore();
+  const [loginMode, setLoginMode] = useState<'phone' | 'email'>('phone');
+  const [phone, setPhone] = useState('');
+  const [countryCode, setCountryCode] = useState('+967');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   
   // Forgot Password State
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
   const [isResetting, setIsResetting] = useState(false);
 
-  const getDummyEmail = (input: string) => {
-    if (input.includes('@')) return input; // It's an email
-    
-    // It's a phone number, clean it and convert
-    const cleanPhone = input.replace(/\D/g, '');
-    let countryCode = '967'; // Default to Yemen
-    let phone = cleanPhone;
-    
-    // If it starts with 967 or 966, extract it
-    if (cleanPhone.startsWith('967')) {
-      countryCode = '967';
-      phone = cleanPhone.substring(3);
-    } else if (cleanPhone.startsWith('966')) {
-      countryCode = '966';
-      phone = cleanPhone.substring(3);
-    }
-    
-    return `${countryCode}${phone}@elite-store.local`;
+  // Check if already logged in with authorized email
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged(async (user) => {
+      if (user && user.email) {
+        const authorizedEmails = ['samesaeed456@gmail.com', 'samisaeed2027@gmail.com', '967776668370@elite-store.local'];
+        // Also check for dummy emails if they follow the pattern
+        const isAuthorized = authorizedEmails.includes(user.email);
+        
+        if (isAuthorized) {
+          const userDoc = await getDoc(doc(db, 'users', user.uid));
+          const userData = userDoc.data();
+          
+          if (userData?.role !== 'admin') {
+            const { updateDoc, setDoc, serverTimestamp } = await import('../../lib/firebase');
+            await updateDoc(doc(db, 'users', user.uid), { role: 'admin' });
+            
+            await setDoc(doc(db, 'admin_users', user.uid), {
+              id: user.uid,
+              name: user.displayName || userData?.name || 'المدير العام',
+              email: user.email,
+              role: 'super_admin',
+              isActive: true,
+              permissions: ['view_dashboard', 'manage_orders', 'manage_products', 'manage_customers', 'manage_marketing', 'manage_coupons', 'manage_settings', 'manage_security', 'view_logs', 'manage_logistics', 'manage_messages']
+            }, { merge: true });
+          }
+
+          localStorage.setItem('admin_auth', 'true');
+          localStorage.setItem('admin_email', user.email);
+          localStorage.setItem('admin_name', userData?.displayName || userData?.name || user.displayName || 'المدير العام');
+          localStorage.setItem('admin_role', 'super_admin');
+          navigate('/admin');
+        }
+      }
+      setIsCheckingAuth(false);
+    });
+
+    return () => unsubscribe();
+  }, [navigate]);
+
+  const getDummyEmail = (p: string, c: string) => {
+    // Remove leading zero if exists (e.g., 077 becomes 77)
+    const cleanPhone = p.startsWith('0') ? p.substring(1) : p;
+    return `${c.replace('+', '')}${cleanPhone}@elite-store.local`;
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -48,7 +77,7 @@ export default function AdminLogin() {
     setIsLoading(true);
 
     try {
-      const loginEmail = getDummyEmail(email);
+      const loginEmail = loginMode === 'phone' ? getDummyEmail(phone, countryCode) : email;
       const result = await loginWithEmail(loginEmail, password);
       const user = result.user;
       
@@ -58,20 +87,31 @@ export default function AdminLogin() {
       
       // RESTRICTED BYPASS: Only allow specific emails to become admin on first login
       const authorizedEmails = ['samesaeed456@gmail.com', 'samisaeed2027@gmail.com'];
-      const isTemporaryAdmin = user.email && authorizedEmails.includes(user.email);
+      const isAuthorized = (user.email && authorizedEmails.includes(user.email));
 
-      if (userData?.role === 'admin' || isTemporaryAdmin) {
+      if (userData?.role === 'admin' || isAuthorized) {
         
-        // If they used the bypass, upgrade them in the database
-        if (userData?.role !== 'admin' && isTemporaryAdmin) {
-           const { updateDoc } = await import('../../lib/firebase');
-           await updateDoc(doc(db, 'users', user.uid), { role: 'admin' });
+        // If they used the bypass or just logged in via phone but are admin, ensure they are in admin_users
+        if (isAuthorized || userData?.role === 'admin') {
+           const { updateDoc, setDoc } = await import('../../lib/firebase');
+           if (userData?.role !== 'admin') {
+             await updateDoc(doc(db, 'users', user.uid), { role: 'admin' });
+           }
+           
+           await setDoc(doc(db, 'admin_users', user.uid), {
+             id: user.uid,
+             name: userData?.name || user.displayName || 'المدير العام',
+             email: user.email,
+             role: 'super_admin',
+             isActive: true,
+             permissions: ['view_dashboard', 'manage_orders', 'manage_products', 'manage_customers', 'manage_marketing', 'manage_coupons', 'manage_settings', 'manage_security', 'view_logs', 'manage_logistics', 'manage_messages']
+           }, { merge: true });
         }
 
         localStorage.setItem('admin_auth', 'true');
         localStorage.setItem('admin_email', user.email || '');
         localStorage.setItem('admin_name', userData?.displayName || userData?.name || user.displayName || 'المدير');
-        localStorage.setItem('admin_role', userData?.adminRole || 'admin');
+        localStorage.setItem('admin_role', userData?.adminRole || 'super_admin');
         
         if (rememberMe) {
           localStorage.setItem('admin_remember', 'true');
@@ -84,17 +124,16 @@ export default function AdminLogin() {
         // Not an admin
         await auth.signOut();
         toast.error('ليس لديك صلاحية الوصول للوحة التحكم');
-        logActivity('محاولة دخول فاشلة', `محاولة دخول غير مصرح بها للبريد/الرقم: ${email}`);
+        logActivity('محاولة دخول فاشلة', `محاولة دخول غير مصرح بها للبريد/الرقم: ${loginMode === 'phone' ? (countryCode + phone) : email}`);
       }
     } catch (error: any) {
       console.error('Login error:', error);
-      let message = 'البريد الإلكتروني/رقم الجوال أو كلمة المرور غير صحيحة';
-      if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') message = 'المستخدم غير موجود';
+      let message = 'البيانات غير صحيحة';
+      if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') message = 'المستخدم غير موجود أو البيانات خاطئة';
       if (error.code === 'auth/wrong-password') message = 'كلمة المرور خاطئة';
       if (error.code === 'auth/too-many-requests') message = 'تم حظر المحاولات مؤقتاً، حاول لاحقاً';
       
       toast.error(message);
-      logActivity('محاولة دخول فاشلة', `خطأ في تسجيل الدخول للبريد/الرقم: ${email} - ${error.message}`);
     } finally {
       setIsLoading(false);
     }
@@ -110,25 +149,27 @@ export default function AdminLogin() {
       setIsForgotPassword(false);
       setResetEmail('');
     } catch (error: any) {
-      toast.error('فشل إرسال رابط الاستعادة، تأكد من البريد الإلكتروني');
+      toast.error('فشل إرسال رابط الاستعادة، تأكد من البيانات');
     } finally {
       setIsResetting(false);
     }
   };
 
-  const fillDemoData = () => {
-    const defaultAdmin = adminUsers[0];
-    if (defaultAdmin) {
-      setEmail(defaultAdmin.email);
-      setPassword('admin123');
-    }
-  };
-
-
+  if (isCheckingAuth) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center font-sans" dir="rtl">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-solar rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-gold/20 animate-bounce">
+            <Zap className="w-8 h-8 text-carbon fill-current" />
+          </div>
+          <p className="text-slate-500 font-bold animate-pulse">جاري التحقق من الصلاحيات...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 flex font-sans" dir="rtl">
-      {/* Left Side - Form */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12 relative z-10">
         <div className="w-full max-w-md">
           <motion.div 
@@ -136,10 +177,8 @@ export default function AdminLogin() {
             animate={{ opacity: 1, y: 0 }}
             className="bg-white rounded-[2.5rem] p-8 sm:p-10 shadow-2xl shadow-slate-200/50 border border-slate-100 relative overflow-hidden"
           >
-            {/* Decorative Top Bar */}
             <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-carbon via-solar to-solar" />
             
-            {/* Logo & Header */}
             <div className="text-center mb-10">
               <div className="w-16 h-16 bg-solar rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-gold/20 -rotate-3 hover:rotate-0 transition-transform duration-300">
                 {isForgotPassword ? (
@@ -149,11 +188,11 @@ export default function AdminLogin() {
                 )}
               </div>
               <h1 className="text-2xl font-black text-carbon mb-2 tracking-tight">
-                {isForgotPassword ? 'استعادة كلمة المرور' : 'تسجيل الدخول للإدارة'}
+                {isForgotPassword ? 'استعادة كلمة المرور' : 'لوحة تحكم النخبة'}
               </h1>
               <p className="text-sm text-slate-500 font-bold flex items-center justify-center gap-2">
                 <ShieldCheck className="w-4 h-4 text-emerald-500" />
-                منطقة آمنة ومحمية
+                دخول آمن للمدراء
               </p>
             </div>
 
@@ -168,46 +207,28 @@ export default function AdminLogin() {
                   className="space-y-6"
                 >
                   <p className="text-sm text-slate-500 font-medium text-center mb-6 leading-relaxed">
-                    أدخل بريدك الإلكتروني المسجل لدينا وسنرسل لك رابطاً لإعادة تعيين كلمة المرور الخاصة بك.
+                    أدخل بريدك الإلكتروني المسجل لدينا وسنرسل لك رابطاً لإعادة تعيين كلمة المرور.
                   </p>
-
-                  <div>
-                    <FloatingInput 
-                      id="resetEmail"
-                      label="البريد الإلكتروني"
-                      type="email"
-                      value={resetEmail}
-                      onChange={(e) => setResetEmail(e.target.value)}
-                      icon={<Mail className="w-5 h-5" />}
-                      iconPosition="start"
-                      required
-                      dir="ltr"
-                      className="text-left"
-                    />
-                  </div>
-
+                  <FloatingInput 
+                    id="resetEmail"
+                    label="البريد الإلكتروني"
+                    type="email"
+                    value={resetEmail}
+                    onChange={(e) => setResetEmail(e.target.value)}
+                    icon={<Mail className="w-5 h-5" />}
+                    iconPosition="start"
+                    required
+                    dir="ltr"
+                    className="text-left"
+                  />
                   <button 
                     type="submit"
                     disabled={isResetting}
-                    className="w-full h-14 bg-carbon text-white rounded-2xl font-black text-sm flex items-center justify-center gap-3 hover:bg-slate-800 transition-all shadow-xl shadow-slate-900/10 active:scale-[0.98] disabled:opacity-70 group"
+                    className="w-full h-14 bg-carbon text-white rounded-2xl font-black text-sm flex items-center justify-center gap-3 hover:bg-slate-800 transition-all shadow-xl shadow-slate-900/10"
                   >
-                    {isResetting ? (
-                      <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    ) : (
-                      'إرسال رابط الاستعادة'
-                    )}
+                    {isResetting ? <Loader2 className="animate-spin" /> : 'إرسال الرابط'}
                   </button>
-
-                  <div className="text-center pt-2">
-                    <button 
-                      type="button"
-                      onClick={() => setIsForgotPassword(false)}
-                      className="text-sm font-bold text-slate-500 hover:text-carbon transition-colors flex items-center justify-center gap-2 mx-auto"
-                    >
-                      <ArrowRight className="w-4 h-4" />
-                      العودة لتسجيل الدخول
-                    </button>
-                  </div>
+                  <button type="button" onClick={() => setIsForgotPassword(false)} className="w-full text-center text-sm font-bold text-slate-500">العودة</button>
                 </motion.form>
               ) : (
                 <motion.form 
@@ -218,9 +239,52 @@ export default function AdminLogin() {
                   onSubmit={handleLogin} 
                   className="space-y-6"
                 >
-                  <div>
+                  {/* Login Mode Toggle */}
+                  <div className="flex p-1 bg-slate-100 rounded-xl mb-6">
+                    <button
+                      type="button"
+                      onClick={() => setLoginMode('phone')}
+                      className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all ${loginMode === 'phone' ? 'bg-white shadow-sm text-carbon' : 'text-slate-400 hover:text-slate-600'}`}
+                    >
+                      <Smartphone className="w-4 h-4" />
+                      رقم الهاتف
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setLoginMode('email')}
+                      className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all ${loginMode === 'email' ? 'bg-white shadow-sm text-carbon' : 'text-slate-400 hover:text-slate-600'}`}
+                    >
+                      <Mail className="w-4 h-4" />
+                      البريد الإلكتروني
+                    </button>
+                  </div>
+
+                  {loginMode === 'phone' ? (
+                    <FloatingInput
+                      label="رقم الجوال"
+                      id="adminPhone"
+                      type="tel"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
+                      placeholder="77x xxx xxx"
+                      dir="ltr"
+                      className="tracking-widest text-left"
+                      startElement={
+                        <div className="flex items-center justify-center h-full text-slate-400 font-bold px-4 border-r border-slate-200">
+                          <select 
+                            value={countryCode}
+                            onChange={(e) => setCountryCode(e.target.value)}
+                            className="bg-transparent border-none outline-none text-xs cursor-pointer appearance-none text-center"
+                          >
+                            <option value="+967">🇾🇪 +967</option>
+                            <option value="+966">🇸🇦 +966</option>
+                          </select>
+                        </div>
+                      }
+                    />
+                  ) : (
                     <FloatingInput 
-                      id="email"
+                      id="adminEmail"
                       label="البريد الإلكتروني"
                       type="email"
                       value={email}
@@ -231,115 +295,64 @@ export default function AdminLogin() {
                       dir="ltr"
                       className="text-left"
                     />
-                  </div>
+                  )}
 
-                  <div>
-                    <FloatingInput 
-                      id="password"
-                      label="كلمة المرور"
-                      type={showPassword ? "text" : "password"}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      icon={<Lock className="w-5 h-5" />}
-                      iconPosition="start"
-                      endElement={
-                        <button 
-                          type="button" 
-                          onClick={() => setShowPassword(!showPassword)}
-                          className="p-2 text-slate-400 hover:text-carbon transition-colors"
-                        >
-                          {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                        </button>
-                      }
-                      required
-                      dir="ltr"
-                      className="text-left pr-12"
-                    />
-                  </div>
+                  <FloatingInput 
+                    id="adminPassword"
+                    label="كلمة المرور"
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    icon={<Lock className="w-5 h-5" />}
+                    iconPosition="start"
+                    endElement={
+                      <button type="button" onClick={() => setShowPassword(!showPassword)} className="p-2 text-slate-400">
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    }
+                    required
+                    dir="ltr"
+                    className="text-left"
+                  />
 
-                  {/* Options Row */}
-                  <div className="flex items-center justify-between text-sm">
-                    <label className="flex items-center gap-2 cursor-pointer group">
-                      <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${rememberMe ? 'bg-carbon border-carbon text-white' : 'border-slate-300 group-hover:border-carbon'}`}>
+                  <div className="flex items-center justify-between text-xs">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <div className={`w-4 h-4 rounded border flex items-center justify-center ${rememberMe ? 'bg-carbon border-carbon text-white' : 'border-slate-300'}`}>
                         {rememberMe && <Check className="w-3 h-3" />}
                       </div>
-                      <span className="font-bold text-slate-600 select-none">تذكرني</span>
-                      <input 
-                        type="checkbox" 
-                        className="hidden" 
-                        checked={rememberMe}
-                        onChange={(e) => setRememberMe(e.target.checked)}
-                      />
+                      <span className="font-bold text-slate-500">تذكرني</span>
+                      <input type="checkbox" className="hidden" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} />
                     </label>
-
-                    <button 
-                      type="button" 
-                      onClick={() => setIsForgotPassword(true)}
-                      className="font-bold text-solar hover:text-carbon transition-colors"
-                    >
-                      نسيت كلمة المرور؟
-                    </button>
+                    <button type="button" onClick={() => setIsForgotPassword(true)} className="font-bold text-solar">نسيت كلمة المرور؟</button>
                   </div>
 
                   <button 
                     type="submit"
                     disabled={isLoading}
-                    className="w-full h-14 bg-carbon text-white rounded-2xl font-black text-sm flex items-center justify-center gap-3 hover:bg-slate-800 transition-all shadow-xl shadow-slate-900/10 active:scale-[0.98] disabled:opacity-70 group"
+                    className="w-full h-14 bg-carbon text-white rounded-2xl font-black text-sm flex items-center justify-center gap-3 hover:bg-slate-800 transition-all shadow-xl shadow-slate-900/20 disabled:opacity-70"
                   >
-                    {isLoading ? (
-                      <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    ) : (
-                      <>
-                        الدخول للوحة التحكم
-                        <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
-                      </>
-                    )}
+                    {isLoading ? <Loader2 className="animate-spin" /> : <>الدخول للإدارة <ArrowLeft className="w-5 h-5" /></>}
                   </button>
                 </motion.form>
               )}
             </AnimatePresence>
           </motion.div>
-
-          {/* Back to Store Link */}
-          <div className="mt-8 text-center">
-            <button 
-              onClick={() => navigate('/')}
-              className="text-sm font-bold text-slate-500 hover:text-carbon transition-colors"
-            >
-              العودة للمتجر
-            </button>
-          </div>
+          <div className="mt-8 text-center text-sm font-bold text-slate-400">متجر النخبة © {new Date().getFullYear()}</div>
         </div>
       </div>
 
-      {/* Right Side - Image/Branding (Hidden on mobile) */}
       <div className="hidden lg:block lg:w-1/2 relative overflow-hidden bg-carbon">
         <div className="absolute inset-0 bg-gradient-to-br from-carbon via-slate-900 to-black opacity-90 z-10" />
-        <img 
-          src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&q=80&w=2000" 
-          alt="Dashboard Background" 
-          className="absolute inset-0 w-full h-full object-cover opacity-40 mix-blend-overlay"
-        />
-        
-        {/* Abstract Shapes */}
-        <div className="absolute top-1/4 -right-20 w-96 h-96 bg-solar rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse" />
-        <div className="absolute bottom-1/4 -left-20 w-96 h-96 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse" style={{ animationDelay: '2s' }} />
-
+        <img src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&q=80&w=2000" className="absolute inset-0 w-full h-full object-cover opacity-40 mix-blend-overlay" />
         <div className="relative z-20 h-full flex flex-col items-center justify-center text-white p-12 text-center">
-          <div className="w-24 h-24 bg-white/10 backdrop-blur-md rounded-3xl border border-white/20 flex items-center justify-center mb-8 shadow-2xl">
-            <Zap className="w-12 h-12 text-solar fill-solar" />
+          <div className="w-20 h-20 bg-solar/20 backdrop-blur-md rounded-3xl border border-solar/30 flex items-center justify-center mb-8">
+            <Zap className="w-10 h-10 text-solar fill-solar" />
           </div>
-          <h2 className="text-4xl font-black mb-6 leading-tight">
-            مرحباً بك في <br/>
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-solar to-amber-200">
-              لوحة تحكم النخبة
-            </span>
-          </h2>
-          <p className="text-lg text-slate-300 font-medium max-w-md leading-relaxed">
-            قم بإدارة متجرك، تتبع مبيعاتك، وتواصل مع عملائك من مكان واحد بكل سهولة وأمان.
-          </p>
+          <h2 className="text-3xl font-black mb-4">نظام الإدارة المتطور</h2>
+          <p className="text-slate-400 max-w-sm">تحكم كامل بمتجرك، منتجاتك، وعملائك في منصة واحدة ذكية وسريعة.</p>
         </div>
       </div>
+      <Toaster position="top-center" richColors />
     </div>
   );
 }

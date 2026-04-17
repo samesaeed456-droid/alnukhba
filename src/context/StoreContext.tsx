@@ -1363,12 +1363,18 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setCart([]);
   }, []);
 
-  const updateCoupon = React.useCallback((id: string, updatedData: Partial<Coupon>, showToastMsg = true) => {
-    setCoupons(prev => prev.map(c => c.id === id ? { ...c, ...updatedData } : c));
-    if (showToastMsg) {
-      showToast('تم تحديث الكوبون بنجاح');
+  const updateCoupon = React.useCallback(async (id: string, updatedData: Partial<Coupon>, showToastMsg = true) => {
+    try {
+      await updateDoc(doc(db, 'coupons', id), updatedData);
+      setCoupons(prev => prev.map(c => c.id === id ? { ...c, ...updatedData } : c));
+      if (showToastMsg) {
+        showToast('تم تحديث الكوبون بنجاح');
+      }
+      logActivity('تحديث كوبون', `تم تحديث الكوبون ID: ${id}`);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, 'coupons');
     }
-  }, [showToast]);
+  }, [showToast, logActivity]);
 
   const updateCustomerBalance = React.useCallback(async (phone: string, amount: number, description: string) => {
     try {
@@ -1432,10 +1438,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       });
 
       showToast('تمت إضافة الملاحظة بنجاح');
+      logActivity('إضافة ملاحظة', `تمت إضافة ملاحظة لملف العميل: ${phone}`);
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `users (phone: ${phone})`);
     }
-  }, [showToast]);
+  }, [showToast, logActivity]);
 
   const placeOrder = React.useCallback(async (
     paymentMethod: string, 
@@ -1577,10 +1584,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         updatedAt: serverTimestamp()
       });
       showToast('تم تحديث حالة الطلب');
+      logActivity('تحديث حالة طلب', `تم تحديث حالة الطلب ${orderId} إلى: ${status}`);
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `orders/${orderId}`);
     }
-  }, [showToast]);
+  }, [showToast, logActivity]);
 
   const toggleWishlist = React.useCallback((product: Product) => {
     setWishlist(prev => {
@@ -1726,20 +1734,40 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }
   }, [showToast, logActivity]);
 
-  const deleteCustomer = React.useCallback(async (phone: string) => {
+  const deleteCustomer = React.useCallback(async (identifier: string) => {
     try {
-      const q = query(collection(db, 'users'), where('phone', '==', phone));
-      const snapshot = await getDocs(q);
-      if (snapshot.empty) {
+      if (!identifier) {
+        showToast('معرف العميل غير صالح', 'error');
+        return;
+      }
+
+      let docRef = null;
+      
+      // Try to get by UID first
+      const uidRef = doc(db, 'users', identifier);
+      const uidSnap = await getDoc(uidRef);
+      
+      if (uidSnap.exists()) {
+        docRef = uidRef;
+      } else {
+        // Fallback to phone search
+        const q = query(collection(db, 'users'), where('phone', '==', identifier));
+        const snapshot = await getDocs(q);
+        if (!snapshot.empty) {
+          docRef = snapshot.docs[0].ref;
+        }
+      }
+
+      if (!docRef) {
         showToast('العميل غير موجود', 'error');
         return;
       }
-      const userDoc = snapshot.docs[0];
-      await deleteDoc(userDoc.ref);
+
+      await deleteDoc(docRef);
       showToast('تم حذف العميل بنجاح');
-      logActivity('حذف عميل', `تم حذف العميل ذو الرقم: ${phone}`);
+      logActivity('حذف عميل', `تم حذف العميل: ${identifier}`);
     } catch (error) {
-      handleFirestoreError(error, OperationType.DELETE, `users (phone: ${phone})`);
+      handleFirestoreError(error, OperationType.DELETE, `users: ${identifier}`);
     }
   }, [showToast, logActivity]);
 
@@ -1752,19 +1780,21 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       };
       await setDoc(doc(db, 'coupons', newCoupon.id), newCoupon);
       showToast('تمت إضافة الكوبون بنجاح');
+      logActivity('إضافة كوبون', `تم إضافة كود خصم جديد: ${coupon.code}`);
     } catch (error) {
       handleFirestoreError(error, OperationType.CREATE, 'coupons');
     }
-  }, [showToast]);
+  }, [showToast, logActivity]);
 
   const deleteCoupon = React.useCallback(async (id: string) => {
     try {
       await deleteDoc(doc(db, 'coupons', id));
       showToast('تم حذف الكوبون بنجاح');
+      logActivity('حذف كوبون', `تم حذف كود الخصم بمعرف: ${id}`);
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, 'coupons');
     }
-  }, [showToast]);
+  }, [showToast, logActivity]);
 
   const toggleCouponStatus = React.useCallback(async (id: string) => {
     try {
@@ -1772,11 +1802,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       if (coupon) {
         await updateDoc(doc(db, 'coupons', id), { isActive: !coupon.isActive });
         showToast('تم تغيير حالة الكوبون');
+        logActivity('تحديث كوبون', `تم إيقاف/تفعيل كود الخصم: ${coupon.code}`);
       }
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, 'coupons');
     }
-  }, [coupons, showToast]);
+  }, [coupons, showToast, logActivity]);
 
   const applyDiscountCode = React.useCallback((code: string) => {
     const upperCode = code.toUpperCase();
@@ -1947,10 +1978,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         createdAt: serverTimestamp()
       });
       showToast('تم إضافة المنتج بنجاح');
+      logActivity('إضافة منتج', `تم إضافة المنتج الجديد: ${product.name}`);
     } catch (error) {
       handleFirestoreError(error, OperationType.CREATE, 'products');
     }
-  }, [showToast]);
+  }, [showToast, logActivity]);
 
   const updateProduct = React.useCallback(async (id: string, updatedData: Partial<Product>) => {
     try {
@@ -1959,19 +1991,21 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         updatedAt: serverTimestamp()
       });
       showToast('تم تحديث المنتج بنجاح');
+      logActivity('تحديث منتج', `تم تحديث بيانات المنتج ID: ${id}`);
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `products/${id}`);
     }
-  }, [showToast]);
+  }, [showToast, logActivity]);
 
   const deleteProduct = React.useCallback(async (id: string) => {
     try {
       await deleteDoc(doc(db, 'products', String(id)));
       showToast('تم حذف المنتج بنجاح');
+      logActivity('حذف منتج', `تم حذف المنتج ID: ${id}`);
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, `products/${id}`);
     }
-  }, [showToast]);
+  }, [showToast, logActivity]);
 
   const addCategory = React.useCallback(async (category: Omit<Category, 'id'>) => {
     try {

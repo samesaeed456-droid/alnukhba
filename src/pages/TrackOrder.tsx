@@ -33,7 +33,7 @@ export default function TrackOrder() {
     // Simulate a slight delay for "professional" feel
     setTimeout(() => {
       setIsTracking(false);
-      const foundOrder = orders.find(o => o.id.toLowerCase() === trackId.toLowerCase());
+      const foundOrder = orders.find(o => (o.id || '').toLowerCase() === trackId.toLowerCase());
       if (foundOrder) {
         setTrackedOrder(foundOrder);
         setOrderStatus('tracking');

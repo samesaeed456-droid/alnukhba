@@ -604,9 +604,9 @@ export default function Customers() {
               animate="visible"
               className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6"
             >
-              {filteredCustomers.map((customer) => (
+              {filteredCustomers.map((customer, index) => (
                 <motion.div
-                  key={customer.phone || customer.name}
+                  key={customer.uid || customer.phone || index}
                   layout
                   variants={itemVariants}
                   onClick={() => handleViewProfile(customer)}
@@ -620,7 +620,7 @@ export default function Customers() {
                           isOpen: true,
                           title: 'حذف العميل',
                           message: `هل أنت متأكد من حذف العميل "${customer.name}"؟ لا يمكن التراجع عن هذا الإجراء وسيتم حذف جميع بياناته.`,
-                          onConfirm: () => deleteCustomer(customer.phone),
+                          onConfirm: () => deleteCustomer(customer.uid || customer.phone || ''),
                           type: 'danger',
                           confirmText: 'حذف العميل'
                         });
@@ -640,7 +640,7 @@ export default function Customers() {
                       {customer.avatar ? (
                         <img src={customer.avatar || undefined} alt={customer.name} className="w-full h-full object-cover absolute inset-0 z-10" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                       ) : null}
-                      <span className="relative z-0">{customer.name.charAt(0).toUpperCase()}</span>
+                      <span className="relative z-0">{(customer.name || customer.phone || '?').charAt(0).toUpperCase()}</span>
                     </div>
                     <div className="flex-1 min-w-0">
                       <h3 className="text-lg font-black text-carbon truncate">{customer.name}</h3>
@@ -746,8 +746,8 @@ export default function Customers() {
           const userOrders = orders.filter(o => o.userId === customer.name || o.customerPhone === customer.phone);
           
           const filteredOrders = userOrders.filter(o => 
-            o.id.toLowerCase().includes(orderSearchTerm.toLowerCase()) ||
-            o.total.toString().includes(orderSearchTerm)
+            (o.id || '').toLowerCase().includes(orderSearchTerm.toLowerCase()) ||
+            (o.total || 0).toString().includes(orderSearchTerm)
           );
 
           const averageOrderValue = userOrders.length > 0 
@@ -864,7 +864,10 @@ export default function Customers() {
                                     isOpen: true,
                                     title: 'حذف الحساب',
                                     message: `هل أنت متأكد من حذف حساب العميل "${customer.name}" بشكل نهائي؟`,
-                                    onConfirm: () => deleteCustomer(customer.phone),
+                                    onConfirm: () => {
+                                      setIsProfileModalOpen(false);
+                                      deleteCustomer(customer.uid || customer.phone || '');
+                                    },
                                     type: 'danger',
                                     confirmText: 'حذف نهائي'
                                   });
@@ -895,7 +898,7 @@ export default function Customers() {
                             {customer.avatar ? (
                               <img src={customer.avatar || undefined} alt={customer.name} className="w-full h-full object-cover" />
                             ) : (
-                              <span>{customer.name.charAt(0).toUpperCase()}</span>
+                              <span>{(customer.name || customer.phone || '?').charAt(0).toUpperCase()}</span>
                             )}
                           </div>
                         </div>
@@ -1363,7 +1366,7 @@ export default function Customers() {
                 </div>
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center text-2xl font-black">
-                    {balanceAction.customer?.name.charAt(0)}
+                    {(balanceAction.customer?.name || balanceAction.customer?.phone || '?').charAt(0)}
                   </div>
                   <div className="text-right">
                     <p className="font-bold">{balanceAction.customer?.name}</p>

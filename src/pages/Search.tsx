@@ -70,9 +70,9 @@ export default function Search() {
     return products.filter(p => {
       const searchTerms = debouncedQuery.toLowerCase().trim();
       const matchesQuery = !searchTerms || 
-                           p.name.toLowerCase().includes(searchTerms) || 
-                           p.brand.toLowerCase().includes(searchTerms) ||
-                           p.category.toLowerCase().includes(searchTerms);
+                           (p.name || '').toLowerCase().includes(searchTerms) || 
+                           (p.brand || '').toLowerCase().includes(searchTerms) ||
+                           (p.category || '').toLowerCase().includes(searchTerms);
       const matchesCategory = selectedCategory === 'الكل' || p.category === selectedCategory;
       const matchesPrice = p.price >= priceRange[0] && p.price <= priceRange[1];
       

@@ -79,7 +79,7 @@ export default function InstallPrompt() {
                 <img src={settings.storeLogo || undefined} alt={settings.storeName} className="w-16 h-16 object-contain" />
               ) : (
                 <div className="w-16 h-16 flex items-center justify-center text-4xl font-black" style={{ color: settings.primaryColor }}>
-                  {settings.storeName.charAt(0)}
+                  {(settings?.storeName || '?').charAt(0)}
                 </div>
               )}
             </div>

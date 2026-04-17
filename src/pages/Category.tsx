@@ -35,8 +35,8 @@ export default function Category() {
     return categoryProducts.filter(p => {
       const matchesBrand = selectedBrand === 'الكل' || p.brand === selectedBrand;
       const matchesSearch = !searchQuery.trim() || 
-                            p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                            p.brand.toLowerCase().includes(searchQuery.toLowerCase());
+                            (p.name || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
+                            (p.brand || '').toLowerCase().includes(searchQuery.toLowerCase());
       return matchesBrand && matchesSearch;
     });
   }, [categoryProducts, selectedBrand, searchQuery]);

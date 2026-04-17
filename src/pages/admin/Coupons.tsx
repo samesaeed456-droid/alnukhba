@@ -23,7 +23,7 @@ export default function Coupons() {
   });
 
   const filteredCoupons = coupons.filter(coupon => 
-    coupon.code.toLowerCase().includes(searchTerm.toLowerCase())
+    (coupon.code || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleOpenModal = (coupon?: Coupon) => {

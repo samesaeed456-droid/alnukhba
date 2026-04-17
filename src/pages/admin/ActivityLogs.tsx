@@ -24,11 +24,11 @@ export default function ActivityLogs() {
   const filteredLogs = useMemo(() => {
     return activityLogs.filter(log => {
       const matchesSearch = 
-        log.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        log.action.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        log.details.toLowerCase().includes(searchTerm.toLowerCase());
+        (log.userName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (log.action || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (log.details || '').toLowerCase().includes(searchTerm.toLowerCase());
       
-      const matchesAction = actionFilter === 'all' || log.action.includes(actionFilter);
+      const matchesAction = actionFilter === 'all' || (log.action || '').includes(actionFilter);
       
       let matchesDate = true;
       if (dateFilter !== 'all') {
@@ -177,7 +177,7 @@ export default function ActivityLogs() {
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <div className="w-9 h-9 rounded-full bg-solar/10 flex items-center justify-center text-solar font-bold text-sm">
-                            {log.userName.charAt(0)}
+                            {(log.userName || '؟').charAt(0)}
                           </div>
                           <span className="font-bold text-carbon">{log.userName}</span>
                         </div>
@@ -228,7 +228,7 @@ export default function ActivityLogs() {
                   <div className="flex justify-between items-start">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-solar/10 flex items-center justify-center text-solar font-bold text-sm">
-                        {log.userName.charAt(0)}
+                        {(log.userName || '؟').charAt(0)}
                       </div>
                       <div>
                         <span className="font-bold text-carbon block">{log.userName}</span>

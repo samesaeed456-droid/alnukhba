@@ -65,6 +65,8 @@ service cloud.firestore {
         (incoming().walletBalance == existing().walletBalance || isAdmin()) &&
         isValidUser(incoming())
       );
+      
+      allow delete: if isAdmin();
     }
 
     match /admin_users/{adminId} {

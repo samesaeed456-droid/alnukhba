@@ -55,9 +55,9 @@ const Messages = () => {
     return supportTickets
       .filter(msg => {
         const matchesSearch = 
-          msg.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          msg.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          msg.message.toLowerCase().includes(searchTerm.toLowerCase());
+          (msg.customerName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (msg.subject || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (msg.message || '').toLowerCase().includes(searchTerm.toLowerCase());
         
         let matchesFilter = true;
         if (statusFilter === 'غير مقروءة') matchesFilter = msg.status === 'open';

@@ -506,7 +506,7 @@ export default function AdminLayout() {
                     <span className="text-[9px] font-bold text-emerald-500 block uppercase tracking-widest">{roleLabels[adminRole] || 'مدير'}</span>
                   </div>
                   <div className="w-9 h-9 rounded-xl bg-slate-900 flex items-center justify-center text-white font-black shadow-lg shadow-slate-900/20 border-2 border-white ring-1 ring-slate-100 group-hover:scale-105 transition-transform">
-                    {adminName.charAt(0)}
+                    {(adminName || '?').charAt(0)}
                   </div>
                 </button>
               </div>

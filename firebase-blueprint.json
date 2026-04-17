@@ -2,61 +2,122 @@
   "entities": {
     "User": {
       "title": "User",
-      "description": "User profile and private data",
+      "description": "User profile with role-based access control",
       "type": "object",
       "properties": {
         "uid": { "type": "string" },
         "email": { "type": "string", "format": "email" },
-        "displayName": { "type": "string" },
-        "photoURL": { "type": "string" },
+        "name": { "type": "string" },
+        "phone": { "type": "string" },
         "role": { "type": "string", "enum": ["admin", "user"] },
+        "adminRole": { "type": "string" },
         "walletBalance": { "type": "number" },
-        "createdAt": { "type": "string", "format": "date-time" }
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["uid", "email", "role"]
     },
+    "AdminUser": {
+      "title": "AdminUser",
+      "description": "Internal administration staff account",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "phone": { "type": "string" },
+        "countryCode": { "type": "string" },
+        "password": { "type": "string" },
+        "role": { "type": "string" },
+        "isActive": { "type": "boolean" },
+        "permissions": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "name", "email", "role"]
+    },
     "Product": {
       "title": "Product",
-      "description": "E-commerce product",
+      "description": "Inventory product items",
       "type": "object",
       "properties": {
         "id": { "type": "string" },
         "name": { "type": "string" },
         "price": { "type": "number" },
-        "stock": { "type": "number" },
+        "stockCount": { "type": "number" },
         "category": { "type": "string" },
         "image": { "type": "string" },
-        "description": { "type": "string" }
+        "description": { "type": "string" },
+        "inStock": { "type": "boolean" }
       },
-      "required": ["name", "price", "stock"]
+      "required": ["name", "price", "stockCount"]
     },
     "Order": {
       "title": "Order",
-      "description": "Customer order",
+      "description": "Customer purchase transaction",
       "type": "object",
       "properties": {
         "id": { "type": "string" },
         "userId": { "type": "string" },
         "items": { "type": "array" },
         "total": { "type": "number" },
+        "subtotal": { "type": "number" },
         "status": { "type": "string", "enum": ["pending", "processing", "shipped", "delivered", "cancelled"] },
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["userId", "items", "total", "status"]
+    },
+    "Coupon": {
+      "title": "Coupon",
+      "description": "Discount voucher",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "code": { "type": "string" },
+        "discount": { "type": "number" },
+        "type": { "type": "string" },
+        "expiryDate": { "type": "string" },
+        "isActive": { "type": "boolean" }
+      },
+      "required": ["code", "discount"]
+    },
+    "Settings": {
+      "title": "Settings",
+      "description": "System configuration documents",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "data": { "type": "object" }
+      }
     }
   },
   "firestore": {
     "/users/{userId}": {
       "schema": "User",
-      "description": "Private user profiles"
+      "description": "Core user accounts"
+    },
+    "/admin_users/{adminId}": {
+      "schema": "AdminUser",
+      "description": "Staff and staff permissions"
     },
     "/products/{productId}": {
       "schema": "Product",
-      "description": "Store products"
+      "description": "Store inventory"
     },
     "/orders/{orderId}": {
       "schema": "Order",
-      "description": "Customer orders"
+      "description": "Customer transactions"
+    },
+    "/coupons/{couponId}": {
+      "schema": "Coupon",
+      "description": "Promotional discounts"
+    },
+    "/settings/{settingsId}": {
+      "schema": "Settings",
+      "description": "Site-wide configuration"
+    },
+    "/activityLogs/{logId}": {
+      "schema": { "type": "object" },
+      "description": "Administrative activity tracking"
     }
   }
 }

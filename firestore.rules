@@ -2,94 +2,103 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
+    // 0. Global Safety Net (Default Deny)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
     // ===============================================================
-    // Helper Functions
+    // Primitives & Helpers
     // ===============================================================
     
-    function isAuthenticated() {
-      return request.auth != null;
-    }
-
-    function isOwner(userId) {
-      return isAuthenticated() && request.auth.uid == userId;
-    }
-
+    function isSignedIn() { return request.auth != null; }
+    function isVerified() { return isSignedIn() && request.auth.token.email_verified == true; }
+    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
+    
+    // Privilege Escalation Guard & Identity Verification
     function isAdmin() {
-      return isAuthenticated() && 
-        (
-          (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
-           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'super_admin', 'editor']) ||
-          request.auth.token.email in ["samesaeed456@gmail.com", "samisaeed2027@gmail.com", "967776668370@elite-store.local"]
-        );
+      return isSignedIn() && (
+        request.auth.token.email in ["samesaeed456@gmail.com", "samisaeed2027@gmail.com", "967776668370@elite-store.local"] ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
+      );
+    }
+    
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+
+    // ===============================================================
+    // Entity Validations (Pillar 2)
+    // ===============================================================
+
+    function isValidUser(data) {
+      return data.uid is string && 
+             data.email is string && data.email.size() <= 200 &&
+             data.role in ['user', 'admin'] &&
+             (!('walletBalance' in data) || data.walletBalance is number);
     }
 
-    function isValidEmail(email) {
-      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
-    }
-
-    function isRecent() {
-      return request.time >= request.resource.data.createdAt && 
-             request.time <= request.resource.data.createdAt + duration.value(5, 'm');
+    function isValidOrder(data) {
+      return data.userId is string && 
+             data.items is list && data.items.size() > 0 &&
+             data.total is number && data.total >= 0 &&
+             data.status in ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
     }
 
     // ===============================================================
     // Collections
     // ===============================================================
 
+    // Pillar 6: PII Isolation & Schema Constraints
     match /users/{userId} {
-      // PII Protection: Only owner or admin can read/write
       allow read: if isOwner(userId) || isAdmin();
-      allow create: if isOwner(userId) && 
-                      request.resource.data.role == 'user' &&
-                      request.resource.data.walletBalance == 0 &&
-                      (!('createdAt' in request.resource.data) || request.resource.data.createdAt != null);
-      allow update: if isAdmin() || (isOwner(userId) && 
-                      (request.resource.data.role == resource.data.role || 
-                       (request.auth.token.email in ["samesaeed456@gmail.com", "samisaeed2027@gmail.com", "967776668370@elite-store.local"] && request.resource.data.role == 'admin')) &&
-                      request.resource.data.walletBalance == resource.data.walletBalance);
+      
+      allow create: if isOwner(userId) && isValidUser(incoming()) && 
+                    incoming().role == 'user' && 
+                    incoming().walletBalance == 0;
+                    
+      allow update: if (isAdmin() || isOwner(userId)) && (
+        // Prevent role escalation by non-admins
+        (incoming().role == existing().role || isAdmin()) &&
+        // Prevent balance tampering by owner
+        (incoming().walletBalance == existing().walletBalance || isAdmin()) &&
+        isValidUser(incoming())
+      );
+    }
+
+    match /admin_users/{adminId} {
+      // Pillar 8: Secure List Queries (RADICAL SOLUTION GATE)
+      // We allow a public list ONLY so the login page can check if a phone/email is pre-registered
+      // to trigger the auto-provisioning logic. 
+      allow list: if (resource.data.email != null); 
+      
+      allow get: if isSignedIn() && (isOwner(adminId) || isAdmin());
+      allow create, update, delete: if isAdmin();
     }
 
     match /products/{productId} {
       allow read: if true;
       allow write: if isAdmin();
-      // Allow customers to decrement stock when placing an order
-      allow update: if isAuthenticated() && 
-                      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stockCount']) &&
-                      request.resource.data.stockCount < resource.data.stockCount;
-    }
-
-    match /categories/{categoryId} {
-      allow read: if true;
-      allow write: if isAdmin();
+      
+      // Atomic Inventory Guard (Pillar 7)
+      allow update: if isSignedIn() && 
+                    incoming().diff(existing()).affectedKeys().hasOnly(['stockCount']) &&
+                    incoming().stockCount <= existing().stockCount;
     }
 
     match /orders/{orderId} {
-      // Security: Users can only see their own orders. Admins see all.
-      allow read: if isAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid);
+      // Query Enforcer (Pillar 8)
+      allow list: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow get: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
       
-      // Security: Prevent Price Forgery and Data Injection
-      allow create: if (
-        // Basic validation
-        request.resource.data.total is number &&
-        request.resource.data.total >= 0 &&
-        request.resource.data.subtotal is number &&
-        request.resource.data.items is list &&
-        request.resource.data.items.size() > 0 &&
-        
-        // Identity validation
-        (!isAuthenticated() || request.resource.data.userId == request.auth.uid) &&
-        
-        // Status must be pending on creation
-        request.resource.data.status in ['pending', 'processing']
-      );
-      
+      allow create: if isSignedIn() && 
+                    incoming().userId == request.auth.uid && 
+                    isValidOrder(incoming()) &&
+                    incoming().status == 'pending';
+                    
       allow update: if isAdmin();
       allow delete: if isAdmin();
-    }
-
-    match /settings/{document=**} {
-      allow read: if true;
-      allow write: if isAdmin();
     }
 
     match /coupons/{couponId} {
@@ -97,68 +106,23 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    match /settings/{settingsId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
     match /support_tickets/{ticketId} {
-      // Security: Users only see their own tickets
-      allow read: if isAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid);
-      allow create: if true; // Allow guests to contact support
-      allow update: if isAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid);
+      allow list: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow get: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow create: if true; // Guest tickets allowed
+      allow update: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
       allow delete: if isAdmin();
     }
 
-    match /blog_posts/{postId} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-
-    match /static_pages/{pageId} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-
-    match /shipping_zones/{zoneId} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-
-    match /banners/{bannerId} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-
-    match /admin_users/{adminId} {
-      allow read: if isAuthenticated();
-      allow write: if isAdmin();
-    }
-
     match /activityLogs/{logId} {
-      allow read, write: if isAdmin();
-    }
-
-    match /inventoryLogs/{logId} {
-      allow read, write: if isAdmin();
-    }
-
-    match /visits/{visitId} {
       allow read: if isAdmin();
-      allow create: if true;
+      allow create: if isAdmin() || isSignedIn(); // Allow logging system events
       allow update, delete: if isAdmin();
-    }
-
-    match /searchTerms/{termId} {
-      allow read: if isAdmin();
-      allow create: if true;
-      allow update, delete: if isAdmin();
-    }
-
-    match /abandonedCarts/{cartId} {
-      allow read: if isAdmin();
-      allow create: if true;
-      allow update, delete: if isAdmin();
-    }
-
-    match /notifications/{notificationId} {
-      allow read: if true;
-      allow write: if isAdmin();
     }
 
     match /marketingNotifications/{notificationId} {

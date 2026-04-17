@@ -256,6 +256,8 @@ const StoreUIContext = createContext<StoreUI | undefined>(undefined);
 
 import { migrateLocalDataToFirebase } from '../lib/migrateData';
 
+import { getAdminDummyEmail } from '../lib/adminAuth';
+
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [products, setProducts] = useState<Product[]>(() => {
     const saved = localStorage.getItem('store_products');
@@ -1269,10 +1271,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
       // Secretly convert phone to dummy email if no email provided but phone exists
       if (!finalAdmin.email && finalAdmin.phone && finalAdmin.countryCode) {
-        const cleanPhone = finalAdmin.phone.replace(/\D/g, '');
-        const cleanCountry = finalAdmin.countryCode.replace(/\D/g, '');
-        const normalizedPhone = cleanPhone.startsWith('0') ? cleanPhone.substring(1) : cleanPhone;
-        finalAdmin.email = `${cleanCountry}${normalizedPhone}@elite-store.local`;
+        finalAdmin.email = getAdminDummyEmail(finalAdmin.phone, finalAdmin.countryCode);
       }
 
       await setDoc(newAdminRef, {
@@ -1294,10 +1293,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
       // Handle phone to email conversion on update if phone changes
       if (finalData.phone && finalData.countryCode && !finalData.email) {
-        const cleanPhone = finalData.phone.replace(/\D/g, '');
-        const cleanCountry = finalData.countryCode.replace(/\D/g, '');
-        const normalizedPhone = cleanPhone.startsWith('0') ? cleanPhone.substring(1) : cleanPhone;
-        finalData.email = `${cleanCountry}${normalizedPhone}@elite-store.local`;
+        finalData.email = getAdminDummyEmail(finalData.phone, finalData.countryCode);
       }
 
       await updateDoc(doc(db, 'admin_users', id), {

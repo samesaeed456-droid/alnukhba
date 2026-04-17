@@ -6,8 +6,9 @@ import { FloatingInput } from '../../components/FloatingInput';
 import { Toaster, toast } from 'sonner';
 import { useStore } from '../../context/StoreContext';
 import { 
-  auth, db, doc, getDoc, loginWithEmail 
+  auth, db, doc, getDoc, loginWithEmail, signupWithEmail 
 } from '../../lib/firebase';
+import { getAdminDummyEmail } from '../../lib/adminAuth';
 
 export default function AdminLogin() {
   const navigate = useNavigate();
@@ -63,24 +64,77 @@ export default function AdminLogin() {
     return () => unsubscribe();
   }, [navigate]);
 
-  const getDummyEmail = (p: string, c: string) => {
-    const cleanPhone = p.replace(/\D/g, '');
-    const cleanCountry = c.replace(/\D/g, '');
-    const normalizedPhone = cleanPhone.startsWith('0') ? cleanPhone.substring(1) : cleanPhone;
-    return `${cleanCountry}${normalizedPhone}@elite-store.local`;
-  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      const loginEmail = getDummyEmail(phone, countryCode);
-      const result = await loginWithEmail(loginEmail, password);
+      const loginEmail = getAdminDummyEmail(phone, countryCode);
+      let result;
+      
+      try {
+        result = await loginWithEmail(loginEmail, password);
+      } catch (authError: any) {
+        // RADICAL SOLUTION: If user doesn't exist in Auth, check if they were pre-registered by Super Admin
+        if (authError.code === 'auth/user-not-found' || authError.code === 'auth/invalid-credential') {
+          const { collection, getDocs, query, where } = await import('../../lib/firebase');
+          const adminsRef = collection(db, 'admin_users');
+          const q = query(adminsRef, where('email', '==', loginEmail));
+          const querySnapshot = await getDocs(q);
+          
+          if (!querySnapshot.empty) {
+            const adminDoc = querySnapshot.docs[0].data();
+            // Verify password matches the one set by Admin (in real app, use hashing)
+            if (adminDoc.password === password) {
+              // Create the Auth account on the fly!
+              result = await signupWithEmail(loginEmail, password);
+            } else {
+              throw authError; // Password mismatch
+            }
+          } else {
+            throw authError; // No such admin pre-registered
+          }
+        } else {
+          throw authError;
+        }
+      }
+
       const user = result.user;
       
+      // Sync user profile to ensure they have the admin role in the main users collection
       const userDoc = await getDoc(doc(db, 'users', user.uid));
-      const userData = userDoc.data();
+      let userData = userDoc.data();
+      
+      // If user document doesn't exist or isn't admin, check admin_users for their details
+      if (!userData || userData.role !== 'admin') {
+        const { collection, getDocs, query, where, updateDoc, setDoc } = await import('../../lib/firebase');
+        const adminsRef = collection(db, 'admin_users');
+        const q = query(adminsRef, where('email', '==', user.email));
+        const querySnapshot = await getDocs(q);
+        
+        if (!querySnapshot.empty) {
+          const adminData = querySnapshot.docs[0].data();
+          
+          // Ensure role is 'admin' in users collection
+          if (!userData) {
+            userData = {
+              uid: user.uid,
+              email: user.email || '',
+              name: adminData.name,
+              displayName: adminData.name,
+              role: 'admin',
+              adminRole: adminData.role,
+              createdAt: new Date().toISOString()
+            };
+            await setDoc(doc(db, 'users', user.uid), userData);
+          } else {
+            await updateDoc(doc(db, 'users', user.uid), { role: 'admin', adminRole: adminData.role });
+            userData.role = 'admin';
+            userData.adminRole = adminData.role;
+          }
+        }
+      }
       
       const isAuthorizedAdmin = userData?.role === 'admin';
 

@@ -15,7 +15,7 @@ import { smsService } from '../services/smsService';
 
 import { 
   auth, db, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc, collection, query, where, onSnapshot, 
-  onAuthStateChanged, serverTimestamp, increment, OperationType, handleFirestoreError, getDocFromServer 
+  onAuthStateChanged, serverTimestamp, increment, OperationType, handleFirestoreError, getDocFromServer, writeBatch 
 } from '../lib/firebase';
 
 interface StoreContextType {
@@ -484,6 +484,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setAbandonedCarts(cartsData);
     }, (error) => handleFirestoreError(error, OperationType.LIST, 'abandonedCarts'));
 
+    const unsubInventoryLogs = onSnapshot(collection(db, 'inventory_logs'), (snapshot) => {
+      const logsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as InventoryLog[];
+      setInventoryLogs(logsData.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 1000));
+    }, (error) => handleFirestoreError(error, OperationType.LIST, 'inventory_logs'));
+
     return () => {
       unsubCustomers();
       unsubLogs();
@@ -492,6 +497,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       unsubVisits();
       unsubSearchTerms();
       unsubAbandonedCarts();
+      unsubInventoryLogs();
     };
   }, [user]);
 
@@ -1073,74 +1079,114 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }
   }, [logActivity]);
 
-  const trackSearch = React.useCallback((term: string, resultsCount: number) => {
-    setSearchTerms(prev => {
-      const existing = prev.find(t => t.term === term);
-      if (existing) {
-        return prev.map(t => t.term === term ? { ...t, count: t.count + 1, resultsCount, lastSearched: new Date().toISOString() } : t);
+  const trackSearch = React.useCallback(async (term: string, resultsCount: number) => {
+    try {
+      const q = query(collection(db, 'searchTerms'), where('term', '==', term));
+      const snapshot = await getDocs(q);
+      
+      if (!snapshot.empty) {
+        const docRef = snapshot.docs[0].ref;
+        const data = snapshot.docs[0].data();
+        await updateDoc(docRef, {
+          count: (data.count || 0) + 1,
+          resultsCount,
+          lastSearched: new Date().toISOString(),
+          updatedAt: serverTimestamp()
+        });
+      } else {
+        await addDoc(collection(db, 'searchTerms'), {
+          term,
+          count: 1,
+          resultsCount,
+          lastSearched: new Date().toISOString(),
+          createdAt: serverTimestamp()
+        });
       }
-      return [...prev, { term, count: 1, resultsCount, lastSearched: new Date().toISOString() }];
-    });
+    } catch (error) {
+      console.error('Failed to track search:', error);
+    }
   }, []);
 
-  const trackVisit = React.useCallback((page: string) => {
-    const sessionId = sessionStorage.getItem('store_session_id') || Math.random().toString(36).substr(2, 9);
-    if (!sessionStorage.getItem('store_session_id')) {
-      sessionStorage.setItem('store_session_id', sessionId);
+  const trackVisit = React.useCallback(async (page: string) => {
+    try {
+      const sessionId = sessionStorage.getItem('store_session_id') || Math.random().toString(36).substr(2, 9);
+      if (!sessionStorage.getItem('store_session_id')) {
+        sessionStorage.setItem('store_session_id', sessionId);
+      }
+
+      const isUnique = !localStorage.getItem('store_visited_before');
+      if (isUnique) {
+        localStorage.setItem('store_visited_before', 'true');
+      }
+
+      const ua = navigator.userAgent;
+      let browser = 'Other';
+      if (ua.includes('Chrome')) browser = 'Chrome';
+      else if (ua.includes('Safari')) browser = 'Safari';
+      else if (ua.includes('Firefox')) browser = 'Firefox';
+      else if (ua.includes('Edge')) browser = 'Edge';
+
+      let os = 'Other';
+      if (ua.includes('Windows')) os = 'Windows';
+      else if (ua.includes('Mac')) os = 'MacOS';
+      else if (ua.includes('Android')) os = 'Android';
+      else if (ua.includes('iPhone') || ua.includes('iPad')) os = 'iOS';
+
+      let device: 'mobile' | 'desktop' | 'tablet' = 'desktop';
+      if (/Mobi|Android/i.test(ua)) device = 'mobile';
+      else if (/Tablet|iPad/i.test(ua)) device = 'tablet';
+
+      const visitData = {
+        sessionId,
+        timestamp: new Date().toISOString(),
+        page,
+        referrer: document.referrer || 'Direct',
+        device,
+        browser,
+        os,
+        country: 'اليمن',
+        city: 'صنعاء',
+        duration: 0,
+        isUnique,
+        createdAt: serverTimestamp()
+      };
+
+      await addDoc(collection(db, 'visits'), visitData);
+    } catch (error) {
+      console.error('Failed to track visit:', error);
     }
-
-    const isUnique = !localStorage.getItem('store_visited_before');
-    if (isUnique) {
-      localStorage.setItem('store_visited_before', 'true');
-    }
-
-    // Basic browser/OS detection
-    const ua = navigator.userAgent;
-    let browser = 'Other';
-    if (ua.includes('Chrome')) browser = 'Chrome';
-    else if (ua.includes('Safari')) browser = 'Safari';
-    else if (ua.includes('Firefox')) browser = 'Firefox';
-    else if (ua.includes('Edge')) browser = 'Edge';
-
-    let os = 'Other';
-    if (ua.includes('Windows')) os = 'Windows';
-    else if (ua.includes('Mac')) os = 'MacOS';
-    else if (ua.includes('Android')) os = 'Android';
-    else if (ua.includes('iPhone') || ua.includes('iPad')) os = 'iOS';
-
-    let device: 'mobile' | 'desktop' | 'tablet' = 'desktop';
-    if (/Mobi|Android/i.test(ua)) device = 'mobile';
-    else if (/Tablet|iPad/i.test(ua)) device = 'tablet';
-
-    const newVisit: Visit = {
-      id: Math.random().toString(36).substr(2, 9),
-      sessionId,
-      timestamp: new Date().toISOString(),
-      page,
-      referrer: document.referrer || 'Direct',
-      device,
-      browser,
-      os,
-      country: 'اليمن', // Default for demo
-      city: 'صنعاء', // Default for demo
-      duration: 0, // Will be updated if we track session end
-      isUnique
-    };
-
-    setVisits(prev => [...prev, newVisit]);
   }, []);
 
-  const bulkUpdatePrices = React.useCallback((category: string, percentage: number) => {
-    setProducts(prev => prev.map(p => {
-      if (category === 'الكل' || p.category === category) {
-        const newPrice = Math.round(p.price * (1 + percentage / 100));
-        return { ...p, price: newPrice, originalPrice: p.price };
+  const bulkUpdatePrices = React.useCallback(async (category: string, percentage: number) => {
+    try {
+      const batch = writeBatch(db);
+      let count = 0;
+
+      products.forEach(p => {
+        if (category === 'الكل' || p.category === category) {
+          const newPrice = Math.round(p.price * (1 + percentage / 100));
+          const pRef = doc(db, 'products', p.id);
+          batch.update(pRef, {
+            price: newPrice,
+            originalPrice: p.price,
+            updatedAt: serverTimestamp()
+          });
+          count++;
+        }
+      });
+
+      if (count > 0) {
+        await batch.commit();
+        logActivity('تحديث أسعار جماعي', `تم تغيير أسعار ${count} منتج في قسم ${category} بنسبة ${percentage}%`);
+        showToast('تم تحديث الأسعار بنجاح', 'success');
+      } else {
+        showToast('لا توجد منتجات لتحديثها في هذا القسم', 'info');
       }
-      return p;
-    }));
-    logActivity('تحديث أسعار جماعي', `تم تغيير أسعار قسم ${category} بنسبة ${percentage}%`);
-    showToast('تم تحديث الأسعار بنجاح', 'success');
-  }, [logActivity, showToast]);
+    } catch (error) {
+      console.error('Bulk price update failed:', error);
+      showToast('فشل تحديث الأسعار جماعياً', 'error');
+    }
+  }, [products, logActivity, showToast]);
 
   const addBanner = React.useCallback(async (banner: Omit<Banner, 'id'>) => {
     try {
@@ -1947,8 +1993,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     showToast('تم الاشتراك في التنبيهات بنجاح');
   }, [subscriptions, showToast]);
 
-  const markNotificationAsRead = React.useCallback((id: string) => {
-    setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
+  const markNotificationAsRead = React.useCallback(async (id: string) => {
+    try {
+      setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
+      // Optionally sync to Firestore if notification is user-specific
+      // Currently notifications appear to be local or pushed via marketing_notifications
+    } catch (error) {
+      console.error('Failed to mark notification as read:', error);
+    }
   }, []);
 
   const updateNotificationSettings = React.useCallback((newSettings: Partial<NotificationSettings>) => {
@@ -1968,80 +2020,97 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     showToast(lang === 'ar' ? 'تم تغيير اللغة إلى العربية' : 'Language changed to English');
   }, [showToast]);
 
-  const updateStock = React.useCallback((productId: string, newStock: number, reason: string = 'تحديث يدوي') => {
-    setProducts(prev => {
-      const product = prev.find(p => p.id === productId);
-      if (!product) return prev;
+  const updateStock = React.useCallback(async (productId: string, newStock: number, reason: string = 'تحديث يدوي') => {
+    try {
+      const product = products.find(p => p.id === productId);
+      if (!product) return;
 
       const previousStock = product.stockCount || 0;
       const change = newStock - previousStock;
 
-      if (change === 0) return prev;
+      if (change === 0) return;
 
-      // Create log
-      const log: InventoryLog = {
-        id: crypto.randomUUID(),
+      const batch = writeBatch(db);
+
+      // Update product
+      const pRef = doc(db, 'products', productId);
+      batch.update(pRef, {
+        stockCount: newStock,
+        inStock: newStock > 0,
+        updatedAt: serverTimestamp()
+      });
+
+      // Create inventory log
+      const logRef = doc(collection(db, 'inventory_logs'));
+      batch.set(logRef, {
         productId,
         productName: product.name,
         change,
         previousStock,
         newStock,
         date: new Date().toISOString(),
-        user: user?.name || 'مدير النظام',
-        reason
-      };
+        user: user?.name || user?.displayName || 'مدير النظام',
+        reason,
+        createdAt: serverTimestamp()
+      } as any);
 
-      setInventoryLogs(logs => [log, ...logs].slice(0, 1000)); // Keep last 1000 logs
-      
+      await batch.commit();
       logActivity('تحديث مخزون', `تم تحديث مخزون المنتج ${product.name} إلى ${newStock}`);
+    } catch (error) {
+      console.error('Stock update failed:', error);
+      showToast('فشل تحديث المخزون', 'error');
+    }
+  }, [products, user, logActivity, showToast]);
 
-      return prev.map(p => p.id === productId ? { ...p, stockCount: newStock, inStock: newStock > 0 } : p);
-    });
-  }, [user, logActivity]);
-
-  const bulkUpdateStock = React.useCallback((updates: { productId: string, newStock: number }[], reason: string = 'تحديث جماعي') => {
-    setProducts(prev => {
-      let newProducts = [...prev];
-      const newLogs: InventoryLog[] = [];
+  const bulkUpdateStock = React.useCallback(async (updates: { productId: string, newStock: number }[], reason: string = 'تحديث جماعي') => {
+    try {
+      const batch = writeBatch(db);
+      let logCount = 0;
 
       updates.forEach(update => {
-        const productIndex = newProducts.findIndex(p => p.id === update.productId);
-        if (productIndex === -1) return;
+        const product = products.find(p => p.id === update.productId);
+        if (!product) return;
 
-        const product = newProducts[productIndex];
         const previousStock = product.stockCount || 0;
         const change = update.newStock - previousStock;
 
         if (change === 0) return;
 
-        newLogs.push({
-          id: crypto.randomUUID(),
+        // Update product ref
+        const pRef = doc(db, 'products', update.productId);
+        batch.update(pRef, {
+          stockCount: update.newStock,
+          inStock: update.newStock > 0,
+          updatedAt: serverTimestamp()
+        });
+
+        // Create inventory log doc
+        const logRef = doc(collection(db, 'inventory_logs'));
+        batch.set(logRef, {
           productId: update.productId,
           productName: product.name,
           change,
           previousStock,
           newStock: update.newStock,
           date: new Date().toISOString(),
-          user: user?.name || 'مدير النظام',
-          reason
-        });
+          user: user?.name || user?.displayName || 'مدير النظام',
+          reason,
+          createdAt: serverTimestamp()
+        } as any);
 
-        newProducts[productIndex] = { 
-          ...product, 
-          stockCount: update.newStock, 
-          inStock: update.newStock > 0 
-        };
+        logCount++;
       });
 
-      if (newLogs.length > 0) {
-        setInventoryLogs(logs => [...newLogs, ...logs].slice(0, 1000));
-        logActivity('تحديث مخزون جماعي', `تم تحديث مخزون ${newLogs.length} منتجات`);
+      if (logCount > 0) {
+        await batch.commit();
+        logActivity('تحديث مخزون جماعي', `تم تحديث مخزون ${logCount} منتجات`);
+        showToast(`تم تحديث مخزون ${logCount} منتجات`);
       }
-
-      return newProducts;
-    });
-    showToast(`تم تحديث مخزون ${updates.length} منتجات`);
-  }, [user, showToast, logActivity]);
+    } catch (error) {
+      console.error('Bulk stock update failed:', error);
+      showToast('فشل تحديث المخزون جماعياً', 'error');
+    }
+  }, [products, user, showToast, logActivity]);
 
   const addProduct = React.useCallback(async (product: Omit<Product, 'id'>) => {
     try {

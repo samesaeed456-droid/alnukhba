@@ -236,9 +236,6 @@ export default function Auth() {
     if (formData.countryCode === '+967') {
       const yemenPhoneRegex = /^7\d{8}$/;
       return yemenPhoneRegex.test(phone);
-    } else if (formData.countryCode === '+966') {
-      const saudiPhoneRegex = /^5\d{8}$/;
-      return saudiPhoneRegex.test(phone);
     }
     return /^\d{7,15}$/.test(phone);
   }, [formData.countryCode]);
@@ -671,7 +668,6 @@ export default function Auth() {
                               className="bg-transparent border-none outline-none text-xs cursor-pointer appearance-none text-center pr-5 pl-1"
                             >
                               <option value="+967">🇾🇪 +967</option>
-                              <option value="+966">🇸🇦 +966</option>
                             </select>
                             <ChevronDown className="w-3 h-3 absolute right-2 text-slate-300 pointer-events-none group-hover/select:text-carbon transition-colors" />
                           </div>
@@ -791,7 +787,6 @@ export default function Auth() {
                               className="bg-transparent border-none outline-none text-xs cursor-pointer appearance-none text-center pr-5 pl-1"
                             >
                               <option value="+967">🇾🇪 +967</option>
-                              <option value="+966">🇸🇦 +966</option>
                             </select>
                             <ChevronDown className="w-3 h-3 absolute right-2 text-slate-300 pointer-events-none group-hover/select:text-carbon transition-colors" />
                           </div>

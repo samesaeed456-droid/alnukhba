@@ -809,7 +809,6 @@ export default function Checkout() {
                                   dir="ltr"
                                 >
                                   <option value="+967">🇾🇪 +967</option>
-                                  <option value="+966">🇸🇦 +966</option>
                                 </select>
                                 <ChevronDown className="w-3 h-3 absolute right-1 text-slate-400 pointer-events-none group-hover/select:text-slate-900 transition-colors" />
                               </div>

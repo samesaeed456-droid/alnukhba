@@ -2,13 +2,19 @@
  * Utility to convert phone numbers to dummy emails consistently across the app.
  */
 export const getAdminDummyEmail = (phone: string, countryCode: string): string => {
-  // Remove all non-digits from both phone and country code
-  const cleanPhone = phone.replace(/\D/g, '');
+  // 1. Remove all non-digits
+  const digitsOnly = phone.replace(/\D/g, '');
   const cleanCountry = countryCode.replace(/\D/g, '');
   
-  // Remove leading zero if it exists in the phone number (e.g., 077 -> 77)
-  const normalizedPhone = cleanPhone.startsWith('0') ? cleanPhone.substring(1) : cleanPhone;
+  // 2. Remove country code prefix if the user typed it inside the phone field
+  let phoneWithoutCountry = digitsOnly;
+  if (digitsOnly.startsWith(cleanCountry)) {
+    phoneWithoutCountry = digitsOnly.substring(cleanCountry.length);
+  }
   
-  // Return consistent dummy email format
+  // 3. Remove leading zero if it exists (e.g., 077 -> 77)
+  const normalizedPhone = phoneWithoutCountry.startsWith('0') ? phoneWithoutCountry.substring(1) : phoneWithoutCountry;
+  
+  // 4. Return consistent dummy email format
   return `${cleanCountry}${normalizedPhone}@elite-store.local`;
 };

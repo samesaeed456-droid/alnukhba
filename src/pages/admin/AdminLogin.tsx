@@ -80,8 +80,30 @@ export default function AdminLogin() {
         if (authError.code === 'auth/user-not-found' || authError.code === 'auth/invalid-credential') {
           const { collection, getDocs, query, where } = await import('../../lib/firebase');
           const adminsRef = collection(db, 'admin_users');
-          const q = query(adminsRef, where('email', '==', loginEmail));
-          const querySnapshot = await getDocs(q);
+          
+          // Get normalized phone for query
+          const cleanPhone = phone.replace(/\D/g, '');
+          const cleanCountry = countryCode.replace(/\D/g, '');
+          let phoneOnly = cleanPhone;
+          if (cleanPhone.startsWith(cleanCountry)) {
+            phoneOnly = cleanPhone.substring(cleanCountry.length);
+          }
+          const normalizedPhone = phoneOnly.startsWith('0') ? phoneOnly.substring(1) : phoneOnly;
+
+          // Search by email (legacy/consistent) or by raw phone/country combo
+          const q = query(
+            adminsRef, 
+            where('phone', '==', normalizedPhone),
+            where('countryCode', '==', countryCode)
+          );
+          
+          let querySnapshot = await getDocs(q);
+          
+          // If phone search fails, try searching by the computed dummy email
+          if (querySnapshot.empty) {
+            const emailQuery = query(adminsRef, where('email', '==', loginEmail));
+            querySnapshot = await getDocs(emailQuery);
+          }
           
           if (!querySnapshot.empty) {
             const adminDoc = querySnapshot.docs[0].data();
@@ -91,10 +113,14 @@ export default function AdminLogin() {
               // Create the Auth account on the fly!
               result = await signupWithEmail(loginEmail, password);
             } else {
-              throw authError; // Password mismatch
+              toast.error('كلمة المرور غير مطابقة للسجل الإداري');
+              setIsLoading(false);
+              return;
             }
           } else {
-            throw authError; // No such admin pre-registered
+            toast.error('هذا الرقم غير مسجل في قائمة المسؤولين');
+            setIsLoading(false);
+            return;
           }
         } else {
           throw authError;
@@ -235,7 +261,6 @@ export default function AdminLogin() {
                             className="bg-transparent border-none outline-none text-xs cursor-pointer appearance-none text-center"
                           >
                             <option value="+967">🇾🇪 +967</option>
-                            <option value="+966">🇸🇦 +966</option>
                           </select>
                         </div>
                       }

@@ -332,7 +332,6 @@ export default function Security() {
                             className="bg-transparent border-none outline-none text-[10px] cursor-pointer appearance-none text-center"
                           >
                             <option value="+967">🇾🇪 +967</option>
-                            <option value="+966">🇸🇦 +966</option>
                           </select>
                         </div>
                       }
@@ -520,7 +519,6 @@ export default function Security() {
                             className="bg-transparent border-none outline-none text-[10px] cursor-pointer appearance-none text-center"
                           >
                             <option value="+967">🇾🇪 +967</option>
-                            <option value="+966">🇸🇦 +966</option>
                           </select>
                         </div>
                       }

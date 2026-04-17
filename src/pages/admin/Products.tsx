@@ -11,6 +11,7 @@ import {
   Save, RefreshCw, Check
 } from 'lucide-react';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
+import { toast } from 'sonner';
 import { useStore } from '../../context/StoreContext';
 import { Product } from '../../types';
 import ConfirmationModal from '../../components/ConfirmationModal';
@@ -280,31 +281,75 @@ export default function Products() {
     handleCloseModal();
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const compressImage = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target?.result as string;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 800;
+          const MAX_HEIGHT = 800;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height = Math.round((height * MAX_WIDTH) / width);
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width = Math.round((width * MAX_HEIGHT) / height);
+              height = MAX_HEIGHT;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(0, 0, width, height);
+            ctx.drawImage(img, 0, 0, width, height);
+            resolve(canvas.toDataURL('image/webp', 0.8));
+          } else {
+            resolve(event.target?.result as string);
+          }
+        };
+        img.onerror = () => reject(new Error('Failed to load image for compression'));
+      };
+      reader.onerror = () => reject(new Error('Failed to read file'));
+    });
+  };
+
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData({ ...formData, image: reader.result as string });
-      };
-      reader.readAsDataURL(file);
+      try {
+        const compressedDataUrl = await compressImage(file);
+        setFormData(prev => ({ ...prev, image: compressedDataUrl }));
+      } catch (error) {
+        console.error("Image compression failed:", error);
+        toast.error("فشل في ضغط الصورة");
+      }
     }
   };
 
-  const handleGalleryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleGalleryChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length > 0) {
-      const newImages: string[] = [];
-      files.forEach(file => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          newImages.push(reader.result as string);
-          if (newImages.length === files.length) {
-            setFormData(prev => ({ ...prev, images: [...(prev.images || []), ...newImages] }));
-          }
-        };
-        reader.readAsDataURL(file);
-      });
+      try {
+        toast.info("جاري ضغط ومعالجة الصور...");
+        const compressedImages = await Promise.all(files.map(file => compressImage(file)));
+        setFormData(prev => ({ ...prev, images: [...(prev.images || []), ...compressedImages] }));
+        toast.success("تم تجهيز الصور بنجاح");
+      } catch (error) {
+        console.error("Gallery images compression failed:", error);
+        toast.error("فشل في معالجة بعض الصور");
+      }
     }
   };
 

@@ -84,7 +84,7 @@ export default function Customers() {
     }
 
     const finalAmount = balanceAction.type === 'deposit' ? amount : -amount;
-    updateCustomerBalance(balanceAction.customer.phone, finalAmount, balanceDescription || (balanceAction.type === 'deposit' ? 'شحن رصيد يدوي' : 'سحب رصيد يدوي'));
+    updateCustomerBalance(balanceAction.customer.uid || balanceAction.customer.phone || '', finalAmount, balanceDescription || (balanceAction.type === 'deposit' ? 'شحن رصيد يدوي' : 'سحب رصيد يدوي'));
     
     setBalanceAmount('');
     setBalanceDescription('');
@@ -847,7 +847,7 @@ export default function Customers() {
                                     isOpen: true,
                                     title: customer.isBlocked ? 'إلغاء حظر العميل' : 'حظر العميل',
                                     message: customer.isBlocked ? `هل أنت متأكد من إلغاء حظر العميل "${customer.name}"؟` : `هل أنت متأكد من حظر العميل "${customer.name}"؟`,
-                                    onConfirm: () => blockCustomer(customer.phone),
+                                    onConfirm: () => blockCustomer(customer.uid || customer.phone || ''),
                                     type: customer.isBlocked ? 'success' : 'warning',
                                     confirmText: customer.isBlocked ? 'إلغاء الحظر' : 'تأكيد الحظر'
                                   });
@@ -1219,7 +1219,7 @@ export default function Customers() {
 
                 <form onSubmit={(e) => {
                   e.preventDefault();
-                  updateCustomer(selectedCustomer.phone, editCustomerData);
+                  updateCustomer(selectedCustomer.uid || selectedCustomer.phone || '', editCustomerData);
                   setSelectedCustomer(prev => prev ? { ...prev, ...editCustomerData } : null);
                   setIsEditModalOpen(false);
                   showToast('تم تحديث بيانات العميل بنجاح', 'success');
@@ -1299,7 +1299,7 @@ export default function Customers() {
 
                 <form onSubmit={(e) => {
                   e.preventDefault();
-                  updateCustomer(selectedCustomer.phone, { password: newPassword });
+                  updateCustomer(selectedCustomer.uid || selectedCustomer.phone || '', { password: newPassword });
                   setIsPasswordModalOpen(false);
                   setNewPassword('');
                   showToast('تم تغيير كلمة المرور بنجاح', 'success');

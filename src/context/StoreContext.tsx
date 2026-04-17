@@ -325,19 +325,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [systemError, setSystemError] = useState<string | null>(null);
 
-  // Test Firebase Connection on boot
+  // Connection check removed per user request
   useEffect(() => {
-    const testConnection = async () => {
-      try {
-        // Try to fetch a non-existent doc just to check connectivity
-        await getDocFromServer(doc(db, '_health_check', 'ping'));
-      } catch (error: any) {
-        if (error.message?.includes('the client is offline') || error.message?.includes('Could not reach Cloud Firestore backend')) {
-          setSystemError('تعذر الاتصال بقاعدة البيانات. يرجى التأكد من إعدادات Firebase في Vercel.');
-        }
-      }
-    };
-    testConnection();
+    // Intentionally empty
   }, []);
   useEffect(() => {
     if (!isAuthReady || !user || user.role !== 'admin') return;
@@ -1376,18 +1366,38 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }
   }, [showToast, logActivity]);
 
-  const updateCustomerBalance = React.useCallback(async (phone: string, amount: number, description: string) => {
+  const updateCustomerBalance = React.useCallback(async (identifier: string, amount: number, description: string) => {
     try {
-      const q = query(collection(db, 'users'), where('phone', '==', phone));
-      const snapshot = await getDocs(q);
-      
-      if (snapshot.empty) {
+      if (!identifier) {
+        showToast('معرف العميل غير صالح', 'error');
+        return;
+      }
+
+      let docRef = null;
+      let userData = null;
+
+      // Try by UID first
+      const uidRef = doc(db, 'users', identifier);
+      const uidSnap = await getDoc(uidRef);
+
+      if (uidSnap.exists()) {
+        docRef = uidRef;
+        userData = uidSnap.data() as UserProfile;
+      } else {
+        // Fallback to phone search
+        const q = query(collection(db, 'users'), where('phone', '==', identifier));
+        const snapshot = await getDocs(q);
+        if (!snapshot.empty) {
+          docRef = snapshot.docs[0].ref;
+          userData = snapshot.docs[0].data() as UserProfile;
+        }
+      }
+
+      if (!docRef || !userData) {
         showToast('العميل غير موجود', 'error');
         return;
       }
 
-      const userDoc = snapshot.docs[0];
-      const userData = userDoc.data() as UserProfile;
       const newBalance = (userData.walletBalance || 0) + amount;
       
       const transaction: Transaction = {
@@ -1399,31 +1409,50 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         description
       };
 
-      await updateDoc(userDoc.ref, {
+      await updateDoc(docRef, {
         walletBalance: newBalance,
         transactions: [transaction, ...(userData.transactions || [])],
         updatedAt: serverTimestamp()
       });
 
-      logActivity('تحديث رصيد', `تم ${amount >= 0 ? 'إضافة' : 'خصم'} ${Math.abs(amount)} لرصيد العميل: ${phone} - ${description}`);
+      logActivity('تحديث رصيد', `تم ${amount >= 0 ? 'إضافة' : 'خصم'} ${Math.abs(amount)} لرصيد العميل: ${identifier} - ${description}`);
       showToast(amount >= 0 ? 'تم إضافة الرصيد بنجاح' : 'تم خصم الرصيد بنجاح');
     } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, `users (phone: ${phone})`);
+      handleFirestoreError(error, OperationType.UPDATE, `users (balance): ${identifier}`);
     }
   }, [showToast, logActivity]);
 
-  const addCustomerNote = React.useCallback(async (phone: string, text: string) => {
+  const addCustomerNote = React.useCallback(async (identifier: string, text: string) => {
     try {
-      const q = query(collection(db, 'users'), where('phone', '==', phone));
-      const snapshot = await getDocs(q);
-      
-      if (snapshot.empty) {
-        showToast('العميل غير موجود', 'error');
+      if (!identifier) {
+        showToast('معرف العميل غير صالح', 'error');
         return;
       }
 
-      const userDoc = snapshot.docs[0];
-      const userData = userDoc.data() as UserProfile;
+      let docRef = null;
+      let userData = null;
+
+      // Try by UID first
+      const uidRef = doc(db, 'users', identifier);
+      const uidSnap = await getDoc(uidRef);
+
+      if (uidSnap.exists()) {
+        docRef = uidRef;
+        userData = uidSnap.data() as UserProfile;
+      } else {
+        // Fallback to phone search
+        const q = query(collection(db, 'users'), where('phone', '==', identifier));
+        const snapshot = await getDocs(q);
+        if (!snapshot.empty) {
+          docRef = snapshot.docs[0].ref;
+          userData = snapshot.docs[0].data() as UserProfile;
+        }
+      }
+
+      if (!docRef || !userData) {
+        showToast('العميل غير موجود', 'error');
+        return;
+      }
       
       const note: UserNote = {
         id: crypto.randomUUID(),
@@ -1432,15 +1461,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         author: 'مدير النظام'
       };
 
-      await updateDoc(userDoc.ref, {
+      await updateDoc(docRef, {
         notes: [note, ...(userData.notes || [])],
         updatedAt: serverTimestamp()
       });
 
       showToast('تمت إضافة الملاحظة بنجاح');
-      logActivity('إضافة ملاحظة', `تمت إضافة ملاحظة لملف العميل: ${phone}`);
+      logActivity('إضافة ملاحظة', `تمت إضافة ملاحظة لملف العميل: ${identifier}`);
     } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, `users (phone: ${phone})`);
+      handleFirestoreError(error, OperationType.UPDATE, `users (notes): ${identifier}`);
     }
   }, [showToast, logActivity]);
 
@@ -1669,44 +1698,86 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }
   }, [showToast]);
 
-  const updateCustomer = React.useCallback(async (phone: string, updates: Partial<UserProfile>) => {
+  const updateCustomer = React.useCallback(async (identifier: string, updates: Partial<UserProfile>) => {
     try {
-      const q = query(collection(db, 'users'), where('phone', '==', phone));
-      const snapshot = await getDocs(q);
-      if (snapshot.empty) {
+      if (!identifier) {
+        showToast('معرف العميل غير صالح', 'error');
+        return;
+      }
+
+      let docRef = null;
+
+      // Try by UID first
+      const uidRef = doc(db, 'users', identifier);
+      const uidSnap = await getDoc(uidRef);
+
+      if (uidSnap.exists()) {
+        docRef = uidRef;
+      } else {
+        // Fallback to phone search
+        const q = query(collection(db, 'users'), where('phone', '==', identifier));
+        const snapshot = await getDocs(q);
+        if (!snapshot.empty) {
+          docRef = snapshot.docs[0].ref;
+        }
+      }
+
+      if (!docRef) {
         showToast('العميل غير موجود', 'error');
         return;
       }
-      const userDoc = snapshot.docs[0];
-      await updateDoc(userDoc.ref, {
+
+      await updateDoc(docRef, {
         ...updates,
         updatedAt: serverTimestamp()
       });
       showToast('تم تحديث بيانات العميل بنجاح');
-      logActivity('تحديث عميل', `تم تحديث بيانات العميل ذو الرقم: ${phone}`);
+      logActivity('تحديث عميل', `تم تحديث بيانات العميل: ${identifier}`);
     } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, `users (phone: ${phone})`);
+      handleFirestoreError(error, OperationType.UPDATE, `users: ${identifier}`);
     }
   }, [showToast, logActivity]);
 
-  const blockCustomer = React.useCallback(async (phone: string) => {
+  const blockCustomer = React.useCallback(async (identifier: string) => {
     try {
-      const q = query(collection(db, 'users'), where('phone', '==', phone));
-      const snapshot = await getDocs(q);
-      if (snapshot.empty) {
+      if (!identifier) {
+        showToast('معرف العميل غير صالح', 'error');
+        return;
+      }
+
+      let docRef = null;
+      let userData = null;
+
+      // Try by UID first
+      const uidRef = doc(db, 'users', identifier);
+      const uidSnap = await getDoc(uidRef);
+
+      if (uidSnap.exists()) {
+        docRef = uidRef;
+        userData = uidSnap.data() as UserProfile;
+      } else {
+        // Fallback to phone search
+        const q = query(collection(db, 'users'), where('phone', '==', identifier));
+        const snapshot = await getDocs(q);
+        if (!snapshot.empty) {
+          docRef = snapshot.docs[0].ref;
+          userData = snapshot.docs[0].data() as UserProfile;
+        }
+      }
+
+      if (!docRef || !userData) {
         showToast('العميل غير موجود', 'error');
         return;
       }
-      const userDoc = snapshot.docs[0];
-      const userData = userDoc.data() as UserProfile;
-      await updateDoc(userDoc.ref, {
+
+      await updateDoc(docRef, {
         isBlocked: !userData.isBlocked,
         updatedAt: serverTimestamp()
       });
       showToast('تم تغيير حالة حظر العميل');
-      logActivity('تغيير حالة حظر عميل', `تم تغيير حالة حظر العميل ذو الرقم: ${phone}`);
+      logActivity('تغيير حالة حظر عميل', `تم تغيير حالة حظر العميل: ${identifier}`);
     } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, `users (phone: ${phone})`);
+      handleFirestoreError(error, OperationType.UPDATE, `users (block): ${identifier}`);
     }
   }, [showToast, logActivity]);
 

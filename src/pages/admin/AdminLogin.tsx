@@ -85,8 +85,9 @@ export default function AdminLogin() {
           
           if (!querySnapshot.empty) {
             const adminDoc = querySnapshot.docs[0].data();
-            // Verify password matches the one set by Admin (in real app, use hashing)
+            // Verify password matches the one set by Admin
             if (adminDoc.password === password) {
+              toast.info('جاري تفعيل حسابك الإداري لأول مرة...');
               // Create the Auth account on the fly!
               result = await signupWithEmail(loginEmail, password);
             } else {

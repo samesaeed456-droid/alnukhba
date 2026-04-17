@@ -712,13 +712,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [adminUsers, setAdminUsers] = useState<AdminUser[]>(() => {
     const saved = localStorage.getItem('store_admin_users');
     if (saved) return JSON.parse(saved);
-
-    const defaultAdmins: AdminUser[] = [
-      { id: '1', name: 'المدير العام', email: 'samesaeed456@gmail.com', role: 'super_admin', permissions: getPermissionsByRole('super_admin'), isActive: true },
-      { id: '2', name: 'المدير العام (هاتف)', email: '967776668370@elite-store.local', phone: '776668370', countryCode: '+967', role: 'super_admin', permissions: getPermissionsByRole('super_admin'), isActive: true },
-      { id: '5', name: 'سامي سعيد', email: 'samisaeed2027@gmail.com', role: 'super_admin', permissions: getPermissionsByRole('super_admin'), isActive: true }
-    ];
-    return defaultAdmins;
+    return [];
   });
 
   const [activityLogs, setActivityLogs] = useState<ActivityLog[]>(() => {
@@ -885,14 +879,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const adminEmail = localStorage.getItem('admin_email');
     const adminName = localStorage.getItem('admin_name');
     
-    let ip = '192.168.1.1';
-    try {
-      const response = await fetch('https://api.ipify.org?format=json');
-      const data = await response.json();
-      ip = data.ip;
-    } catch (e) {
-      // Fallback to default if fetch fails
-    }
+    // Use a default IP or local identifier to avoid external network calls that might fail
+    const ip = '127.0.0.1';
 
     const newLog: ActivityLog = {
       id: Math.random().toString(36).substr(2, 9).toUpperCase(),

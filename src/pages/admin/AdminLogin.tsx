@@ -129,39 +129,59 @@ export default function AdminLogin() {
 
       const user = result.user;
       
-      // Sync user profile to ensure they have the admin role in the main users collection
-      const userDoc = await getDoc(doc(db, 'users', user.uid));
-      let userData = userDoc.data();
+      // Forcefully check if this user is in the admin_users collection
+      const { collection, getDocs, query, where, doc, getDoc, updateDoc, setDoc } = await import('../../lib/firebase');
+      const adminsRef = collection(db, 'admin_users');
       
-      // If user document doesn't exist or isn't admin, check admin_users for their details
-      if (!userData || userData.role !== 'admin') {
-        const { collection, getDocs, query, where, updateDoc, setDoc } = await import('../../lib/firebase');
-        const adminsRef = collection(db, 'admin_users');
-        const q = query(adminsRef, where('email', '==', user.email));
-        const querySnapshot = await getDocs(q);
-        
-        if (!querySnapshot.empty) {
-          const adminData = querySnapshot.docs[0].data();
-          
-          // Ensure role is 'admin' in users collection
-          if (!userData) {
-            userData = {
+      // Try by dummy email, or by phone
+      const forceLoginEmail = getAdminDummyEmail(phone, countryCode);
+      const forceEmailQuery = query(adminsRef, where('email', '==', forceLoginEmail));
+      let forceAdminSnapshot = await getDocs(forceEmailQuery);
+      
+      if (forceAdminSnapshot.empty) {
+        const cleanPhoneRaw = phone.replace(/\D/g, '');
+        const cleanCountryRaw = countryCode.replace(/\D/g, '');
+        let phoneOnlyRaw = cleanPhoneRaw;
+        if (cleanPhoneRaw.startsWith(cleanCountryRaw)) {
+          phoneOnlyRaw = cleanPhoneRaw.substring(cleanCountryRaw.length);
+        }
+        const forceNormalizedPhone = phoneOnlyRaw.startsWith('0') ? phoneOnlyRaw.substring(1) : phoneOnlyRaw;
+
+        const forcePhoneQuery = query(
+            adminsRef, 
+            where('phone', '==', forceNormalizedPhone),
+            where('countryCode', '==', countryCode)
+        );
+        forceAdminSnapshot = await getDocs(forcePhoneQuery);
+      }
+      
+      if (!forceAdminSnapshot.empty) {
+         // This IS a registered admin. Force sync their profile.
+         const adminData = forceAdminSnapshot.docs[0].data();
+         const userRef = doc(db, 'users', user.uid);
+         const userDoc = await getDoc(userRef);
+         
+         if (!userDoc.exists()) {
+           await setDoc(userRef, {
               uid: user.uid,
-              email: user.email || '',
+              email: user.email || forceLoginEmail,
               name: adminData.name,
               displayName: adminData.name,
               role: 'admin',
-              adminRole: adminData.role,
+              adminRole: adminData.role || 'admin',
               createdAt: new Date().toISOString()
-            };
-            await setDoc(doc(db, 'users', user.uid), userData);
-          } else {
-            await updateDoc(doc(db, 'users', user.uid), { role: 'admin', adminRole: adminData.role });
-            userData.role = 'admin';
-            userData.adminRole = adminData.role;
-          }
-        }
+           });
+         } else {
+           await updateDoc(userRef, { 
+             role: 'admin', 
+             adminRole: adminData.role || 'admin' 
+           });
+         }
       }
+
+      // Re-fetch user profile after potential forced sync
+      const finalUserDoc = await getDoc(doc(db, 'users', user.uid));
+      const userData = finalUserDoc.data();
       
       const isAuthorizedAdmin = userData?.role === 'admin';
 

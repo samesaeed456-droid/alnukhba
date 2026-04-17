@@ -295,19 +295,6 @@ export default function AdminLogin() {
                       </>
                     )}
                   </button>
-
-
-
-                  {/* Demo Credentials Hint */}
-                  <div className="mt-8 text-center">
-                    <button 
-                      type="button"
-                      onClick={fillDemoData}
-                      className="text-[11px] font-bold text-slate-400 hover:text-solar transition-colors underline underline-offset-4"
-                    >
-                      تعبئة بيانات الدخول التجريبية
-                    </button>
-                  </div>
                 </motion.form>
               )}
             </AnimatePresence>

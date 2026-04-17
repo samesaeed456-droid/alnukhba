@@ -16,9 +16,10 @@ import { FloatingInput } from '../../components/FloatingInput';
 export default function AdminLayout() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { orders, products, formatPrice, adminUsers, logActivity, supportTickets } = useStore();
+  const { user, orders, products, formatPrice, adminUsers, logActivity, supportTickets } = useStore();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [isChecking, setIsChecking] = useState(true);
   const [readNotifications, setReadNotifications] = useState<string[]>(() => {
     const saved = localStorage.getItem('admin_read_notifications');
     return saved ? JSON.parse(saved) : [];
@@ -199,16 +200,30 @@ export default function AdminLayout() {
     })).filter(group => group.items.length > 0);
   }, [currentAdmin]);
 
-  // Check authentication and permissions
+  // Check authentication and permissions from Firebase User State
   useEffect(() => {
-    const isAuthenticated = localStorage.getItem('admin_auth') === 'true';
-    if (!isAuthenticated) {
-      navigate('/admin/login');
+    // If auth state is still loading, wait
+    if (user === undefined) return;
+
+    const isAdmin = user?.role === 'admin';
+    const hasAdminAuth = localStorage.getItem('admin_auth') === 'true';
+
+    // Strict access control: Must have BOTH the firebase role AND the session flag
+    if (!isAdmin || !hasAdminAuth) {
+      if (isAdmin && !hasAdminAuth) {
+        // User is admin in DB but session expired? Redirect to login
+        navigate('/admin/login');
+      } else {
+        // Not an admin at all
+        navigate('/');
+      }
       return;
     }
+    
+    setIsChecking(false);
 
     // Check permissions for current route
-    if (currentAdmin && currentAdmin.role !== 'super_admin' && location.pathname !== '/admin/login' && location.pathname !== '/admin') {
+    if (user && user.role !== 'admin' && location.pathname !== '/admin/login' && location.pathname !== '/admin') {
       const allItems = navGroups.flatMap(g => g.items);
       const currentItem = allItems.find(i => i.path === location.pathname || (i.path !== '/admin' && location.pathname.startsWith(i.path)));
       
@@ -218,7 +233,18 @@ export default function AdminLayout() {
         navigate('/admin');
       }
     }
-  }, [navigate, location.pathname, currentAdmin, navGroups]);
+  }, [navigate, location.pathname, user, navGroups]);
+
+  if (isChecking) {
+    return (
+      <div className="h-screen w-full bg-slate-50 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-solar/20 border-t-solar rounded-full animate-spin" />
+          <span className="text-slate-500 font-bold">جاري التحقق من الصلاحيات...</span>
+        </div>
+      </div>
+    );
+  }
 
   // Quick Stats for Header
   const todayStats = useMemo(() => {

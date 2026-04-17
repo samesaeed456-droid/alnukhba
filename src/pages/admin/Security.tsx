@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { 
-  Shield, UserPlus, Trash2, UserCheck, UserX, Mail, User, Lock, X, Edit2, 
+  Shield, UserPlus, Trash2, UserCheck, UserX, User, Lock, X, Edit2, 
   ChevronDown, ChevronUp, Settings2 
 } from 'lucide-react';
 import { useStore } from '../../context/StoreContext';
@@ -23,6 +23,8 @@ export default function Security() {
   const [adminForm, setAdminForm] = useState<Omit<AdminUser, 'id'>>({
     name: '',
     email: '',
+    phone: '',
+    countryCode: '+967',
     password: '',
     role: 'editor',
     isActive: true,
@@ -74,6 +76,8 @@ export default function Security() {
     setAdminForm({ 
       name: '', 
       email: '', 
+      phone: '',
+      countryCode: '+967',
       password: '',
       role: 'editor', 
       isActive: true,
@@ -102,6 +106,8 @@ export default function Security() {
       setAdminForm({ 
         name: '', 
         email: '', 
+        phone: '',
+        countryCode: '+967',
         password: '',
         role: 'editor', 
         isActive: true,
@@ -114,6 +120,8 @@ export default function Security() {
     setAdminForm({
       name: admin.name,
       email: admin.email,
+      phone: admin.phone || '',
+      countryCode: admin.countryCode || '+967',
       password: admin.password || '',
       role: admin.role,
       isActive: admin.isActive,
@@ -186,7 +194,9 @@ export default function Security() {
                 </div>
                 <div>
                   <h3 className="font-bold text-carbon">{admin.name}</h3>
-                  <p className="text-xs text-gray-400">{admin.email}</p>
+                  <p className="text-xs text-gray-400">
+                    {admin.phone ? `${admin.countryCode || ''} ${admin.phone}` : admin.email}
+                  </p>
                 </div>
               </div>
               <span className={`text-[10px] px-2 py-1 rounded-full font-bold border ${getRoleColor(admin.role)}`}>
@@ -303,25 +313,41 @@ export default function Security() {
                       icon={<User className="w-4 h-4" />}
                       iconPosition="start"
                     />
+                    
                     <FloatingInput
-                      id="adminEmail"
-                      label="البريد الإلكتروني"
-                      type="email"
+                      id="adminPhone"
+                      label="رقم الهاتف"
+                      type="tel"
                       required
-                      value={adminForm.email}
-                      onChange={(e) => setAdminForm({ ...adminForm, email: e.target.value })}
-                      icon={<Mail className="w-4 h-4" />}
-                      iconPosition="start"
+                      value={adminForm.phone || ''}
+                      onChange={(e) => setAdminForm({ ...adminForm, phone: e.target.value.replace(/\D/g, '') })}
+                      placeholder="77x xxx xxx"
+                      dir="ltr"
+                      className="tracking-widest text-left"
+                      startElement={
+                        <div className="flex items-center justify-center h-full text-slate-400 font-bold px-4 border-r border-slate-200">
+                          <select 
+                            value={adminForm.countryCode}
+                            onChange={(e) => setAdminForm({ ...adminForm, countryCode: e.target.value })}
+                            className="bg-transparent border-none outline-none text-[10px] cursor-pointer appearance-none text-center"
+                          >
+                            <option value="+967">🇾🇪 +967</option>
+                            <option value="+966">🇸🇦 +966</option>
+                          </select>
+                        </div>
+                      }
                     />
+
                     <FloatingInput
                       id="adminPassword"
                       label="كلمة المرور"
-                      type="password"
+                      type="text"
                       required
                       value={adminForm.password || ''}
                       onChange={(e) => setAdminForm({ ...adminForm, password: e.target.value })}
                       icon={<Lock className="w-4 h-4" />}
                       iconPosition="start"
+                      placeholder="اتركها كما هي إذا لم ترد التغيير"
                     />
                   </div>
 
@@ -475,20 +501,35 @@ export default function Security() {
                       icon={<User className="w-4 h-4" />}
                       iconPosition="start"
                     />
+                    
                     <FloatingInput
-                      id="editAdminEmail"
-                      label="البريد الإلكتروني"
-                      type="email"
+                      id="editAdminPhone"
+                      label="رقم الهاتف"
+                      type="tel"
                       required
-                      value={adminForm.email}
-                      onChange={(e) => setAdminForm({ ...adminForm, email: e.target.value })}
-                      icon={<Mail className="w-4 h-4" />}
-                      iconPosition="start"
+                      value={adminForm.phone || ''}
+                      onChange={(e) => setAdminForm({ ...adminForm, phone: e.target.value.replace(/\D/g, '') })}
+                      placeholder="77x xxx xxx"
+                      dir="ltr"
+                      className="tracking-widest text-left"
+                      startElement={
+                        <div className="flex items-center justify-center h-full text-slate-400 font-bold px-4 border-r border-slate-200">
+                          <select 
+                            value={adminForm.countryCode}
+                            onChange={(e) => setAdminForm({ ...adminForm, countryCode: e.target.value })}
+                            className="bg-transparent border-none outline-none text-[10px] cursor-pointer appearance-none text-center"
+                          >
+                            <option value="+967">🇾🇪 +967</option>
+                            <option value="+966">🇸🇦 +966</option>
+                          </select>
+                        </div>
+                      }
                     />
+
                     <FloatingInput
                       id="editAdminPassword"
                       label="كلمة المرور"
-                      type="password"
+                      type="text"
                       required
                       value={adminForm.password || ''}
                       onChange={(e) => setAdminForm({ ...adminForm, password: e.target.value })}

@@ -1,38 +1,35 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Zap, Lock, Mail, ArrowRight, ShieldCheck, Eye, EyeOff, Check, KeyRound, ArrowLeft, Loader2, Smartphone, ChevronDown } from 'lucide-react';
+import { Zap, Lock, ShieldCheck, Eye, EyeOff, Check, ArrowLeft, Loader2 } from 'lucide-react';
 import { FloatingInput } from '../../components/FloatingInput';
 import { Toaster, toast } from 'sonner';
 import { useStore } from '../../context/StoreContext';
 import { 
-  auth, db, doc, getDoc, loginWithEmail, resetPassword 
+  auth, db, doc, getDoc, loginWithEmail 
 } from '../../lib/firebase';
 
 export default function AdminLogin() {
   const navigate = useNavigate();
   const { adminUsers, logActivity } = useStore();
-  const [loginMode, setLoginMode] = useState<'phone' | 'email'>('phone');
   const [phone, setPhone] = useState('');
   const [countryCode, setCountryCode] = useState('+967');
-  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   
-  // Forgot Password State
-  const [isForgotPassword, setIsForgotPassword] = useState(false);
-  const [resetEmail, setResetEmail] = useState('');
-  const [isResetting, setIsResetting] = useState(false);
-
-  // Check if already logged in with authorized email
+  // Check if already logged in with authorized phone/email
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
       if (user && user.email) {
-        const authorizedEmails = ['samesaeed456@gmail.com', 'samisaeed2027@gmail.com', '967776668370@elite-store.local'];
-        // Also check for dummy emails if they follow the pattern
+        const authorizedEmails = [
+          'samesaeed456@gmail.com', 
+          'samisaeed2027@gmail.com', 
+          '967776668370@elite-store.local'
+        ];
+        
         const isAuthorized = authorizedEmails.includes(user.email);
         
         if (isAuthorized) {
@@ -40,7 +37,7 @@ export default function AdminLogin() {
           const userData = userDoc.data();
           
           if (userData?.role !== 'admin') {
-            const { updateDoc, setDoc, serverTimestamp } = await import('../../lib/firebase');
+            const { updateDoc, setDoc } = await import('../../lib/firebase');
             await updateDoc(doc(db, 'users', user.uid), { role: 'admin' });
             
             await setDoc(doc(db, 'admin_users', user.uid), {
@@ -67,9 +64,10 @@ export default function AdminLogin() {
   }, [navigate]);
 
   const getDummyEmail = (p: string, c: string) => {
-    // Remove leading zero if exists (e.g., 077 becomes 77)
-    const cleanPhone = p.startsWith('0') ? p.substring(1) : p;
-    return `${c.replace('+', '')}${cleanPhone}@elite-store.local`;
+    const cleanPhone = p.replace(/\D/g, '');
+    const cleanCountry = c.replace(/\D/g, '');
+    const normalizedPhone = cleanPhone.startsWith('0') ? cleanPhone.substring(1) : cleanPhone;
+    return `${cleanCountry}${normalizedPhone}@elite-store.local`;
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -77,37 +75,16 @@ export default function AdminLogin() {
     setIsLoading(true);
 
     try {
-      const loginEmail = loginMode === 'phone' ? getDummyEmail(phone, countryCode) : email;
+      const loginEmail = getDummyEmail(phone, countryCode);
       const result = await loginWithEmail(loginEmail, password);
       const user = result.user;
       
-      // Check if user is an admin in Firestore
       const userDoc = await getDoc(doc(db, 'users', user.uid));
       const userData = userDoc.data();
       
-      // RESTRICTED BYPASS: Only allow specific emails to become admin on first login
-      const authorizedEmails = ['samesaeed456@gmail.com', 'samisaeed2027@gmail.com'];
-      const isAuthorized = (user.email && authorizedEmails.includes(user.email));
+      const isAuthorizedAdmin = userData?.role === 'admin';
 
-      if (userData?.role === 'admin' || isAuthorized) {
-        
-        // If they used the bypass or just logged in via phone but are admin, ensure they are in admin_users
-        if (isAuthorized || userData?.role === 'admin') {
-           const { updateDoc, setDoc } = await import('../../lib/firebase');
-           if (userData?.role !== 'admin') {
-             await updateDoc(doc(db, 'users', user.uid), { role: 'admin' });
-           }
-           
-           await setDoc(doc(db, 'admin_users', user.uid), {
-             id: user.uid,
-             name: userData?.name || user.displayName || 'المدير العام',
-             email: user.email,
-             role: 'super_admin',
-             isActive: true,
-             permissions: ['view_dashboard', 'manage_orders', 'manage_products', 'manage_customers', 'manage_marketing', 'manage_coupons', 'manage_settings', 'manage_security', 'view_logs', 'manage_logistics', 'manage_messages']
-           }, { merge: true });
-        }
-
+      if (isAuthorizedAdmin) {
         localStorage.setItem('admin_auth', 'true');
         localStorage.setItem('admin_email', user.email || '');
         localStorage.setItem('admin_name', userData?.displayName || userData?.name || user.displayName || 'المدير');
@@ -121,10 +98,9 @@ export default function AdminLogin() {
         toast.success(`مرحباً بك مجدداً، ${userData?.displayName || userData?.name || user.displayName || 'المدير'}`);
         navigate('/admin');
       } else {
-        // Not an admin
         await auth.signOut();
         toast.error('ليس لديك صلاحية الوصول للوحة التحكم');
-        logActivity('محاولة دخول فاشلة', `محاولة دخول غير مصرح بها للبريد/الرقم: ${loginMode === 'phone' ? (countryCode + phone) : email}`);
+        logActivity('محاولة دخول فاشلة', `محاولة دخول غير مصرح بها للرقم: ${countryCode + phone}`);
       }
     } catch (error: any) {
       console.error('Login error:', error);
@@ -136,22 +112,6 @@ export default function AdminLogin() {
       toast.error(message);
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const handleResetPassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsResetting(true);
-
-    try {
-      await resetPassword(resetEmail);
-      toast.success('تم إرسال رابط استعادة كلمة المرور إلى بريدك الإلكتروني');
-      setIsForgotPassword(false);
-      setResetEmail('');
-    } catch (error: any) {
-      toast.error('فشل إرسال رابط الاستعادة، تأكد من البيانات');
-    } finally {
-      setIsResetting(false);
     }
   };
 
@@ -181,14 +141,10 @@ export default function AdminLogin() {
             
             <div className="text-center mb-10">
               <div className="w-16 h-16 bg-solar rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-gold/20 -rotate-3 hover:rotate-0 transition-transform duration-300">
-                {isForgotPassword ? (
-                  <KeyRound className="w-8 h-8 text-carbon" />
-                ) : (
-                  <Zap className="w-8 h-8 text-carbon fill-current" />
-                )}
+                <Zap className="w-8 h-8 text-carbon fill-current" />
               </div>
               <h1 className="text-2xl font-black text-carbon mb-2 tracking-tight">
-                {isForgotPassword ? 'استعادة كلمة المرور' : 'لوحة تحكم النخبة'}
+                لوحة تحكم النخبة
               </h1>
               <p className="text-sm text-slate-500 font-bold flex items-center justify-center gap-2">
                 <ShieldCheck className="w-4 h-4 text-emerald-500" />
@@ -197,71 +153,18 @@ export default function AdminLogin() {
             </div>
 
             <AnimatePresence mode="wait">
-              {isForgotPassword ? (
-                <motion.form 
-                  key="forgot-password"
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 20 }}
-                  onSubmit={handleResetPassword} 
-                  className="space-y-6"
-                >
-                  <p className="text-sm text-slate-500 font-medium text-center mb-6 leading-relaxed">
-                    أدخل بريدك الإلكتروني المسجل لدينا وسنرسل لك رابطاً لإعادة تعيين كلمة المرور.
-                  </p>
-                  <FloatingInput 
-                    id="resetEmail"
-                    label="البريد الإلكتروني"
-                    type="email"
-                    value={resetEmail}
-                    onChange={(e) => setResetEmail(e.target.value)}
-                    icon={<Mail className="w-5 h-5" />}
-                    iconPosition="start"
-                    required
-                    dir="ltr"
-                    className="text-left"
-                  />
-                  <button 
-                    type="submit"
-                    disabled={isResetting}
-                    className="w-full h-14 bg-carbon text-white rounded-2xl font-black text-sm flex items-center justify-center gap-3 hover:bg-slate-800 transition-all shadow-xl shadow-slate-900/10"
-                  >
-                    {isResetting ? <Loader2 className="animate-spin" /> : 'إرسال الرابط'}
-                  </button>
-                  <button type="button" onClick={() => setIsForgotPassword(false)} className="w-full text-center text-sm font-bold text-slate-500">العودة</button>
-                </motion.form>
-              ) : (
-                <motion.form 
-                  key="login"
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  onSubmit={handleLogin} 
-                  className="space-y-6"
-                >
-                  {/* Login Mode Toggle */}
-                  <div className="flex p-1 bg-slate-100 rounded-xl mb-6">
-                    <button
-                      type="button"
-                      onClick={() => setLoginMode('phone')}
-                      className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all ${loginMode === 'phone' ? 'bg-white shadow-sm text-carbon' : 'text-slate-400 hover:text-slate-600'}`}
-                    >
-                      <Smartphone className="w-4 h-4" />
-                      رقم الهاتف
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setLoginMode('email')}
-                      className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all ${loginMode === 'email' ? 'bg-white shadow-sm text-carbon' : 'text-slate-400 hover:text-slate-600'}`}
-                    >
-                      <Mail className="w-4 h-4" />
-                      البريد الإلكتروني
-                    </button>
-                  </div>
-
-                  {loginMode === 'phone' ? (
+              <motion.form 
+                key="login"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                onSubmit={handleLogin} 
+                className="space-y-6"
+              >
+                  {/* Phone Only Login */}
+                  <div className="space-y-6">
                     <FloatingInput
-                      label="رقم الجوال"
+                      label="رقم الهاتف المسجل"
                       id="adminPhone"
                       type="tel"
                       value={phone}
@@ -282,38 +185,25 @@ export default function AdminLogin() {
                         </div>
                       }
                     />
-                  ) : (
+
                     <FloatingInput 
-                      id="adminEmail"
-                      label="البريد الإلكتروني"
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      icon={<Mail className="w-5 h-5" />}
+                      id="adminPassword"
+                      label="كلمة المرور"
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      icon={<Lock className="w-5 h-5" />}
                       iconPosition="start"
+                      endElement={
+                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="p-2 text-slate-400">
+                          {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      }
                       required
                       dir="ltr"
                       className="text-left"
                     />
-                  )}
-
-                  <FloatingInput 
-                    id="adminPassword"
-                    label="كلمة المرور"
-                    type={showPassword ? "text" : "password"}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    icon={<Lock className="w-5 h-5" />}
-                    iconPosition="start"
-                    endElement={
-                      <button type="button" onClick={() => setShowPassword(!showPassword)} className="p-2 text-slate-400">
-                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
-                    }
-                    required
-                    dir="ltr"
-                    className="text-left"
-                  />
+                  </div>
 
                   <div className="flex items-center justify-between text-xs">
                     <label className="flex items-center gap-2 cursor-pointer">
@@ -323,7 +213,6 @@ export default function AdminLogin() {
                       <span className="font-bold text-slate-500">تذكرني</span>
                       <input type="checkbox" className="hidden" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} />
                     </label>
-                    <button type="button" onClick={() => setIsForgotPassword(true)} className="font-bold text-solar">نسيت كلمة المرور؟</button>
                   </div>
 
                   <button 
@@ -334,7 +223,6 @@ export default function AdminLogin() {
                     {isLoading ? <Loader2 className="animate-spin" /> : <>الدخول للإدارة <ArrowLeft className="w-5 h-5" /></>}
                   </button>
                 </motion.form>
-              )}
             </AnimatePresence>
           </motion.div>
           <div className="mt-8 text-center text-sm font-bold text-slate-400">متجر النخبة © {new Date().getFullYear()}</div>

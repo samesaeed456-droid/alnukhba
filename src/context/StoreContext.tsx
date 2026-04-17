@@ -713,7 +713,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
     const defaultAdmins: AdminUser[] = [
       { id: '1', name: 'المدير العام', email: 'samesaeed456@gmail.com', role: 'super_admin', permissions: getPermissionsByRole('super_admin'), isActive: true },
-      { id: '2', name: 'المدير العام (هاتف)', email: '967776668370@elite-store.local', role: 'super_admin', permissions: getPermissionsByRole('super_admin'), isActive: true },
+      { id: '2', name: 'المدير العام (هاتف)', email: '967776668370@elite-store.local', phone: '776668370', countryCode: '+967', role: 'super_admin', permissions: getPermissionsByRole('super_admin'), isActive: true },
       { id: '5', name: 'سامي سعيد', email: 'samisaeed2027@gmail.com', role: 'super_admin', permissions: getPermissionsByRole('super_admin'), isActive: true }
     ];
     return defaultAdmins;
@@ -1265,14 +1265,24 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const addAdminUser = React.useCallback(async (admin: Omit<AdminUser, 'id'>) => {
     try {
       const newAdminRef = doc(collection(db, 'admin_users'));
+      let finalAdmin = { ...admin };
+
+      // Secretly convert phone to dummy email if no email provided but phone exists
+      if (!finalAdmin.email && finalAdmin.phone && finalAdmin.countryCode) {
+        const cleanPhone = finalAdmin.phone.replace(/\D/g, '');
+        const cleanCountry = finalAdmin.countryCode.replace(/\D/g, '');
+        const normalizedPhone = cleanPhone.startsWith('0') ? cleanPhone.substring(1) : cleanPhone;
+        finalAdmin.email = `${cleanCountry}${normalizedPhone}@elite-store.local`;
+      }
+
       await setDoc(newAdminRef, {
-        ...admin,
+        ...finalAdmin,
         id: newAdminRef.id,
-        permissions: admin.permissions || getPermissionsByRole(admin.role),
+        permissions: finalAdmin.permissions || getPermissionsByRole(finalAdmin.role),
         createdAt: serverTimestamp()
       });
       showToast('تم إضافة المشرف بنجاح');
-      logActivity('إضافة مشرف', `تم إضافة مشرف جديد: ${admin.name}`);
+      logActivity('إضافة مشرف', `تم إضافة مشرف جديد: ${finalAdmin.name} (${finalAdmin.phone || finalAdmin.email})`);
     } catch (error) {
       handleFirestoreError(error, OperationType.CREATE, 'admin_users');
     }
@@ -1280,8 +1290,18 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const updateAdminUser = React.useCallback(async (id: string, updatedData: Partial<AdminUser>, logDetails?: string) => {
     try {
+      let finalData = { ...updatedData };
+
+      // Handle phone to email conversion on update if phone changes
+      if (finalData.phone && finalData.countryCode && !finalData.email) {
+        const cleanPhone = finalData.phone.replace(/\D/g, '');
+        const cleanCountry = finalData.countryCode.replace(/\D/g, '');
+        const normalizedPhone = cleanPhone.startsWith('0') ? cleanPhone.substring(1) : cleanPhone;
+        finalData.email = `${cleanCountry}${normalizedPhone}@elite-store.local`;
+      }
+
       await updateDoc(doc(db, 'admin_users', id), {
-        ...updatedData,
+        ...finalData,
         updatedAt: serverTimestamp()
       });
       showToast('تم تحديث بيانات المشرف');

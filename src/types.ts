@@ -232,6 +232,8 @@ export interface AdminUser {
   id: string;
   name: string;
   email: string;
+  phone?: string;
+  countryCode?: string;
   password?: string;
   role: AdminRole;
   permissions: AdminPermission[];

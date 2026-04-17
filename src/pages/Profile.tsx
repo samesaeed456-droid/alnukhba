@@ -159,23 +159,26 @@ export default function Profile() {
     }
   }, [recoveryOtp]);
 
-  const handleImageUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
         showToast('حجم الصورة يجب أن يكون أقل من 5 ميجابايت', 'error');
         return;
       }
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData(prev => ({ ...prev, avatar: reader.result as string }));
+      try {
+        const { uploadToCloudinary } = await import('../lib/cloudinary');
+        showToast('جاري رفع الصورة...', 'info');
+        const secureUrl = await uploadToCloudinary(file);
+        setFormData(prev => ({ ...prev, avatar: secureUrl }));
         // Automatically save the avatar update
         if (user) {
-          updateUser({ ...user, ...formData, avatar: reader.result as string } as any);
+          updateUser({ ...user, ...formData, avatar: secureUrl } as any);
         }
         showToast('تم تحديث الصورة الشخصية بنجاح');
-      };
-      reader.readAsDataURL(file);
+      } catch (error: any) {
+        showToast(error.message || 'فشل في رفع الصورة', 'error');
+      }
     }
   }, [user, formData, updateUser, showToast]);
 

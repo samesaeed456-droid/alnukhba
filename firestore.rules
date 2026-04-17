@@ -86,6 +86,31 @@ service cloud.firestore {
                     incoming().stockCount <= existing().stockCount;
     }
 
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /blog_posts/{postId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /static_pages/{pageId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /shipping_zones/{zoneId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /banners/{bannerId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
     match /orders/{orderId} {
       // Query Enforcer (Pillar 8)
       allow list: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
@@ -118,10 +143,28 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
-    match /activityLogs/{logId} {
+    match /activity_logs/{logId} {
       allow read: if isAdmin();
-      allow create: if isAdmin() || isSignedIn(); // Allow logging system events
+      allow create: if true; // Allow logging system events publicly
       allow update, delete: if isAdmin();
+    }
+
+    match /visits/{visitId} {
+      allow read: if isAdmin();
+      allow create: if true; // Public creates stats
+      allow update, delete: if isAdmin();
+    }
+
+    match /searchTerms/{termId} {
+      allow read: if isAdmin();
+      allow create, update: if true; // Public updates search stats
+      allow delete: if isAdmin();
+    }
+
+    match /abandonedCarts/{cartId} {
+      allow read: if isAdmin();
+      allow create, update: if true; // Public abandons carts
+      allow delete: if isAdmin();
     }
 
     match /marketingNotifications/{notificationId} {

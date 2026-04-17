@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Banner, MarketingNotification } from '../../types';
 import { FloatingInput } from '../../components/FloatingInput';
 import ConfirmationModal from '../../components/ConfirmationModal';
+import { toast } from 'sonner';
 
 type TabType = 'banners' | 'notifications';
 
@@ -58,30 +59,27 @@ export default function Marketing() {
     setNotifForm({ title: '', message: '', target: 'all', type: 'push', scheduledFor: '' });
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length > 0) {
-      const newImages: string[] = [];
-      let loadedCount = 0;
-      
-      files.forEach(file => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          newImages.push(reader.result as string);
-          loadedCount++;
-          if (loadedCount === files.length) {
-            setBannerForm(prev => {
-              const updatedImages = [...(prev.images || []), ...newImages];
-              return { 
-                ...prev, 
-                images: updatedImages,
-                image: prev.image || updatedImages[0]
-              };
-            });
-          }
-        };
-        reader.readAsDataURL(file);
-      });
+      try {
+        toast.info(`جاري رفع ${files.length} صور إلى الخادم...`);
+        const { uploadToCloudinary } = await import('../../lib/cloudinary');
+        const secureUrls = await Promise.all(files.map(file => uploadToCloudinary(file)));
+        
+        setBannerForm(prev => {
+          const updatedImages = [...(prev.images || []), ...secureUrls];
+          return {
+            ...prev,
+            images: updatedImages,
+            image: prev.image || updatedImages[0]
+          };
+        });
+        toast.success("تم رفع الصور بنجاح");
+      } catch (error: any) {
+        console.error("Marketing images upload failed:", error);
+        toast.error(error.message || "فشل في رفع بعض الصور");
+      }
     }
   };
 

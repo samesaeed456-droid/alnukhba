@@ -1146,11 +1146,18 @@ export default function Checkout() {
                                         onChange={(e) => {
                                           const file = e.target.files?.[0];
                                           if (file) {
-                                            const reader = new FileReader();
-                                            reader.onloadend = () => {
-                                              setFormData(prev => ({ ...prev, paymentProof: reader.result as string }));
+                                            const processUpload = async () => {
+                                              try {
+                                                const { uploadToCloudinary } = await import('../lib/cloudinary');
+                                                showToast("جاري رفع الإشعار...", 'info');
+                                                const secureUrl = await uploadToCloudinary(file);
+                                                setFormData(prev => ({ ...prev, paymentProof: secureUrl }));
+                                                showToast("تم رفع الإشعار بنجاح", 'success');
+                                              } catch (err: any) {
+                                                showToast(err.message || 'فشل رفع الإشعار', 'error');
+                                              }
                                             };
-                                            reader.readAsDataURL(file);
+                                            processUpload();
                                           }
                                         }}
                                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"

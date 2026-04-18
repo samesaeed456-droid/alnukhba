@@ -11,7 +11,7 @@ import ConfirmationModal from '../../components/ConfirmationModal';
 
 export default function Security() {
   const { 
-    adminUsers, addAdminUser, updateAdminUser, deleteAdminUser
+    adminUsers, addAdminUser, updateAdminUser, deleteAdminUser, showToast
   } = useStore();
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -71,6 +71,18 @@ export default function Security() {
 
   const handleAddAdmin = (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Prevent duplicate phone numbers
+    const phoneExists = adminUsers.some(a => 
+      a.phone?.replace(/\D/g, '') === adminForm.phone?.replace(/\D/g, '') && 
+      a.countryCode === adminForm.countryCode
+    );
+
+    if (phoneExists) {
+      showToast('هذا الرقم مسجل مسبقاً لمشرف آخر. يرجى استخدام رقم مختلف أو تعديل الحساب الحالي.', 'error');
+      return;
+    }
+
     addAdminUser(adminForm);
     setIsAddModalOpen(false);
     setAdminForm({ 

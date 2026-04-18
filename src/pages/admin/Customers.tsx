@@ -618,11 +618,11 @@ export default function Customers() {
                         e.stopPropagation();
                         setConfirmModal({
                           isOpen: true,
-                          title: 'نقل إلى سلة المهملات',
-                          message: `هل أنت متأكد من نقل العميل "${customer.name}" إلى سلة المهملات؟ يمكنك استعادته لاحقاً.`,
+                          title: 'حذف العميل',
+                          message: `هل أنت متأكد من حذف العميل "${customer.name}"؟ لا يمكن التراجع عن هذا الإجراء وسيتم حذف جميع بياناته.`,
                           onConfirm: () => deleteCustomer(customer.uid || customer.phone || ''),
-                          type: 'warning',
-                          confirmText: 'نقل إلى السلة'
+                          type: 'danger',
+                          confirmText: 'حذف العميل'
                         });
                       }}
                       className="p-2 bg-white/90 backdrop-blur-sm text-red-500 rounded-xl hover:bg-red-500 hover:text-white transition-all shadow-sm border border-red-100"
@@ -862,14 +862,14 @@ export default function Customers() {
                                   setIsActionMenuOpen(false); 
                                   setConfirmModal({
                                     isOpen: true,
-                                    title: 'نقل إلى سلة المهملات',
-                                    message: `هل أنت متأكد من نقل حساب العميل "${customer.name}" إلى سلة المهملات؟`,
+                                    title: 'حذف الحساب',
+                                    message: `هل أنت متأكد من حذف حساب العميل "${customer.name}" بشكل نهائي؟`,
                                     onConfirm: () => {
                                       setIsProfileModalOpen(false);
                                       deleteCustomer(customer.uid || customer.phone || '');
                                     },
-                                    type: 'warning',
-                                    confirmText: 'نقل للسلة'
+                                    type: 'danger',
+                                    confirmText: 'حذف نهائي'
                                   });
                                 }} 
                                 className="flex items-center gap-3 w-full p-3 text-right text-sm font-semibold text-red-600 hover:bg-red-50 rounded-xl transition-all"

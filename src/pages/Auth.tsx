@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useStore } from '../context/StoreContext';
 import { parseSmartError } from '../lib/errorUtils';
 import { 
-  auth, db, doc, getDoc, setDoc, serverTimestamp, loginWithEmail, signupWithEmail, collection, query, where, getDocs
+  auth, db, doc, getDoc, setDoc, serverTimestamp, loginWithEmail, signupWithEmail
 } from '../lib/firebase';
 import FloatingInput from '../components/FloatingInput';
 
@@ -309,66 +309,12 @@ export default function Auth() {
       if (isLogin) {
         // Direct login
         const email = getDummyEmail(formData.countryCode, formData.phone);
-        const userCred = await loginWithEmail(email, formData.password);
-        
-        // Check if account is soft-deleted or blocked
-        const userDoc = await getDoc(doc(db, 'users', userCred.user.uid));
-        
-        // Define owner identifies
-        const ownerEmails = ["samesaeed456@gmail.com", "samisaeed2027@gmail.com", "967776668370@elite-store.local"];
-        const ownerPhones = ['776668370', '967776668370', '+967776668370'];
-        const isOwnerByEmail = userCred.user.email && ownerEmails.includes(userCred.user.email);
-        const isOwnerByPhone = formData.phone && ownerPhones.some(p => formData.phone.includes(p));
-        const isOwner = isOwnerByEmail || isOwnerByPhone;
-
-        if (!userDoc.exists() && !isOwner) {
-          await auth.signOut();
-          setError('عذراً، لم يتم العثور على بيانات هذا الحساب. يرجى التواصل مع الدعم الفني.');
-          setIsLoading(false);
-          return;
-        }
-
-        if (userDoc.exists()) {
-          const userData = userDoc.data();
-          if (userData.isDeleted && !isOwner) {
-            await auth.signOut();
-            setError('هذا الحساب محذوف حالياً. يمكنك طلب استعادته من خلال التواصل مع الإدارة عبر الواتساب.');
-            setIsLoading(false);
-            return;
-          }
-        }
-        
+        await loginWithEmail(email, formData.password);
         showToast('تم تسجيل الدخول بنجاح');
         navigate(redirectPath);
       } else {
         // Signup requires OTP via backend
         const fullPhone = formData.countryCode + formData.phone;
-
-        // Check if phone already exists in Firestore (including deleted) via Server API
-        // to avoid "Missing or insufficient permissions" error on client-side collection query
-        try {
-          const checkResponse = await fetch('/api/admin/check-phone', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ phone: formData.phone })
-          });
-
-          if (checkResponse.ok) {
-            const checkData = await checkResponse.json();
-            if (checkData.exists) {
-              if (checkData.isDeleted) {
-                setError('هذا الرقم مرتبط بحساب محذوف سابقاً. لا يمكنك إنشاء حساب جديد بهذا الرقم، يرجى التواصل مع الإدارة لاستعادة حسابك القديم.');
-              } else {
-                setError('هذا الرقم مسجل مسبقاً. يرجى تسجيل الدخول بدلاً من إنشاء حساب جديد.');
-              }
-              setIsLoading(false);
-              return;
-            }
-          }
-        } catch (checkErr) {
-          console.error("Error checking phone existence:", checkErr);
-          // Continue if check fails, signup logic will handle duplicates eventually
-        }
 
         try {
           const response = await fetch('/api/send-otp', {

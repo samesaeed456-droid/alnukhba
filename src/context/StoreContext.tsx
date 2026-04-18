@@ -154,11 +154,6 @@ interface StoreState {
   searchTerms: SearchTerm[];
   visits: Visit[];
   systemError: string | null;
-  trashItems: {
-    users: UserProfile[];
-    products: Product[];
-    orders: Order[];
-  };
 }
 
 interface StoreActions {
@@ -214,9 +209,6 @@ interface StoreActions {
     paymentProof?: string
   ) => Promise<string>;
   updateOrderStatus: (orderId: string, status: Order['status']) => Promise<void>;
-  deleteOrder: (orderId: string) => void;
-  restoreItem: (collectionName: 'users' | 'products' | 'orders', id: string) => Promise<void>;
-  permanentlyDeleteItem: (collectionName: 'users' | 'products' | 'orders', id: string) => Promise<void>;
   toggleWishlist: (product: Product) => void;
   isInWishlist: (productId: string) => boolean;
   updateUser: (user: UserProfile) => void;
@@ -330,15 +322,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const saved = localStorage.getItem('store_user');
     return saved ? JSON.parse(saved) : null;
   });
-  const [trashItems, setTrashItems] = useState<{
-    users: UserProfile[];
-    products: Product[];
-    orders: Order[];
-  }>({
-    users: [],
-    products: [],
-    orders: []
-  });
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [systemError, setSystemError] = useState<string | null>(null);
 
@@ -369,41 +352,26 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         unsubUser = onSnapshot(doc(db, 'users', firebaseUser.uid), (docSnap) => {
           if (docSnap.exists()) {
             const userData = docSnap.data() as UserProfile;
-            
-            // If user was deleted or blocked reactively
-            if (userData.isDeleted || userData.isBlocked) {
-              // We'll let BlockedOverlay handle the UI, but we could also force logout 
-              // depending on desired UX. For now, we update the state so UI reacts.
-              setUser(userData);
-              localStorage.setItem('store_user', JSON.stringify(userData));
-            } else {
-              setUser(userData);
-              localStorage.setItem('store_user', JSON.stringify(userData));
-            }
+            setUser(userData);
+            localStorage.setItem('store_user', JSON.stringify(userData));
           } else {
-            // DOCUMENT DOES NOT EXIST
-            // Check if it's the owner trying to log in (Rescue Scenario)
-            const ownerEmails = ['samesaeed456@gmail.com', 'samisaeed2027@gmail.com', '967776668370@elite-store.local'];
-            const isOwner = firebaseUser.email && ownerEmails.includes(firebaseUser.email);
+            // Gentle creation: only set essential and firebase-provided fields with merge:true
+            // to avoid overwriting fields (like name/phone) being simultaneously saved by Auth.tsx
+            const defaultData: any = {
+              uid: firebaseUser.uid,
+              email: firebaseUser.email || '',
+              role: 'user',
+              createdAt: serverTimestamp()
+            };
             
-            if (isOwner) {
-              // Create a minimal user object to trigger the Rescue Logic
-              const miniUser: any = {
-                uid: firebaseUser.uid,
-                email: firebaseUser.email,
-                role: 'user', // Temporary, rescue will upgrade to admin
-                isNew: true
-              };
-              setUser(miniUser);
-            } else {
-              // We force logout if the user was previously established
-              const wasLoggedIn = localStorage.getItem('store_user');
-              if (wasLoggedIn) {
-                auth.signOut();
-                setUser(null);
-                localStorage.removeItem('store_user');
-              }
-            }
+            if (firebaseUser.displayName) defaultData.displayName = firebaseUser.displayName;
+            if (firebaseUser.photoURL) defaultData.photoURL = firebaseUser.photoURL;
+
+            setDoc(doc(db, 'users', firebaseUser.uid), defaultData, { merge: true })
+              .catch(error => console.error("Error creating fallback profile:", error));
+
+            // Don't set user state here with empty fields, let the snapshot update it naturally
+            // once Auth.tsx finishes its true save, or this setDoc finishes.
           }
           setIsAuthReady(true);
         }, (error) => {
@@ -427,12 +395,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (user) {
       // If the owner's email matches, force super_admin regardless of current role
-      const ownerEmails = ['samesaeed456@gmail.com', 'samisaeed2027@gmail.com'];
+      const ownerEmails = ['samesaeed456@gmail.com'];
       const ownerPhones = ['776668370', '967776668370', '+967776668370'];
       
       const isOwner = 
-        (user.email && ownerEmails.includes(user.email)) || 
-        (user.email && user.email.includes('elite-store.local')) ||
+        ownerEmails.includes(user.email) || 
+        user.email.includes('elite-store.local') ||
         (user.phone && ownerPhones.some(p => user.phone?.includes(p)));
 
       if (isOwner) {
@@ -459,12 +427,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
                 }
              }
              
-             // Check if user is deleted, blocked or actually brand new (isNew flag)
-             const needsUnblock = user.isDeleted || user.isBlocked || (user as any).isNew;
-
-             // If they don't even exist in admin_users or are downgraded, or are blocked/deleted/missing
-             if (currentRole !== 'super_admin' || needsUnblock) {
-               console.log("Owner detected! Forcing permissions and restoring account...");
+             // If they don't even exist in admin_users or are downgraded
+             if (currentRole !== 'super_admin') {
+               console.log("Owner detected by phone/email! Forcing permissions...");
                
                await setDoc(doc(db, 'admin_users', adminDocId), {
                  id: user.uid,
@@ -478,13 +443,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
                await updateDoc(doc(db, 'users', user.uid), {
                  role: 'admin',
-                 adminRole: 'super_admin',
-                 isDeleted: false,
-                 isBlocked: false,
-                 isActive: true
+                 adminRole: 'super_admin'
                });
                
-               showToast('تمت استعادة حساب وصلاحيات المدير العام بنجاح', 'success');
+               showToast('تمت استعادة صلاحيات المدير العام بنجاح', 'success');
                // Force a real reload
                window.location.reload();
              }
@@ -500,69 +462,21 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   // Sync Products from Firestore
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, 'products'), (snapshot) => {
-      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Product[];
-      const activeProducts = data.filter(p => !p.isDeleted);
-      const deletedProducts = data.filter(p => p.isDeleted);
-      
-      setProducts(activeProducts);
-      setTrashItems(prev => ({ ...prev, products: deletedProducts }));
-      
-      localStorage.setItem('store_products', JSON.stringify(activeProducts));
+      const productsData = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return { 
+          ...data, 
+          id: String(doc.id) 
+        };
+      }) as unknown as Product[];
+      setProducts(productsData);
+      localStorage.setItem('store_products', JSON.stringify(productsData));
     }, (error) => {
       console.error('Products sync error:', error);
+      // setSystemError('فشل مزامنة المنتجات. يرجى التحقق من الاتصال.');
     });
     return () => unsubscribe();
   }, []);
-
-  // Sync Cart and Wishlist items with Live Product Data automatically
-  useEffect(() => {
-    if (products.length === 0) return;
-
-    setCart(prevCart => {
-      let isChanged = false;
-      const updatedCart = prevCart.map(item => {
-        const live = products.find(p => String(p.id) === String(item.product.id));
-        if (live) {
-          // Sync critical fields: price, name, image, stock, and availability
-          const hasStaleData = 
-            live.price !== item.product.price || 
-            live.name !== item.product.name || 
-            live.image !== item.product.image ||
-            live.stockCount !== item.product.stockCount ||
-            live.inStock !== item.product.inStock;
-
-          if (hasStaleData) {
-            isChanged = true;
-            return { ...item, product: live };
-          }
-        }
-        return item;
-      });
-      return isChanged ? updatedCart : prevCart;
-    });
-
-    setWishlist(prevWish => {
-      let isChanged = false;
-      const updatedWish = prevWish.map(item => {
-        const live = products.find(p => String(p.id) === String(item.id));
-        if (live) {
-          const hasStaleData = 
-            live.price !== item.price || 
-            live.name !== item.name || 
-            live.image !== item.image ||
-            live.stockCount !== item.stockCount ||
-            live.inStock !== item.inStock;
-
-          if (hasStaleData) {
-            isChanged = true;
-            return live;
-          }
-        }
-        return item;
-      });
-      return isChanged ? updatedWish : prevWish;
-    });
-  }, [products]);
 
   // Sync Orders from Firestore
   useEffect(() => {
@@ -579,13 +493,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const ordersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as Order[];
-      const activeOrders = ordersData.filter(o => !o.isDeleted);
-      const deletedOrders = ordersData.filter(o => o.isDeleted);
-      
-      setOrders(activeOrders);
-      if (user.role === 'admin') {
-        setTrashItems(prev => ({ ...prev, orders: deletedOrders }));
-      }
+      setOrders(ordersData);
     }, (error) => {
       console.error('Orders sync error:', error);
       // Don't set global system error for orders to avoid blocking the whole app
@@ -603,12 +511,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }
 
     const unsubCustomers = onSnapshot(collection(db, 'users'), (snapshot) => {
-      const usersData = snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() })) as unknown as UserProfile[];
-      const activeUsers = usersData.filter(u => !u.isDeleted);
-      const deletedUsers = usersData.filter(u => u.isDeleted);
-      
-      setCustomers(activeUsers);
-      setTrashItems(prev => ({ ...prev, users: deletedUsers }));
+      const customersData = snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() })) as unknown as UserProfile[];
+      setCustomers(customersData);
     }, (error) => handleFirestoreError(error, OperationType.LIST, 'users'));
 
     const unsubLogs = onSnapshot(collection(db, 'activity_logs'), (snapshot) => {
@@ -1957,8 +1861,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       await auth.signOut();
       setUser(null);
       setWishlist([]);
-      localStorage.removeItem('store_user');
-      localStorage.removeItem('is_logged_in');
       showToast('تم تسجيل الخروج بنجاح');
     } catch (error) {
       console.error('Logout failed:', error);
@@ -2082,12 +1984,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const q = query(collection(db, 'users'), where('phone', '==', customer.phone));
       const snapshot = await getDocs(q);
       if (!snapshot.empty) {
-        const existingData = snapshot.docs[0].data();
-        if (existingData.isDeleted) {
-          showToast('هذا الرقم مرتبط بحساب في سلة المهملات، يرجى استعادته من هناك بدلاً من إضافة عميل جديد', 'error');
-        } else {
-          showToast('هذا الرقم مسجل مسبقاً لعميل آخر', 'error');
-        }
+        showToast('هذا الرقم مسجل مسبقاً لعميل آخر', 'error');
         return;
       }
       
@@ -2114,7 +2011,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       }
 
       let docRef = null;
-      let targetUserId = '';
       
       // Try to get by UID first
       const uidRef = doc(db, 'users', identifier);
@@ -2122,31 +2018,23 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       
       if (uidSnap.exists()) {
         docRef = uidRef;
-        targetUserId = identifier;
       } else {
         // Fallback to phone search
         const q = query(collection(db, 'users'), where('phone', '==', identifier));
         const snapshot = await getDocs(q);
         if (!snapshot.empty) {
           docRef = snapshot.docs[0].ref;
-          targetUserId = snapshot.docs[0].id;
         }
       }
 
-      if (!docRef || !targetUserId) {
+      if (!docRef) {
         showToast('العميل غير موجود', 'error');
         return;
       }
 
-      // Soft delete: Mark as deleted and blocked
-      await updateDoc(docRef, {
-        isDeleted: true,
-        isBlocked: true,
-        deletedAt: new Date().toISOString()
-      });
-
-      showToast('تم نقل العميل إلى سلة المهملات');
-      logActivity('حذف عميل (سلة المهملات)', `تم نقل العميل ${identifier} إلى سلة المهملات`);
+      await deleteDoc(docRef);
+      showToast('تم حذف العميل بنجاح');
+      logActivity('حذف عميل', `تم حذف العميل: ${identifier}`);
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, `users: ${identifier}`);
     }
@@ -2403,63 +2291,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const deleteProduct = React.useCallback(async (id: string) => {
     try {
-      await updateDoc(doc(db, 'products', String(id)), {
-        isDeleted: true,
-        deletedAt: new Date().toISOString()
-      });
-      showToast('تم نقل المنتج إلى سلة المهملات');
-      logActivity('حذف محصول (سلة المهملات)', `تم نقل المنتج ID: ${id} إلى سلة المهملات`);
+      await deleteDoc(doc(db, 'products', String(id)));
+      showToast('تم حذف المنتج بنجاح');
+      logActivity('حذف منتج', `تم حذف المنتج ID: ${id}`);
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, `products/${id}`);
-    }
-  }, [showToast, logActivity]);
-
-  const restoreItem = React.useCallback(async (collectionName: 'users' | 'products' | 'orders', id: string) => {
-    try {
-      await updateDoc(doc(db, collectionName, id), {
-        isDeleted: false,
-        deletedAt: null as any,
-        // If it was a user, unblock them too
-        ...(collectionName === 'users' ? { isBlocked: false } : {})
-      });
-      showToast('تم استعادة العنصر بنجاح');
-      logActivity('استعادة عنصر', `تم استعادة عنصر من مجموعة ${collectionName} ID: ${id}`);
-    } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, `${collectionName}/${id}`);
-    }
-  }, [showToast, logActivity]);
-
-  const permanentlyDeleteItem = React.useCallback(async (collectionName: 'users' | 'products' | 'orders', id: string) => {
-    try {
-      if (collectionName === 'users') {
-        // Hard cascade delete logic we had before
-        try {
-          await fetch('/api/admin/delete-user', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId: id })
-          });
-        } catch (e) {}
-      }
-
-      await deleteDoc(doc(db, collectionName, id));
-      showToast('تم حذف العنصر نهائياً');
-      logActivity('حذف نهائي', `تم حذف عنصر نهائياً من مجموعة ${collectionName} ID: ${id}`);
-    } catch (error) {
-      handleFirestoreError(error, OperationType.DELETE, `${collectionName}/${id}`);
-    }
-  }, [showToast, logActivity]);
-
-  const deleteOrder = React.useCallback(async (id: string) => {
-    try {
-      await updateDoc(doc(db, 'orders', id), {
-        isDeleted: true,
-        deletedAt: new Date().toISOString()
-      });
-      showToast('تم نقل الطلب إلى سلة المهملات');
-      logActivity('حذف طلب (سلة المهملات)', `تم نقل الطلب ${id} إلى سلة المهملات`);
-    } catch (error) {
-      handleFirestoreError(error, OperationType.DELETE, `orders/${id}`);
     }
   }, [showToast, logActivity]);
 
@@ -2513,8 +2349,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     products, cart, wishlist, orders, user,
     notifications, notificationSettings, subscriptions, recentlyViewed, language, settings, categories, inventoryLogs, customers, discount, coupons,
     banners, marketingNotifications, adminUsers, activityLogs,
-    supportTickets, blogPosts, staticPages, shippingZones, abandonedCarts, searchTerms, visits, systemError, trashItems
-  }), [products, cart, wishlist, orders, user, notifications, notificationSettings, subscriptions, recentlyViewed, language, settings, categories, inventoryLogs, customers, discount, coupons, banners, marketingNotifications, adminUsers, activityLogs, supportTickets, blogPosts, staticPages, shippingZones, abandonedCarts, searchTerms, visits, systemError, trashItems]);
+    supportTickets, blogPosts, staticPages, shippingZones, abandonedCarts, searchTerms, visits, systemError
+  }), [products, cart, wishlist, orders, user, notifications, notificationSettings, subscriptions, recentlyViewed, language, settings, categories, inventoryLogs, customers, discount, coupons, banners, marketingNotifications, adminUsers, activityLogs, supportTickets, blogPosts, staticPages, shippingZones, abandonedCarts, searchTerms, visits, systemError]);
 
   const actionsValue = useMemo(() => ({
     addProduct, updateProduct, deleteProduct,
@@ -2537,7 +2373,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     updateCustomer, blockCustomer,
     addCustomer, deleteCustomer,
     addToCart, updateCartQuantity, removeFromCart, clearCart, placeOrder, updateOrderStatus,
-    deleteOrder, restoreItem, permanentlyDeleteItem,
     toggleWishlist, isInWishlist, updateUser, deleteAccount, logout,
     applyDiscountCode, removeDiscount,
     addCoupon, updateCoupon, deleteCoupon, toggleCouponStatus,
@@ -2564,7 +2399,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     updateCustomer, blockCustomer,
     addCustomer, deleteCustomer,
     addToCart, updateCartQuantity, removeFromCart, clearCart, placeOrder, updateOrderStatus,
-    deleteOrder, restoreItem, permanentlyDeleteItem,
     toggleWishlist, isInWishlist, updateUser, deleteAccount, logout,
     applyDiscountCode, removeDiscount,
     addCoupon, updateCoupon, deleteCoupon, toggleCouponStatus,

@@ -295,6 +295,40 @@ app.post("/api/reset-password", async (req, res) => {
   }
 });
 
+// Admin API: Check if phone exists (including soft-deleted)
+app.post("/api/admin/check-phone", async (req, res) => {
+  const { phone } = req.body;
+  if (!phone) return res.status(400).json({ success: false, error: "رقم الجوال مطلوب" });
+
+  if (getApps().length === 0) {
+    return res.status(500).json({ success: false, error: "إعدادات Firebase Admin غير متوفرة في السيرفر" });
+  }
+
+  try {
+    const { getFirestore: getAdminFirestore } = await import('firebase-admin/firestore');
+    const db = getAdminFirestore();
+    
+    // Check in Firestore
+    const phoneQuery = db.collection('users').where('phone', '==', phone).limit(1);
+    const phoneSnap = await phoneQuery.get();
+
+    if (!phoneSnap.empty) {
+      const userData = phoneSnap.docs[0].data();
+      return res.json({ 
+        exists: true, 
+        isDeleted: !!userData.isDeleted,
+        name: userData.name || userData.displayName || 'عميل'
+      });
+    }
+
+    res.json({ exists: false });
+  } catch (error: any) {
+    console.error("[Firebase Admin] Check phone error:", error);
+    // Silent error for frontend, just say it doesn't exist or fail gracefully
+    res.status(500).json({ success: false, error: "خطأ في التحقق من الرقم" });
+  }
+});
+
 // Simple in-memory store for OTPs (For production, use Redis or Firestore)
 const otpStore = new Map<string, { code: string, expires: number }>();
 

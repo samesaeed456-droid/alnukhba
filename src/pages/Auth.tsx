@@ -334,19 +334,30 @@ export default function Auth() {
         // Signup requires OTP via backend
         const fullPhone = formData.countryCode + formData.phone;
 
-        // Check if phone already exists in Firestore (including deleted)
-        const phoneQuery = query(collection(db, 'users'), where('phone', '==', formData.phone));
-        const phoneSnap = await getDocs(phoneQuery);
+        // Check if phone already exists in Firestore (including deleted) via Server API
+        // to avoid "Missing or insufficient permissions" error on client-side collection query
+        try {
+          const checkResponse = await fetch('/api/admin/check-phone', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ phone: formData.phone })
+          });
 
-        if (!phoneSnap.empty) {
-          const existingUser = phoneSnap.docs[0].data();
-          if (existingUser.isDeleted) {
-            setError('هذا الرقم مرتبط بحساب محذوف سابقاً. لا يمكنك إنشاء حساب جديد بهذا الرقم، يرجى التواصل مع الإدارة لاستعادة حسابك القديم.');
-          } else {
-            setError('هذا الرقم مسجل مسبقاً. يرجى تسجيل الدخول بدلاً من إنشاء حساب جديد.');
+          if (checkResponse.ok) {
+            const checkData = await checkResponse.json();
+            if (checkData.exists) {
+              if (checkData.isDeleted) {
+                setError('هذا الرقم مرتبط بحساب محذوف سابقاً. لا يمكنك إنشاء حساب جديد بهذا الرقم، يرجى التواصل مع الإدارة لاستعادة حسابك القديم.');
+              } else {
+                setError('هذا الرقم مسجل مسبقاً. يرجى تسجيل الدخول بدلاً من إنشاء حساب جديد.');
+              }
+              setIsLoading(false);
+              return;
+            }
           }
-          setIsLoading(false);
-          return;
+        } catch (checkErr) {
+          console.error("Error checking phone existence:", checkErr);
+          // Continue if check fails, signup logic will handle duplicates eventually
         }
 
         try {

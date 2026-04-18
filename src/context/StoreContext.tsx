@@ -352,16 +352,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         unsubUser = onSnapshot(doc(db, 'users', firebaseUser.uid), (docSnap) => {
           if (docSnap.exists()) {
             const userData = docSnap.data() as UserProfile;
-            
-            // Real-time Block Enforcement
-            if (userData.isBlocked) {
-              auth.signOut();
-              setUser(null);
-              localStorage.removeItem('store_user');
-              showToast('تم حظر حسابك. يرجى التواصل مع الإدارة لمزيد من التفاصيل.', 'error');
-              return;
-            }
-
             setUser(userData);
             localStorage.setItem('store_user', JSON.stringify(userData));
           } else {
@@ -1915,7 +1905,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       if (updates.password) {
         try {
           const snap = await getDoc(docRef);
-          const userData = snap.data();
+          const userData = snap.data() as UserProfile | undefined;
           if (userData && userData.phone) {
              const resetResponse = await fetch('/api/reset-password', {
                method: 'POST',
@@ -1929,13 +1919,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
              const resetData = await resetResponse.json();
              if (!resetResponse.ok || !resetData.success) {
                console.error("Backend Auth Password Update Failed:", resetData.error);
-               showToast('تم تحديث البيانات لكن لم يتم تغيير كلمة المرور في السيرفر', 'warning');
+               showToast('تم تحديث البيانات لكن لم يتم تغيير كلمة المرور في السيرفر', 'error');
                return;
              }
           }
         } catch (authUpdateError) {
           console.error("Critical Auth Update Error:", authUpdateError);
-          showToast('خطأ في مزامنة كلمة المرور مع السيرفر', 'warning');
+          showToast('خطأ في مزامنة كلمة المرور مع السيرفر', 'error');
         }
       }
 

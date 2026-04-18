@@ -48,6 +48,7 @@ const AdminMessages = lazy(() => import('./pages/admin/Messages.tsx'));
 const AdminLogistics = lazy(() => import('./pages/admin/Logistics.tsx'));
 const AdminCloud = lazy(() => import('./pages/admin/Cloud.tsx'));
 import Maintenance from './pages/Maintenance';
+import BlockedOverlay from './components/BlockedOverlay';
 import { AlertCircle, X } from 'lucide-react';
 
 const SystemAlert = () => {
@@ -239,6 +240,7 @@ export default function App() {
   return (
     <StoreProvider>
       <SystemAlert />
+      <BlockedOverlay />
       <MotionConfig reducedMotion="user">
         <Toaster 
           position="top-center" 

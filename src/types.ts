@@ -94,6 +94,7 @@ export interface UserProfile {
   lastActive?: string;
   joinDate?: string;
   isBlocked?: boolean;
+  adminRole?: string;
   tags?: string[];
   createdAt?: string;
   notifications?: any[];

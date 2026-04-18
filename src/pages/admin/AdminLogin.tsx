@@ -6,7 +6,8 @@ import { FloatingInput } from '../../components/FloatingInput';
 import { Toaster, toast } from 'sonner';
 import { useStore } from '../../context/StoreContext';
 import { 
-  auth, db, doc, getDoc, loginWithEmail, signupWithEmail 
+  auth, db, doc, getDoc, loginWithEmail, signupWithEmail,
+  query, collection, where, getDocs
 } from '../../lib/firebase';
 import { getAdminDummyEmail } from '../../lib/adminAuth';
 

@@ -345,13 +345,6 @@ export default function AdminLayout() {
         </motion.nav>
 
         <div className="p-6 border-t border-slate-50">
-          <button 
-            onClick={handleLogout}
-            className="w-full flex items-center gap-4 px-4 py-4 rounded-2xl text-slate-500 hover:bg-rose-50 hover:text-rose-600 transition-all font-bold text-sm"
-          >
-            <LogOut className="w-5 h-5" />
-            <span>تسجيل الخروج</span>
-          </button>
         </div>
       </aside>
 
@@ -535,6 +528,13 @@ export default function AdminLayout() {
                           <SettingsIcon className="w-4 h-4 text-slate-400" />
                           الإعدادات
                         </Link>
+                        <button 
+                          onClick={handleLogout}
+                          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-rose-50 text-sm font-bold text-rose-600 transition-colors"
+                        >
+                          <LogOut className="w-4 h-4" />
+                          تسجيل الخروج
+                        </button>
                       </motion.div>
                     )}
                   </AnimatePresence>

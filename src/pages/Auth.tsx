@@ -269,7 +269,7 @@ export default function Auth() {
     if (!isLogin) {
       const nameParts = formData.name.trim().split(/\s+/);
       if (nameParts.length < 4) {
-        setError('يرجى إدخال الاسم الرباعي كاملاً (مثال: محمد أحمد علي صالح)');
+        setError('يرجى إدخال الاسم الرباعي كاملاً (مثال: حسين عبد الكريم هزاع)');
         return;
       }
     }

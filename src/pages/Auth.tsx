@@ -384,7 +384,7 @@ export default function Auth() {
     }
   }, [formData.phone, formData.countryCode, validatePhone, showToast]);
 
-  const handleResetPassword = useCallback((e: React.FormEvent) => {
+  const handleResetPassword = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
@@ -399,17 +399,41 @@ export default function Auth() {
     }
 
     setIsLoading(true);
-    // Note: Since we use dummy emails, we can't easily reset the Firebase Auth password 
-    // from the client without the user being signed in. 
-    // In a full production app, this would be handled by a backend Admin SDK.
-    setTimeout(() => {
+    
+    try {
+      const response = await fetch('/api/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          countryCode: formData.countryCode,
+          phone: formData.phone,
+          newPassword: newPassword 
+        })
+      });
+
+      const data = await response.json();
+      
+      if (response.ok && data.success) {
+        showToast('تم بنجاح! يرجى تسجيل الدخول بكلمة المرور الجديدة');
+        setStep('form');
+        setIsLogin(true);
+        // Clear passwords
+        setNewPassword('');
+        setConfirmPassword('');
+      } else {
+        // Show specific error from server if admin SDK is not setup
+        setError(data.error || 'حدث خطأ أثناء تغيير كلمة المرور');
+        if (data.error === "إعدادات Firebase Admin غير متوفرة في السيرفر") {
+           showToast('عذراً، الخادم غير مهيأ لاستعادة كلمات المرور حالياً. تواصل مع الدعم الفني.', 'error');
+        }
+      }
+    } catch (err) {
+      console.error("Reset password error:", err);
+      setError('فشل الاتصال بالخادم');
+    } finally {
       setIsLoading(false);
-      setError('عذراً، ميزة استعادة كلمة المرور تتطلب تواصل مع الدعم الفني حالياً.');
-      showToast('يرجى التواصل مع الدعم الفني لاستعادة حسابك');
-      setStep('form');
-      setIsLogin(true);
-    }, 1000);
-  }, [newPassword, confirmPassword, showToast]);
+    }
+  }, [newPassword, confirmPassword, formData, showToast]);
 
   const getTitle = useCallback(() => {
     if (step === 'verification') return 'كود التحقق';

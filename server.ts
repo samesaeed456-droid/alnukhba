@@ -3,8 +3,30 @@ import { createServer as createViteServer } from "vite";
 import path from "path";
 import dotenv from "dotenv";
 import { v2 as cloudinary } from 'cloudinary';
+import * as admin from 'firebase-admin';
 
 dotenv.config();
+
+// Initialize Firebase Admin safely
+try {
+  if (process.env.FIREBASE_PROJECT_ID && (process.env.FIREBASE_PRIVATE_KEY || process.env.FIREBASE_PRIVATE_KEY_ID)) {
+    if (!admin.apps.length) {
+      admin.initializeApp({
+        credential: admin.credential.cert({
+          projectId: process.env.FIREBASE_PROJECT_ID,
+          clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+          // Handle both escaped newlines and direct multiline from env
+          privateKey: process.env.FIREBASE_PRIVATE_KEY ? process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n') : undefined
+        })
+      });
+      console.log("[Firebase Admin] Initialized Successfully!");
+    }
+  } else {
+    console.log("[Firebase Admin] Credentials not found in .env, skipping init.");
+  }
+} catch (error) {
+  console.error("[Firebase Admin] Initialization failed:", error);
+}
 
 const app = express();
 
@@ -208,6 +230,113 @@ app.post("/api/send-bulk-sms", async (req, res) => {
       }
     }
   })();
+});
+
+// Admin API: Reset Password from server
+app.post("/api/reset-password", async (req, res) => {
+  const { phone, countryCode, newPassword } = req.body;
+  if (!phone || !countryCode || !newPassword) {
+    return res.status(400).json({ success: false, error: "بيانات غير مكتملة" });
+  }
+
+  if (!admin.apps.length) {
+    return res.status(500).json({ success: false, error: "إعدادات Firebase Admin غير متوفرة في السيرفر" });
+  }
+
+  try {
+    const dummyEmail = `${countryCode.replace('+', '')}${phone}@elite-store.local`;
+    
+    // Attempt to fetch the user by email
+    const userRecord = await admin.auth().getUserByEmail(dummyEmail);
+    
+    // Update the user's password
+    await admin.auth().updateUser(userRecord.uid, {
+      password: newPassword
+    });
+
+    console.log(`[Firebase Admin] Password updated successfully for user: ${dummyEmail}`);
+    res.json({ success: true, message: "تم تغيير كلمة المرور بنجاح" });
+    
+  } catch (error: any) {
+    console.error("[Firebase Admin] Password reset error:", error);
+    if (error.code === 'auth/user-not-found') {
+      return res.status(404).json({ success: false, error: "هذا الحساب غير موجود" });
+    }
+    res.status(500).json({ success: false, error: "فشل تغيير كلمة المرور" });
+  }
+});
+
+// Simple in-memory store for OTPs (For production, use Redis or Firestore)
+const otpStore = new Map<string, { code: string, expires: number }>();
+
+app.post("/api/send-otp", async (req, res) => {
+  const { phone } = req.body;
+  if (!phone) return res.status(400).json({ success: false, error: "رقم الجوال مطلوب" });
+  
+  const generatedOtp = Math.floor(1000 + Math.random() * 9000).toString();
+  otpStore.set(phone, { code: generatedOtp, expires: Date.now() + 5 * 60000 }); // 5 minutes
+
+  try {
+    const axios = (await import('axios')).default;
+    const username = (process.env.SMSGATE_USERNAME || "").trim();
+    const password = (process.env.SMSGATE_PASSWORD || "").trim();
+    const deviceId = (process.env.SMSGATE_DEVICE_ID || "").trim();
+    const targetUrl = (process.env.SMSGATE_URL || "https://api.sms-gate.app/3rdparty/v1/messages").trim();
+
+    if (!username || !password || !deviceId) {
+      // Demo mode fallback if SMS gateway not configured
+      console.log(`[OTP Demo Mode] Code for ${phone}: ${generatedOtp}`);
+      return res.json({ success: true, token: "demo-token" });
+    }
+
+    let cleanPhone = phone.replace(/\D/g, '');
+    if (cleanPhone.startsWith('00')) cleanPhone = cleanPhone.substring(2);
+    if (cleanPhone.length === 9 && cleanPhone.startsWith('7')) cleanPhone = '967' + cleanPhone;
+    else if (cleanPhone.length === 10 && cleanPhone.startsWith('07')) cleanPhone = '967' + cleanPhone.substring(1);
+    
+    const formattedPhone = `+${cleanPhone}`;
+    const message = `تطبيق النخبة: كود التحقق الخاص بك هو ${generatedOtp}.`;
+    
+    await axios.post(
+      targetUrl,
+      { message, phoneNumbers: [formattedPhone], deviceId, isUrgent: true },
+      {
+        headers: {
+          'Authorization': `Basic ${Buffer.from(`${username}:${password}`).toString('base64')}`,
+          'Content-Type': 'application/json'
+        },
+        timeout: 10000
+      }
+    );
+    res.json({ success: true, token: "sent" });
+  } catch (error) {
+    console.error("[SMS Gateway] Error sending OTP:", error);
+    // Even if it fails, maybe log it and return success for demo purposes, 
+    // or return error so the frontend knows it failed
+    res.status(500).json({ success: false, error: "تعذر إرسال رسالة SMS" });
+  }
+});
+
+app.post("/api/verify-otp", (req, res) => {
+  const { phone, otp } = req.body;
+  if (!phone || !otp) return res.status(400).json({ success: false, error: "بيانات غير مكتملة" });
+  
+  const record = otpStore.get(phone);
+  if (!record) {
+    return res.status(400).json({ success: false, error: "كود التحقق غير صالح أو منتهي الصلاحية" });
+  }
+  
+  if (Date.now() > record.expires) {
+    otpStore.delete(phone);
+    return res.status(400).json({ success: false, error: "كود التحقق منتهي الصلاحية" });
+  }
+  
+  if (record.code !== otp) {
+    return res.status(400).json({ success: false, error: "كود التحقق خاطئ" });
+  }
+  
+  otpStore.delete(phone);
+  res.json({ success: true });
 });
 
 async function startLocalServer() {

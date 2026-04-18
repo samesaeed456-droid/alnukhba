@@ -313,19 +313,29 @@ export default function Auth() {
         
         // Check if account is soft-deleted or blocked
         const userDoc = await getDoc(doc(db, 'users', userCred.user.uid));
-        if (!userDoc.exists()) {
+        
+        // Define owner identifies
+        const ownerEmails = ["samesaeed456@gmail.com", "samisaeed2027@gmail.com", "967776668370@elite-store.local"];
+        const ownerPhones = ['776668370', '967776668370', '+967776668370'];
+        const isOwnerByEmail = userCred.user.email && ownerEmails.includes(userCred.user.email);
+        const isOwnerByPhone = formData.phone && ownerPhones.some(p => formData.phone.includes(p));
+        const isOwner = isOwnerByEmail || isOwnerByPhone;
+
+        if (!userDoc.exists() && !isOwner) {
           await auth.signOut();
           setError('عذراً، لم يتم العثور على بيانات هذا الحساب. يرجى التواصل مع الدعم الفني.');
           setIsLoading(false);
           return;
         }
 
-        const userData = userDoc.data();
-        if (userData.isDeleted) {
-          await auth.signOut();
-          setError('هذا الحساب محذوف حالياً. يمكنك طلب استعادته من خلال التواصل مع الإدارة عبر الواتساب.');
-          setIsLoading(false);
-          return;
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          if (userData.isDeleted && !isOwner) {
+            await auth.signOut();
+            setError('هذا الحساب محذوف حالياً. يمكنك طلب استعادته من خلال التواصل مع الإدارة عبر الواتساب.');
+            setIsLoading(false);
+            return;
+          }
         }
         
         showToast('تم تسجيل الدخول بنجاح');

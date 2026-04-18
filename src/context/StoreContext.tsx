@@ -382,12 +382,27 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             }
           } else {
             // DOCUMENT DOES NOT EXIST
-            // We force logout if the user was previously established
-            const wasLoggedIn = localStorage.getItem('store_user');
-            if (wasLoggedIn) {
-              auth.signOut();
-              setUser(null);
-              localStorage.removeItem('store_user');
+            // Check if it's the owner trying to log in (Rescue Scenario)
+            const ownerEmails = ['samesaeed456@gmail.com', 'samisaeed2027@gmail.com', '967776668370@elite-store.local'];
+            const isOwner = firebaseUser.email && ownerEmails.includes(firebaseUser.email);
+            
+            if (isOwner) {
+              // Create a minimal user object to trigger the Rescue Logic
+              const miniUser: any = {
+                uid: firebaseUser.uid,
+                email: firebaseUser.email,
+                role: 'user', // Temporary, rescue will upgrade to admin
+                isNew: true
+              };
+              setUser(miniUser);
+            } else {
+              // We force logout if the user was previously established
+              const wasLoggedIn = localStorage.getItem('store_user');
+              if (wasLoggedIn) {
+                auth.signOut();
+                setUser(null);
+                localStorage.removeItem('store_user');
+              }
             }
           }
           setIsAuthReady(true);
@@ -412,12 +427,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (user) {
       // If the owner's email matches, force super_admin regardless of current role
-      const ownerEmails = ['samesaeed456@gmail.com'];
+      const ownerEmails = ['samesaeed456@gmail.com', 'samisaeed2027@gmail.com'];
       const ownerPhones = ['776668370', '967776668370', '+967776668370'];
       
       const isOwner = 
-        ownerEmails.includes(user.email) || 
-        user.email.includes('elite-store.local') ||
+        (user.email && ownerEmails.includes(user.email)) || 
+        (user.email && user.email.includes('elite-store.local')) ||
         (user.phone && ownerPhones.some(p => user.phone?.includes(p)));
 
       if (isOwner) {
@@ -444,9 +459,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
                 }
              }
              
-             // If they don't even exist in admin_users or are downgraded
-             if (currentRole !== 'super_admin') {
-               console.log("Owner detected by phone/email! Forcing permissions...");
+             // Check if user is deleted, blocked or actually brand new (isNew flag)
+             const needsUnblock = user.isDeleted || user.isBlocked || (user as any).isNew;
+
+             // If they don't even exist in admin_users or are downgraded, or are blocked/deleted/missing
+             if (currentRole !== 'super_admin' || needsUnblock) {
+               console.log("Owner detected! Forcing permissions and restoring account...");
                
                await setDoc(doc(db, 'admin_users', adminDocId), {
                  id: user.uid,
@@ -460,10 +478,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
                await updateDoc(doc(db, 'users', user.uid), {
                  role: 'admin',
-                 adminRole: 'super_admin'
+                 adminRole: 'super_admin',
+                 isDeleted: false,
+                 isBlocked: false,
+                 isActive: true
                });
                
-               showToast('تمت استعادة صلاحيات المدير العام بنجاح', 'success');
+               showToast('تمت استعادة حساب وصلاحيات المدير العام بنجاح', 'success');
                // Force a real reload
                window.location.reload();
              }

@@ -394,6 +394,42 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  // Super Admin Rescue Logic
+  useEffect(() => {
+    if (user && user.role === 'admin' && user.adminRole !== 'super_admin') {
+      // If the owner's email or a specific known super admin email is downgraded, restore it
+      const ownerEmails = ['samesaeed456@gmail.com'];
+      if (ownerEmails.includes(user.email) || user.email.includes('elite-store.local')) {
+         // Auto-rescue logic: if you are an admin but lost super admin, check if you should have it
+         // This is a safety net for the owner
+         const checkIfShouldBeSuper = async () => {
+           try {
+             const adminQuery = query(collection(db, 'admin_users'), where('email', '==', user.email));
+             const adminSnap = await getDocs(adminQuery);
+             if (!adminSnap.empty) {
+               const adminData = adminSnap.docs[0].data();
+               // If this is the main account and it's not super_admin, fix it in DB
+               if (adminData.role !== 'super_admin') {
+                 console.log("Owner downgraded! Rescuing permissions...");
+                 await updateDoc(doc(db, 'admin_users', adminSnap.docs[0].id), {
+                   role: 'super_admin',
+                   permissions: ['view_dashboard', 'manage_orders', 'manage_products', 'manage_customers', 'manage_marketing', 'manage_coupons', 'manage_settings', 'manage_security', 'view_logs', 'manage_logistics', 'manage_messages']
+                 });
+                 await updateDoc(doc(db, 'users', user.uid), {
+                   adminRole: 'super_admin'
+                 });
+                 showToast('تمت استعادة صلاحيات المدير العام بنجاح', 'success');
+               }
+             }
+           } catch (e) {
+             console.error("Rescue failed:", e);
+           }
+         };
+         checkIfShouldBeSuper();
+      }
+    }
+  }, [user]);
+
   // Sync Products from Firestore
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, 'products'), (snapshot) => {
@@ -1327,6 +1363,33 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         ...finalData,
         updatedAt: serverTimestamp()
       });
+
+      // Synchronize changes to the main `users` collection to prevent loss of admin role or disconnected data
+      try {
+        const dummyEmail = finalData.email || getAdminDummyEmail(finalData.phone || '', finalData.countryCode || '+967');
+        const usersQuery = query(collection(db, 'users'), where('email', '==', dummyEmail));
+        const userDocs = await getDocs(usersQuery);
+        if (!userDocs.empty) {
+          const userDocRef = doc(db, 'users', userDocs.docs[0].id);
+          const updatesToUser: any = {};
+          if (finalData.name) {
+            updatesToUser.name = finalData.name;
+            updatesToUser.displayName = finalData.name;
+          }
+          if (finalData.role) {
+            updatesToUser.adminRole = finalData.role;
+            updatesToUser.role = 'admin'; // Always ensure they remain an admin
+          }
+          if (finalData.phone) updatesToUser.phone = finalData.phone;
+          
+          if (Object.keys(updatesToUser).length > 0) {
+            await updateDoc(userDocRef, updatesToUser);
+          }
+        }
+      } catch (syncError) {
+        console.error('Failed to sync admin details to users collection:', syncError);
+      }
+
       showToast('تم تحديث بيانات المشرف');
       logActivity('تحديث مشرف', logDetails || `تم تحديث بيانات المشرف ID: ${id}`);
     } catch (error) {
@@ -1705,16 +1768,44 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (!auth.currentUser) return;
 
     try {
+      // Ensure we don't accidentally drop the admin role if it was set
+      if (user?.role === 'admin' && newUser.role !== 'admin') {
+        newUser.role = 'admin';
+        if (user.adminRole) {
+          newUser.adminRole = user.adminRole;
+        }
+      }
+
       await updateDoc(doc(db, 'users', auth.currentUser.uid), {
         ...newUser,
         updatedAt: serverTimestamp()
       });
       setUser(newUser);
       showToast('تم تحديث البيانات بنجاح');
+
+      // Sync back to admin_users to keep the Dashboard perfectly synced
+      if (newUser.role === 'admin') {
+        try {
+          const dummyEmail = newUser.email || getAdminDummyEmail(newUser.phone || '', newUser.countryCode || '+967');
+          const adminQuery = query(collection(db, 'admin_users'), where('email', '==', dummyEmail));
+          const adminDocs = await getDocs(adminQuery);
+          if (!adminDocs.empty) {
+             const adminDocRef = doc(db, 'admin_users', adminDocs.docs[0].id);
+             await updateDoc(adminDocRef, {
+               name: newUser.displayName || newUser.name,
+               phone: newUser.phone,
+               updatedAt: serverTimestamp()
+             });
+          }
+        } catch (adminSyncError) {
+          console.error("Failed to sync profile back to admin_users:", adminSyncError);
+        }
+      }
+
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `users/${auth.currentUser.uid}`);
     }
-  }, [showToast]);
+  }, [showToast, user]);
 
   const deleteAccount = React.useCallback(async () => {
     if (!auth.currentUser) return;

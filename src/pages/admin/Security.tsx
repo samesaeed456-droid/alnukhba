@@ -524,16 +524,19 @@ export default function Security() {
                       }
                     />
 
-                    <FloatingInput
-                      id="editAdminPassword"
-                      label="كلمة المرور"
-                      type="text"
-                      required
-                      value={adminForm.password || ''}
-                      onChange={(e) => setAdminForm({ ...adminForm, password: e.target.value })}
-                      icon={<Lock className="w-4 h-4" />}
-                      iconPosition="start"
-                    />
+                    <div className="space-y-1">
+                      <FloatingInput
+                        id="editAdminPassword"
+                        label="كلمة المرور (لا يمكن تغييرها من هنا)"
+                        type="password"
+                        readOnly
+                        value="••••••••••••••"
+                        onChange={() => {}}
+                        icon={<Lock className="w-4 h-4 text-gray-300" />}
+                        iconPosition="start"
+                      />
+                      <p className="text-[9px] text-gray-400 px-1 text-right">لأسباب أمنية، لا يمكن تغيير كلمة مرور المشرف بعد إنشائها. إذا نسيها، عليه إنشائها كحساب جديد أو تغييرها من ملفه.</p>
+                    </div>
                   </div>
 
                   {/* Role Template Group */}

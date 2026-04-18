@@ -19,18 +19,23 @@ export default function AdminLayout() {
   const { orders, products, formatPrice, adminUsers, logActivity, supportTickets } = useStore();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [readNotifications, setReadNotifications] = useState<string[]>(() => {
     const saved = localStorage.getItem('admin_read_notifications');
     return saved ? JSON.parse(saved) : [];
   });
   const [searchQuery, setSearchQuery] = useState('');
   const notificationRef = useRef<HTMLDivElement>(null);
+  const profileRef = useRef<HTMLDivElement>(null);
 
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
         setIsNotificationsOpen(false);
+      }
+      if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
+        setIsProfileOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -500,15 +505,40 @@ export default function AdminLayout() {
                 
                 <div className="h-8 w-px bg-slate-100 mx-1 hidden sm:block"></div>
 
-                <button className="flex items-center gap-3 p-1.5 pr-3 hover:bg-slate-50 rounded-2xl transition-all group">
-                  <div className="hidden sm:block text-left">
-                    <span className="text-xs font-black text-slate-900 block leading-tight">{adminName}</span>
-                    <span className="text-[9px] font-bold text-emerald-500 block uppercase tracking-widest">{roleLabels[adminRole] || 'مدير'}</span>
-                  </div>
-                  <div className="w-9 h-9 rounded-xl bg-slate-900 flex items-center justify-center text-white font-black shadow-lg shadow-slate-900/20 border-2 border-white ring-1 ring-slate-100 group-hover:scale-105 transition-transform">
-                    {(adminName || '?').charAt(0)}
-                  </div>
-                </button>
+                <div className="relative" ref={profileRef}>
+                  <button 
+                    onClick={() => setIsProfileOpen(!isProfileOpen)}
+                    className="flex items-center gap-3 p-1.5 pr-3 hover:bg-slate-50 rounded-2xl transition-all group"
+                  >
+                    <div className="hidden sm:block text-left">
+                      <span className="text-xs font-black text-slate-900 block leading-tight">{adminName}</span>
+                      <span className="text-[9px] font-bold text-emerald-500 block uppercase tracking-widest">{roleLabels[adminRole] || 'مدير'}</span>
+                    </div>
+                    <div className="w-9 h-9 rounded-xl bg-slate-900 flex items-center justify-center text-white font-black shadow-lg shadow-slate-900/20 border-2 border-white ring-1 ring-slate-100 group-hover:scale-105 transition-transform">
+                      {(adminName || '?').charAt(0)}
+                    </div>
+                  </button>
+
+                  <AnimatePresence>
+                    {isProfileOpen && (
+                      <motion.div 
+                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                        className="absolute left-0 mt-3 w-48 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden z-50 p-2"
+                      >
+                        <Link 
+                          to="/admin/settings" 
+                          onClick={() => setIsProfileOpen(false)}
+                          className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-50 text-sm font-bold text-slate-900 transition-colors"
+                        >
+                          <SettingsIcon className="w-4 h-4 text-slate-400" />
+                          الإعدادات
+                        </Link>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
               </div>
             </div>
           </div>

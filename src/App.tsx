@@ -47,6 +47,7 @@ const AdminSecurity = lazy(() => import('./pages/admin/Security.tsx'));
 const AdminMessages = lazy(() => import('./pages/admin/Messages.tsx'));
 const AdminLogistics = lazy(() => import('./pages/admin/Logistics.tsx'));
 const AdminCloud = lazy(() => import('./pages/admin/Cloud.tsx'));
+const AdminTrash = lazy(() => import('./pages/admin/TrashBin.tsx'));
 import Maintenance from './pages/Maintenance';
 import BlockedOverlay from './components/BlockedOverlay';
 import { AlertCircle, X } from 'lucide-react';
@@ -199,6 +200,7 @@ const MainRoutes = () => {
         <Route path="settings" element={<AdminSettings />} />
         <Route path="analytics" element={<AdminAnalytics />} />
         <Route path="logs" element={<AdminActivityLogs />} />
+        <Route path="trash" element={<AdminTrash />} />
       </Route>
 
       {/* Store Routes */}

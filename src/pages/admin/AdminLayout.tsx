@@ -5,7 +5,7 @@ import {
   LayoutDashboard, Package, Tags, ShoppingCart, Users, LogOut, 
   Store, Menu, X, Ticket, Settings as SettingsIcon, TrendingUp, 
   Megaphone, ShieldCheck, Truck, FileText, Globe, Search, Plus, RefreshCw, Inbox, Activity,
-  Cloud, AlertCircle, MessageSquare, Clock, CheckCircle2
+  Cloud, AlertCircle, MessageSquare, Clock, CheckCircle2, Trash2
 } from 'lucide-react';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { Toaster, toast } from 'sonner';
@@ -171,6 +171,7 @@ export default function AdminLayout() {
           { name: 'الأمان والأدوار', path: '/admin/security', icon: ShieldCheck, permission: 'manage_security' },
           { name: 'السحابة', path: '/admin/cloud', icon: Cloud, permission: 'view_logs' },
           { name: 'سجل النشاطات', path: '/admin/logs', icon: Activity, permission: 'view_logs' },
+          { name: 'سلة المهملات', path: '/admin/trash', icon: Trash2, permission: 'manage_settings' },
           { name: 'الإعدادات', path: '/admin/settings', icon: SettingsIcon, permission: 'manage_settings' },
         ]
       }

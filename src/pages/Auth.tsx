@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useStore } from '../context/StoreContext';
 import { parseSmartError } from '../lib/errorUtils';
 import { 
-  auth, db, doc, getDoc, setDoc, serverTimestamp, loginWithEmail, signupWithEmail
+  auth, db, doc, getDoc, setDoc, serverTimestamp, loginWithEmail, signupWithEmail, collection, query, where, getDocs
 } from '../lib/firebase';
 import FloatingInput from '../components/FloatingInput';
 
@@ -309,12 +309,45 @@ export default function Auth() {
       if (isLogin) {
         // Direct login
         const email = getDummyEmail(formData.countryCode, formData.phone);
-        await loginWithEmail(email, formData.password);
+        const userCred = await loginWithEmail(email, formData.password);
+        
+        // Check if account is soft-deleted or blocked
+        const userDoc = await getDoc(doc(db, 'users', userCred.user.uid));
+        if (!userDoc.exists()) {
+          await auth.signOut();
+          setError('عذراً، لم يتم العثور على بيانات هذا الحساب. يرجى التواصل مع الدعم الفني.');
+          setIsLoading(false);
+          return;
+        }
+
+        const userData = userDoc.data();
+        if (userData.isDeleted) {
+          await auth.signOut();
+          setError('هذا الحساب محذوف حالياً. يمكنك طلب استعادته من خلال التواصل مع الإدارة عبر الواتساب.');
+          setIsLoading(false);
+          return;
+        }
+        
         showToast('تم تسجيل الدخول بنجاح');
         navigate(redirectPath);
       } else {
         // Signup requires OTP via backend
         const fullPhone = formData.countryCode + formData.phone;
+
+        // Check if phone already exists in Firestore (including deleted)
+        const phoneQuery = query(collection(db, 'users'), where('phone', '==', formData.phone));
+        const phoneSnap = await getDocs(phoneQuery);
+
+        if (!phoneSnap.empty) {
+          const existingUser = phoneSnap.docs[0].data();
+          if (existingUser.isDeleted) {
+            setError('هذا الرقم مرتبط بحساب محذوف سابقاً. لا يمكنك إنشاء حساب جديد بهذا الرقم، يرجى التواصل مع الإدارة لاستعادة حسابك القديم.');
+          } else {
+            setError('هذا الرقم مسجل مسبقاً. يرجى تسجيل الدخول بدلاً من إنشاء حساب جديد.');
+          }
+          setIsLoading(false);
+          return;
+        }
 
         try {
           const response = await fetch('/api/send-otp', {

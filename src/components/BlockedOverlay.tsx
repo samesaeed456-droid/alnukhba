@@ -6,7 +6,9 @@ import { useStore } from '../context/StoreContext';
 export default function BlockedOverlay() {
   const { user, logout } = useStore();
 
-  if (!user || !user.isBlocked) return null;
+  if (!user || (!user.isBlocked && !user.isDeleted)) return null;
+
+  const isDeleted = user.isDeleted;
 
   return (
     <AnimatePresence>
@@ -28,9 +30,13 @@ export default function BlockedOverlay() {
             <ShieldAlert className="w-10 h-10 text-red-500" />
           </div>
           
-          <h2 className="text-2xl sm:text-3xl font-black text-carbon mb-4">عذراً، حسابك محظور</h2>
+          <h2 className="text-2xl sm:text-3xl font-black text-carbon mb-4">
+            {isDeleted ? 'عذراً، هذا الحساب محذوف' : 'عذراً، حسابك محظور'}
+          </h2>
           <p className="text-titanium/60 mb-8 leading-relaxed">
-            تم تقييد وصولك إلى المتجر حالياً. نعتذر عن أي إزعاج، ولكن هذا القرار تم اتخاذه بناءً على سياسات المتجر.
+            {isDeleted 
+              ? 'لقد تم حذف هذا الحساب من قبل الإدارة. إذا كنت تعتقد أن هناك خطأ أو ترغب في استعادة بياناتك، يرجى التواصل معنا.'
+              : 'تم تقييد وصولك إلى المتجر حالياً. نعتذر عن أي إزعاج، ولكن هذا القرار تم اتخاذه بناءً على سياسات المتجر.'}
           </p>
           
           <div className="bg-slate-50 rounded-2xl p-6 mb-8 text-right space-y-4">

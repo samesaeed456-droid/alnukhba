@@ -31,6 +31,8 @@ export interface Product {
   metaDescription?: string;
   sku?: string;
   status?: 'active' | 'draft';
+  isDeleted?: boolean;
+  deletedAt?: string;
 }
 
 export interface CartItem {
@@ -95,6 +97,8 @@ export interface UserProfile {
   joinDate?: string;
   isBlocked?: boolean;
   adminRole?: string;
+  isDeleted?: boolean;
+  deletedAt?: string;
   tags?: string[];
   createdAt?: string;
   notifications?: any[];
@@ -121,6 +125,8 @@ export interface Order {
   shippingMethod?: 'delivery' | 'pickup';
   deliveryInstructions?: string;
   currency: string;
+  isDeleted?: boolean;
+  deletedAt?: string;
   timeline?: {
     status: Order['status'];
     date: string;

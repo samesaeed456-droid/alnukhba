@@ -1337,11 +1337,11 @@ export default function Products() {
             setItemToDelete(null);
           }
         }}
-        title="حذف المنتج"
-        message="هل أنت متأكد من رغبتك في حذف هذا المنتج نهائياً؟ لا يمكن التراجع عن هذا الإجراء."
-        confirmText="حذف"
+        title="نقل المنتج إلى سلة المهملات"
+        message="هل أنت متأكد من نقل هذا المنتج إلى سلة المهملات؟ يمكنك استعادته لاحقاً."
+        confirmText="نقل للسلة"
         cancelText="تراجع"
-        type="danger"
+        type="warning"
       />
 
       <ConfirmationModal
@@ -1352,11 +1352,11 @@ export default function Products() {
           setSelectedProducts([]);
           setIsBulkDeleteModalOpen(false);
         }}
-        title="حذف المنتجات المختارة"
-        message={`هل أنت متأكد من حذف ${selectedProducts.length} منتجات؟ سيتم حذف جميع البيانات المتعلقة بها نهائياً.`}
-        confirmText="حذف الكل"
+        title="نقل المنتجات المختارة إلى سلة المهملات"
+        message={`هل أنت متأكد من نقل ${selectedProducts.length} منتجات إلى سلة المهملات؟`}
+        confirmText="نقل الكل"
         cancelText="تراجع"
-        type="danger"
+        type="warning"
       />
 
       {/* Floating Batch Actions */}

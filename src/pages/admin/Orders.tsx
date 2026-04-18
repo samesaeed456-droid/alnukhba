@@ -17,7 +17,7 @@ import { notificationService } from '../../services/notificationService';
 import { FloatingInput } from '../../components/FloatingInput';
 
 export default function Orders() {
-  const { orders, updateOrderStatus, formatPrice, showToast, logActivity } = useStore();
+  const { orders, updateOrderStatus, deleteOrder, formatPrice, showToast, logActivity } = useStore();
   
   const renderPrice = (price: number, className?: string) => {
     const formatted = formatPrice(price);
@@ -1025,6 +1025,19 @@ export default function Orders() {
                               إلغاء الطلب
                             </button>
                           )}
+                          <button
+                            onClick={() => {
+                              if (window.confirm('هل أنت متأكد من نقل هذا الطلب إلى سلة المهملات؟')) {
+                                deleteOrder(selectedOrder.id);
+                                setIsDetailsModalOpen(false);
+                                setIsActionMenuOpen(false);
+                              }
+                            }}
+                            className="flex items-center gap-3 w-full p-3 text-right text-sm font-bold text-slate-400 hover:bg-slate-50 rounded-xl transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                            نقل إلى سلة المهملات
+                          </button>
                         </div>
                       </motion.div>
                       </>

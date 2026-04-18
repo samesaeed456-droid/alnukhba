@@ -1,25 +1,50 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import * as admin from 'firebase-admin';
+import { initializeApp, cert, getApps } from 'firebase-admin/app';
+import { getAuth } from 'firebase-admin/auth';
 
 // Initialize Firebase Admin safely
-if (!admin.apps.length) {
-  try {
-    if (process.env.FIREBASE_PROJECT_ID && (process.env.FIREBASE_PRIVATE_KEY || process.env.FIREBASE_PRIVATE_KEY_ID)) {
-      admin.initializeApp({
-        credential: admin.credential.cert({
-          projectId: process.env.FIREBASE_PROJECT_ID,
-          clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-          privateKey: process.env.FIREBASE_PRIVATE_KEY ? process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n') : undefined
-        })
-      });
-      console.log("[Firebase Admin Vercel] Initialized Successfully!");
+const initializeFirebase = () => {
+  if (getApps().length === 0) {
+    try {
+      if (process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_PRIVATE_KEY) {
+        
+        let privateKey = process.env.FIREBASE_PRIVATE_KEY;
+        // Clean up accidental double quotes from copy-pasting into Vercel
+        if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
+          privateKey = privateKey.substring(1, privateKey.length - 1);
+        }
+        // Fix newlines
+        privateKey = privateKey.replace(/\\n/g, '\n');
+
+        initializeApp({
+          credential: cert({
+            projectId: process.env.FIREBASE_PROJECT_ID,
+            clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+            privateKey: privateKey
+          })
+        });
+        console.log("[Firebase Admin Vercel] Initialized Successfully!");
+      }
+    } catch (error) {
+      console.error("[Firebase Admin Vercel] Initialization failed:", error);
     }
-  } catch (error) {
-    console.error("[Firebase Admin Vercel] Initialization failed:", error);
   }
-}
+};
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // Add CORS headers to prevent network errors if accessed cross-origin
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+  res.setHeader(
+    'Access-Control-Allow-Headers',
+    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
+  );
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
@@ -30,7 +55,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ success: false, error: "بيانات غير مكتملة" });
   }
 
-  if (!admin.apps.length) {
+  // Ensure initialized
+  initializeFirebase();
+
+  if (getApps().length === 0) {
+    console.error("[Firebase Admin Vercel] Firebase not initialized! Missing env credentials.");
     return res.status(500).json({ success: false, error: "إعدادات Firebase Admin غير متوفرة في السيرفر" });
   }
 
@@ -38,10 +67,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const dummyEmail = `${countryCode.replace('+', '')}${phone}@elite-store.local`;
     
     // Attempt to fetch the user by email
-    const userRecord = await admin.auth().getUserByEmail(dummyEmail);
+    const userRecord = await getAuth().getUserByEmail(dummyEmail);
     
     // Update the user's password
-    await admin.auth().updateUser(userRecord.uid, {
+    await getAuth().updateUser(userRecord.uid, {
       password: newPassword
     });
 

@@ -3,25 +3,29 @@ import { createServer as createViteServer } from "vite";
 import path from "path";
 import dotenv from "dotenv";
 import { v2 as cloudinary } from 'cloudinary';
-import * as admin from 'firebase-admin';
+import { initializeApp, cert, getApps } from 'firebase-admin/app';
+import { getAuth } from 'firebase-admin/auth';
 
 dotenv.config();
 
 // Initialize Firebase Admin safely
 try {
-  if (process.env.FIREBASE_PROJECT_ID && (process.env.FIREBASE_PRIVATE_KEY || process.env.FIREBASE_PRIVATE_KEY_ID)) {
-    if (!admin.apps.length) {
-      admin.initializeApp({
-        credential: admin.credential.cert({
-          projectId: process.env.FIREBASE_PROJECT_ID,
-          clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-          // Handle both escaped newlines and direct multiline from env
-          privateKey: process.env.FIREBASE_PRIVATE_KEY ? process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n') : undefined
-        })
-      });
-      console.log("[Firebase Admin] Initialized Successfully!");
+  if (getApps().length === 0 && process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_PRIVATE_KEY) {
+    let privateKey = process.env.FIREBASE_PRIVATE_KEY;
+    if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
+      privateKey = privateKey.substring(1, privateKey.length - 1);
     }
-  } else {
+    privateKey = privateKey.replace(/\\n/g, '\n');
+
+    initializeApp({
+      credential: cert({
+        projectId: process.env.FIREBASE_PROJECT_ID,
+        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+        privateKey: privateKey
+      })
+    });
+    console.log("[Firebase Admin] Initialized Successfully!");
+  } else if (getApps().length === 0) {
     console.log("[Firebase Admin] Credentials not found in .env, skipping init.");
   }
 } catch (error) {
@@ -239,7 +243,7 @@ app.post("/api/reset-password", async (req, res) => {
     return res.status(400).json({ success: false, error: "بيانات غير مكتملة" });
   }
 
-  if (!admin.apps.length) {
+  if (getApps().length === 0) {
     return res.status(500).json({ success: false, error: "إعدادات Firebase Admin غير متوفرة في السيرفر" });
   }
 
@@ -247,10 +251,10 @@ app.post("/api/reset-password", async (req, res) => {
     const dummyEmail = `${countryCode.replace('+', '')}${phone}@elite-store.local`;
     
     // Attempt to fetch the user by email
-    const userRecord = await admin.auth().getUserByEmail(dummyEmail);
+    const userRecord = await getAuth().getUserByEmail(dummyEmail);
     
     // Update the user's password
-    await admin.auth().updateUser(userRecord.uid, {
+    await getAuth().updateUser(userRecord.uid, {
       password: newPassword
     });
 

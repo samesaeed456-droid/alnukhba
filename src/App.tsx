@@ -46,6 +46,7 @@ const AdminMarketing = lazy(() => import('./pages/admin/Marketing.tsx'));
 const AdminSecurity = lazy(() => import('./pages/admin/Security.tsx'));
 const AdminMessages = lazy(() => import('./pages/admin/Messages.tsx'));
 const AdminLogistics = lazy(() => import('./pages/admin/Logistics.tsx'));
+const AdminCloud = lazy(() => import('./pages/admin/Cloud.tsx'));
 import Maintenance from './pages/Maintenance';
 import { AlertCircle, X } from 'lucide-react';
 
@@ -192,6 +193,7 @@ const MainRoutes = () => {
         <Route path="security" element={<AdminSecurity />} />
         <Route path="messages" element={<AdminMessages />} />
         <Route path="logistics" element={<AdminLogistics />} />
+        <Route path="cloud" element={<AdminCloud />} />
         <Route path="coupons" element={<AdminCoupons />} />
         <Route path="settings" element={<AdminSettings />} />
         <Route path="analytics" element={<AdminAnalytics />} />

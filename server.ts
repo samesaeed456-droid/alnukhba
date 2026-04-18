@@ -2,6 +2,7 @@ import express from "express";
 import { createServer as createViteServer } from "vite";
 import path from "path";
 import dotenv from "dotenv";
+import { v2 as cloudinary } from 'cloudinary';
 
 dotenv.config();
 
@@ -13,6 +14,83 @@ app.use(express.json({ limit: "50mb" }));
 // API Routes
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok" });
+});
+
+app.get("/api/cloudinary/usage", async (req, res) => {
+  try {
+    const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+    const apiKey = process.env.CLOUDINARY_API_KEY;
+    const apiSecret = process.env.CLOUDINARY_API_SECRET;
+
+    if (!cloudName || !apiKey || !apiSecret) {
+      return res.status(500).json({ error: "Cloudinary credentials missing" });
+    }
+
+    cloudinary.config({
+      cloud_name: cloudName,
+      api_key: apiKey,
+      api_secret: apiSecret
+    });
+
+    const usage = await cloudinary.api.usage();
+    res.json(usage);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Failed to fetch usage" });
+  }
+});
+
+app.post("/api/cloudinary/bulk-delete", async (req, res) => {
+  try {
+    const { public_ids } = req.body;
+    if (!public_ids || !Array.isArray(public_ids)) {
+      return res.status(400).json({ error: "public_ids array is required" });
+    }
+
+    const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+    const apiKey = process.env.CLOUDINARY_API_KEY;
+    const apiSecret = process.env.CLOUDINARY_API_SECRET;
+
+    if (!cloudName || !apiKey || !apiSecret) {
+      return res.status(500).json({ error: "Cloudinary credentials missing" });
+    }
+
+    cloudinary.config({
+      cloud_name: cloudName,
+      api_key: apiKey,
+      api_secret: apiSecret
+    });
+
+    await cloudinary.api.delete_resources(public_ids);
+    res.json({ success: true });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Failed to delete images" });
+  }
+});
+
+app.get("/api/cloudinary/images", async (req, res) => {
+  try {
+    const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+    const apiKey = process.env.CLOUDINARY_API_KEY;
+    const apiSecret = process.env.CLOUDINARY_API_SECRET;
+
+    if (!cloudName || !apiKey || !apiSecret) {
+      return res.status(500).json({ error: "Cloudinary credentials missing" });
+    }
+
+    cloudinary.config({
+      cloud_name: cloudName,
+      api_key: apiKey,
+      api_secret: apiSecret
+    });
+
+    const result = await cloudinary.api.resources({ type: 'upload', max_results: 50 });
+    res.json({ images: result.resources });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Failed to fetch images" });
+  }
 });
 
 app.get("/api/debug-key", (req, res) => {

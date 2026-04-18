@@ -151,6 +151,12 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
     }
 
+    match /inventory_logs/{logId} {
+      allow read, list: if isAdmin();
+      allow create: if true; // Allow system to log inventory changes
+      allow update, delete: if isAdmin();
+    }
+
     match /visits/{visitId} {
       allow read: if isAdmin();
       allow create: if true; // Public creates stats

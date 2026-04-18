@@ -5,7 +5,7 @@ import {
   LayoutDashboard, Package, Tags, ShoppingCart, Users, LogOut, 
   Store, Menu, X, Ticket, Settings as SettingsIcon, TrendingUp, 
   Megaphone, ShieldCheck, Truck, FileText, Globe, Search, Plus, RefreshCw, Inbox, Activity,
-  AlertCircle, MessageSquare, Clock, CheckCircle2
+  Cloud, AlertCircle, MessageSquare, Clock, CheckCircle2
 } from 'lucide-react';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { Toaster, toast } from 'sonner';
@@ -169,6 +169,7 @@ export default function AdminLayout() {
           { name: 'الشحن واللوجستيات', path: '/admin/logistics', icon: Globe, permission: 'manage_logistics' },
           { name: 'رسائل اتصل بنا', path: '/admin/messages', icon: Inbox, permission: 'manage_messages' },
           { name: 'الأمان والأدوار', path: '/admin/security', icon: ShieldCheck, permission: 'manage_security' },
+          { name: 'السحابة', path: '/admin/cloud', icon: Cloud, permission: 'view_logs' },
           { name: 'سجل النشاطات', path: '/admin/logs', icon: Activity, permission: 'view_logs' },
           { name: 'الإعدادات', path: '/admin/settings', icon: SettingsIcon, permission: 'manage_settings' },
         ]

@@ -208,15 +208,24 @@ export default function Auth() {
         const email = getDummyEmail(formData.countryCode, formData.phone);
         const userCred = await signupWithEmail(email, formData.password);
         
-        // Save to Firestore
+        try {
+          // Update Firebase Auth profile
+          await import('firebase/auth').then(({ updateProfile }) => {
+            updateProfile(userCred.user, { displayName: formData.name }).catch(console.error);
+          });
+        } catch (e) {}
+        
+        // Save to Firestore (must include uid and email to quickly satisfy firestore.rules)
         await setDoc(doc(db, 'users', userCred.user.uid), {
+          uid: userCred.user.uid,
+          email: email,
           name: formData.name,
           phone: formData.phone,
           countryCode: formData.countryCode,
           role: 'user',
           walletBalance: 0,
           createdAt: serverTimestamp()
-        });
+        }, { merge: true });
 
         showToast('تم إنشاء الحساب بنجاح');
         navigate(redirectPath);

@@ -262,7 +262,7 @@ app.post("/api/reset-password", async (req, res) => {
     if (error.code === 'auth/user-not-found') {
       return res.status(404).json({ success: false, error: "هذا الحساب غير موجود" });
     }
-    res.status(500).json({ success: false, error: "فشل تغيير كلمة المرور" });
+    res.status(500).json({ success: false, error: "فشل تغيير كلمة المرور", details: error.message });
   }
 });
 

@@ -71,8 +71,8 @@ export default function Profile() {
   useEffect(() => {
     if (user) {
       setFormData({
-        name: user.displayName || '',
-        avatar: user.photoURL || '',
+        name: user.name || user.displayName || '',
+        avatar: user.avatar || user.photoURL || '',
         phone: user.phone || '',
         countryCode: user.countryCode || '+967',
         address: user.address || ''
@@ -170,10 +170,18 @@ export default function Profile() {
         const { uploadToCloudinary } = await import('../lib/cloudinary');
         showToast('جاري رفع الصورة...', 'info');
         const secureUrl = await uploadToCloudinary(file);
-        setFormData(prev => ({ ...prev, avatar: secureUrl }));
+        
+        const updatedData = { ...formData, avatar: secureUrl };
+        setFormData(updatedData);
+        
         // Automatically save the avatar update
         if (user) {
-          updateUser({ ...user, ...formData, avatar: secureUrl } as any);
+          updateUser({ 
+            ...user, 
+            ...updatedData,
+            name: updatedData.name || user.name || user.displayName || '',
+            avatar: secureUrl 
+          } as any);
         }
         showToast('تم تحديث الصورة الشخصية بنجاح');
       } catch (error: any) {

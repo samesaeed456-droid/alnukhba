@@ -67,19 +67,18 @@ export default function Checkout() {
         setSelectedAddressId(firstAddress.id);
         setFormData(prev => ({
           ...prev,
-          firstName: firstAddress.firstName,
-          lastName: firstAddress.lastName,
+          firstName: `${firstAddress.firstName} ${firstAddress.lastName || ''}`.trim(),
+          lastName: '',
           address: firstAddress.address,
           city: firstAddress.city,
           phone: firstAddress.phone,
           countryCode: firstAddress.countryCode || '+967'
         }));
       } else {
-        const nameParts = (user.displayName || '').split(' ');
         setFormData(prev => ({
           ...prev,
-          firstName: nameParts[0] || '',
-          lastName: nameParts.slice(1).join(' ') || '',
+          firstName: user.displayName || '',
+          lastName: '',
           phone: user.phone || '',
           countryCode: user.countryCode || '+967',
           address: user.address || ''
@@ -93,8 +92,8 @@ export default function Checkout() {
     setSelectedAddressId(addr.id);
     setFormData(prev => ({
       ...prev,
-      firstName: addr.firstName,
-      lastName: addr.lastName,
+      firstName: `${addr.firstName} ${addr.lastName || ''}`.trim(),
+      lastName: '',
       address: addr.address,
       city: addr.city,
       phone: addr.phone,
@@ -186,8 +185,8 @@ export default function Checkout() {
   const validateStep = useCallback((currentStep: number) => {
     const errors: string[] = [];
     if (currentStep === 1) {
-      if (!formData.firstName.trim()) errors.push('firstName');
-      if (!formData.lastName.trim()) errors.push('lastName');
+      const nameParts = formData.firstName.trim().split(/\s+/);
+      if (nameParts.length < 2) errors.push('firstName');
       if (!formData.address.trim()) errors.push('address');
       if (!formData.phone.trim() || !/^\d{9}$/.test(formData.phone.trim())) errors.push('phone');
     } else if (currentStep === 3) {
@@ -214,10 +213,11 @@ export default function Checkout() {
   const handleNextStep = useCallback((currentStep: number) => {
     if (validateStep(currentStep)) {
       if (currentStep === 1 && selectedAddressId === 'new' && saveAddress && user) {
+        const nameParts = formData.firstName.trim().split(/\s+/);
         const newAddress: Address = {
           id: crypto.randomUUID(),
-          firstName: formData.firstName,
-          lastName: formData.lastName,
+          firstName: nameParts[0] || '',
+          lastName: nameParts.slice(1).join(' '),
           address: formData.address,
           city: formData.city,
           phone: formData.phone,
@@ -276,7 +276,7 @@ export default function Checkout() {
       methodLabel, 
       shippingMethod, 
       paymentRef,
-      `${formData.firstName} ${formData.lastName}`,
+      formData.firstName.trim(),
       `${formData.countryCode}${formData.phone}`,
       `${formData.address}, ${formData.city}`,
       formData.city,
@@ -743,26 +743,15 @@ export default function Checkout() {
                         exit={{ opacity: 0, height: 0 }}
                         className={`grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 ${formErrors ? 'animate-shake' : ''}`}
                       >
-                        <div className="space-y-2">
+                        <div className="space-y-2 sm:col-span-2">
                           <FloatingInput 
-                            label="الاسم الأول"
+                            label="الاسم الكامل (اسمين على الأقل)"
                             type="text" 
                             name="firstName"
                             value={formData.firstName}
                             onChange={handleInputChange}
                             bgClass="bg-slate-50"
                             className={fieldErrors.includes('firstName') ? 'border-red-500 ring-4 ring-red-500/10' : ''} 
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <FloatingInput 
-                            label="الاسم الأخير"
-                            type="text" 
-                            name="lastName"
-                            value={formData.lastName}
-                            onChange={handleInputChange}
-                            bgClass="bg-slate-50"
-                            className={fieldErrors.includes('lastName') ? 'border-red-500 ring-4 ring-red-500/10' : ''} 
                           />
                         </div>
                         <div className="space-y-2 sm:col-span-2">

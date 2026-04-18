@@ -266,9 +266,12 @@ export default function Auth() {
     setSuccess('');
 
     // Validation
-    if (!isLogin && !formData.name.trim()) {
-      setError('يرجى إدخال الاسم الكامل');
-      return;
+    if (!isLogin) {
+      const nameParts = formData.name.trim().split(/\s+/);
+      if (nameParts.length < 4) {
+        setError('يرجى إدخال الاسم الرباعي كاملاً (مثال: محمد أحمد علي صالح)');
+        return;
+      }
     }
 
     if (!formData.phone) {
@@ -633,7 +636,7 @@ export default function Auth() {
                           transition={{ duration: 0.3 }}
                         >
                           <FloatingInput
-                            label="الاسم الكامل"
+                            label="الاسم الرباعي كاملاً"
                             id="name"
                             value={formData.name}
                             onChange={(e) => setFormData({...formData, name: e.target.value})}

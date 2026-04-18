@@ -220,10 +220,6 @@ const ProductCardInner = React.memo(function ProductCardInner({
                   <Zap className="w-2.5 h-2.5 fill-current" />
                   <span>بقي {(p.id.length * 7 % 8) + 2} قطع فقط</span>
                 </div>
-                <div className="flex items-center gap-1 text-[8px] sm:text-[9px] font-medium text-slate-500">
-                  <Check className="w-2.5 h-2.5 text-emerald-500" />
-                  <span>تم شراء {(p.id.length * 13 % 15) + 3} اليوم</span>
-                </div>
               </div>
             ) : (
               <div className="flex flex-col items-center gap-1 mb-2 sm:mb-3">

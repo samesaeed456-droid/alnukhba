@@ -330,10 +330,6 @@ export default function ProductDetail() {
                       <div className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
                       بقي {product.stockCount || 9} قطع فقط في المخزن
                     </div>
-                    <div className="flex items-center gap-2 text-emerald-600">
-                      <Zap className="w-4 h-4 fill-emerald-500" />
-                      تم شراء 16 اليوم
-                    </div>
                   </div>
                 ) : (
                   <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs font-bold">

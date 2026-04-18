@@ -355,23 +355,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             setUser(userData);
             localStorage.setItem('store_user', JSON.stringify(userData));
           } else {
-            // Gentle creation: only set essential and firebase-provided fields with merge:true
-            // to avoid overwriting fields (like name/phone) being simultaneously saved by Auth.tsx
-            const defaultData: any = {
-              uid: firebaseUser.uid,
-              email: firebaseUser.email || '',
-              role: 'user',
-              createdAt: serverTimestamp()
-            };
+            // If document doesn't exist but we have a firebaseUser, it means:
+            // 1. The account was deleted from Firestore by an admin
+            // 2. This is a brand new signup (Handled by Auth.tsx creating the doc)
             
-            if (firebaseUser.displayName) defaultData.displayName = firebaseUser.displayName;
-            if (firebaseUser.photoURL) defaultData.photoURL = firebaseUser.photoURL;
-
-            setDoc(doc(db, 'users', firebaseUser.uid), defaultData, { merge: true })
-              .catch(error => console.error("Error creating fallback profile:", error));
-
-            // Don't set user state here with empty fields, let the snapshot update it naturally
-            // once Auth.tsx finishes its true save, or this setDoc finishes.
+            // We only force logout if the user was previously established (has local data)
+            // to avoid race conditions during the signup process.
+            const wasLoggedIn = localStorage.getItem('store_user') || user;
+            if (wasLoggedIn) {
+              auth.signOut();
+              setUser(null);
+              localStorage.removeItem('store_user');
+              // Optionally show message
+            }
           }
           setIsAuthReady(true);
         }, (error) => {
@@ -1861,6 +1857,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       await auth.signOut();
       setUser(null);
       setWishlist([]);
+      localStorage.removeItem('store_user');
+      localStorage.removeItem('is_logged_in');
       showToast('تم تسجيل الخروج بنجاح');
     } catch (error) {
       console.error('Logout failed:', error);

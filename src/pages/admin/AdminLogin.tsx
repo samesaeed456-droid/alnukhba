@@ -31,7 +31,20 @@ export default function AdminLogin() {
           '967776668370@elite-store.local'
         ];
         
-        const isAuthorized = authorizedEmails.includes(user.email);
+        // Also check if the user exists in our admin_users collection
+        let isAuthorized = authorizedEmails.includes(user.email);
+        let currentAdminRole = 'editor';
+        let currentAdminName = 'المدير العام';
+
+        if (!isAuthorized) {
+          const adminQuery = query(collection(db, 'admin_users'), where('email', '==', user.email));
+          const adminSnap = await getDocs(adminQuery);
+          if (!adminSnap.empty) {
+            isAuthorized = true;
+            currentAdminRole = adminSnap.docs[0].data().role || 'editor';
+            currentAdminName = adminSnap.docs[0].data().name || 'مشرف';
+          }
+        }
         
         if (isAuthorized) {
           const userDoc = await getDoc(doc(db, 'users', user.uid));
@@ -41,20 +54,23 @@ export default function AdminLogin() {
             const { updateDoc, setDoc } = await import('../../lib/firebase');
             await updateDoc(doc(db, 'users', user.uid), { role: 'admin' });
             
-            await setDoc(doc(db, 'admin_users', user.uid), {
-              id: user.uid,
-              name: user.displayName || userData?.name || 'المدير العام',
-              email: user.email,
-              role: 'super_admin',
-              isActive: true,
-              permissions: ['view_dashboard', 'manage_orders', 'manage_products', 'manage_customers', 'manage_marketing', 'manage_coupons', 'manage_settings', 'manage_security', 'view_logs', 'manage_logistics', 'manage_messages']
-            }, { merge: true });
+            if (authorizedEmails.includes(user.email)) {
+              await setDoc(doc(db, 'admin_users', user.uid), {
+                id: user.uid,
+                name: user.displayName || userData?.name || 'المدير العام',
+                email: user.email,
+                role: 'super_admin',
+                isActive: true,
+                permissions: ['view_dashboard', 'manage_orders', 'manage_products', 'manage_customers', 'manage_marketing', 'manage_coupons', 'manage_settings', 'manage_security', 'view_logs', 'manage_logistics', 'manage_messages']
+              }, { merge: true });
+              currentAdminRole = 'super_admin';
+            }
           }
 
           localStorage.setItem('admin_auth', 'true');
           localStorage.setItem('admin_email', user.email);
-          localStorage.setItem('admin_name', userData?.displayName || userData?.name || user.displayName || 'المدير العام');
-          localStorage.setItem('admin_role', 'super_admin');
+          localStorage.setItem('admin_name', userData?.displayName || userData?.name || user.displayName || currentAdminName);
+          localStorage.setItem('admin_role', currentAdminRole);
           navigate('/admin');
         }
       }

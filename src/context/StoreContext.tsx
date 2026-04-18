@@ -355,26 +355,23 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             setUser(userData);
             localStorage.setItem('store_user', JSON.stringify(userData));
           } else {
-            // Create new user profile in Firestore if it doesn't exist
-            const newUser: UserProfile = {
+            // Gentle creation: only set essential and firebase-provided fields with merge:true
+            // to avoid overwriting fields (like name/phone) being simultaneously saved by Auth.tsx
+            const defaultData: any = {
               uid: firebaseUser.uid,
               email: firebaseUser.email || '',
-              displayName: firebaseUser.displayName || 'مستخدم',
-              photoURL: firebaseUser.photoURL || '',
               role: 'user',
-              walletBalance: 0,
-              createdAt: new Date().toISOString(),
-              phone: '',
-              address: '',
-              wishlist: [],
-              notifications: [],
-              orders: []
-            };
-            setDoc(doc(db, 'users', firebaseUser.uid), {
-              ...newUser,
               createdAt: serverTimestamp()
-            }).then(() => setUser(newUser))
-              .catch(error => handleFirestoreError(error, OperationType.CREATE, `users/${firebaseUser.uid}`));
+            };
+            
+            if (firebaseUser.displayName) defaultData.displayName = firebaseUser.displayName;
+            if (firebaseUser.photoURL) defaultData.photoURL = firebaseUser.photoURL;
+
+            setDoc(doc(db, 'users', firebaseUser.uid), defaultData, { merge: true })
+              .catch(error => console.error("Error creating fallback profile:", error));
+
+            // Don't set user state here with empty fields, let the snapshot update it naturally
+            // once Auth.tsx finishes its true save, or this setDoc finishes.
           }
           setIsAuthReady(true);
         }, (error) => {
@@ -396,30 +393,62 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   // Super Admin Rescue Logic
   useEffect(() => {
-    if (user && user.role === 'admin' && user.adminRole !== 'super_admin') {
-      // If the owner's email or a specific known super admin email is downgraded, restore it
+    if (user) {
+      // If the owner's email matches, force super_admin regardless of current role
       const ownerEmails = ['samesaeed456@gmail.com'];
-      if (ownerEmails.includes(user.email) || user.email.includes('elite-store.local')) {
-         // Auto-rescue logic: if you are an admin but lost super admin, check if you should have it
-         // This is a safety net for the owner
+      const ownerPhones = ['776668370', '967776668370', '+967776668370'];
+      
+      const isOwner = 
+        ownerEmails.includes(user.email) || 
+        user.email.includes('elite-store.local') ||
+        (user.phone && ownerPhones.some(p => user.phone?.includes(p)));
+
+      if (isOwner) {
          const checkIfShouldBeSuper = async () => {
            try {
              const adminQuery = query(collection(db, 'admin_users'), where('email', '==', user.email));
              const adminSnap = await getDocs(adminQuery);
+             
+             // If we didn't find by email, try falling back to finding by phone
+             let adminDocId = user.uid;
+             let currentRole = null;
+
              if (!adminSnap.empty) {
-               const adminData = adminSnap.docs[0].data();
-               // If this is the main account and it's not super_admin, fix it in DB
-               if (adminData.role !== 'super_admin') {
-                 console.log("Owner downgraded! Rescuing permissions...");
-                 await updateDoc(doc(db, 'admin_users', adminSnap.docs[0].id), {
-                   role: 'super_admin',
-                   permissions: ['view_dashboard', 'manage_orders', 'manage_products', 'manage_customers', 'manage_marketing', 'manage_coupons', 'manage_settings', 'manage_security', 'view_logs', 'manage_logistics', 'manage_messages']
-                 });
-                 await updateDoc(doc(db, 'users', user.uid), {
-                   adminRole: 'super_admin'
-                 });
-                 showToast('تمت استعادة صلاحيات المدير العام بنجاح', 'success');
-               }
+               adminDocId = adminSnap.docs[0].id;
+               currentRole = adminSnap.docs[0].data().role;
+             } else {
+                // Not found by email, try phone
+                const dummyEmail = getAdminDummyEmail(user.phone || '', '+967');
+                const adminPhoneQuery = query(collection(db, 'admin_users'), where('email', '==', dummyEmail));
+                const adminPhoneSnap = await getDocs(adminPhoneQuery);
+                if (!adminPhoneSnap.empty) {
+                  adminDocId = adminPhoneSnap.docs[0].id;
+                  currentRole = adminPhoneSnap.docs[0].data().role;
+                }
+             }
+             
+             // If they don't even exist in admin_users or are downgraded
+             if (currentRole !== 'super_admin') {
+               console.log("Owner detected by phone/email! Forcing permissions...");
+               
+               await setDoc(doc(db, 'admin_users', adminDocId), {
+                 id: user.uid,
+                 name: user.displayName || user.name || 'المدير العام',
+                 email: user.email,
+                 phone: user.phone || '776668370',
+                 role: 'super_admin',
+                 isActive: true,
+                 permissions: ['view_dashboard', 'manage_orders', 'manage_products', 'manage_customers', 'manage_marketing', 'manage_coupons', 'manage_settings', 'manage_security', 'view_logs', 'manage_logistics', 'manage_messages']
+               }, { merge: true });
+
+               await updateDoc(doc(db, 'users', user.uid), {
+                 role: 'admin',
+                 adminRole: 'super_admin'
+               });
+               
+               showToast('تمت استعادة صلاحيات المدير العام بنجاح', 'success');
+               // Force a real reload
+               window.location.reload();
              }
            } catch (e) {
              console.error("Rescue failed:", e);

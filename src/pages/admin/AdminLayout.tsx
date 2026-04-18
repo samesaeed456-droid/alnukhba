@@ -240,12 +240,22 @@ export default function AdminLayout() {
     };
   }, [orders]);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     logActivity('تسجيل خروج', `تم تسجيل خروج المشرف: ${adminName}`);
     localStorage.removeItem('admin_auth');
     localStorage.removeItem('admin_email');
     localStorage.removeItem('admin_role');
     localStorage.removeItem('admin_name');
+    
+    // Sign out from Firebase Auth
+    try {
+      const { signOut } = await import('firebase/auth');
+      const { auth } = await import('../../lib/firebase');
+      await signOut(auth);
+    } catch (e) {
+      console.error('Logout error:', e);
+    }
+    
     navigate('/admin/login');
   };
 

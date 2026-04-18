@@ -815,7 +815,7 @@ export default function Profile() {
               
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5 mb-0.5">
-                  <h2 className="text-base font-bold text-carbon truncate">{user.name || 'مستخدم جديد'}</h2>
+                  <h2 className="text-base font-bold text-carbon truncate">{user.displayName || user.name || 'مستخدم جديد'}</h2>
                   <BadgeCheck className="w-4 h-4 text-carbon shrink-0" />
                 </div>
                 <p className="text-xs text-titanium/80 truncate" dir="ltr">{user.countryCode || '+967'} {user.phone}</p>

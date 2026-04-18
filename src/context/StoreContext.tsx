@@ -352,6 +352,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         unsubUser = onSnapshot(doc(db, 'users', firebaseUser.uid), (docSnap) => {
           if (docSnap.exists()) {
             const userData = docSnap.data() as UserProfile;
+            
+            // Real-time Block Enforcement
+            if (userData.isBlocked) {
+              auth.signOut();
+              setUser(null);
+              localStorage.removeItem('store_user');
+              showToast('تم حظر حسابك. يرجى التواصل مع الإدارة لمزيد من التفاصيل.', 'error');
+              return;
+            }
+
             setUser(userData);
             localStorage.setItem('store_user', JSON.stringify(userData));
           } else {
@@ -1900,6 +1910,35 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         ...updates,
         updatedAt: serverTimestamp()
       } as any);
+
+      // If password update is included, we MUST trigger the backend API to update Firebase Auth
+      if (updates.password) {
+        try {
+          const snap = await getDoc(docRef);
+          const userData = snap.data();
+          if (userData && userData.phone) {
+             const resetResponse = await fetch('/api/reset-password', {
+               method: 'POST',
+               headers: { 'Content-Type': 'application/json' },
+               body: JSON.stringify({
+                 phone: userData.phone,
+                 countryCode: userData.countryCode || '+967',
+                 newPassword: updates.password
+               })
+             });
+             const resetData = await resetResponse.json();
+             if (!resetResponse.ok || !resetData.success) {
+               console.error("Backend Auth Password Update Failed:", resetData.error);
+               showToast('تم تحديث البيانات لكن لم يتم تغيير كلمة المرور في السيرفر', 'warning');
+               return;
+             }
+          }
+        } catch (authUpdateError) {
+          console.error("Critical Auth Update Error:", authUpdateError);
+          showToast('خطأ في مزامنة كلمة المرور مع السيرفر', 'warning');
+        }
+      }
+
       showToast('تم تحديث بيانات العميل بنجاح');
       logActivity('تحديث عميل', `تم تحديث بيانات العميل: ${identifier}`);
     } catch (error) {

@@ -67,7 +67,7 @@ export default function Checkout() {
         setSelectedAddressId(firstAddress.id);
         setFormData(prev => ({
           ...prev,
-          firstName: `${firstAddress.firstName} ${firstAddress.lastName || ''}`.trim(),
+          firstName: user.displayName || user.name || `${firstAddress.firstName} ${firstAddress.lastName || ''}`.trim(),
           lastName: '',
           address: firstAddress.address,
           city: firstAddress.city,
@@ -90,9 +90,10 @@ export default function Checkout() {
 
   const handleAddressSelect = useCallback((addr: Address) => {
     setSelectedAddressId(addr.id);
+    const accountName = user?.displayName || user?.name || '';
     setFormData(prev => ({
       ...prev,
-      firstName: `${addr.firstName} ${addr.lastName || ''}`.trim(),
+      firstName: accountName || `${addr.firstName} ${addr.lastName || ''}`.trim(),
       lastName: '',
       address: addr.address,
       city: addr.city,
@@ -104,9 +105,10 @@ export default function Checkout() {
 
   const handleNewAddressSelect = useCallback(() => {
     setSelectedAddressId('new');
+    const accountName = user?.displayName || user?.name || '';
     setFormData(prev => ({
       ...prev,
-      firstName: '',
+      firstName: accountName,
       lastName: '',
       address: '',
       city: allCities[0] || 'صنعاء',
@@ -185,8 +187,12 @@ export default function Checkout() {
   const validateStep = useCallback((currentStep: number) => {
     const errors: string[] = [];
     if (currentStep === 1) {
-      const nameParts = formData.firstName.trim().split(/\s+/);
-      if (nameParts.length < 2) errors.push('firstName');
+      if (!user) {
+        const nameParts = formData.firstName.trim().split(/\s+/);
+        if (nameParts.length < 2) errors.push('firstName');
+      } else {
+        if (!formData.firstName.trim()) errors.push('firstName');
+      }
       if (!formData.address.trim()) errors.push('address');
       if (!formData.phone.trim() || !/^\d{9}$/.test(formData.phone.trim())) errors.push('phone');
     } else if (currentStep === 3) {
@@ -745,13 +751,14 @@ export default function Checkout() {
                       >
                         <div className="space-y-2 sm:col-span-2">
                           <FloatingInput 
-                            label="الاسم الكامل (اسمين على الأقل)"
+                            label="الاسم (يطابق حسابك)"
                             type="text" 
                             name="firstName"
                             value={formData.firstName}
                             onChange={handleInputChange}
-                            bgClass="bg-slate-50"
-                            className={fieldErrors.includes('firstName') ? 'border-red-500 ring-4 ring-red-500/10' : ''} 
+                            disabled={!!user}
+                            bgClass={user ? "bg-slate-100" : "bg-slate-50"}
+                            className={fieldErrors.includes('firstName') ? 'border-red-500 ring-4 ring-red-500/10' : (user ? 'cursor-not-allowed opacity-80' : '')} 
                           />
                         </div>
                         <div className="space-y-2 sm:col-span-2">

@@ -121,19 +121,19 @@ export default defineConfig(({mode}) => {
           ],
           icons: [
             {
-              src: 'https://cdn-icons-png.flaticon.com/512/3081/3081559.png',
+              src: 'https://images.unsplash.com/photo-1546768292-fb12f6c92568?auto=format&fit=crop&q=80&w=192&h=192',
               sizes: '192x192',
               type: 'image/png',
               purpose: 'any'
             },
             {
-              src: 'https://cdn-icons-png.flaticon.com/512/3081/3081559.png',
+              src: 'https://images.unsplash.com/photo-1546768292-fb12f6c92568?auto=format&fit=crop&q=80&w=512&h=512',
               sizes: '512x512',
               type: 'image/png',
               purpose: 'any'
             },
             {
-              src: 'https://cdn-icons-png.flaticon.com/512/3081/3081559.png',
+              src: 'https://images.unsplash.com/photo-1546768292-fb12f6c92568?auto=format&fit=crop&q=80&w=512&h=512',
               sizes: '512x512',
               type: 'image/png',
               purpose: 'maskable'

@@ -3,17 +3,17 @@ import { Grid, Monitor, Cpu, Headphones, Plug, Battery, Sun, Wifi, Settings, Wre
 import { motion, AnimatePresence } from 'motion/react';
 
 export const categories = [
-  { name: 'الكل', icon: Grid, color: 'text-solar', bg: 'bg-solar/10', activeBg: 'bg-solar', image: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&q=80&w=200' },
-  { name: 'شاشات', icon: Monitor, color: 'text-solar', bg: 'bg-solar/10', activeBg: 'bg-solar', image: 'https://images.unsplash.com/photo-1593784991095-a205069470b6?auto=format&fit=crop&q=80&w=200' },
-  { name: 'إلكترونيات', icon: Cpu, color: 'text-solar', bg: 'bg-solar/10', activeBg: 'bg-solar', image: 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&q=80&w=200' },
-  { name: 'إكسسوارات', icon: Headphones, color: 'text-solar', bg: 'bg-solar/10', activeBg: 'bg-solar', image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&q=80&w=200' },
-  { name: 'كهربائيات', icon: Plug, color: 'text-solar', bg: 'bg-solar/10', activeBg: 'bg-solar', image: 'https://images.unsplash.com/photo-1558002038-103792e17984?auto=format&fit=crop&q=80&w=200' },
-  { name: 'بطاريات', icon: Battery, color: 'text-solar', bg: 'bg-solar/10', activeBg: 'bg-solar', image: 'https://images.unsplash.com/photo-1619641782822-751583d47748?auto=format&fit=crop&q=80&w=200' },
-  { name: 'طاقة شمسية', icon: Sun, color: 'text-solar', bg: 'bg-solar/10', activeBg: 'bg-solar', image: 'https://images.unsplash.com/photo-1508514177221-188b1cf16e9d?auto=format&fit=crop&q=80&w=200' },
-  { name: 'شبكات', icon: Wifi, color: 'text-solar', bg: 'bg-solar/10', activeBg: 'bg-solar', image: 'https://images.unsplash.com/photo-1544197150-b99a580bb7a8?auto=format&fit=crop&q=80&w=200' },
-  { name: 'قطع غيار', icon: Settings, color: 'text-solar', bg: 'bg-solar/10', activeBg: 'bg-solar', image: 'https://images.unsplash.com/photo-1530046339160-ce3e5b0c7a2f?auto=format&fit=crop&q=80&w=200' },
-  { name: 'صيانة', icon: Wrench, color: 'text-solar', bg: 'bg-solar/10', activeBg: 'bg-solar', image: 'https://images.unsplash.com/photo-1581092160562-40aa08e78837?auto=format&fit=crop&q=80&w=200' },
-  { name: 'كاميرات مراقبة', icon: Cctv, color: 'text-solar', bg: 'bg-solar/10', activeBg: 'bg-solar', image: 'https://images.unsplash.com/photo-1557597774-9d273605dfa9?auto=format&fit=crop&q=80&w=200' },
+  { name: 'الكل', icon: Grid, color: 'text-solar', bg: 'bg-solar/10', activeBg: 'bg-solar', image: 'https://picsum.photos/seed/shop/200/200' },
+  { name: 'شاشات', icon: Monitor, color: 'text-solar', bg: 'bg-solar/10', activeBg: 'bg-solar', image: 'https://picsum.photos/seed/monitor/200/200' },
+  { name: 'إلكترونيات', icon: Cpu, color: 'text-solar', bg: 'bg-solar/10', activeBg: 'bg-solar', image: 'https://picsum.photos/seed/tech/200/200' },
+  { name: 'إكسسوارات', icon: Headphones, color: 'text-solar', bg: 'bg-solar/10', activeBg: 'bg-solar', image: 'https://picsum.photos/seed/audio/200/200' },
+  { name: 'كهربائيات', icon: Plug, color: 'text-solar', bg: 'bg-solar/10', activeBg: 'bg-solar', image: 'https://picsum.photos/seed/electric/200/200' },
+  { name: 'بطاريات', icon: Battery, color: 'text-solar', bg: 'bg-solar/10', activeBg: 'bg-solar', image: 'https://picsum.photos/seed/battery/200/200' },
+  { name: 'طاقة شمسية', icon: Sun, color: 'text-solar', bg: 'bg-solar/10', activeBg: 'bg-solar', image: 'https://picsum.photos/seed/solar/200/200' },
+  { name: 'شبكات', icon: Wifi, color: 'text-solar', bg: 'bg-solar/10', activeBg: 'bg-solar', image: 'https://picsum.photos/seed/network/200/200' },
+  { name: 'قطع غيار', icon: Settings, color: 'text-solar', bg: 'bg-solar/10', activeBg: 'bg-solar', image: 'https://picsum.photos/seed/parts/200/200' },
+  { name: 'صيانة', icon: Wrench, color: 'text-solar', bg: 'bg-solar/10', activeBg: 'bg-solar', image: 'https://picsum.photos/seed/tools/200/200' },
+  { name: 'كاميرات مراقبة', icon: Cctv, color: 'text-solar', bg: 'bg-solar/10', activeBg: 'bg-solar', image: 'https://picsum.photos/seed/camera/200/200' },
 ];
 
 interface CategoriesSectionProps {

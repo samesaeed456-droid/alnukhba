@@ -358,8 +358,21 @@ async function startLocalServer() {
     }
   } else {
     const distPath = path.join(process.cwd(), "dist");
-    app.use(express.static(distPath));
+    app.use(express.static(distPath, {
+      maxAge: '1d',
+      etag: true
+    }));
+    
+    // API 404 handler
+    app.all("/api/*", (req, res) => {
+      res.status(404).json({ error: "API route not found" });
+    });
+
+    // SPA Fallback - ensure we don't return index.html for missing static files
     app.get("*", (req, res) => {
+      if (path.extname(req.path)) {
+        return res.status(404).send("File not found");
+      }
       res.sendFile(path.join(distPath, "index.html"));
     });
   }

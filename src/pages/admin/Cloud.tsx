@@ -31,6 +31,11 @@ export default function CloudPage() {
         fetch('/api/cloudinary/usage')
       ]);
       if (!imgRes.ok || !usageRes.ok) throw new Error('فشل جلب البيانات');
+      const contentType = imgRes.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('السيرفر أرجع استجابة غير صالحة (HTML بدلاً من JSON)');
+      }
+
       const imgData = await imgRes.json();
       const usageData = await usageRes.json();
       setImages(imgData.images);

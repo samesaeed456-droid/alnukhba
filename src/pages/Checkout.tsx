@@ -62,24 +62,33 @@ export default function Checkout() {
 
   useEffect(() => {
     if (!hasInitialized.current && user) {
+      let initialPhone = user.phone || '';
+      if (initialPhone.startsWith('+967')) initialPhone = initialPhone.substring(4);
+      
+      const accountName = user.displayName || user.name || '';
+      
       if (user.addresses && user.addresses.length > 0) {
         const firstAddress = user.addresses[0];
         setSelectedAddressId(firstAddress.id);
+        
+        let firstAddrPhone = firstAddress.phone || '';
+        if (firstAddrPhone.startsWith('+967')) firstAddrPhone = firstAddrPhone.substring(4);
+
         setFormData(prev => ({
           ...prev,
-          firstName: user.displayName || user.name || `${firstAddress.firstName} ${firstAddress.lastName || ''}`.trim(),
+          firstName: accountName || `${firstAddress.firstName} ${firstAddress.lastName || ''}`.trim(),
           lastName: '',
           address: firstAddress.address,
           city: firstAddress.city,
-          phone: firstAddress.phone,
+          phone: firstAddrPhone,
           countryCode: firstAddress.countryCode || '+967'
         }));
       } else {
         setFormData(prev => ({
           ...prev,
-          firstName: user.displayName || '',
+          firstName: accountName,
           lastName: '',
-          phone: user.phone || '',
+          phone: initialPhone,
           countryCode: user.countryCode || '+967',
           address: user.address || ''
         }));
@@ -187,14 +196,16 @@ export default function Checkout() {
   const validateStep = useCallback((currentStep: number) => {
     const errors: string[] = [];
     if (currentStep === 1) {
-      if (!user) {
+      const isAccountNameLocked = !!user && !!(user.displayName || user.name);
+      if (!isAccountNameLocked) {
         const nameParts = formData.firstName.trim().split(/\s+/);
         if (nameParts.length < 2) errors.push('firstName');
       } else {
         if (!formData.firstName.trim()) errors.push('firstName');
       }
       if (!formData.address.trim()) errors.push('address');
-      if (!formData.phone.trim() || !/^\d{9}$/.test(formData.phone.trim())) errors.push('phone');
+      const cleanPhone = formData.phone.replace(/\s+/g, '');
+      if (!cleanPhone || !/^\d{9}$/.test(cleanPhone)) errors.push('phone');
     } else if (currentStep === 3) {
       if (!paymentMethod) {
         errors.push('paymentMethod');
@@ -751,14 +762,14 @@ export default function Checkout() {
                       >
                         <div className="space-y-2 sm:col-span-2">
                           <FloatingInput 
-                            label="الاسم (يطابق حسابك)"
+                            label={!!user && !!(user.displayName || user.name) ? "الاسم (يطابق حسابك)" : "الاسم الكامل (اسمين على الأقل)"}
                             type="text" 
                             name="firstName"
                             value={formData.firstName}
                             onChange={handleInputChange}
-                            disabled={!!user}
-                            bgClass={user ? "bg-slate-100" : "bg-slate-50"}
-                            className={fieldErrors.includes('firstName') ? 'border-red-500 ring-4 ring-red-500/10' : (user ? 'cursor-not-allowed opacity-80' : '')} 
+                            disabled={!!user && !!(user.displayName || user.name)}
+                            bgClass={!!user && !!(user.displayName || user.name) ? "bg-slate-100" : "bg-slate-50"}
+                            className={fieldErrors.includes('firstName') ? 'border-red-500 ring-4 ring-red-500/10' : (!!user && !!(user.displayName || user.name) ? 'cursor-not-allowed opacity-80' : '')} 
                           />
                         </div>
                         <div className="space-y-2 sm:col-span-2">

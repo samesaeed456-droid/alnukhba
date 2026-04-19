@@ -32,6 +32,13 @@ try {
   console.error("[Firebase Admin] Initialization failed:", error);
 }
 
+// Initial config check
+console.log('[Startup] Cloudinary Check:', {
+  cloudName: process.env.CLOUDINARY_CLOUD_NAME ? 'SET' : 'MISSING',
+  apiKey: process.env.CLOUDINARY_API_KEY ? 'SET' : 'MISSING',
+  apiSecret: process.env.CLOUDINARY_API_SECRET ? 'SET' : 'MISSING'
+});
+
 const app = express();
 
 // Increase payload limit for base64 images
@@ -43,13 +50,20 @@ app.get("/api/health", (req, res) => {
 });
 
 app.get("/api/cloudinary/usage", async (req, res) => {
+  console.log("[API] Hit /api/cloudinary/usage");
   try {
-    const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
-    const apiKey = process.env.CLOUDINARY_API_KEY;
-    const apiSecret = process.env.CLOUDINARY_API_SECRET;
+    const cloudName = (process.env.CLOUDINARY_CLOUD_NAME || "").trim();
+    const apiKey = (process.env.CLOUDINARY_API_KEY || "").trim();
+    const apiSecret = (process.env.CLOUDINARY_API_SECRET || "").trim();
+
+    console.log(`[Cloudinary] Using cloud: ${cloudName}, key: ${apiKey ? apiKey.substring(0, 4) + '...' : 'NONE'}`);
 
     if (!cloudName || !apiKey || !apiSecret) {
-      return res.status(500).json({ error: "Cloudinary credentials missing" });
+      console.warn("[Cloudinary] Missing credentials keys");
+      return res.status(500).json({ 
+        error: "Cloudinary credentials missing",
+        debug: { hasCloud: !!cloudName, hasKey: !!apiKey, hasSecret: !!apiSecret }
+      });
     }
 
     cloudinary.config({
@@ -96,12 +110,14 @@ app.post("/api/cloudinary/bulk-delete", async (req, res) => {
 });
 
 app.get("/api/cloudinary/images", async (req, res) => {
+  console.log("[API] Hit /api/cloudinary/images");
   try {
-    const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
-    const apiKey = process.env.CLOUDINARY_API_KEY;
-    const apiSecret = process.env.CLOUDINARY_API_SECRET;
+    const cloudName = (process.env.CLOUDINARY_CLOUD_NAME || "").trim();
+    const apiKey = (process.env.CLOUDINARY_API_KEY || "").trim();
+    const apiSecret = (process.env.CLOUDINARY_API_SECRET || "").trim();
 
     if (!cloudName || !apiKey || !apiSecret) {
+      console.warn("[Cloudinary] Missing credentials keys in images route");
       return res.status(500).json({ error: "Cloudinary credentials missing" });
     }
 

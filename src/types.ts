@@ -95,6 +95,7 @@ export interface UserProfile {
   joinDate?: string;
   isBlocked?: boolean;
   adminRole?: string;
+  adminName?: string;
   tags?: string[];
   createdAt?: string;
   notifications?: any[];

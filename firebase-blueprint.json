@@ -11,6 +11,7 @@
         "phone": { "type": "string" },
         "role": { "type": "string", "enum": ["admin", "user"] },
         "adminRole": { "type": "string" },
+        "adminName": { "type": "string" },
         "walletBalance": { "type": "number" },
         "createdAt": { "type": "string", "format": "date-time" },
         "updatedAt": { "type": "string", "format": "date-time" }

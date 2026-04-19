@@ -413,7 +413,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
              let adminDocId = user.uid;
              let currentRole = null;
 
-             if (!adminSnap.empty) {
+             if (adminSnap && !adminSnap.empty && adminSnap.docs && adminSnap.docs.length > 0) {
                adminDocId = adminSnap.docs[0].id;
                currentRole = adminSnap.docs[0].data().role;
              } else {
@@ -421,7 +421,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
                 const dummyEmail = getAdminDummyEmail(user.phone || '', '+967');
                 const adminPhoneQuery = query(collection(db, 'admin_users'), where('email', '==', dummyEmail));
                 const adminPhoneSnap = await getDocs(adminPhoneQuery);
-                if (!adminPhoneSnap.empty) {
+                if (adminPhoneSnap && !adminPhoneSnap.empty && adminPhoneSnap.docs && adminPhoneSnap.docs.length > 0) {
                   adminDocId = adminPhoneSnap.docs[0].id;
                   currentRole = adminPhoneSnap.docs[0].data().role;
                 }
@@ -1149,7 +1149,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const q = query(collection(db, 'searchTerms'), where('term', '==', term));
       const snapshot = await getDocs(q);
       
-      if (!snapshot.empty) {
+      if (snapshot && !snapshot.empty && snapshot.docs && snapshot.docs.length > 0) {
         const docRef = snapshot.docs[0].ref;
         const data = snapshot.docs[0].data();
         await updateDoc(docRef, {
@@ -1398,12 +1398,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         const dummyEmail = finalData.email || getAdminDummyEmail(finalData.phone || '', finalData.countryCode || '+967');
         const usersQuery = query(collection(db, 'users'), where('email', '==', dummyEmail));
         const userDocs = await getDocs(usersQuery);
-        if (!userDocs.empty) {
+        if (userDocs && !userDocs.empty && userDocs.docs && userDocs.docs.length > 0) {
           const userDocRef = doc(db, 'users', userDocs.docs[0].id);
           const updatesToUser: any = {};
           if (finalData.name) {
-            updatesToUser.name = finalData.name;
-            updatesToUser.displayName = finalData.name;
+            // We store the admin's chosen name into a separate field in the main user record
+            // THIS PREVENTS it from overwriting the client name!
+            updatesToUser.adminName = finalData.name;
           }
           if (finalData.role) {
             updatesToUser.adminRole = finalData.role;
@@ -1528,7 +1529,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         // Fallback to phone search
         const q = query(collection(db, 'users'), where('phone', '==', identifier));
         const snapshot = await getDocs(q);
-        if (!snapshot.empty) {
+        if (snapshot && !snapshot.empty && snapshot.docs && snapshot.docs.length > 0) {
           docRef = snapshot.docs[0].ref;
           userData = snapshot.docs[0].data() as UserProfile;
         }
@@ -1584,7 +1585,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         // Fallback to phone search
         const q = query(collection(db, 'users'), where('phone', '==', identifier));
         const snapshot = await getDocs(q);
-        if (!snapshot.empty) {
+        if (snapshot && !snapshot.empty && snapshot.docs && snapshot.docs.length > 0) {
           docRef = snapshot.docs[0].ref;
           userData = snapshot.docs[0].data() as UserProfile;
         }
@@ -1818,10 +1819,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           const dummyEmail = newUser.email || getAdminDummyEmail(newUser.phone || '', newUser.countryCode || '+967');
           const adminQuery = query(collection(db, 'admin_users'), where('email', '==', dummyEmail));
           const adminDocs = await getDocs(adminQuery);
-          if (!adminDocs.empty) {
+          if (adminDocs && !adminDocs.empty && adminDocs.docs && adminDocs.docs.length > 0) {
              const adminDocRef = doc(db, 'admin_users', adminDocs.docs[0].id);
+             // We only sync the phone and timestamp back to admin record.
+             // We DO NOT sync the name back, because the admin might have 
+             // a specific "Admin Name" they want to keep separate from their client name.
              await updateDoc(adminDocRef, {
-               name: newUser.displayName || newUser.name,
                phone: newUser.phone,
                updatedAt: serverTimestamp()
              });
@@ -1886,7 +1889,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         // Fallback to phone search
         const q = query(collection(db, 'users'), where('phone', '==', identifier));
         const snapshot = await getDocs(q);
-        if (!snapshot.empty) {
+        if (snapshot && !snapshot.empty && snapshot.docs && snapshot.docs.length > 0) {
           docRef = snapshot.docs[0].ref;
         }
       }
@@ -1957,7 +1960,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         // Fallback to phone search
         const q = query(collection(db, 'users'), where('phone', '==', identifier));
         const snapshot = await getDocs(q);
-        if (!snapshot.empty) {
+        if (snapshot && !snapshot.empty && snapshot.docs && snapshot.docs.length > 0) {
           docRef = snapshot.docs[0].ref;
           userData = snapshot.docs[0].data() as UserProfile;
         }
@@ -2022,7 +2025,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         // Fallback to phone search
         const q = query(collection(db, 'users'), where('phone', '==', identifier));
         const snapshot = await getDocs(q);
-        if (!snapshot.empty) {
+        if (snapshot && !snapshot.empty && snapshot.docs && snapshot.docs.length > 0) {
           docRef = snapshot.docs[0].ref;
         }
       }

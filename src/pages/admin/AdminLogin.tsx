@@ -40,7 +40,7 @@ export default function AdminLogin() {
         if (!isAuthorized) {
           const adminQuery = query(collection(db, 'admin_users'), where('email', '==', user.email));
           const adminSnap = await getDocs(adminQuery);
-          if (!adminSnap.empty) {
+          if (adminSnap && !adminSnap.empty && adminSnap.docs && adminSnap.docs.length > 0) {
             isAuthorized = true;
             currentAdminRole = adminSnap.docs[0].data().role || 'editor';
             currentAdminName = adminSnap.docs[0].data().name || 'مشرف';
@@ -53,7 +53,10 @@ export default function AdminLogin() {
           
           if (userData?.role !== 'admin') {
             const { updateDoc, setDoc } = await import('../../lib/firebase');
-            await updateDoc(doc(db, 'users', user.uid), { role: 'admin' });
+            await updateDoc(doc(db, 'users', user.uid), { 
+              role: 'admin',
+              adminName: userData?.adminName || userData?.displayName || userData?.name || user.displayName || currentAdminName
+            });
             
             if (authorizedEmails.includes(user.email)) {
               await setDoc(doc(db, 'admin_users', user.uid), {
@@ -70,7 +73,7 @@ export default function AdminLogin() {
 
           localStorage.setItem('admin_auth', 'true');
           localStorage.setItem('admin_email', user.email);
-          localStorage.setItem('admin_name', userData?.displayName || userData?.name || user.displayName || currentAdminName);
+          localStorage.setItem('admin_name', userData?.adminName || userData?.displayName || userData?.name || user.displayName || currentAdminName);
           localStorage.setItem('admin_role', currentAdminRole);
           navigate('/admin');
         }
@@ -122,7 +125,7 @@ export default function AdminLogin() {
             querySnapshot = await getDocs(emailQuery);
           }
           
-          if (!querySnapshot.empty) {
+          if (querySnapshot && !querySnapshot.empty && querySnapshot.docs && querySnapshot.docs.length > 0) {
             const adminDoc = querySnapshot.docs[0].data();
             // Verify password matches the one set by Admin
             if (adminDoc.password === password) {
@@ -172,7 +175,7 @@ export default function AdminLogin() {
         forceAdminSnapshot = await getDocs(forcePhoneQuery);
       }
       
-      if (!forceAdminSnapshot.empty) {
+      if (forceAdminSnapshot && !forceAdminSnapshot.empty && forceAdminSnapshot.docs && forceAdminSnapshot.docs.length > 0) {
          // This IS a registered admin. Force sync their profile.
          const adminData = forceAdminSnapshot.docs[0].data();
          const userRef = doc(db, 'users', user.uid);
@@ -184,6 +187,7 @@ export default function AdminLogin() {
               email: user.email || forceLoginEmail,
               name: adminData.name,
               displayName: adminData.name,
+              adminName: adminData.name,
               role: 'admin',
               adminRole: adminData.role || 'admin',
               createdAt: new Date().toISOString()
@@ -191,7 +195,8 @@ export default function AdminLogin() {
          } else {
            await updateDoc(userRef, { 
              role: 'admin', 
-             adminRole: adminData.role || 'admin' 
+             adminRole: adminData.role || 'admin',
+             adminName: adminData.name
            });
          }
       }
@@ -205,7 +210,7 @@ export default function AdminLogin() {
       if (isAuthorizedAdmin) {
         localStorage.setItem('admin_auth', 'true');
         localStorage.setItem('admin_email', user.email || '');
-        localStorage.setItem('admin_name', userData?.displayName || userData?.name || user.displayName || 'المدير');
+        localStorage.setItem('admin_name', userData?.adminName || userData?.displayName || userData?.name || user.displayName || 'المدير');
         localStorage.setItem('admin_role', userData?.adminRole || 'super_admin');
         
         if (rememberMe) {

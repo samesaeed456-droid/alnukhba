@@ -1085,17 +1085,17 @@ export default function Orders() {
                                 className="flex items-center gap-3 sm:gap-5 p-3 sm:p-5 bg-white rounded-[16px] sm:rounded-[32px] border border-bg-hover shadow-sm hover:shadow-md transition-all group"
                               >
                                 <div className="w-12 h-12 sm:w-20 sm:h-20 rounded-[12px] sm:rounded-[20px] overflow-hidden border border-bg-hover shrink-0 group-hover:scale-105 transition-transform">
-                                  <img src={item.product.image || undefined} alt={item.product.name} className="w-full h-full object-cover" />
+                                  <img src={item.product?.image || undefined} alt={item.product?.name || 'محذوف'} className="w-full h-full object-cover" />
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                  <div className="text-xs sm:text-base font-black text-carbon truncate leading-tight mb-1">{item.product.name}</div>
+                                  <div className="text-xs sm:text-base font-black text-carbon truncate leading-tight mb-1">{item.product?.name || 'منتج محذوف غير متوفر'}</div>
                                   <div className="flex items-center gap-2 sm:gap-3">
                                     <span className="text-[9px] sm:text-xs font-bold text-slate-400">{item.quantity} قطعة</span>
                                     <span className="w-1 h-1 rounded-full bg-slate-200" />
-                                    {renderPrice(item.product.price, "text-[9px] sm:text-xs font-black text-solar")}
+                                    {renderPrice(item.product?.price || 0, "text-[9px] sm:text-xs font-black text-solar")}
                                   </div>
                                 </div>
-                                <div className="text-xs sm:text-base font-black text-carbon">{renderPrice(item.product.price * item.quantity)}</div>
+                                <div className="text-xs sm:text-base font-black text-carbon">{renderPrice((item.product?.price || 0) * item.quantity)}</div>
                               </motion.div>
                             ))}
                           </div>

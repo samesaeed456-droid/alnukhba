@@ -115,19 +115,19 @@ export default function Orders() {
               {/* Order Items Preview */}
               <div className="p-4 flex-1">
                 <div className="flex -space-x-2 space-x-reverse mb-3">
-                  {order.items.slice(0, 4).map((item, idx) => (
+                  {order.items?.slice(0, 4).map((item, idx) => (
                     <div key={idx} className="w-10 h-10 rounded-lg border-2 border-white bg-slate-50 overflow-hidden relative z-10 shadow-sm">
-                      <img src={item.product.image || undefined} alt={item.product.name} className="w-full h-full object-cover" />
+                      <img src={item.product?.image || undefined} alt={item.product?.name || 'محذوف'} className="w-full h-full object-cover" />
                     </div>
                   ))}
-                  {order.items.length > 4 && (
+                  {(order.items?.length || 0) > 4 && (
                     <div className="w-10 h-10 rounded-lg border-2 border-white bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-500 relative z-0 shadow-sm">
-                      +{order.items.length - 4}
+                      +{(order.items?.length || 0) - 4}
                     </div>
                   )}
                 </div>
                 <div className="text-xs text-titanium/80 line-clamp-1">
-                  {order.items.map(i => i.product.name).join('، ')}
+                  {order.items?.map(i => i.product?.name || 'منتج محذوف غير متوفر').join('، ')}
                 </div>
               </div>
 

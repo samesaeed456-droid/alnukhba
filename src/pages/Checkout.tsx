@@ -124,7 +124,7 @@ export default function Checkout() {
     }
   }, [fieldErrors]);
 
-  const subtotal = useMemo(() => cart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0), [cart]);
+  const subtotal = useMemo(() => cart.reduce((sum, item) => sum + ((item.product?.price || 0) * item.quantity), 0), [cart]);
 
   const activePaymentMethods = useMemo(() => {
     return (settings.paymentMethods || []).filter(m => m.isActive);
@@ -531,11 +531,11 @@ export default function Checkout() {
                 <div className="space-y-3 max-h-[200px] overflow-y-auto pr-2 custom-scrollbar">
                   {cart.map((item) => (
                     <div key={item.id} className="flex gap-3">
-                      <img src={item.product.image || undefined} alt={item.product.name} className="w-12 h-12 rounded-lg object-cover border border-slate-100" />
+                      <img src={item.product?.image || undefined} alt={item.product?.name || 'محذوف'} className="w-12 h-12 rounded-lg object-cover border border-slate-100" />
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-bold text-carbon truncate">{item.product.name}</p>
+                        <p className="text-xs font-bold text-carbon truncate">{item.product?.name || 'منتج محذوف'}</p>
                         <div className="text-[10px] text-titanium/40 flex items-center gap-1">
-                          الكمية: {item.quantity} • <PriceDisplay price={item.product.price * item.quantity} numberClassName="text-slate-900/60" currencyClassName="text-slate-900/40" />
+                          الكمية: {item.quantity} • <PriceDisplay price={(item.product?.price || 0) * item.quantity} numberClassName="text-slate-900/60" currencyClassName="text-slate-900/40" />
                         </div>
                       </div>
                     </div>
@@ -1368,13 +1368,13 @@ export default function Checkout() {
                     {cart.map((item) => (
                       <div key={item.id} className="bg-slate-50 p-4 sm:p-5 rounded-2xl border border-slate-100 flex items-center justify-between">
                         <div className="text-right">
-                          <p className="text-sm sm:text-base font-bold text-carbon mb-1">{item.product.name}</p>
+                          <p className="text-sm sm:text-base font-bold text-carbon mb-1">{item.product?.name || 'منتج محذوف غير متوفر'}</p>
                           <p className="text-xs sm:text-sm text-titanium/80">
                             الكمية: {item.quantity}
                           </p>
                         </div>
                         <div className="text-left shrink-0">
-                          <PriceDisplay price={item.product.price * item.quantity} numberClassName="text-sm sm:text-base font-bold text-carbon" currencyClassName="text-xs sm:text-sm text-carbon/80" />
+                          <PriceDisplay price={(item.product?.price || 0) * item.quantity} numberClassName="text-sm sm:text-base font-bold text-carbon" currencyClassName="text-xs sm:text-sm text-carbon/80" />
                         </div>
                       </div>
                     ))}
@@ -1432,13 +1432,13 @@ export default function Checkout() {
               {cart.map((item) => (
                 <div key={item.id} className="flex gap-4 group">
                   <div className="w-16 h-16 bg-slate-50 rounded-2xl p-2 shrink-0 border border-slate-100 group-hover:border-slate-900/30 transition-colors">
-                    <img src={item.product.image || undefined} alt={item.product.name} className="w-full h-full object-cover" />
+                    <img src={item.product?.image || undefined} alt={item.product?.name || 'محذوف'} className="w-full h-full object-cover" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h4 className="text-sm font-bold text-carbon truncate group-hover:text-slate-900 transition-colors">{item.product.name}</h4>
+                    <h4 className="text-sm font-bold text-carbon truncate group-hover:text-slate-900 transition-colors">{item.product?.name || 'منتج محذوف غير متوفر'}</h4>
                     <div className="flex items-center justify-between mt-1">
                       <span className="text-xs text-titanium/40 font-bold">الكمية: {item.quantity}</span>
-                      <span className="text-sm font-bold"><PriceDisplay price={item.product.price * item.quantity} /></span>
+                      <span className="text-sm font-bold"><PriceDisplay price={(item.product?.price || 0) * item.quantity} /></span>
                     </div>
                   </div>
                 </div>

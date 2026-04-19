@@ -23,7 +23,7 @@ export async function getAIRecommendations(
       
       User Data:
       - Recently Viewed: ${recentlyViewed.map((p: any) => p.name).join(", ")}
-      - Items in Cart: ${cart.map((item: any) => `${item.product.name} (Qty: ${item.quantity})`).join(", ")}
+      - Items in Cart: ${cart.map((item: any) => `${item.product?.name || 'Unknown'} (Qty: ${item.quantity})`).join(", ")}
       ${currentProduct ? `- Currently Viewing: ${currentProduct.name} (Category: ${currentProduct.category})` : ""}
       
       Catalog Summary (Product IDs and Names):
@@ -59,7 +59,7 @@ export async function getAIRecommendations(
     const recommendedProducts = products.filter(p => recommendedIds.includes(p.id));
     
     // Filter out items already in cart or currently being viewed
-    const cartIds = cart.map(item => item.product.id);
+    const cartIds = cart.map(item => item.product?.id).filter(id => id);
     return recommendedProducts
       .filter(p => !cartIds.includes(p.id) && p.id !== currentProduct?.id)
       .slice(0, 6);
@@ -76,13 +76,13 @@ export function getRuleBasedRecommendations(
   products: Product[],
   currentProduct?: Product
 ): Product[] {
-  const cartIds = cart.map(item => item.product.id);
+  const cartIds = cart.map(item => item.product?.id).filter(id => id);
   const viewedIds = recentlyViewed.map(p => p.id);
   
   let recommendations: Product[] = [];
 
   // 1. Complementary logic
-  const cartCategories = cart.map(item => item.product.category);
+  const cartCategories = cart.map(item => item.product?.category).filter(c => c);
   if (cartCategories.includes('إلكترونيات')) {
     // If they have electronics, suggest accessories
     recommendations.push(...products.filter(p => p.category === 'إكسسوارات' && !cartIds.includes(p.id)));

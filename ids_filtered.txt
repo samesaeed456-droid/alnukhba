@@ -1,0 +1,60 @@
+src/components/layout/NotificationsDrawer.tsx:      if (!n.isRead) markNotificationAsRead(n.id);
+src/components/layout/NotificationsDrawer.tsx:      setNotifications((prev: any) => prev.filter((n: any) => n.id !== notificationToDelete));
+src/components/layout/NotificationsDrawer.tsx:                                      markNotificationAsRead(notification.id);
+src/components/layout/NotificationsDrawer.tsx:                                    onClick={() => markNotificationAsRead(notification.id)}
+src/components/layout/NotificationsDrawer.tsx:                                onClick={() => setNotificationToDelete(notification.id)}
+src/pages/admin/Logistics.tsx:      updateShippingZone(editingZone.id, data);
+src/pages/admin/Analytics.tsx:      logActivity('إرسال تذكير', `تم إرسال تذكير للسلة المتروكة رقم ${cart.id} للعميل ${cart.customerName || 'مجهول'}`);
+src/pages/admin/Analytics.tsx:        id: cart.id,
+src/pages/admin/Messages.tsx:                      if (isUnread) updateTicketStatus(msg.id, 'resolved');
+src/pages/admin/Messages.tsx:                          if (isUnread) updateTicketStatus(msg.id, 'resolved');
+src/pages/admin/Messages.tsx:                        toggleTicketSelection(msg.id);
+src/pages/admin/Messages.tsx:                        selectedTickets.includes(msg.id) 
+src/pages/admin/Messages.tsx:                      {selectedTickets.includes(msg.id) && <CheckSquare className="w-5 h-5" />}
+src/pages/admin/Messages.tsx:                      updateTicketStatus(selectedMessage.id, 'open');
+src/pages/admin/Settings.tsx:                                    checked={formData.autoNotifications?.onStatusChange.includes(status.id as any)}
+src/pages/admin/Settings.tsx:                                        ? [...current, status.id as any]
+src/pages/admin/Settings.tsx:                                        : current.filter(s => s !== status.id);
+src/pages/admin/Settings.tsx:            const newMethods = formData.paymentMethods?.filter(m => m.id !== paymentToDelete);
+src/pages/admin/Marketing.tsx:      updateBanner(editingBanner.id, bannerForm);
+src/pages/admin/Marketing.tsx:              onClick={() => setActiveTab(tab.id)}
+src/pages/admin/Marketing.tsx:                activeTab === tab.id ? 'bg-carbon text-white shadow-md' : 'text-gray-500 hover:bg-gray-50'
+src/pages/admin/Coupons.tsx:      updateCoupon(editingCoupon.id, couponData);
+src/pages/admin/Orders.tsx:                    onClick={() => setActiveModalTab(tab.id as any)}
+src/pages/admin/Orders.tsx:                      activeModalTab === tab.id 
+src/pages/admin/Orders.tsx:                    <tab.icon className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${activeModalTab === tab.id ? 'text-solar' : 'text-slate-300'}`} />
+src/pages/admin/AdminLayout.tsx:    return alerts.filter(alert => !readNotifications.includes(alert.id));
+src/pages/admin/AdminLayout.tsx:    const currentIds = adminNotifications.map(n => n.id);
+src/pages/admin/Products.tsx:      updateProduct(editingProduct.id, finalFormData);
+src/pages/admin/Security.tsx:                                onClick={() => togglePermission(perm.id)}
+src/pages/admin/Security.tsx:                                  adminForm.permissions.includes(perm.id)
+src/pages/admin/Security.tsx:                                  adminForm.permissions.includes(perm.id) ? 'bg-solar text-white' : 'bg-gray-50 text-gray-300'
+src/pages/admin/Security.tsx:                                  {adminForm.permissions.includes(perm.id) ? <UserCheck className="w-3 h-3" /> : <Shield className="w-3 h-3" />}
+src/pages/admin/Security.tsx:                                onClick={() => togglePermission(perm.id)}
+src/pages/admin/Security.tsx:                                  adminForm.permissions.includes(perm.id)
+src/pages/admin/Security.tsx:                                  adminForm.permissions.includes(perm.id) ? 'bg-solar text-white' : 'bg-gray-50 text-gray-300'
+src/pages/admin/Security.tsx:                                  {adminForm.permissions.includes(perm.id) ? <UserCheck className="w-3 h-3" /> : <Shield className="w-3 h-3" />}
+src/pages/admin/Customers.tsx:                        onClick={() => setActiveTab(tab.id as any)}
+src/pages/admin/Customers.tsx:                          activeTab === tab.id ? 'text-solar' : 'text-slate-400'
+src/pages/admin/Customers.tsx:                        <tab.icon className={`w-5 h-5 transition-transform ${activeTab === tab.id ? 'scale-105' : ''}`} />
+src/pages/admin/Customers.tsx:                        <span className={`text-[10px] font-bold ${activeTab === tab.id ? 'opacity-100' : 'opacity-70'}`}>{tab.label}</span>
+src/pages/admin/Customers.tsx:                        {activeTab === tab.id && (
+src/pages/admin/Customers.tsx:                                  <div className={`absolute top-0 right-0 w-1 h-full ${pinnedNotes.includes(note.id) ? 'bg-solar' : 'bg-amber-400/50'}`} />
+src/pages/admin/Customers.tsx:                                    <p className={`text-sm font-semibold leading-relaxed ${pinnedNotes.includes(note.id) ? 'text-carbon' : 'text-amber-900'}`}>{note.text}</p>
+src/pages/admin/Customers.tsx:                                          prev.includes(note.id) ? prev.filter(id => id !== note.id) : [...prev, note.id]
+src/pages/admin/Customers.tsx:                                      className={`p-1 rounded-lg transition-all ${pinnedNotes.includes(note.id) ? 'text-solar bg-solar/10' : 'text-slate-300 hover:text-amber-500'}`}
+src/pages/admin/Customers.tsx:                                      <Pin className={`w-3.5 h-3.5 ${pinnedNotes.includes(note.id) ? 'fill-current' : ''}`} />
+src/pages/admin/Customers.tsx:                                    <Calendar className={`w-3 h-3 ${pinnedNotes.includes(note.id) ? 'text-solar/70' : 'text-amber-500/70'}`} />
+src/pages/admin/Customers.tsx:                                    <p className={`text-[10px] font-bold ${pinnedNotes.includes(note.id) ? 'text-solar/70' : 'text-amber-600/70'}`}>{new Date(note.date).toLocaleDateString('ar-u-nu-latn')}</p>
+src/pages/Notifications.tsx:      if (!n.isRead) markNotificationAsRead(n.id);
+src/pages/Notifications.tsx:      setNotifications((prev: any) => prev.filter((n: any) => n.id !== notificationToDelete));
+src/pages/Notifications.tsx:                                  onClick={() => markNotificationAsRead(notification.id)}
+src/pages/Notifications.tsx:                                  onClick={() => markNotificationAsRead(notification.id)}
+src/pages/Notifications.tsx:                              onClick={() => handleSetNotificationToDelete(notification.id)}
+src/pages/Checkout.tsx:    return activePaymentMethods.find(m => m.id === paymentMethod);
+src/pages/Checkout.tsx:      setPaymentMethod(activePaymentMethods[0].id);
+src/context/StoreContext.tsx:               adminDocId = adminSnap.docs[0].id;
+src/context/StoreContext.tsx:                  adminDocId = adminPhoneSnap.docs[0].id;
+src/context/StoreContext.tsx:          const userDocRef = doc(db, 'users', userDocs.docs[0].id);
+src/context/StoreContext.tsx:             const adminDocRef = doc(db, 'admin_users', adminDocs.docs[0].id);
+src/context/StoreContext.tsx:      setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));

@@ -144,7 +144,8 @@ export default function Dashboard() {
     });
 
     filteredOrders.forEach(order => {
-      order.items.forEach(item => {
+      order.items?.forEach(item => {
+        if (!item?.product?.id) return;
         const pId = item.product.id.toString();
         if (!productSales[pId]) {
           productSales[pId] = { 
@@ -176,7 +177,8 @@ export default function Dashboard() {
 
     const prevProductSales: Record<string, number> = {};
     previousOrders.forEach(order => {
-      order.items.forEach(item => {
+      order.items?.forEach(item => {
+        if (!item?.product?.id) return;
         const pId = item.product.id.toString();
         prevProductSales[pId] = (prevProductSales[pId] || 0) + item.quantity;
       });

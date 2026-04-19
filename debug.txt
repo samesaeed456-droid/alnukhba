@@ -1,9 +1,7 @@
 src/components/home/HomeProductGrid.tsx:          <ProductCard key={product.id} product={product} className="h-full" wide priority={index < 4} />
 src/components/home/Hero.tsx:            id: `${banner.id}-${index}`,
 src/components/home/CategoryFilteredSection.tsx:          <ProductCard key={product.id} product={product} className="h-full" wide />
-src/components/home/FeaturedDeal.tsx:          <FastLink to={`/product/${deals[0].id}`} className="block">
 src/components/home/FeaturedDeal.tsx:              <div key={product.id} className="min-w-[145px] w-[145px] snap-start">
-src/components/home/FeaturedDeal.tsx:              <FastLink to={`/product/${deals[0].id}`} prefetchPage="ProductDetail" className="inline-flex items-center justify-center gap-2 bg-gold-gradient hover:bg-gold-shimmer text-black px-6 py-3 rounded-xl text-sm lg:text-base font-black transition-all shadow-gold hover:shadow-gold-lg hover:-translate-y-0.5">
 src/components/ProductSlider.tsx:            <SwiperSlide key={p.id} className="!w-[160px] sm:!w-[220px] md:!w-[280px] !h-auto">
 src/components/ProductSlider.tsx:          <ProductCard key={p.id} product={p} className="h-full" wide />
 src/components/layout/Footer.tsx:                  key={payment.id || idx} 
@@ -234,6 +232,7 @@ src/pages/Deals.tsx:                <DealCard key={product.id} product={product}
 src/pages/ProductDetail.tsx:  const product = products.find(p => String(p.id) === String(id));
 src/pages/ProductDetail.tsx:  const isNotified = product ? subscriptions.some(s => s.productId === product.id && s.type === 'back_in_stock') : false;
 src/pages/ProductDetail.tsx:          subscribeToProduct(product.id, 'back_in_stock', user?.phone || 'guest');
+src/pages/ProductDetail.tsx:              if (window.history.state && window.history.state.idx > 0) {
 src/pages/ProductDetail.tsx:              isInWishlist(product.id) 
 src/pages/ProductDetail.tsx:            <Heart className={`w-4 h-4 ${isInWishlist(product.id) ? 'fill-current' : ''}`} />
 src/pages/ProductDetail.tsx:                      أكثر من {(product.id.length * 5 % 20) + 10} شخص ينتظرون توفره
@@ -248,7 +247,6 @@ src/pages/TrackOrder.tsx:                            <p className="text-lg font-
 src/pages/Checkout.tsx:        setSelectedAddressId(firstAddress.id);
 src/pages/Checkout.tsx:    setSelectedAddressId(addr.id);
 src/pages/Checkout.tsx:    return activePaymentMethods.find(m => m.id === paymentMethod);
-src/pages/Checkout.tsx:      setPaymentMethod(activePaymentMethods[0].id);
 src/pages/Checkout.tsx:        setSelectedAddressId(newAddress.id);
 src/pages/Checkout.tsx:      const newAddresses = user.addresses?.filter(a => a.id !== addressToDelete);
 src/pages/Checkout.tsx:                    <div key={item.id} className="flex gap-3">
@@ -287,8 +285,6 @@ src/lib/useFirestore.ts:        items.push({ id: doc.id, ...doc.data() } as unkn
 src/context/StoreContext.tsx:        const uniqueProducts = Array.from(new Map(parsed.map((p: any) => [String(p.id), { ...p, id: String(p.id) }])).values()) as Product[];
 src/context/StoreContext.tsx:          id: item.id || `${item.product?.id || Date.now()}-${item.selectedColor || 'default'}-${item.selectedSize || 'default'}`
 src/context/StoreContext.tsx:    return Array.from(new Map(loadedWishlist.map((p: any) => [String(p.id), { ...p, id: String(p.id) }])).values()) as Product[];
-src/context/StoreContext.tsx:               adminDocId = adminSnap.docs[0].id;
-src/context/StoreContext.tsx:                  adminDocId = adminPhoneSnap.docs[0].id;
 src/context/StoreContext.tsx:          id: String(doc.id) 
 src/context/StoreContext.tsx:      const ordersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as Order[];
 src/context/StoreContext.tsx:      const customersData = snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() })) as unknown as UserProfile[];
@@ -312,7 +308,6 @@ src/context/StoreContext.tsx:          const pRef = doc(db, 'products', p.id);
 src/context/StoreContext.tsx:        id: newBannerRef.id,
 src/context/StoreContext.tsx:        id: newNotifRef.id,
 src/context/StoreContext.tsx:        id: newAdminRef.id,
-src/context/StoreContext.tsx:          const userDocRef = doc(db, 'users', userDocs.docs[0].id);
 src/context/StoreContext.tsx:      const cartItemId = `${product.id}-${color || 'default'}-${size || 'default'}`;
 src/context/StoreContext.tsx:      const existing = prev.find(item => item.id === cartItemId);
 src/context/StoreContext.tsx:          item.id === cartItemId 
@@ -326,7 +321,6 @@ src/context/StoreContext.tsx:        await updateDoc(doc(db, 'products', String(
 src/context/StoreContext.tsx:      const exists = prev.some(p => String(p.id) === String(product.id));
 src/context/StoreContext.tsx:        newWishlist = prev.filter(p => String(p.id) !== String(product.id));
 src/context/StoreContext.tsx:    return wishlist.some(p => String(p.id) === String(productId));
-src/context/StoreContext.tsx:             const adminDocRef = doc(db, 'admin_users', adminDocs.docs[0].id);
 src/context/StoreContext.tsx:        uid: newUserRef.id,
 src/context/StoreContext.tsx:      await setDoc(doc(db, 'coupons', newCoupon.id), newCoupon);
 src/context/StoreContext.tsx:      const coupon = coupons.find(c => c.id === id);

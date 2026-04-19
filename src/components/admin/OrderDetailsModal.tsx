@@ -72,18 +72,18 @@ export default function OrderDetailsModal({ order, isOpen, onClose }: OrderDetai
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
-                    {order.items.map((item, idx) => (
+                    {order.items?.map((item, idx) => (
                       <tr key={idx} className="text-sm">
                         <td className="px-4 py-4">
                           <div className="flex items-center gap-3">
                             <img 
-                              src={item.product.image} 
-                              alt={item.product.name}
+                              src={item.product?.image || undefined} 
+                              alt={item.product?.name || 'محذوف'}
                               className="w-12 h-12 rounded-lg object-cover border border-gray-100"
                             />
                             <div>
-                              <p className="font-bold text-carbon line-clamp-1">{item.product.name}</p>
-                              <p className="text-xs text-gray-500">{item.product.brand}</p>
+                              <p className="font-bold text-carbon line-clamp-1">{item.product?.name || 'منتج محذوف'}</p>
+                              <p className="text-xs text-gray-500">{item.product?.brand || ''}</p>
                             </div>
                           </div>
                         </td>
@@ -91,7 +91,7 @@ export default function OrderDetailsModal({ order, isOpen, onClose }: OrderDetai
                           {item.quantity}
                         </td>
                         <td className="px-4 py-4 text-left font-bold text-solar">
-                          {formatPrice(item.product.price * item.quantity)}
+                          {formatPrice((item.product?.price || 0) * item.quantity)}
                         </td>
                       </tr>
                     ))}

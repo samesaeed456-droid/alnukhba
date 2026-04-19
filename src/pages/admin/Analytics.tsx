@@ -175,7 +175,8 @@ const Analytics = () => {
     // Top Products
     const productSales: Record<string, { quantity: number; revenue: number }> = {};
     filteredOrders.forEach(order => {
-      order.items.forEach(item => {
+      order.items?.forEach(item => {
+        if (!item?.product?.id) return;
         if (!productSales[item.product.id]) {
           productSales[item.product.id] = { quantity: 0, revenue: 0 };
         }

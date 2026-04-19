@@ -166,10 +166,10 @@ export default function Cart() {
                 transition={{ delay: index * 0.05 }}
                 className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-slate-100 flex flex-col sm:flex-row gap-4 sm:gap-6 group"
               >
-                <Link to={`/product/${item.product.id}`} className="w-full sm:w-32 h-32 bg-white rounded-lg overflow-hidden shrink-0 p-2 relative">
+                <Link to={`/product/${item.product?.id || ''}`} className="w-full sm:w-32 h-32 bg-white rounded-lg overflow-hidden shrink-0 p-2 relative">
                   <img 
-                    src={item.product.image || undefined} 
-                    alt={item.product.name} 
+                    src={item.product?.image || undefined} 
+                    alt={item.product?.name || 'محذوف'} 
                     className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" 
                   />
                 </Link>
@@ -177,8 +177,8 @@ export default function Cart() {
                 <div className="flex-1 flex flex-col">
                   <div className="flex justify-between items-start mb-2">
                     <div>
-                      <Link to={`/product/${item.product.id}`} className="font-bold text-carbon text-sm sm:text-base hover:text-solar transition-colors line-clamp-2">
-                        {item.product.name}
+                      <Link to={`/product/${item.product?.id || ''}`} className="font-bold text-carbon text-sm sm:text-base hover:text-solar transition-colors line-clamp-2">
+                        {item.product?.name || 'منتج محذوف غير متوفر'}
                       </Link>
                     </div>
                     <motion.button 
@@ -209,7 +209,7 @@ export default function Cart() {
                   <div className="mt-auto flex items-center justify-between">
                     <div className="font-black text-lg">
                       <PriceDisplay 
-                        price={item.product.price} 
+                        price={item.product?.price || 0} 
                         numberClassName="text-slate-900"
                         currencyClassName="text-slate-900/70"
                       />

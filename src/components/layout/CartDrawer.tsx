@@ -150,12 +150,12 @@ export default React.memo(function CartDrawer({}: CartDrawerProps) {
                           </div>
                         )}
                         <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-lg bg-white p-2 shrink-0 border border-slate-100">
-                          <img src={item.product.image || undefined} alt={item.product.name} className="w-full h-full object-cover" />
+                          <img src={item.product?.image || undefined} alt={item.product?.name || 'محذوف'} className="w-full h-full object-cover" />
                         </div>
                         <div className="flex-1 flex flex-col justify-between py-0.5 sm:py-1">
                           <div>
                             <div className="flex justify-between items-start gap-2">
-                              <h4 className="font-bold text-slate-800 line-clamp-2 text-xs sm:text-sm leading-tight">{item.product.name}</h4>
+                              <h4 className="font-bold text-slate-800 line-clamp-2 text-xs sm:text-sm leading-tight">{item.product?.name || 'منتج محذوف غير متوفر'}</h4>
                               <button onClick={() => setItemToDelete(item.id)} className="text-slate-400 hover:text-red-500 transition-colors">
                                 <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                               </button>
@@ -170,7 +170,7 @@ export default React.memo(function CartDrawer({}: CartDrawerProps) {
                                 {item.selectedSize && <span>المقاس: {item.selectedSize}</span>}
                               </div>
                             )}
-                            <div className="text-slate-900 font-bold mt-1 sm:mt-2 text-sm sm:text-base">{formatPrice(item.product.price)}</div>
+                            <div className="text-slate-900 font-bold mt-1 sm:mt-2 text-sm sm:text-base">{formatPrice(item.product?.price || 0)}</div>
                           </div>
                           <div className="flex items-center justify-between mt-2 sm:mt-3">
                             <div className="flex items-center gap-2 sm:gap-3 bg-white border border-slate-200 rounded-lg px-1.5 py-0.5 sm:px-2 sm:py-1">

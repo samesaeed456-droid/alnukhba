@@ -15,7 +15,7 @@ import PriceDisplay from '../components/PriceDisplay';
 import FloatingInput from '../components/FloatingInput';
 
 export default function Profile() {
-  const { user, updateUser, logout, showToast, language, setLanguage, formatPrice } = useStore();
+  const { user, updateUser, logout, showToast, language, setLanguage, formatPrice, shippingZones } = useStore();
   const navigate = useNavigate();
   const location = useLocation();
   const [currentView, setCurrentView] = useState<'menu' | 'edit' | 'addresses' | 'wallet' | 'delete-account'>('menu');
@@ -41,7 +41,7 @@ export default function Profile() {
     firstName: '',
     lastName: '',
     address: '',
-    city: 'صنعاء',
+    city: allCities[0] || 'صنعاء',
     phone: '',
     countryCode: '+967'
   });
@@ -67,6 +67,15 @@ export default function Profile() {
   const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
   const [deleteModalStep, setDeleteModalStep] = useState<'reason' | 'otp'>('reason');
   const [deleteOtp, setDeleteOtp] = useState(['', '', '', '']);
+
+  const allCities = useMemo(() => {
+    const zoneCities = shippingZones.filter(z => z.isActive).flatMap(z => z.cities);
+    if (zoneCities.length > 0) {
+      return Array.from(new Set(zoneCities)).sort();
+    }
+    // Fallback if no shipping zones are defined
+    return ['صنعاء', 'عدن', 'تعز', 'الحديدة', 'إب', 'ذمار', 'المكلا', 'حجة', 'صعدة', 'البيضاء', 'مأرب', 'عمران', 'الجوف', 'المهرة', 'سقطرى', 'شبوة', 'أبين', 'لحج', 'الضالع', 'ريمة', 'المحويت'].sort();
+  }, [shippingZones]);
 
   useEffect(() => {
     if (user) {
@@ -1260,28 +1269,15 @@ export default function Profile() {
                     </div>
                     <div className="space-y-2">
                       <label className="text-xs font-bold text-titanium/80">المدينة</label>
-                      <select value={newAddress.city} onChange={e => setNewAddress({...newAddress, city: e.target.value})} className="w-full h-12 px-4 rounded-xl border border-slate-200 bg-slate-50 focus:ring-2 focus:ring-carbon outline-none">
-                        <option>صنعاء</option>
-                        <option>عدن</option>
-                        <option>تعز</option>
-                        <option>الحديدة</option>
-                        <option>إب</option>
-                        <option>ذمار</option>
-                        <option>المكلا</option>
-                        <option>حجة</option>
-                        <option>صعدة</option>
-                        <option>البيضاء</option>
-                        <option>مأرب</option>
-                        <option>عمران</option>
-                        <option>المحويت</option>
-                        <option>لحج</option>
-                        <option>الضالع</option>
-                        <option>أبين</option>
-                        <option>شبوة</option>
-                        <option>المهرة</option>
-                        <option>سقطرى</option>
-                        <option>الجوف</option>
-                        <option>ريمة</option>
+                      <select 
+                        value={newAddress.city} 
+                        onChange={e => setNewAddress({...newAddress, city: e.target.value})} 
+                        className="w-full h-12 px-4 rounded-xl border border-slate-200 bg-slate-50 focus:ring-2 focus:ring-carbon outline-none appearance-none"
+                        style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'%236B7280\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\'%3E%3C/path%3E%3C/svg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'left 1rem center', backgroundSize: '1.5rem' }}
+                      >
+                        {allCities.map(city => (
+                          <option key={city} value={city}>{city}</option>
+                        ))}
                       </select>
                     </div>
                     <div className="space-y-2">
@@ -1329,7 +1325,7 @@ export default function Profile() {
                           addresses: [...(user?.addresses || []), addr]
                         } as any);
                         setShowAddAddress(false);
-                        setNewAddress({ firstName: '', lastName: '', address: '', city: 'صنعاء', phone: '', countryCode: '+967' });
+                        setNewAddress({ firstName: '', lastName: '', address: '', city: allCities[0] || 'صنعاء', phone: '', countryCode: '+967' });
                         showToast('تم إضافة العنوان بنجاح');
                       }}
                       className="flex-1 bg-carbon text-white h-12 rounded-xl font-bold hover:bg-carbon transition-colors"

@@ -37,6 +37,16 @@ export default function Profile() {
   const [deletionReason, setDeletionReason] = useState('');
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showAddAddress, setShowAddAddress] = useState(false);
+
+  const allCities = useMemo(() => {
+    const zoneCities = shippingZones.filter(z => z.isActive).flatMap(z => z.cities);
+    if (zoneCities.length > 0) {
+      return Array.from(new Set(zoneCities)).sort();
+    }
+    // Fallback if no shipping zones are defined
+    return ['صنعاء', 'عدن', 'تعز', 'الحديدة', 'إب', 'ذمار', 'المكلا', 'حجة', 'صعدة', 'البيضاء', 'مأرب', 'عمران', 'الجوف', 'المهرة', 'سقطرى', 'شبوة', 'أبين', 'لحج', 'الضالع', 'ريمة', 'المحويت'].sort();
+  }, [shippingZones]);
+
   const [newAddress, setNewAddress] = useState<Partial<Address>>({
     firstName: '',
     lastName: '',
@@ -67,15 +77,6 @@ export default function Profile() {
   const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
   const [deleteModalStep, setDeleteModalStep] = useState<'reason' | 'otp'>('reason');
   const [deleteOtp, setDeleteOtp] = useState(['', '', '', '']);
-
-  const allCities = useMemo(() => {
-    const zoneCities = shippingZones.filter(z => z.isActive).flatMap(z => z.cities);
-    if (zoneCities.length > 0) {
-      return Array.from(new Set(zoneCities)).sort();
-    }
-    // Fallback if no shipping zones are defined
-    return ['صنعاء', 'عدن', 'تعز', 'الحديدة', 'إب', 'ذمار', 'المكلا', 'حجة', 'صعدة', 'البيضاء', 'مأرب', 'عمران', 'الجوف', 'المهرة', 'سقطرى', 'شبوة', 'أبين', 'لحج', 'الضالع', 'ريمة', 'المحويت'].sort();
-  }, [shippingZones]);
 
   useEffect(() => {
     if (user) {

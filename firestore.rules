@@ -132,6 +132,15 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    match /settings/counters {
+      allow read: if true;
+      allow create: if isSignedIn() && incoming().orderCounter == 1;
+      allow update: if isSignedIn() && (
+        (incoming().orderCounter == existing().orderCounter + 1) ||
+        isAdmin()
+      );
+    }
+
     match /settings/{settingsId} {
       allow read: if true;
       allow write: if isAdmin();

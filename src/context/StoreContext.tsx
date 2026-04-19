@@ -15,7 +15,7 @@ import { smsService } from '../services/smsService';
 
 import { 
   auth, db, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc, collection, query, where, onSnapshot, 
-  onAuthStateChanged, serverTimestamp, increment, OperationType, handleFirestoreError, getDocFromServer, writeBatch 
+  onAuthStateChanged, serverTimestamp, increment, OperationType, handleFirestoreError, getDocFromServer, writeBatch, runTransaction 
 } from '../lib/firebase';
 
 interface StoreContextType {
@@ -1683,7 +1683,33 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       }
 
       const total = roundMoney(Math.max(0, subtotal + shipping - discountAmount));
-      const orderId = `ORD-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+      
+      // Get Sequential Order ID with Transaction to prevent duplicates
+      let orderId = '';
+      try {
+        orderId = await runTransaction(db, async (transaction) => {
+          const counterRef = doc(db, 'settings', 'counters');
+          const counterSnap = await transaction.get(counterRef);
+          
+          let nextSeq = 1;
+          if (counterSnap.exists()) {
+            nextSeq = (counterSnap.data().orderCounter || 0) + 1;
+          }
+          
+          transaction.set(counterRef, { orderCounter: nextSeq }, { merge: true });
+          
+          const now = new Date();
+          const yy = String(now.getFullYear()).slice(-2);
+          const mm = String(now.getMonth() + 1).padStart(2, '0');
+          const dd = String(now.getDate()).padStart(2, '0');
+          
+          return `NKH-${yy}${mm}${dd}-${nextSeq}`;
+        });
+      } catch (error) {
+        console.error('Failed to generate sequential order ID, falling back to random:', error);
+        // Fallback to random ID if transaction fails (e.g. permission issues or network error)
+        orderId = `NKH-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+      }
 
       // 2. Prepare Order Data
       const newOrderData = {

@@ -15,6 +15,15 @@ export default function Checkout() {
   const { cart, placeOrder, discount, applyDiscountCode, formatPrice, removeDiscount, showToast, user, updateUser, language, settings, shippingZones } = useStore();
   const navigate = useNavigate();
 
+  const allCities = useMemo(() => {
+    const zoneCities = shippingZones.filter(z => z.isActive).flatMap(z => z.cities);
+    if (zoneCities.length > 0) {
+      return Array.from(new Set(zoneCities)).sort();
+    }
+    // Fallback if no shipping zones are defined
+    return ['صنعاء', 'عدن', 'تعز', 'الحديدة', 'إب', 'ذمار', 'المكلا', 'حجة', 'صعدة', 'البيضاء', 'مأرب', 'عمران', 'الجوف', 'المهرة', 'سقطرى', 'شبوة', 'أبين', 'لحج', 'الضالع', 'ريمة', 'المحويت'].sort();
+  }, [shippingZones]);
+
   useEffect(() => {
     if (!user) {
       showToast('يرجى تسجيل الدخول أولاً لإتمام عملية الشراء', 'error');
@@ -125,7 +134,7 @@ export default function Checkout() {
       countryCode: '+967'
     }));
     setFieldErrors([]);
-  }, []);
+  }, [user, allCities]);
 
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -177,15 +186,6 @@ export default function Checkout() {
 
   const discountAmount = useMemo(() => calculateDiscount(), [calculateDiscount]);
   const total = useMemo(() => Math.max(0, subtotal + shipping - discountAmount), [subtotal, shipping, discountAmount]);
-
-  const allCities = useMemo(() => {
-    const zoneCities = shippingZones.filter(z => z.isActive).flatMap(z => z.cities);
-    if (zoneCities.length > 0) {
-      return Array.from(new Set(zoneCities)).sort();
-    }
-    // Fallback to default cities if no shipping zones are defined
-    return ['صنعاء', 'عدن', 'تعز', 'الحديدة', 'إب', 'ذمار', 'المكلا', 'حجة', 'صعدة', 'البيضاء', 'مأرب', 'عمران', 'الجوف', 'المهرة', 'سقطرى', 'شبوة', 'أبين', 'لحج', 'الضالع', 'ريمة', 'المحويت'].sort();
-  }, [shippingZones]);
 
   useEffect(() => {
     if (allCities.length > 0 && !allCities.includes(formData.city)) {

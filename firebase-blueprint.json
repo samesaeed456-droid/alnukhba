@@ -89,6 +89,15 @@
         "id": { "type": "string" },
         "data": { "type": "object" }
       }
+    },
+    "Counter": {
+      "title": "Counter",
+      "description": "Global atomic sequence counter",
+      "type": "object",
+      "properties": {
+        "orderCounter": { "type": "number", "description": "The sequential index for orders" }
+      },
+      "required": ["orderCounter"]
     }
   },
   "firestore": {
@@ -111,6 +120,10 @@
     "/coupons/{couponId}": {
       "schema": "Coupon",
       "description": "Promotional discounts"
+    },
+    "/settings/counters": {
+      "schema": "Counter",
+      "description": "Global order ID counter"
     },
     "/settings/{settingsId}": {
       "schema": "Settings",

@@ -49,6 +49,7 @@ const AdminLogistics = lazy(() => import('./pages/admin/Logistics.tsx'));
 const AdminCloud = lazy(() => import('./pages/admin/Cloud.tsx'));
 import Maintenance from './pages/Maintenance';
 import BlockedOverlay from './components/BlockedOverlay';
+import OfflineStatus from './components/OfflineStatus';
 import { AlertCircle, X } from 'lucide-react';
 
 const SystemAlert = () => {
@@ -239,6 +240,7 @@ const MainRoutes = () => {
 export default function App() {
   return (
     <StoreProvider>
+      <OfflineStatus />
       <SystemAlert />
       <BlockedOverlay />
       <MotionConfig reducedMotion="user">

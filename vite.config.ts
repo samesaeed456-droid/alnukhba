@@ -70,15 +70,55 @@ export default defineConfig(({mode}) => {
         manifest: {
           id: '/',
           name: 'متجر النخبة للإلكترونيات',
-          short_name: 'متجر النخبة',
-          description: 'متجر النخبة للإلكترونيات ومنظومات الطاقة الشمسية - الوجهة الأولى للأجهزة التقنية والطاقة المتجددة',
-          theme_color: '#000066',
-          background_color: '#ffffff',
+          short_name: 'النخبة',
+          description: 'متجر النخبة للإلكترونيات ومنظومات الطاقة الشمسية - الوجهة الأولى للأجهزة التقنية والطاقة المتجددة في اليمن',
+          theme_color: '#C5A059',
+          background_color: '#0F172A',
           display: 'standalone',
           display_override: ['window-controls-overlay', 'standalone', 'minimal-ui'],
           scope: '/',
           start_url: '/',
           orientation: 'portrait',
+          categories: ['electronics', 'shopping'],
+          shortcuts: [
+            {
+              name: 'طلباتي',
+              short_name: 'طلباتي',
+              description: 'عرض ومتابعة طلباتك السابقة',
+              url: '/profile?tab=orders',
+              icons: [{ src: 'https://cdn-icons-png.flaticon.com/512/1008/1008010.png', sizes: '192x192' }]
+            },
+            {
+              name: 'العروض الجديدة',
+              short_name: 'العروض',
+              description: 'تصفح أحدث الخصومات والعروض',
+              url: '/deals',
+              icons: [{ src: 'https://cdn-icons-png.flaticon.com/512/732/732158.png', sizes: '192x192' }]
+            },
+            {
+              name: 'بحث عن منتج',
+              short_name: 'بحث',
+              description: 'البحث السريع في المتجر',
+              url: '/search',
+              icons: [{ src: 'https://cdn-icons-png.flaticon.com/512/622/622669.png', sizes: '192x192' }]
+            }
+          ],
+          screenshots: [
+            {
+              src: 'https://picsum.photos/seed/elite-mobile/1080/1920',
+              sizes: '1080x1920',
+              type: 'image/png',
+              form_factor: 'narrow',
+              label: 'واجهة متجر النخبة على الجوال'
+            },
+            {
+              src: 'https://picsum.photos/seed/elite-desktop/1920/1080',
+              sizes: '1920x1080',
+              type: 'image/png',
+              form_factor: 'wide',
+              label: 'واجهة متجر النخبة على الحاسوب'
+            }
+          ],
           icons: [
             {
               src: 'https://cdn-icons-png.flaticon.com/512/3081/3081559.png',

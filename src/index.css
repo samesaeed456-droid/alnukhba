@@ -19,9 +19,6 @@
   --primary-gold-hover: #A68446; /* Darker Gold for hover states */
   --primary-glow: rgba(197, 160, 89, 0.15);
 
-  --titanium: #475569; /* Metallic Slate 600 */
-  --titanium-light: #94A3B8; /* Slate 400 */
-
   /* Semantic States */
   --state-success: #10B981;
   --state-success-bg: rgba(16, 185, 129, 0.1);
@@ -42,8 +39,6 @@
   --color-solar: var(--primary-gold); 
   --color-solar-dark: var(--primary-gold-hover);
   --color-cool-gray: var(--text-muted);
-  --color-titanium: var(--titanium);
-  --color-titanium-light: var(--titanium-light);
   
   /* New Semantic Colors */
   --color-secondary-gold: var(--primary-gold);

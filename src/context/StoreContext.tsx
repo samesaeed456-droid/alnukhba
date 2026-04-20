@@ -1815,6 +1815,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         });
       }
 
+      // 5. Deduct Wallet Balance 
+      if (paymentMethod === 'المحفظة الرقمية' && auth.currentUser) {
+        await updateDoc(doc(db, 'users', auth.currentUser.uid), {
+          walletBalance: increment(-total)
+        });
+      }
+
       showToast(`تم إتمام الطلب بنجاح!`);
       clearCart();
       setDiscount({ code: null, amount: 0, type: 'percentage' });

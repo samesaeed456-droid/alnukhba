@@ -61,8 +61,8 @@ service cloud.firestore {
       allow update: if (isAdmin() || isOwner(userId)) && (
         // Prevent role escalation by non-admins
         (incoming().role == existing().role || isAdmin()) &&
-        // Prevent balance tampering by owner
-        (incoming().walletBalance == existing().walletBalance || isAdmin()) &&
+        // Prevent balance tampering by owner, but allow decrementing for purchases
+        (incoming().walletBalance == existing().walletBalance || isAdmin() || (incoming().walletBalance < existing().walletBalance && incoming().walletBalance >= 0)) &&
         isValidUser(incoming())
       );
       

@@ -209,14 +209,14 @@ export default function Checkout() {
     } else if (currentStep === 3) {
       if (!paymentMethod) {
         errors.push('paymentMethod');
-      } else if (selectedPaymentMethod) {
+      } else if (selectedPaymentMethod && selectedPaymentMethod.type !== 'wallet') {
         const cleanRef = formData.paymentReference.trim();
         if (!cleanRef || !/^\d{6,15}$/.test(cleanRef)) errors.push('paymentReference');
         
         if (selectedPaymentMethod.requiresProof && !formData.paymentProof) {
           errors.push('paymentProof');
         }
-      } else if (paymentMethod === 'wallet') {
+      } else if (paymentMethod === 'wallet' || (selectedPaymentMethod && selectedPaymentMethod.type === 'wallet')) {
         if (!user || (user.walletBalance || 0) < total) {
           errors.push('insufficientBalance');
         }

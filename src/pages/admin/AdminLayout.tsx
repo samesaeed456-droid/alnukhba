@@ -153,6 +153,7 @@ export default function AdminLayout() {
         items: [
           { name: 'الطلبات', path: '/admin/orders', icon: ShoppingCart, permission: 'manage_orders' },
           { name: 'المنتجات والمخزون', path: '/admin/products', icon: Package, permission: 'manage_products' },
+          { name: 'الفئات', path: '/admin/categories', icon: Package, permission: 'manage_products' },
           { name: 'العملاء', path: '/admin/customers', icon: Users, permission: 'manage_customers' },
         ]
       },

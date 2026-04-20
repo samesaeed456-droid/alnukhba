@@ -36,6 +36,7 @@ const AdminLogin = lazy(() => import('./pages/admin/AdminLogin.tsx'));
 const AdminLayout = lazy(() => import('./pages/admin/AdminLayout.tsx'));
 const AdminDashboard = lazy(() => import('./pages/admin/Dashboard.tsx'));
 const AdminProducts = lazy(() => import('./pages/admin/Products.tsx'));
+const AdminCategories = lazy(() => import('./pages/admin/Categories.tsx'));
 const AdminOrders = lazy(() => import('./pages/admin/Orders.tsx'));
 const AdminCustomers = lazy(() => import('./pages/admin/Customers.tsx'));
 const AdminCoupons = lazy(() => import('./pages/admin/Coupons.tsx'));
@@ -189,6 +190,7 @@ const MainRoutes = () => {
       <Route path="/admin" element={<AdminLayout />}>
         <Route index element={<AdminDashboard />} />
         <Route path="products" element={<AdminProducts />} />
+        <Route path="categories" element={<AdminCategories />} />
         <Route path="orders" element={<AdminOrders />} />
         <Route path="customers" element={<AdminCustomers />} />
         <Route path="marketing" element={<AdminMarketing />} />

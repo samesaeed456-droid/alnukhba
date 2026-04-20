@@ -1,20 +1,9 @@
 import React, { useRef, useEffect, useState } from 'react';
+import { useStore } from '../../context/StoreContext';
 import { Grid, Monitor, Cpu, Headphones, Plug, Battery, Sun, Wifi, Settings, Wrench, Cctv, ChevronLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
-export const categories = [
-  { name: 'الكل', icon: Grid, color: 'text-solar', bg: 'bg-solar/10', activeBg: 'bg-solar', image: 'https://picsum.photos/seed/shop/200/200' },
-  { name: 'شاشات', icon: Monitor, color: 'text-solar', bg: 'bg-solar/10', activeBg: 'bg-solar', image: 'https://picsum.photos/seed/monitor/200/200' },
-  { name: 'إلكترونيات', icon: Cpu, color: 'text-solar', bg: 'bg-solar/10', activeBg: 'bg-solar', image: 'https://picsum.photos/seed/tech/200/200' },
-  { name: 'إكسسوارات', icon: Headphones, color: 'text-solar', bg: 'bg-solar/10', activeBg: 'bg-solar', image: 'https://picsum.photos/seed/audio/200/200' },
-  { name: 'كهربائيات', icon: Plug, color: 'text-solar', bg: 'bg-solar/10', activeBg: 'bg-solar', image: 'https://picsum.photos/seed/electric/200/200' },
-  { name: 'بطاريات', icon: Battery, color: 'text-solar', bg: 'bg-solar/10', activeBg: 'bg-solar', image: 'https://picsum.photos/seed/battery/200/200' },
-  { name: 'طاقة شمسية', icon: Sun, color: 'text-solar', bg: 'bg-solar/10', activeBg: 'bg-solar', image: 'https://picsum.photos/seed/solar/200/200' },
-  { name: 'شبكات', icon: Wifi, color: 'text-solar', bg: 'bg-solar/10', activeBg: 'bg-solar', image: 'https://picsum.photos/seed/network/200/200' },
-  { name: 'قطع غيار', icon: Settings, color: 'text-solar', bg: 'bg-solar/10', activeBg: 'bg-solar', image: 'https://picsum.photos/seed/parts/200/200' },
-  { name: 'صيانة', icon: Wrench, color: 'text-solar', bg: 'bg-solar/10', activeBg: 'bg-solar', image: 'https://picsum.photos/seed/tools/200/200' },
-  { name: 'كاميرات مراقبة', icon: Cctv, color: 'text-solar', bg: 'bg-solar/10', activeBg: 'bg-solar', image: 'https://picsum.photos/seed/camera/200/200' },
-];
+
 
 interface CategoriesSectionProps {
   activeCategory: string;
@@ -22,6 +11,8 @@ interface CategoriesSectionProps {
 }
 
 const CategoriesSection = React.memo(({ activeCategory, onCategoryChange }: CategoriesSectionProps) => {
+  const { categories } = useStore();
+  const displayCategories = [{ name: 'الكل', image: 'https://images.unsplash.com/photo-1472851294608-062f824d29cc?w=200&h=200&fit=crop', id: 'all' }, ...categories.filter(c => c.isActive && c.id !== 'all')];
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [canScroll, setCanScroll] = useState(true);
 
@@ -52,7 +43,7 @@ const CategoriesSection = React.memo(({ activeCategory, onCategoryChange }: Cate
           onScroll={checkScroll}
           className="flex overflow-x-auto gap-4 sm:gap-6 hide-scrollbar pb-4 pt-2 cursor-grab active:cursor-grabbing"
         >
-          {categories.map((c, i) => (
+          {displayCategories.map((c, i) => (
             <motion.button 
               key={i} 
               whileHover={{ y: -8, scale: 1.02 }}

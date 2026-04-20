@@ -105,6 +105,8 @@ export default function ProductDetail() {
     }
   }, [product?.name, product?.description, showToast]);
 
+  const allImages = useMemo(() => (product ? [product.image, ...(product.images || [])] : []), [product]);
+
   if (!product) {
     return (
       <div className="flex flex-col items-center justify-center py-20">
@@ -116,8 +118,6 @@ export default function ProductDetail() {
       </div>
     );
   }
-
-  const allImages = useMemo(() => (product ? [product.image, ...(product.images || [])] : []), [product]);
 
   return (
     <motion.div 

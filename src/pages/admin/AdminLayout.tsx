@@ -304,21 +304,21 @@ export default function AdminLayout() {
 
       {/* Sidebar */}
       <aside className={`
-        fixed lg:static inset-y-0 right-0 z-50 w-72 bg-white flex flex-col
+        fixed lg:static inset-y-0 right-0 z-50 w-72 bg-carbon bg-carbon-pattern flex flex-col
         transform transition-transform duration-300 ease-in-out shadow-2xl lg:shadow-none
-        border-l border-slate-100
+        border-l border-white/5
         ${isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'}
       `}>
         <div className="p-8 flex items-center justify-between">
           <Link to="/admin" className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-solar flex items-center justify-center text-carbon shadow-lg shadow-gold">
+            <div className="w-10 h-10 rounded-2xl bg-solar flex items-center justify-center text-carbon shadow-lg shadow-gold/20">
               <Zap className="w-6 h-6 fill-current" />
             </div>
-            <span className="text-xl font-black tracking-tighter text-slate-900">HORIZON</span>
+            <span className="text-xl font-black tracking-tighter text-white">HORIZON</span>
           </Link>
           <button 
             onClick={closeMobileMenu}
-            className="lg:hidden p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-50 rounded-xl transition-colors"
+            className="lg:hidden p-2 text-white/40 hover:text-white hover:bg-white/10 rounded-xl transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -332,7 +332,7 @@ export default function AdminLayout() {
         >
           {navGroups.map((group) => (
             <motion.div variants={itemVariants} key={group.title} className="space-y-1">
-              <div className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 px-4">{group.title}</div>
+              <div className="text-[10px] font-black text-solar/40 uppercase tracking-[0.2em] mb-4 px-4">{group.title}</div>
               {group.items.map((item) => {
                 const isActive = location.pathname === item.path || (item.path !== '/admin' && location.pathname.startsWith(item.path));
                 return (
@@ -342,11 +342,11 @@ export default function AdminLayout() {
                     onClick={closeMobileMenu}
                     className={`flex items-center gap-4 px-4 py-3 rounded-2xl transition-all duration-300 group relative ${
                       isActive 
-                        ? 'bg-solar text-carbon font-bold shadow-xl shadow-gold' 
-                        : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
+                        ? 'bg-solar text-carbon font-bold shadow-lg shadow-gold/30' 
+                        : 'text-white/60 hover:bg-white/5 hover:text-white'
                     }`}
                   >
-                    <item.icon className={`w-5 h-5 transition-transform duration-300 ${isActive ? 'scale-110' : 'group-hover:scale-110'}`} />
+                    <item.icon className={`w-5 h-5 transition-transform duration-300 ${isActive ? 'scale-110' : 'group-hover:scale-110 text-solar/50'}`} />
                     <span className="text-sm">{item.name}</span>
                   </Link>
                 );
@@ -367,16 +367,16 @@ export default function AdminLayout() {
             <div className="flex items-center gap-4">
               <button 
                 onClick={() => setIsMobileMenuOpen(true)}
-                className="lg:hidden p-2.5 text-slate-600 hover:bg-slate-50 rounded-xl transition-colors"
+                className="lg:hidden p-2.5 text-carbon hover:bg-carbon/5 rounded-xl transition-colors"
               >
                 <Menu className="w-6 h-6" />
               </button>
               
               <div className="flex flex-col">
-                <h1 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight leading-none mb-1">
+                <h1 className="text-lg sm:text-xl font-black text-carbon tracking-tight leading-none mb-1">
                   {getPageTitle()}
                 </h1>
-                <div className="flex items-center gap-2 text-[10px] text-slate-400 font-bold uppercase tracking-widest">
+                <div className="flex items-center gap-2 text-[10px] text-titanium/40 font-bold uppercase tracking-widest">
                   <span>الرئيسية</span>
                   <ChevronDown className="w-2.5 h-2.5 rotate-90" />
                   <span className="text-solar">{getPageTitle()}</span>
@@ -412,18 +412,18 @@ export default function AdminLayout() {
               {/* Today's Quick Stats (Desktop) */}
               <div className="hidden xl:flex items-center gap-6 px-6 border-l border-slate-100">
                 <div className="text-left">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">مبيعات اليوم</span>
+                  <span className="text-[10px] font-black text-titanium/40 uppercase tracking-widest block">مبيعات اليوم</span>
                   <span className="text-sm font-black text-emerald-600">{formatPrice(todayStats.sales)}</span>
                 </div>
                 <div className="text-left">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">طلبات اليوم</span>
+                  <span className="text-[10px] font-black text-titanium/40 uppercase tracking-widest block">طلبات اليوم</span>
                   <span className="text-sm font-black text-blue-600">{todayStats.count} طلب</span>
                 </div>
               </div>
 
               <div className="flex items-center gap-1 sm:gap-2">
                 <button 
-                  className={`p-2.5 rounded-xl transition-all group ${isSyncing ? 'text-solar bg-solar/10' : 'text-slate-500 hover:text-solar hover:bg-solar/10'}`}
+                  className={`p-2.5 rounded-xl transition-all group ${isSyncing ? 'text-solar bg-solar/10' : 'text-titanium/60 hover:text-solar hover:bg-solar/10'}`}
                   onClick={handleSync}
                   disabled={isSyncing}
                   title="تحديث البيانات"
@@ -434,7 +434,7 @@ export default function AdminLayout() {
                 <div className="relative" ref={notificationRef}>
                   <button 
                     onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
-                    className={`p-2.5 rounded-xl transition-all relative group ${isNotificationsOpen ? 'bg-solar/10 text-solar' : 'text-slate-500 hover:text-solar hover:bg-solar/10'}`}
+                    className={`p-2.5 rounded-xl transition-all relative group ${isNotificationsOpen ? 'bg-solar/10 text-solar' : 'text-titanium/60 hover:text-solar hover:bg-solar/10'}`}
                   >
                     <Bell className="w-5 h-5 group-hover:scale-110 transition-transform" />
                     {adminNotifications.length > 0 && (
@@ -450,8 +450,8 @@ export default function AdminLayout() {
                         exit={{ opacity: 0, y: 10, scale: 0.95 }}
                         className="fixed inset-x-6 top-16 sm:absolute sm:inset-auto sm:left-0 sm:mt-3 w-auto sm:w-80 bg-white rounded-[1.5rem] shadow-2xl border border-slate-100 overflow-hidden z-50 mx-auto max-w-[320px] sm:max-w-none"
                       >
-                        <div className="p-4 border-b border-slate-50 flex items-center justify-between">
-                          <h3 className="text-sm font-black text-slate-900">الإشعارات</h3>
+                        <div className="p-4 border-b border-slate-50 flex items-center justify-between transition-colors">
+                          <h3 className="text-sm font-black text-carbon">الإشعارات</h3>
                           <span className="bg-solar/10 text-solar px-2 py-0.5 rounded-lg text-[9px] font-black">
                             {adminNotifications.length} تنبيهات
                           </span>
@@ -470,10 +470,10 @@ export default function AdminLayout() {
                                   <div className={`w-10 h-10 rounded-2xl ${notif.bg} ${notif.color} flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform`}>
                                     <notif.icon className="w-5 h-5" />
                                   </div>
-                                  <div className="flex-1 min-w-0">
-                                    <h4 className="text-sm font-black text-slate-900 line-clamp-1">{notif.title}</h4>
-                                    <p className="text-xs text-slate-500 font-medium mt-1 line-clamp-2 leading-relaxed">{notif.description}</p>
-                                    <div className="flex items-center gap-2 mt-2 text-[10px] text-slate-400 font-bold">
+                                  <div className="flex-1 min-w-0 text-right">
+                                    <h4 className="text-sm font-black text-carbon line-clamp-1">{notif.title}</h4>
+                                    <p className="text-xs text-titanium/60 font-medium mt-1 line-clamp-2 leading-relaxed">{notif.description}</p>
+                                    <div className="flex items-center gap-2 mt-2 text-[10px] text-titanium/40 font-bold">
                                       <Clock className="w-3 h-3" />
                                       {notif.time}
                                     </div>
@@ -486,8 +486,8 @@ export default function AdminLayout() {
                               <div className="w-16 h-16 bg-slate-50 rounded-3xl flex items-center justify-center mx-auto mb-4">
                                 <CheckCircle2 className="w-8 h-8 text-emerald-500" />
                               </div>
-                              <p className="text-sm font-black text-slate-900">كل شيء تمام!</p>
-                              <p className="text-xs text-slate-400 font-medium mt-1">لا توجد تنبيهات جديدة حالياً</p>
+                              <p className="text-sm font-black text-carbon">كل شيء تمام!</p>
+                              <p className="text-xs text-titanium/60 font-medium mt-1">لا توجد تنبيهات جديدة حالياً</p>
                             </div>
                           )}
                         </div>

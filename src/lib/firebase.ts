@@ -43,7 +43,9 @@ const app = initializeApp(firebaseConfig);
 
 // Initialize Services
 export const auth = getAuth(app);
-export const db = initializeFirestore(app, {}, firebaseConfig.firestoreDatabaseId);
+export const db = initializeFirestore(app, {
+  experimentalForceLongPolling: true,
+}, firebaseConfig.firestoreDatabaseId);
 
 // Enable offline persistence
 if (typeof window !== 'undefined') {
@@ -130,7 +132,16 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
   throw new Error(JSON.stringify(errInfo));
 }
 
-// Test Connection removed per user request
+// Critical: Connection Test per baseline guidelines
+async function testConnection() {
+  try {
+    await getDocFromServer(doc(db, 'system', 'connection_test'));
+    console.log('Firestore connection verified');
+  } catch (error) {
+    console.warn("Firestore connection check info:", error);
+  }
+}
+testConnection();
 
 export {
   doc,

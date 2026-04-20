@@ -184,7 +184,7 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
-    match /marketingNotifications/{notificationId} {
+    match /marketing_notifications/{notificationId} {
       allow read: if true;
       allow write: if isAdmin();
     }

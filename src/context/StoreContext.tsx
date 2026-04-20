@@ -605,6 +605,37 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         localStorage.setItem('store_settings', JSON.stringify(data));
       }
     });
+    
+    const unsubMarketingNotifs = onSnapshot(collection(db, 'marketing_notifications'), (snapshot) => {
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as MarketingNotification[];
+      setMarketingNotifications(data);
+      localStorage.setItem('store_marketing_notifications', JSON.stringify(data));
+
+      snapshot.docChanges().forEach(change => {
+        if (change.type === 'added') {
+          const docData = change.doc.data() as MarketingNotification;
+          // Only show fresh notifications (within last hour) to avoid spamming past alerts on load
+          const isFresh = new Date(docData.date || new Date().toISOString()).getTime() > Date.now() - 3600000;
+          
+          if (isFresh) {
+            setNotifications(prev => {
+              // Prevent duplicates
+              if (prev.some(n => n.id === change.doc.id)) return prev;
+              
+              const appNotif: AppNotification = {
+                id: change.doc.id,
+                title: docData.title,
+                message: docData.message,
+                date: docData.date || new Date().toISOString(),
+                isRead: false,
+                type: 'sale'
+              };
+              return [appNotif, ...prev];
+            });
+          }
+        }
+      });
+    });
 
     return () => {
       unsubCategories();
@@ -614,6 +645,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       unsubZones();
       unsubBanners();
       unsubSettings();
+      unsubMarketingNotifs();
     };
   }, []);
 
@@ -1338,16 +1370,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           });
         }
       }
-      
-      const appNotif: AppNotification = {
-        id: Math.random().toString(36).substr(2, 9).toUpperCase(),
-        title: notification.title,
-        message: notification.message,
-        date: new Date().toISOString(),
-        isRead: false,
-        type: 'sale'
-      };
-      setNotifications(prev => [appNotif, ...prev]);
       
       showToast('تم إرسال الإشعار بنجاح');
       logActivity('إرسال إشعار تسويقي', `تم إرسال إشعار: ${notification.title}`);

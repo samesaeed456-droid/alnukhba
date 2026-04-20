@@ -606,6 +606,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       }
     });
     
+    let isInitialMarketingSync = true;
     const unsubMarketingNotifs = onSnapshot(collection(db, 'marketing_notifications'), (snapshot) => {
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as MarketingNotification[];
       setMarketingNotifications(data);
@@ -614,10 +615,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       snapshot.docChanges().forEach(change => {
         if (change.type === 'added') {
           const docData = change.doc.data() as MarketingNotification;
-          // Only show fresh notifications (within last hour) to avoid spamming past alerts on load
-          const isFresh = new Date(docData.date || new Date().toISOString()).getTime() > Date.now() - 3600000;
+          // Keep notifications from the last 7 days in the bell
+          const isRecent = new Date(docData.date || new Date().toISOString()).getTime() > Date.now() - (7 * 24 * 3600000);
           
-          if (isFresh) {
+          if (isRecent) {
             setNotifications(prev => {
               // Prevent duplicates
               if (prev.some(n => n.id === change.doc.id)) return prev;
@@ -630,11 +631,24 @@ export function StoreProvider({ children }: { children: ReactNode }) {
                 isRead: false,
                 type: 'sale'
               };
+
+              // Show a pop-up toast if this is a truly new notification arriving in real-time
+              // OR if it was sent less than 2 minutes ago (so if the user just opened the app/tab to check)
+              const timeSinceSent = Date.now() - new Date(docData.date || new Date().toISOString()).getTime();
+              if (!isInitialMarketingSync || timeSinceSent < 120000) {
+                setTimeout(() => sonnerToast.success(`رسالة جديدة: ${docData.title}`, {
+                  description: docData.message,
+                  duration: 6000,
+                  position: 'top-center'
+                }), 100);
+              }
+
               return [appNotif, ...prev];
             });
           }
         }
       });
+      isInitialMarketingSync = false;
     });
 
     return () => {

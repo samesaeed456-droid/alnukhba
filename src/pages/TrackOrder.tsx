@@ -8,7 +8,7 @@ import { FloatingInput } from '../components/FloatingInput';
 
 export default function TrackOrder() {
   const [searchParams] = useSearchParams();
-  const { orders, formatPrice, user } = useStore();
+  const { orders, formatPrice, user, trackOrderById } = useStore();
   
   const [orderId, setOrderId] = useState(searchParams.get('id') || '');
   const [isTracking, setIsTracking] = useState(false);
@@ -23,25 +23,32 @@ export default function TrackOrder() {
     }
   }, [searchParams]);
 
-  const performTracking = useCallback((trackId: string) => {
+  const performTracking = useCallback(async (trackId: string) => {
     if (!trackId.trim()) return;
 
     setIsTracking(true);
     setOrderStatus(null);
     setTrackedOrder(null);
 
-    // Simulate a slight delay for "professional" feel
-    setTimeout(() => {
+    try {
+      const foundOrder = await trackOrderById(trackId);
+      
+      // Artificial delay for professional feel (as requested in original code)
+      await new Promise(resolve => setTimeout(resolve, 1200));
+
       setIsTracking(false);
-      const foundOrder = orders.find(o => (o.id || '').toLowerCase() === trackId.toLowerCase());
       if (foundOrder) {
         setTrackedOrder(foundOrder);
         setOrderStatus('tracking');
       } else {
         setOrderStatus('not_found');
       }
-    }, 1200);
-  }, [orders]);
+    } catch (error) {
+      console.error('Tracking failed:', error);
+      setIsTracking(false);
+      setOrderStatus('not_found');
+    }
+  }, [trackOrderById]);
 
   const handleTrack = useCallback((e: React.FormEvent) => {
     e.preventDefault();

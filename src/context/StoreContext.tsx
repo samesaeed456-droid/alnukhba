@@ -232,6 +232,7 @@ interface StoreActions {
   deleteNotification: (id: string) => void;
   clearAllNotifications: () => void;
   updateNotificationSettings: (settings: Partial<NotificationSettings>) => void;
+  trackOrderById: (orderId: string) => Promise<Order | null>;
   setNotifications: React.Dispatch<React.SetStateAction<AppNotification[]>>;
   formatPrice: (price: number) => string;
 }
@@ -756,7 +757,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         onStatusChange: ['pending', 'processing', 'shipped', 'delivered', 'cancelled']
       },
       paymentMethods: [
-        { id: 'wallet', name: 'المحفظة الإلكترونية', type: 'wallet', isActive: true, requiresProof: false }
+        { id: 'wallet', name: 'المحفظة', type: 'wallet', isActive: true, requiresProof: false }
       ]
     };
   });
@@ -2265,6 +2266,28 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     showToast('تم تحديث إعدادات الإشعارات');
   }, [showToast]);
 
+  const trackOrderById = React.useCallback(async (orderId: string) => {
+    try {
+      // 1. Try exact match
+      let orderRef = doc(db, 'orders', orderId);
+      let orderSnap = await getDoc(orderRef);
+      
+      // 2. Try uppercase match if exact fails (common for sequential IDs like NKH-...)
+      if (!orderSnap.exists()) {
+        orderRef = doc(db, 'orders', orderId.toUpperCase());
+        orderSnap = await getDoc(orderRef);
+      }
+
+      if (orderSnap.exists()) {
+        return { id: orderSnap.id, ...orderSnap.data() } as Order;
+      }
+      return null;
+    } catch (error) {
+      console.error('Error tracking order:', error);
+      return null;
+    }
+  }, []);
+
   const addToRecentlyViewed = React.useCallback((product: Product) => {
     setRecentlyViewed(prev => {
       const filtered = prev.filter(p => p.id !== product.id);
@@ -2485,6 +2508,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     applyDiscountCode, removeDiscount,
     addCoupon, updateCoupon, deleteCoupon, toggleCouponStatus,
     subscribeToProduct, markNotificationAsRead, deleteNotification, clearAllNotifications, updateNotificationSettings,
+    trackOrderById,
     setNotifications, formatPrice
   }), [
     addProduct, updateProduct, deleteProduct,
@@ -2511,6 +2535,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     applyDiscountCode, removeDiscount,
     addCoupon, updateCoupon, deleteCoupon, toggleCouponStatus,
     subscribeToProduct, markNotificationAsRead, deleteNotification, clearAllNotifications, updateNotificationSettings,
+    trackOrderById,
     formatPrice
   ]);
 

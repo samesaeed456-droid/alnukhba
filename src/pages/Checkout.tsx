@@ -1000,7 +1000,7 @@ export default function Checkout() {
                                   : 'border-slate-100 bg-white hover:border-slate-200 shadow-sm'
                               }`}
                             >
-                              <div className={`w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-white flex items-center justify-center overflow-hidden shrink-0 border border-slate-100 shadow-sm group-hover:scale-110 transition-transform ${method.type === 'wallet' ? 'bg-emerald-50 border-emerald-100' : ''}`}>
+                              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-white flex items-center justify-center overflow-hidden shrink-0 border border-slate-100 shadow-sm group-hover:scale-110 transition-transform">
                                 {method.logo ? (
                                   <img 
                                     src={method.logo} 
@@ -1008,17 +1008,12 @@ export default function Checkout() {
                                     className="w-full h-full object-cover filter saturate-[1.6] brightness-110" 
                                     referrerPolicy="no-referrer" 
                                   />
-                                ) : method.type === 'wallet' ? (
-                                  <Wallet className="w-5 h-5 text-emerald-600" />
                                 ) : (
                                   <CreditCard className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600" />
                                 )}
                               </div>
                               <div className="flex-1 text-right">
                                 <h3 className="text-xs sm:text-sm font-bold text-carbon">{method.name}</h3>
-                                {method.type === 'wallet' && user && (
-                                  <p className="text-[10px] text-emerald-600 font-bold">الرصيد: {formatPrice(user.walletBalance || 0)}</p>
-                                )}
                               </div>
                             </motion.button>
                           ))}

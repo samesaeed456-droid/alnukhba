@@ -113,10 +113,10 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    match /orders/{orderId} {
+      match /orders/{orderId} {
       // Query Enforcer (Pillar 8)
       allow list: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
-      allow get: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow get: if true; // Allow tracking by anyone who has the ID
       
       allow create: if ((isSignedIn() && incoming().userId == request.auth.uid) || (!isSignedIn() && incoming().userId == 'guest')) && 
                     isValidOrder(incoming()) &&

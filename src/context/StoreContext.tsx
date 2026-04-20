@@ -619,6 +619,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           const isRecent = new Date(docData.date || new Date().toISOString()).getTime() > Date.now() - (7 * 24 * 3600000);
           
           if (isRecent) {
+            const currentUser = auth.currentUser;
+            
+            // If the notification targets a specific user, strictly ensure the current user matches
+            if (docData.target === 'specific_user') {
+              if (!currentUser) return; // Ignore if not logged in
+              if (docData.targetUserId !== currentUser.uid && docData.targetUserId !== currentUser.phoneNumber) {
+                return; // Exclude, this is not meant for them
+              }
+            }
+
             setNotifications(prev => {
               // Prevent duplicates
               if (prev.some(n => n.id === change.doc.id)) return prev;
@@ -1359,6 +1369,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       if (notification.type === 'sms') {
         const targetCustomers = customers.filter(c => {
           if (notification.target === 'all') return true;
+          if (notification.target === 'specific_user') return c.uid === notification.targetUserId || c.phone === notification.targetUserId;
           if (notification.target === 'vip') return (c.orderCount || 0) > 10;
           if (notification.target === 'new') {
             const thirtyDaysAgo = new Date();

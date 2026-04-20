@@ -206,7 +206,8 @@ export interface MarketingNotification {
   title: string;
   message: string;
   date: string;
-  target: 'all' | 'vip' | 'new' | 'inactive' | 'abandoned_cart' | 'specific_product';
+  target: 'all' | 'vip' | 'new' | 'inactive' | 'abandoned_cart' | 'specific_product' | 'specific_user';
+  targetUserId?: string;
   sentCount: number;
   openedCount: number;
   clickedCount: number;

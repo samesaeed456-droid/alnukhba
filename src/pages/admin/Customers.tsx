@@ -30,7 +30,7 @@ const itemVariants = {
 };
 
 export default function Customers() {
-  const { customers, orders, formatPrice, addCustomer, deleteCustomer, updateCustomerBalance, updateCustomer, blockCustomer, showToast, settings, setNotifications, logActivity } = useStore();
+  const { customers, orders, formatPrice, addCustomer, deleteCustomer, updateCustomerBalance, updateCustomer, blockCustomer, showToast, settings, setNotifications, logActivity, sendMarketingNotification } = useStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('الكل');
   const [sortBy, setSortBy] = useState<'name' | 'orders' | 'spent'>('name');
@@ -134,36 +134,17 @@ export default function Customers() {
     e.preventDefault();
     if (!selectedCustomer || !notificationData.title || !notificationData.message) return;
     
-    const appNotif = {
-      id: crypto.randomUUID(),
-      title: notificationData.title,
-      message: notificationData.message,
-      date: new Date().toISOString(),
-      isRead: false,
-      type: notificationData.type === 'sms' ? 'system' : notificationData.type,
-      userId: selectedCustomer.phone // Link to customer
-    };
-    
-    setNotifications(prev => [appNotif, ...prev]);
-
-    // If type is SMS, send real SMS
-    if (notificationData.type === 'sms') {
-      try {
-        const result = await smsService.sendSingle(
-          selectedCustomer.phone,
-          `${notificationData.title}\n${notificationData.message}`
-        );
-        
-        if (result.success) {
-          showToast('تم إرسال إشعار SMS للعميل بنجاح', 'success');
-        } else {
-          showToast(`فشل إرسال SMS: ${result.error}`, 'error');
-        }
-      } catch (err) {
-        showToast('فشل الاتصال بخدمة الرسائل', 'error');
-      }
-    } else {
-      showToast('تم إرسال الإشعار للعميل بنجاح', 'success');
+    try {
+      await sendMarketingNotification({
+        title: notificationData.title,
+        message: notificationData.message,
+        target: 'specific_user',
+        targetUserId: selectedCustomer.uid || selectedCustomer.phone,
+        type: notificationData.type === 'sms' ? 'sms' : 'push'
+      });
+      // sendMarketingNotification takes care of showing the success toast and logging activity
+    } catch (err) {
+      showToast('فشل إرسال الإشعار', 'error');
     }
     
     setIsNotificationModalOpen(false);

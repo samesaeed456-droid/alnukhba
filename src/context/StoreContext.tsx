@@ -68,6 +68,8 @@ interface StoreContextType {
   toggleCouponStatus: (id: string) => void;
   subscribeToProduct: (productId: string, type: 'back_in_stock' | 'on_sale', email: string) => void;
   markNotificationAsRead: (id: string) => void;
+  deleteNotification: (id: string) => void;
+  clearAllNotifications: () => void;
   updateNotificationSettings: (settings: Partial<NotificationSettings>) => void;
   setNotifications: React.Dispatch<React.SetStateAction<AppNotification[]>>;
   language: 'ar' | 'en';
@@ -227,6 +229,8 @@ interface StoreActions {
   toggleCouponStatus: (id: string) => void;
   subscribeToProduct: (productId: string, type: 'back_in_stock' | 'on_sale', email: string) => void;
   markNotificationAsRead: (id: string) => void;
+  deleteNotification: (id: string) => void;
+  clearAllNotifications: () => void;
   updateNotificationSettings: (settings: Partial<NotificationSettings>) => void;
   setNotifications: React.Dispatch<React.SetStateAction<AppNotification[]>>;
   formatPrice: (price: number) => string;
@@ -628,6 +632,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
                 return; // Exclude, this is not meant for them
               }
             }
+
+            // Prevent resurrecting deleted marketing notifications
+            const deletedIds = JSON.parse(localStorage.getItem('store_deleted_notif_ids') || '[]');
+            if (deletedIds.includes(change.doc.id)) return;
 
             setNotifications(prev => {
               // Prevent duplicates
@@ -2228,6 +2236,23 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const deleteNotification = React.useCallback((id: string) => {
+    setNotifications(prev => prev.filter(n => n.id !== id));
+    const deletedIds = JSON.parse(localStorage.getItem('store_deleted_notif_ids') || '[]');
+    if (!deletedIds.includes(id)) {
+      localStorage.setItem('store_deleted_notif_ids', JSON.stringify([...deletedIds, id]));
+    }
+  }, []);
+
+  const clearAllNotifications = React.useCallback(() => {
+    setNotifications(prev => {
+      const deletedIds = JSON.parse(localStorage.getItem('store_deleted_notif_ids') || '[]');
+      const newDeletedIds = new Set([...deletedIds, ...prev.map(n => n.id)]);
+      localStorage.setItem('store_deleted_notif_ids', JSON.stringify(Array.from(newDeletedIds)));
+      return [];
+    });
+  }, []);
+
   const updateNotificationSettings = React.useCallback((newSettings: Partial<NotificationSettings>) => {
     setNotificationSettings(prev => ({ ...prev, ...newSettings }));
     showToast('تم تحديث إعدادات الإشعارات');
@@ -2452,7 +2477,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     toggleWishlist, isInWishlist, updateUser, deleteAccount, logout,
     applyDiscountCode, removeDiscount,
     addCoupon, updateCoupon, deleteCoupon, toggleCouponStatus,
-    subscribeToProduct, markNotificationAsRead, updateNotificationSettings,
+    subscribeToProduct, markNotificationAsRead, deleteNotification, clearAllNotifications, updateNotificationSettings,
     setNotifications, formatPrice
   }), [
     addProduct, updateProduct, deleteProduct,
@@ -2478,7 +2503,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     toggleWishlist, isInWishlist, updateUser, deleteAccount, logout,
     applyDiscountCode, removeDiscount,
     addCoupon, updateCoupon, deleteCoupon, toggleCouponStatus,
-    subscribeToProduct, markNotificationAsRead, updateNotificationSettings,
+    subscribeToProduct, markNotificationAsRead, deleteNotification, clearAllNotifications, updateNotificationSettings,
     formatPrice
   ]);
 

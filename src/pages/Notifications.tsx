@@ -15,7 +15,7 @@ export default function Notifications() {
   const { 
     notifications, markNotificationAsRead, showToast, 
     setNotifications, products, notificationSettings, 
-    updateNotificationSettings 
+    updateNotificationSettings, clearAllNotifications, deleteNotification
   } = useStore();
   const navigate = useNavigate();
   const [isClearAllModalOpen, setIsClearAllModalOpen] = useState(false);
@@ -46,10 +46,10 @@ export default function Notifications() {
 
   const clearAll = useCallback(() => {
     if (notifications.length === 0) return;
-    setNotifications([]);
+    clearAllNotifications();
     showToast('تم مسح جميع الإشعارات');
     setIsClearAllModalOpen(false);
-  }, [notifications.length, setNotifications, showToast]);
+  }, [notifications.length, clearAllNotifications, showToast]);
 
   const markAllAsRead = useCallback(() => {
     notifications.forEach((n: any) => {
@@ -66,11 +66,11 @@ export default function Notifications() {
   const handleCloseDeleteModal = useCallback(() => setNotificationToDelete(null), []);
   const handleConfirmDelete = useCallback(async () => {
     if (notificationToDelete) {
-      setNotifications((prev: any) => prev.filter((n: any) => n.id !== notificationToDelete));
+      deleteNotification(notificationToDelete);
       showToast('تم حذف الإشعار');
       setNotificationToDelete(null);
     }
-  }, [notificationToDelete, setNotifications, showToast]);
+  }, [notificationToDelete, deleteNotification, showToast]);
 
   const handleUpdateSetting = useCallback((id: string) => {
     updateNotificationSettings({ [id]: !notificationSettings[id as keyof typeof notificationSettings] });

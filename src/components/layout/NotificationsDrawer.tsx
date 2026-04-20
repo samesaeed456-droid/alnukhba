@@ -16,6 +16,7 @@ export default function NotificationsDrawer() {
     notifications, markNotificationAsRead, showToast, 
     setNotifications, products, notificationSettings, 
     updateNotificationSettings, isNotificationsOpen, setIsNotificationsOpen,
+    deleteNotification, clearAllNotifications,
     formatPrice
   } = useStore();
 
@@ -47,10 +48,10 @@ export default function NotificationsDrawer() {
 
   const clearAll = useCallback(() => {
     if (notifications.length === 0) return;
-    setNotifications([]);
+    clearAllNotifications();
     showToast('تم مسح جميع الإشعارات');
     setIsClearAllModalOpen(false);
-  }, [notifications.length, setNotifications, showToast]);
+  }, [notifications.length, clearAllNotifications, showToast]);
 
   const markAllAsRead = useCallback(() => {
     notifications.forEach((n: any) => {
@@ -65,11 +66,11 @@ export default function NotificationsDrawer() {
 
   const handleConfirmDelete = useCallback(async () => {
     if (notificationToDelete) {
-      setNotifications((prev: any) => prev.filter((n: any) => n.id !== notificationToDelete));
+      deleteNotification(notificationToDelete);
       showToast('تم حذف الإشعار');
       setNotificationToDelete(null);
     }
-  }, [notificationToDelete, setNotifications, showToast]);
+  }, [notificationToDelete, deleteNotification, showToast]);
 
   return (
     <>

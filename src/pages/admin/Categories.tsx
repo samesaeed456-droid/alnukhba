@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Package, Plus, Search, Trash2, Edit, Check, X } from 'lucide-react';
+import { Package, Plus, Search, Trash2, Edit, Check, X, Upload, Image as ImageIcon } from 'lucide-react';
 import { useStore } from '../../context/StoreContext';
 import ConfirmationModal from '../../components/ConfirmationModal';
+import { toast } from 'sonner';
 
 export default function AdminCategories() {
   const { categories, addCategory, updateCategory, deleteCategory } = useStore();
@@ -19,6 +20,23 @@ export default function AdminCategories() {
 
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [categoryToDelete, setCategoryToDelete] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      try {
+        toast.info("جاري رفع الصورة...");
+        const { uploadToCloudinary } = await import('../../lib/cloudinary');
+        const secureUrl = await uploadToCloudinary(file);
+        setFormData(prev => ({ ...prev, image: secureUrl }));
+        toast.success("تم رفع الصورة بنجاح");
+      } catch (error: any) {
+        console.error("Upload failed:", error);
+        toast.error("فشل في رفع الصورة");
+      }
+    }
+  };
 
   const filteredCategories = categories.filter(c => 
     c.name.toLowerCase().includes(searchQuery.toLowerCase()) && c.id !== 'all'
@@ -132,8 +150,39 @@ export default function AdminCategories() {
                   <input type="text" required value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:border-solar transition-colors" />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-2">رابط الصورة (اختياري)</label>
-                  <input type="text" value={formData.image} onChange={(e) => setFormData({...formData, image: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:border-solar transition-colors" />
+                  <label className="block text-xs font-bold text-slate-500 mb-2">صورة الفئة</label>
+                  <div 
+                    onClick={() => fileInputRef.current?.click()}
+                    className="relative group cursor-pointer"
+                  >
+                    {formData.image ? (
+                      <div className="relative w-full h-40 rounded-2xl overflow-hidden border-2 border-dashed border-slate-200 group-hover:border-solar transition-colors">
+                        <img src={formData.image} alt="Preview" className="w-full h-full object-cover" />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <div className="bg-white/20 backdrop-blur-md p-3 rounded-full">
+                            <Upload className="w-6 h-6 text-white" />
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="w-full h-40 rounded-2xl border-2 border-dashed border-slate-200 group-hover:border-solar bg-slate-50 flex flex-col items-center justify-center gap-3 transition-all">
+                        <div className="w-12 h-12 rounded-2xl bg-white shadow-sm flex items-center justify-center text-slate-400 group-hover:text-solar transition-colors">
+                          <Upload className="w-6 h-6" />
+                        </div>
+                        <div className="text-center">
+                          <p className="text-sm font-bold text-slate-600">اضغط لرفع صورة</p>
+                          <p className="text-[10px] text-slate-400 mt-1">PNG, JPG حتى 5MB</p>
+                        </div>
+                      </div>
+                    )}
+                    <input 
+                      type="file" 
+                      ref={fileInputRef}
+                      onChange={handleImageChange}
+                      className="hidden" 
+                      accept="image/*" 
+                    />
+                  </div>
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-500 mb-2">الوصف (اختياري)</label>

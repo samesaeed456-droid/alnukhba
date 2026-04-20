@@ -724,7 +724,10 @@ export default function Customers() {
       <AnimatePresence>
         {isProfileModalOpen && selectedCustomer && (() => {
           const customer = customers.find(c => c.phone === selectedCustomer.phone) || selectedCustomer;
-          const userOrders = orders.filter(o => o.userId === customer.name || o.customerPhone === customer.phone);
+          const userOrders = orders.filter(o => 
+            (customer.uid && o.userId === customer.uid) || 
+            (customer.phone && o.customerPhone === customer.phone)
+          );
           
           const filteredOrders = userOrders.filter(o => 
             (o.id || '').toLowerCase().includes(orderSearchTerm.toLowerCase()) ||

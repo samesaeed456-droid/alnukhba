@@ -356,7 +356,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         // Set up real-time listener for user document
         unsubUser = onSnapshot(doc(db, 'users', firebaseUser.uid), (docSnap) => {
           if (docSnap.exists()) {
-            const userData = docSnap.data() as UserProfile;
+            const userData = { ...docSnap.data(), uid: docSnap.id } as UserProfile;
             setUser(userData);
             localStorage.setItem('store_user', JSON.stringify(userData));
           } else {

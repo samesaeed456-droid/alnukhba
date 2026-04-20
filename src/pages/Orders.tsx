@@ -8,7 +8,14 @@ import PriceDisplay from '../components/PriceDisplay';
 export default function Orders() {
   const { orders, formatPrice, user } = useStore();
 
-  const userOrders = useMemo(() => orders.filter(o => o.userId === (user?.uid || 'guest')), [orders, user]);
+  const userOrders = useMemo(() => {
+    // If admin, we have all orders in 'orders', so we must filter by user ID.
+    // If normal user, the context already filtered them by uid via Firestore query.
+    if (user?.role === 'admin') {
+      return orders.filter(o => o.userId === user.uid);
+    }
+    return orders;
+  }, [orders, user]);
 
   const getStatusIcon = useCallback((status: string) => {
     switch (status) {

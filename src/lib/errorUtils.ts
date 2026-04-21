@@ -14,11 +14,7 @@ export function parseSmartError(error: any): SmartError {
       case 'auth/user-not-found':
       case 'auth/wrong-password':
       case 'auth/invalid-credential':
-        return { 
-          message: 'رقم الجوال أو كلمة المرور غير صحيحة', 
-          technicalDetails: 'هذا الخطأ يعني أن البيانات المدخلة لا تطابق السجلات، أو أن الحساب لم يتم تفعيله في مشروع Firebase الجديد بعد.',
-          code: error.code 
-        };
+        return { message: 'رقم الجوال أو كلمة المرور غير صحيحة', code: error.code };
       case 'auth/email-already-in-use':
         return { message: 'رقم الجوال مسجل مسبقاً، يرجى تسجيل الدخول', code: error.code };
       case 'auth/network-request-failed':

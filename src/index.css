@@ -2,10 +2,10 @@
 
 :root {
   /* Luxury Elite Theme Palette (Champagne Gold & Deep Charcoal) */
-  --bg-general: #F8FAFC; /* Clean Slate 50 */
+  --bg-general: #FFFFFF; /* Pure White background */
   --bg-card: #FFFFFF;
-  --bg-section: #F1F5F9; /* Slate 100 */
-  --bg-hover: #E2E8F0; /* Slate 200 */
+  --bg-section: #F8FAFC; /* Slate 50 for slight contrast in some sections if needed */
+  --bg-hover: #F1F5F9; /* Slate 100 */
   
   --text-main: #0F172A; /* Slate 900 */
   --text-muted: #64748B; /* Slate 500 */

@@ -240,7 +240,7 @@ const Settings = () => {
                       onChange={(e) => setFormData({ ...formData, announcementText: e.target.value })}
                       bgClass="bg-slate-50"
                     />
-                    <p className="text-xs text-slate-500 mt-1 px-2">مثال: توصيل مجاني وسريع — للطلبات فوق 50 ألف ريال</p>
+                    <p className="text-xs text-slate-500 mt-1 px-2">مثال: توصيل مجاني وسريع — للطلبات فوق 50 ألف ﷼</p>
                   </div>
 
                   <div className="bg-amber-50 border border-amber-100 p-4 rounded-2xl flex gap-4">

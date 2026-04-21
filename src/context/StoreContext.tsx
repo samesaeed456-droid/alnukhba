@@ -736,7 +736,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       address: '',
       shippingFee: 0,
       freeShippingThreshold: 0,
-      currency: 'YER_OLD',
+      currency: 'YER',
       language: 'ar',
       isMaintenanceMode: false,
       maintenanceMessage: 'المتجر في وضع الصيانة حالياً. سنعود قريباً!',
@@ -1795,7 +1795,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         paymentProof: paymentProof || null,
         shippingMethod: shippingMethod || null,
         deliveryInstructions: deliveryInstructions || null,
-        currency: BASE_CURRENCY_CODE || 'YER_OLD'
+        currency: BASE_CURRENCY_CODE || 'YER'
       };
 
       // 3. Save to Firestore

@@ -10,7 +10,7 @@ export const defaultSlides = [
     id: 'default-0',
     image: "https://images.unsplash.com/photo-1566576721346-d4a3b4eaad5b?auto=format&fit=crop&q=80&w=1600",
     title: "توصيل مجاني لجميع الطلبات",
-    subtitle: "استمتع بتوصيل مجاني عند تسوقك بقيمة 150 ريال سعودي أو أكثر.",
+    subtitle: "استمتع بتوصيل مجاني عند تسوقك بمبلغ 50 ألف ﷼ أو أكثر.",
     buttonText: "تسوق الآن",
     link: "/search",
     isSpecial: true

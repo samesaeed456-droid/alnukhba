@@ -14,7 +14,7 @@ export const migrateLocalDataToFirebase = async () => {
       // Generic default settings
       await setDoc(doc(db, 'settings', 'store'), {
         storeName: 'متجري',
-        currency: 'YER_OLD',
+        currency: 'YER',
         shippingFee: 0,
         freeShippingThreshold: 0,
         taxRate: 0,

@@ -1,8 +1,8 @@
 // src/lib/finance.ts
 
-// نستخدم العملة الأساسية YER_OLD كمرجع لكل الحسابات
-export const BASE_CURRENCY_CODE = 'YER_OLD';
-export const BASE_CURRENCY_SYMBOL = 'ر.ق';
+// نستخدم العملة الأساسية YER كمرجع لكل الحسابات
+export const BASE_CURRENCY_CODE = 'YER';
+export const BASE_CURRENCY_SYMBOL = '﷼';
 
 // دالة تقريب موحدة (تقريب للأقرب عدد صحيح أو لعدد محدد من الخانات العشرية)
 export const roundMoney = (amount: number, decimals: number = 0): number => {

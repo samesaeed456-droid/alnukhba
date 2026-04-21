@@ -63,7 +63,7 @@ export default function Header({
 
   const [activeAnnouncement, setActiveAnnouncement] = useState(0);
   const announcements = [
-    { icon: Truck, text: settings.announcementText || 'توصيل مجاني وسريع — للطلبات فوق 50 ألف ريال' },
+    { icon: Truck, text: settings.announcementText || 'توصيل مجاني وسريع — للطلبات فوق 50 ألف ﷼' },
     { icon: Headphones, text: 'دعم فني 24/7 — نخدمك في أي وقت' },
     { icon: ShieldCheck, text: 'دفع آمن 100% — خيارات مرنة وسهلة' }
   ];
@@ -84,7 +84,7 @@ export default function Header({
       const val = price / 1000;
       return (val % 1 === 0 ? val : val.toFixed(1)) + ' ألف';
     }
-    return price.toString() + ' ريال';
+    return price.toString() + ' ﷼';
   };
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
   const wishlistCount = wishlist.length;
@@ -200,7 +200,7 @@ export default function Header({
             <div className="hidden sm:flex items-center gap-4 sm:gap-8 whitespace-nowrap overflow-x-auto hide-scrollbar">
               <div className="flex items-center gap-1.5 sm:gap-2">
                 <Truck className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-carbon" />
-                <span>{settings.announcementText || 'توصيل مجاني وسريع — للطلبات فوق 50 ألف ريال'}</span>
+                <span>{settings.announcementText || 'توصيل مجاني وسريع — للطلبات فوق 50 ألف ﷼'}</span>
               </div>
               <span className="hidden sm:block w-1 h-1 bg-black/20 rounded-full"></span>
               <div className="hidden sm:flex items-center gap-1.5 sm:gap-2">

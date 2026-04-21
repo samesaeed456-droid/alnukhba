@@ -5,7 +5,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useStore } from '../context/StoreContext';
 import { parseSmartError } from '../lib/errorUtils';
 import { 
-  auth, db, doc, getDoc, setDoc, serverTimestamp, loginWithEmail, signupWithEmail
+  auth, db, doc, getDoc, setDoc, serverTimestamp, loginWithEmail, signupWithEmail,
+  collection, getDocs, query, where
 } from '../lib/firebase';
 import FloatingInput from '../components/FloatingInput';
 
@@ -309,9 +310,38 @@ export default function Auth() {
       if (isLogin) {
         // Direct login
         const email = getDummyEmail(formData.countryCode, formData.phone);
-        await loginWithEmail(email, formData.password);
-        showToast('تم تسجيل الدخول بنجاح');
-        navigate(redirectPath);
+        try {
+          await loginWithEmail(email, formData.password);
+          showToast('تم تسجيل الدخول بنجاح');
+          navigate(redirectPath);
+        } catch (authError: any) {
+          // AUTO-RECOVERY for migrated users
+          if (authError.code === 'auth/user-not-found' || authError.code === 'auth/invalid-credential') {
+            // Check if user exists in Firestore but missing from Auth
+            const fullPhone = formData.countryCode + formData.phone;
+            const usersRef = collection(db, 'users');
+            const q = query(usersRef, where('phone', '==', formData.phone), where('countryCode', '==', formData.countryCode));
+            const querySnapshot = await getDocs(q);
+            
+            if (!querySnapshot.empty) {
+              const userData = querySnapshot.docs[0].data();
+              // If we found them in Firestore, but they couldn't log in, 
+              // it's likely a new Firebase project where Auth is empty.
+              // Try to "Restore" their account by signing up with the password they just provided.
+              try {
+                const userCred = await signupWithEmail(email, formData.password);
+                showToast('تم تفعيل حسابك في النظام الجديد بنجاح');
+                navigate(redirectPath);
+                return;
+              } catch (signupErr: any) {
+                // If signup also fails (e.g. they really did provide the wrong password for an existing auth account)
+                // then throw the original error
+                throw authError;
+              }
+            }
+          }
+          throw authError;
+        }
       } else {
         // Signup requires OTP via backend
         const fullPhone = formData.countryCode + formData.phone;

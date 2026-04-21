@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { 
-  Package, ShoppingCart, Users, DollarSign, TrendingUp, TrendingDown, 
+  Package, ShoppingCart, Users, Banknote, TrendingUp, TrendingDown, 
   Calendar, Download, MapPin, ArrowUpRight, Activity, CreditCard, 
   Plus, Tag, AlertCircle, Eye, Edit, ChevronRight, Filter, 
   MoreHorizontal, RefreshCw, LayoutGrid, List, Clock, ShieldCheck,
@@ -317,7 +317,7 @@ export default function Dashboard() {
         <motion.div variants={itemVariants} className="bg-white p-4 sm:p-6 rounded-[2rem] shadow-sm border border-slate-100 flex flex-col items-center sm:items-start text-center sm:text-right group hover:shadow-xl hover:shadow-solar/10 transition-all duration-500">
           <div className="flex justify-between items-start w-full mb-4">
             <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-solar/10 text-solar flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
-              <DollarSign className="w-5 h-5 sm:w-6 sm:h-6" />
+              <Banknote className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
             <div className={`text-[10px] font-black ${Number(stats.salesGrowth) >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
               {Number(stats.salesGrowth) >= 0 ? '+' : ''}{stats.salesGrowth}%

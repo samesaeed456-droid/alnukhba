@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { 
   Search, Users, User, Mail, Phone, MapPin, 
-  Calendar, ShoppingBag, DollarSign, 
+  Calendar, ShoppingBag, Banknote, 
   MoreVertical, Edit, Trash2, ExternalLink,
   Filter, Plus, Star, ShieldCheck,
   TrendingUp, ArrowUpDown, X, Printer, MessageSquare, PhoneCall,
@@ -708,7 +708,7 @@ export default function Customers() {
                     <div>
                       <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">الإنفاق</span>
                       <div className="flex items-center gap-1.5">
-                        <DollarSign className="w-3.5 h-3.5 text-solar" />
+                        <Banknote className="w-3.5 h-3.5 text-solar" />
                         <span className="text-base font-black text-carbon">{formatPrice(customer.totalSpent || 0)}</span>
                       </div>
                     </div>
@@ -942,7 +942,7 @@ export default function Customers() {
 
                       <div className="col-span-3 row-span-1 bg-slate-50/80 rounded-[1.5rem] p-3 flex items-center gap-3 transition-all hover:bg-slate-100 group">
                         <div className="w-8 h-8 bg-white rounded-xl flex items-center justify-center shadow-sm group-hover:-rotate-12 transition-transform">
-                          <DollarSign className="w-4 h-4 text-emerald-500" />
+                          <Banknote className="w-4 h-4 text-emerald-500" />
                         </div>
                         <div className="min-w-0">
                           <span className="text-lg font-bold text-carbon block leading-none truncate">{formatPrice(customer.totalSpent || 0)}</span>

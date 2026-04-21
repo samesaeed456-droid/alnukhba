@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { 
   Search, Eye, Filter, Edit, Download, 
   Package, Truck, CheckCircle2, XCircle, RotateCcw,
-  Clock, DollarSign, Calendar, MapPin, 
+  Clock, Banknote, Calendar, MapPin, 
   User, Phone, CreditCard, ChevronRight,
   Printer, Mail, MoreVertical, ArrowUpDown,
   ExternalLink, Trash2, X, AlertCircle, Menu, ArrowRight,

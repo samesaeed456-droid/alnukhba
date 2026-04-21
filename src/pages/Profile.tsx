@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   User, Phone, MapPin, Package, Heart, LogOut, 
-  ChevronLeft, Edit2, Check, Key, Globe, DollarSign, 
+  ChevronLeft, Edit2, Check, Key, Globe, 
   MessageCircle, FileText, Shield, Trash2, Settings, Award, Camera, BadgeCheck, Plus, ChevronDown, CreditCard, ArrowDownToLine, Clock, ArrowUpRight, ArrowDownLeft,
   Eye, EyeOff, AlertCircle, CheckCircle2, Search, Truck, UserPlus, HelpCircle, Smartphone,
   ShieldAlert, Wallet, ChevronRight, Zap, MessageSquare, History, Lock, ShieldCheck
@@ -852,7 +852,7 @@ export default function Profile() {
                     <div className="relative z-10 flex items-center justify-between mb-4">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center">
-                          <DollarSign className="w-5 h-5 text-emerald-400" />
+                          <Wallet className="w-5 h-5 text-emerald-400" />
                         </div>
                         <div>
                           <p className="text-xs text-slate-400 font-medium mb-0.5">الرصيد الحالي</p>
@@ -874,7 +874,7 @@ export default function Profile() {
                       }}
                       className="w-full bg-white/10 hover:bg-white/20 text-white border border-white/10 py-3 rounded-xl font-bold transition-all flex items-center justify-center gap-2 text-sm backdrop-blur-sm"
                     >
-                      <DollarSign className="w-4 h-4" />
+                      <Plus className="w-4 h-4" />
                       إيداع رصيد في محفظتك
                     </button>
                   </div>
@@ -984,7 +984,7 @@ export default function Profile() {
                 <div className="relative z-10">
                   <div className="flex items-center gap-3 mb-2 sm:mb-6">
                     <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-emerald-500/20 flex items-center justify-center">
-                      <DollarSign className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-400" />
+                      <Wallet className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-400" />
                     </div>
                     <div>
                       <p className="text-xs sm:text-sm text-slate-400 font-medium mb-0.5 sm:mb-1">الرصيد الحالي</p>

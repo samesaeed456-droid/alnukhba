@@ -3,7 +3,7 @@ import { useStore } from '../../context/StoreContext';
 import { 
   TrendingUp, 
   TrendingDown, 
-  DollarSign, 
+  Banknote, 
   ShoppingBag, 
   Users, 
   User,

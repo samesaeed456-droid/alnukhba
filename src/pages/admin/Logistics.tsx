@@ -7,7 +7,7 @@ import {
   Edit2, 
   Trash2, 
   Globe, 
-  DollarSign, 
+  Banknote, 
   CheckCircle, 
   X,
   Package,
@@ -158,7 +158,7 @@ const Logistics = () => {
               </div>
               <div className="flex items-center gap-3 mt-3">
                 <div className="flex items-center gap-1.5 px-3 py-1.5 bg-solar/10 rounded-xl text-solar font-black text-sm">
-                  <DollarSign className="w-4 h-4" />
+                  <Banknote className="w-4 h-4" />
                   {formatPrice(zone.rate)}
                 </div>
               </div>
@@ -242,7 +242,7 @@ const Logistics = () => {
                     min="0"
                     value={formData.rate}
                     onChange={(e) => setFormData({ ...formData, rate: e.target.value })}
-                    startElement={<DollarSign className="w-5 h-5 text-gray-400" />}
+                    startElement={<Banknote className="w-5 h-5 text-gray-400" />}
                   />
                   <FloatingInput
                     label="حد الشحن المجاني (اختياري)"

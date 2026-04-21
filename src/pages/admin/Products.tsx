@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { 
   Plus, Search, Edit, Trash2, X, Upload, 
   Image as ImageIcon, Filter, ChevronDown, Download, 
-  CheckCircle2, AlertCircle, Package, DollarSign, 
+  CheckCircle2, AlertCircle, Package, Banknote, 
   TrendingUp, BarChart3, ArrowUpDown,
   LayoutGrid, List, Eye, Copy, ExternalLink,
   Settings, ShieldCheck, Globe, Tag, TrendingDown, Layout, Star,
@@ -427,7 +427,7 @@ export default function Products() {
           >
             <div className="flex justify-between items-start w-full mb-4">
               <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-green-50 text-green-500 flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
-                <DollarSign className="w-5 h-5 sm:w-6 sm:h-6" />
+                <Banknote className="w-5 h-5 sm:w-6 sm:h-6" />
               </div>
               <div className="bg-green-50 text-green-600 px-2 py-1 rounded-full text-[8px] sm:text-[10px] font-black tracking-wider flex items-center gap-1">
                 <span>القيمة</span>

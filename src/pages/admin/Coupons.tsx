@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Edit, Trash2, Search, Tag, Percent, DollarSign, Calendar, Users, Power, PowerOff, X } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, Tag, Percent, Banknote, Calendar, Users, Power, PowerOff, X } from 'lucide-react';
 import { useStore } from '../../context/StoreContext';
 import { Coupon } from '../../types';
 import ConfirmationModal from '../../components/ConfirmationModal';
@@ -316,7 +316,7 @@ export default function Coupons() {
                   step="any"
                   value={formData.discountValue}
                   onChange={(e) => setFormData({...formData, discountValue: e.target.value})}
-                  startElement={formData.discountType === 'percentage' ? <Percent className="w-5 h-5 text-gray-400" /> : <DollarSign className="w-5 h-5 text-gray-400" />}
+                  startElement={formData.discountType === 'percentage' ? <Percent className="w-5 h-5 text-gray-400" /> : <Banknote className="w-5 h-5 text-gray-400" />}
                 />
               </div>
 

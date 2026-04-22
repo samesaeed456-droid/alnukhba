@@ -33,6 +33,19 @@ function verifyChallengeSignature(challenge: string, type: 'reg' | 'auth', id: s
   return sig === expectedSig;
 }
 
+function safeBuffer(data: any): Buffer {
+  if (data instanceof Buffer) return data;
+  if (data instanceof Uint8Array) return Buffer.from(data);
+  if (typeof data === 'string') {
+    if (/^[A-Za-z0-9+/]*={0,2}$/.test(data) && data.length % 4 === 0) {
+      try { return Buffer.from(data, 'base64'); } catch (e) { return Buffer.from(data); }
+    }
+    return Buffer.from(data);
+  }
+  if (Array.isArray(data)) return Buffer.from(data);
+  return Buffer.alloc(0);
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
 
@@ -46,8 +59,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const rpID = req.headers.host === 'localhost:3000' ? 'localhost' : (req.headers.host || 'localhost').split(':')[0];
-    const origin = req.headers.origin || `https://${req.headers.host}`;
+    const host = req.headers.host || 'localhost';
+    const rpID = host.split(':')[0];
+    const origin = req.headers.origin || (req.headers.host ? `https://${host}` : 'http://localhost');
     
     const verification = await verifyRegistrationResponse({
       response,
@@ -57,17 +71,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
 
     if (verification.verified && verification.registrationInfo) {
-      if (getApps().length === 0) {
-        return res.status(500).json({ error: 'Firebase Admin غير مفعل. لا يمكن حفظ البصمة.' });
+      const { credentialPublicKey, credentialID, counter } = verification.registrationInfo;
+      
+      if (!credentialPublicKey || !credentialID) {
+          return res.status(400).json({ error: 'بيانات المفتاح العام مفقودة من المتصفح' });
       }
 
-      const { credentialPublicKey, credentialID, counter } = verification.registrationInfo;
+      if (getApps().length === 0) {
+        return res.status(500).json({ error: 'Firebase Admin غير مفعل كلياً' });
+      }
+
       const passkeyId = response.id;
-      
       const db = getFirestore();
+      
       await db.collection('passkeys').doc(passkeyId).set({
-        credentialPublicKey: Buffer.from(credentialPublicKey).toString('base64'),
-        credentialID: Buffer.from(credentialID).toString('base64'),
+        credentialPublicKey: safeBuffer(credentialPublicKey).toString('base64'),
+        credentialID: safeBuffer(credentialID).toString('base64'),
         counter,
         uid,
         createdAt: new Date().toISOString()

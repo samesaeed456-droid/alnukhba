@@ -34,6 +34,19 @@ function verifyChallengeSignature(challenge: string, type: 'reg' | 'auth', id: s
   return sig === expectedSig;
 }
 
+function safeBuffer(data: any): Buffer {
+  if (data instanceof Buffer) return data;
+  if (data instanceof Uint8Array) return Buffer.from(data);
+  if (typeof data === 'string') {
+    if (/^[A-Za-z0-9+/]*={0,2}$/.test(data) && data.length % 4 === 0) {
+      try { return Buffer.from(data, 'base64'); } catch (e) { return Buffer.from(data); }
+    }
+    return Buffer.from(data);
+  }
+  if (Array.isArray(data)) return Buffer.from(data);
+  return Buffer.alloc(0);
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
 
@@ -49,8 +62,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const rpID = req.headers.host === 'localhost:3000' ? 'localhost' : (req.headers.host || 'localhost').split(':')[0];
-    const origin = req.headers.origin || `https://${req.headers.host}`;
+    const host = req.headers.host || 'localhost';
+    const rpID = host.split(':')[0];
+    const origin = req.headers.origin || (req.headers.host ? `https://${host}` : 'http://localhost');
     const passkeyId = response.id;
 
     if (getApps().length === 0) {
@@ -65,7 +79,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const passkeyData = passkeyDoc.data();
-    if (!passkeyData) return res.status(400).json({ error: 'بيانات البصمة مفقودة' });
+    if (!passkeyData || !passkeyData.credentialPublicKey || !passkeyData.credentialID) {
+        return res.status(400).json({ error: 'بيانات البصمة مفقودة أو غير مكتملة' });
+    }
 
     const verification = await verifyAuthenticationResponse({
       response,
@@ -73,8 +89,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       expectedOrigin: origin,
       expectedRPID: rpID,
       authenticator: {
-        credentialPublicKey: Buffer.from(passkeyData.credentialPublicKey, 'base64'),
-        credentialID: Buffer.from(passkeyData.credentialID, 'base64'),
+        credentialPublicKey: new Uint8Array(safeBuffer(passkeyData.credentialPublicKey)),
+        credentialID: new Uint8Array(safeBuffer(passkeyData.credentialID)),
         counter: passkeyData.counter,
       },
     });
@@ -85,7 +101,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       await db.collection('passkeys').doc(passkeyId).update({ counter: newCounter });
 
       // Generate custom token for Firebase Client Auth
-      const customToken = await getAuth().createCustomToken(passkeyData.uid);
+      const customToken = await getAuth().createCustomToken(passkeyData.uid || 'unknown');
 
       return res.status(200).json({ success: true, customToken });
     } else {

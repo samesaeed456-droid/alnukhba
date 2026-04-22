@@ -10,6 +10,19 @@ function signChallenge(challenge: string, type: 'reg' | 'auth', id: string) {
   return `${sig}.${expires}`;
 }
 
+function safeBuffer(data: any): Buffer {
+  if (data instanceof Buffer) return data;
+  if (data instanceof Uint8Array) return Buffer.from(data);
+  if (typeof data === 'string') {
+    if (/^[A-Za-z0-9+/]*={0,2}$/.test(data) && data.length % 4 === 0) {
+      try { return Buffer.from(data, 'base64'); } catch (e) { return Buffer.from(data); }
+    }
+    return Buffer.from(data);
+  }
+  if (Array.isArray(data)) return Buffer.from(data);
+  return Buffer.alloc(0);
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
 
@@ -17,13 +30,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!uid || !email) return res.status(400).json({ error: 'Missing uid or email' });
   
   try {
-    const rpID = req.headers.host === 'localhost:3000' ? 'localhost' : (req.headers.host || 'localhost').split(':')[0];
+    const host = req.headers.host || 'localhost';
+    const rpID = host.split(':')[0];
     const rpName = 'Elite Store';
 
     const options = await generateRegistrationOptions({
       rpName,
       rpID,
-      userID: new Uint8Array(Buffer.from(uid)),
+      userID: safeBuffer(uid),
       userName: email,
       attestationType: 'none',
       authenticatorSelection: {

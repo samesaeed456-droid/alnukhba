@@ -15,7 +15,7 @@ export default function Notifications() {
   const { 
     notifications, markNotificationAsRead, showToast, 
     setNotifications, products, notificationSettings, 
-    updateNotificationSettings, clearAllNotifications, deleteNotification
+    updateNotificationSettings, clearAllNotifications, deleteNotification, user
   } = useStore();
   const navigate = useNavigate();
   const [isClearAllModalOpen, setIsClearAllModalOpen] = useState(false);
@@ -75,6 +75,35 @@ export default function Notifications() {
   const handleUpdateSetting = useCallback((id: string) => {
     updateNotificationSettings({ [id]: !notificationSettings[id as keyof typeof notificationSettings] });
   }, [notificationSettings, updateNotificationSettings]);
+
+  if (!user) {
+    return (
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="min-h-[60vh] flex flex-col items-center justify-center px-4"
+      >
+        <motion.div 
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ type: "spring", stiffness: 260, damping: 20 }}
+          className="bg-slate-100 p-6 rounded-full mb-6"
+        >
+          <Bell className="w-12 h-12 text-slate-400" />
+        </motion.div>
+        <h2 className="text-xl font-bold text-carbon mb-2 text-center">الإشعارات</h2>
+        <p className="text-slate-500 mb-8 text-center max-w-sm">يجب عليك تسجيل الدخول لعرض الإشعارات الخاصة بك.</p>
+        <motion.button 
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => navigate('/auth')}
+          className="bg-gradient-to-r from-carbon to-solar hover:opacity-90 text-white px-8 py-3 rounded-xl font-bold transition-all shadow-lg shadow-solar/20"
+        >
+          تسجيل الدخول
+        </motion.button>
+      </motion.div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50/30 pb-20 sm:pb-10">

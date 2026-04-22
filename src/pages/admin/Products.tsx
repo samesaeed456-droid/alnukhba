@@ -12,10 +12,10 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { toast } from 'sonner';
-import { useStore } from '../../context/StoreContext';
-import { Product } from '../../types';
-import ConfirmationModal from '../../components/ConfirmationModal';
-import { FloatingInput } from '../../components/FloatingInput';
+import { useStore } from '@/context/StoreContext';
+import { Product } from '@/types';
+import ConfirmationModal from '@/components/ConfirmationModal';
+import { FloatingInput } from '@/components/FloatingInput';
 
 const PREDEFINED_COLORS = [
   { name: 'أسود', value: '#000000' },

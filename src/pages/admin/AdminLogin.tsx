@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Zap, Lock, ShieldCheck, Eye, EyeOff, Check, ArrowLeft, Loader2 } from 'lucide-react';
 import { FloatingInput } from '../../components/FloatingInput';
 import { Toaster, toast } from 'sonner';
-import { useStore } from '../../context/StoreContext';
+import { useStore } from '@/context/StoreContext';
 import { 
   auth, db, doc, getDoc, loginWithEmail, signupWithEmail,
   query, collection, where, getDocs

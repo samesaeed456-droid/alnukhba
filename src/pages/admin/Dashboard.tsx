@@ -7,14 +7,14 @@ import {
   MoreHorizontal, RefreshCw, LayoutGrid, List, Clock, ShieldCheck,
   Sparkles, ArrowRight, UserPlus, Wallet
 } from 'lucide-react';
-import { useStore } from '../../context/StoreContext';
+import { useStore } from '@/context/StoreContext';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
   AreaChart, Area, Cell as ReCell, PieChart, Pie, Cell
 } from 'recharts';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { toast } from 'sonner';
-import { BASE_CURRENCY_SYMBOL } from '../../lib/finance';
+import { BASE_CURRENCY_SYMBOL } from '@/lib/finance';
 
 export default function Dashboard() {
   const { 

@@ -9,9 +9,9 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { Toaster, toast } from 'sonner';
-import Logo from '../../components/Logo';
-import { useStore } from '../../context/StoreContext';
-import { FloatingInput } from '../../components/FloatingInput';
+import Logo from '@/components/Logo';
+import { useStore } from '@/context/StoreContext';
+import { FloatingInput } from '@/components/FloatingInput';
 
 export default function AdminLayout() {
   const location = useLocation();

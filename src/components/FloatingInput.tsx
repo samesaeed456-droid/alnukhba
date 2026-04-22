@@ -43,7 +43,7 @@ export function FloatingInput({
     <div className={`relative w-full ${containerClassName}`}>
       <div className={`
         relative flex transition-all duration-200 ease-in-out
-        ${isTextArea ? 'min-h-[120px] items-stretch' : 'h-14 items-center'} 
+        ${isTextArea ? 'min-h-[120px] items-stretch' : 'h-12 sm:h-14 items-center'} 
         ${bgClass} border ${containerBorder}
         rounded-xl shadow-sm ${isTextArea ? '' : 'overflow-hidden'}
       `}>

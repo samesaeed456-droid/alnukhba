@@ -18,7 +18,7 @@ export default function Profile() {
   const { user, updateUser, logout, showToast, language, setLanguage, formatPrice, shippingZones } = useStore();
   const navigate = useNavigate();
   const location = useLocation();
-  const [currentView, setCurrentView] = useState<'menu' | 'edit' | 'addresses' | 'wallet' | 'delete-account'>('menu');
+  const [currentView, setCurrentView] = useState<'menu' | 'edit' | 'addresses' | 'wallet' | 'transactions' | 'delete-account'>('menu');
 
   useEffect(() => {
     if (location.state && (location.state as any).view) {
@@ -1166,7 +1166,7 @@ export default function Profile() {
                 
                 <div className="space-y-3 sm:space-y-4">
                   {user.transactions && user.transactions.length > 0 ? (
-                    user.transactions.map(tx => (
+                    [...user.transactions].reverse().map(tx => (
                       <div key={tx.id} className="flex items-start sm:items-center justify-between p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-slate-100 bg-slate-50/50 gap-2 sm:gap-4">
                         <div className="flex items-start sm:items-center gap-2.5 sm:gap-4 flex-1 min-w-0">
                           <div className={`w-8 h-8 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl flex items-center justify-center shrink-0 mt-0.5 sm:mt-0 ${
@@ -1407,30 +1407,30 @@ export default function Profile() {
               <h1 className="text-xl font-bold text-carbon">تعديل الحساب</h1>
             </div>
 
-            <div className="bg-white rounded-[2rem] p-5 sm:p-10 shadow-xl border border-slate-100 relative overflow-hidden">
+            <div className="bg-white rounded-3xl sm:rounded-[2.5rem] p-4 sm:p-10 shadow-xl border border-slate-100 relative overflow-hidden">
               <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-carbon via-purple-500 to-solar"></div>
               
-              <div className="space-y-8 mt-4">
+              <div className="space-y-6 sm:space-y-8 mt-2 sm:mt-4">
                 {/* Avatar Edit Section */}
-                <div className="flex flex-col items-center justify-center mb-8">
+                <div className="flex flex-col items-center justify-center mb-6 sm:mb-8">
                   <div className="relative group">
                     <div className="absolute -inset-1 bg-gradient-to-tr from-carbon to-solar rounded-full blur opacity-30 group-hover:opacity-60 transition duration-500"></div>
-                    <div className="relative w-32 h-32 bg-slate-50 rounded-full flex items-center justify-center border-4 border-white shadow-xl overflow-hidden z-10">
+                    <div className="relative w-24 h-24 sm:w-32 sm:h-32 bg-slate-50 rounded-full flex items-center justify-center border-4 border-white shadow-xl overflow-hidden z-10">
                       {formData.avatar ? (
                         <img src={formData.avatar || undefined} alt="Profile" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
                       ) : (
-                        <User className="w-12 h-12 text-slate-300" />
+                        <User className="w-10 h-10 sm:w-12 sm:h-12 text-slate-300" />
                       )}
                     </div>
-                    <label className="absolute bottom-1 right-1 w-11 h-11 bg-carbon text-white rounded-full flex items-center justify-center shadow-lg cursor-pointer hover:bg-carbon transition-colors border-4 border-white z-20 hover:scale-110 transform duration-200">
-                      <Camera className="w-5 h-5" />
+                    <label className="absolute bottom-1 right-1 w-9 h-9 sm:w-11 sm:h-11 bg-carbon text-white rounded-full flex items-center justify-center shadow-lg cursor-pointer hover:bg-carbon transition-colors border-4 border-white z-20 hover:scale-110 transform duration-200">
+                      <Camera className="w-4 h-4 sm:w-5 sm:h-5" />
                       <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
                     </label>
                   </div>
-                  <span className="text-sm text-slate-500 font-medium mt-4">الحد الأقصى للصورة 5 ميجابايت</span>
+                  <span className="text-[10px] sm:text-sm text-slate-500 font-medium mt-3 sm:mt-4">الحد الأقصى للصورة 5 ميجابايت</span>
                 </div>
 
-                <div className="grid grid-cols-1 gap-6">
+                <div className="grid grid-cols-1 gap-4 sm:gap-6">
                   <div className="space-y-2">
                     <FloatingInput 
                       label="الاسم الكامل"
@@ -1478,14 +1478,14 @@ export default function Profile() {
                   </div>
                 </div>
 
-                <div className="pt-8">
+                <div className="pt-4 sm:pt-8">
                   <motion.button 
                     whileHover={{ scale: 1.01, translateY: -2 }}
                     whileTap={{ scale: 0.98 }}
                     onClick={handleSave}
-                    className="w-full bg-gradient-to-r from-carbon to-slate-800 hover:from-black hover:to-carbon text-white h-14 rounded-2xl font-bold transition-all shadow-xl shadow-carbon/20 flex items-center justify-center gap-3 text-lg"
+                    className="w-full bg-gradient-to-r from-carbon to-slate-800 hover:from-black hover:to-carbon text-white h-12 sm:h-14 rounded-xl sm:rounded-2xl font-bold transition-all shadow-xl shadow-carbon/20 flex items-center justify-center gap-2 sm:gap-3 text-sm sm:text-lg"
                   >
-                    <Check className="w-6 h-6" />
+                    <Check className="w-5 h-5 sm:w-6 sm:h-6" />
                     حفظ التغييرات
                   </motion.button>
                 </div>

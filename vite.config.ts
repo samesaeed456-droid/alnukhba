@@ -147,8 +147,14 @@ export default defineConfig(({mode}) => {
     },
     resolve: {
       alias: {
-        '@': path.resolve(process.cwd(), '.'),
+        '@': path.resolve(process.cwd(), 'src'),
       },
+    },
+    build: {
+      outDir: 'dist',
+      emptyOutDir: true,
+      reportCompressedSize: false,
+      chunkSizeWarningLimit: 1000
     },
     server: {
       // HMR is disabled in AI Studio via DISABLE_HMR env var.

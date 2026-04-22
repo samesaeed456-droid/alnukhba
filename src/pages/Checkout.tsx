@@ -1017,6 +1017,29 @@ export default function Checkout() {
                               </div>
                             </motion.button>
                           ))}
+
+                            <motion.button
+                              key="wallet"
+                              whileHover={{ scale: 1.02, y: -2 }}
+                              whileTap={{ scale: 0.98 }}
+                              onClick={() => {
+                                setPaymentMethod('wallet');
+                                setShowPaymentDetails(true);
+                                window.scrollTo({ top: 0, behavior: 'smooth' });
+                              }}
+                              className={`p-3 sm:p-4 rounded-2xl sm:rounded-3xl border-2 transition-all flex flex-col items-center gap-2 sm:gap-3 text-center group ${
+                                paymentMethod === 'wallet' 
+                                  ? `border-solar bg-solar/5 shadow-lg shadow-solar/10` 
+                                  : 'border-slate-100 bg-white hover:border-slate-200 shadow-sm'
+                              }`}
+                            >
+                              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-white flex items-center justify-center overflow-hidden shrink-0 border border-slate-100 shadow-sm group-hover:scale-110 transition-transform">
+                                <Wallet className="w-4 h-4 sm:w-5 sm:h-5 text-solar" />
+                              </div>
+                              <div className="flex-1 text-right">
+                                <h3 className="text-xs sm:text-sm font-bold text-carbon">المحفظة الرقمية</h3>
+                              </div>
+                            </motion.button>
                         </motion.div>
                       ) : (
                         <motion.div

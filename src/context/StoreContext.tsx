@@ -624,7 +624,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           const isRecent = new Date(docData.date || new Date().toISOString()).getTime() > Date.now() - (7 * 24 * 3600000);
           
           if (isRecent) {
+            // Only process notifications if the user is authenticated
             const currentUser = auth.currentUser;
+            const hasLocalUser = localStorage.getItem('store_user');
+            
+            if (!currentUser && !hasLocalUser) return; // Do not push to guests
             
             // If the notification targets a specific user, strictly ensure the current user matches
             if (docData.target === 'specific_user') {

@@ -57,7 +57,7 @@ export default function ProductDetail() {
   const [selectedSize, setSelectedSize] = useState<string | undefined>(product?.sizes?.[0]);
   const [isAdded, setIsAdded] = useState(false);
   const [isDescExpanded, setIsDescExpanded] = useState(false);
-  const [isSpecsExpanded, setIsSpecsExpanded] = useState(false);
+  const [isSpecsExpanded, setIsSpecsExpanded] = useState(true);
 
   const isNotified = product ? subscriptions.some(s => s.productId === product.id && s.type === 'back_in_stock') : false;
 
@@ -533,28 +533,6 @@ export default function ProductDetail() {
                       )}
                     </motion.button>
                   )}
-                </div>
-              </div>
-
-              {/* Key Features List (Horizontal on mobile) */}
-              <div className="flex overflow-x-auto hide-scrollbar gap-3 pt-6 border-t border-slate-100 pb-2">
-                <div className="flex-shrink-0 flex items-center gap-2 bg-slate-50 px-3 py-2 rounded-xl border border-slate-100">
-                  <div className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-500">
-                    <Check className="w-3 h-3" />
-                  </div>
-                  <span className="text-[10px] sm:text-xs font-black text-carbon/70 uppercase tracking-wider">منتج أصلي 100%</span>
-                </div>
-                <div className="flex-shrink-0 flex items-center gap-2 bg-slate-50 px-3 py-2 rounded-xl border border-slate-100">
-                  <div className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-500">
-                    <Check className="w-3 h-3" />
-                  </div>
-                  <span className="text-[10px] sm:text-xs font-black text-carbon/70 uppercase tracking-wider">توصيل سريع</span>
-                </div>
-                <div className="flex-shrink-0 flex items-center gap-2 bg-slate-50 px-3 py-2 rounded-xl border border-slate-100">
-                  <div className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-500">
-                    <Check className="w-3 h-3" />
-                  </div>
-                  <span className="text-[10px] sm:text-xs font-black text-carbon/70 uppercase tracking-wider">إرجاع مرن</span>
                 </div>
               </div>
             </div>

@@ -479,7 +479,7 @@ export default function Header({
             )}
 
             {/* Notifications */}
-            {!isCheckout && (
+            {!isCheckout && user && (
               <button 
                 onClick={() => setIsNotificationsOpen(true)}
                 className="relative p-2.5 text-white/70 hover:text-white hover:bg-white/10 rounded-xl transition-all" 

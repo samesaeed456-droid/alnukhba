@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { Plus, Edit, Trash2, Search, Tag, Percent, Banknote, Calendar, Users, Power, PowerOff, X } from 'lucide-react';
-import { useStore } from '../../context/StoreContext';
-import { Coupon } from '../../types';
-import ConfirmationModal from '../../components/ConfirmationModal';
-import FloatingInput from '../../components/FloatingInput';
+import { useStore } from '@/context/StoreContext';
+import { Coupon } from '@/types';
+import ConfirmationModal from '@/components/ConfirmationModal';
+import FloatingInput from '@/components/FloatingInput';
 
 export default function Coupons() {
   const { coupons, addCoupon, updateCoupon, deleteCoupon, toggleCouponStatus, formatPrice } = useStore();

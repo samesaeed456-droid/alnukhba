@@ -1,8 +1,8 @@
 import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Package, Plus, Search, Trash2, Edit, Check, X, Upload, Image as ImageIcon } from 'lucide-react';
-import { useStore } from '../../context/StoreContext';
-import ConfirmationModal from '../../components/ConfirmationModal';
+import { useStore } from '@/context/StoreContext';
+import ConfirmationModal from '@/components/ConfirmationModal';
 import { toast } from 'sonner';
 
 export default function AdminCategories() {

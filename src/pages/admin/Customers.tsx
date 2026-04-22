@@ -10,11 +10,11 @@ import {
   Ban, UserCheck, Zap, History, Info
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FloatingInput } from '../../components/FloatingInput';
-import ConfirmationModal from '../../components/ConfirmationModal';
-import { useStore } from '../../context/StoreContext';
-import { UserProfile as UserType } from '../../types';
-import { smsService } from '../../services/smsService';
+import { FloatingInput } from '@/components/FloatingInput';
+import ConfirmationModal from '@/components/ConfirmationModal';
+import { useStore } from '@/context/StoreContext';
+import { UserProfile as UserType } from '@/types';
+import { smsService } from '@/services/smsService';
 
 const containerVariants = {
   hidden: { opacity: 0 },

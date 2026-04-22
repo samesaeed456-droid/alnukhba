@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { History, Search, Download, Filter, ChevronRight, ChevronLeft, Calendar, User, Activity, Plus, Edit2, Trash2, LogIn } from 'lucide-react';
-import { useStore } from '../../context/StoreContext';
+import { useStore } from '@/context/StoreContext';
 import { FloatingInput } from '../../components/FloatingInput';
 
 export default function ActivityLogs() {

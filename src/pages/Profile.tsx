@@ -49,7 +49,14 @@ export default function Profile() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ uid: user.uid, email: user.email || user.phone || 'user' })
       });
-      const options = await res.json();
+      
+      const resText = await res.text();
+      if (!res.ok) {
+        console.error("Generate error text:", res.status, resText);
+        throw new Error(`Server returned ${res.status}: ${resText}`);
+      }
+      
+      const options = JSON.parse(resText);
       if (options.error) throw new Error(options.error);
 
       const response = await startRegistration(options);
@@ -59,7 +66,12 @@ export default function Profile() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ uid: user.uid, response })
       });
-      const verifyData = await verifyRes.json();
+      const verifyText = await verifyRes.text();
+      if (!verifyRes.ok) {
+        console.error("Verify error text:", verifyRes.status, verifyText);
+        throw new Error(`Server returned ${verifyRes.status}: ${verifyText}`);
+      }
+      const verifyData = JSON.parse(verifyText);
       
       if (verifyData.success) {
         setHasPasskey(true);

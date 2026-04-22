@@ -41,7 +41,12 @@ export default function Auth() {
         method: 'POST',
         headers: { 'x-session-id': currentSessionId }
       });
-      const options = await res.json();
+      const resText = await res.text();
+      if (!res.ok) {
+        console.error("Login Generate error text:", res.status, resText);
+        throw new Error(`Server returned ${res.status}: ${resText}`);
+      }
+      const options = JSON.parse(resText);
       if (options.error) throw new Error(options.error);
 
       let response;
@@ -64,7 +69,12 @@ export default function Auth() {
         body: JSON.stringify({ response })
       });
       
-      const verifyData = await verifyRes.json();
+      const verifyText = await verifyRes.text();
+      if (!verifyRes.ok) {
+        console.error("Login Verify error text:", verifyRes.status, verifyText);
+        throw new Error(`Server returned ${verifyRes.status}: ${verifyText}`);
+      }
+      const verifyData = JSON.parse(verifyText);
       if (verifyData.success) {
         await signInWithCustomToken(auth, verifyData.customToken);
         showToast('تم تسجيل الدخول بالبصمة بنجاح!');

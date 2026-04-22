@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit",
-    "start": "node dist/server.js",
+    "start": "node server.ts",
     "fix": "node fix_data.cjs"
   },
   "dependencies": {
@@ -52,9 +52,11 @@
   "devDependencies": {
     "@types/express": "^4.17.21",
     "@types/node": "^22.14.0",
+    "@types/supertest": "^7.2.0",
     "@vercel/node": "^5.7.8",
     "autoprefixer": "^10.4.21",
     "esbuild": "^0.28.0",
+    "supertest": "^7.2.2",
     "tailwindcss": "^4.1.14",
     "tsx": "^4.21.0",
     "typescript": "~5.8.2",

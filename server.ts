@@ -362,8 +362,27 @@ app.post("/api/verify-otp", (req, res) => {
 });
 
 // --- WEBAUTHN PASSKEYS ENDPOINTS ---
-const rpName = 'Elite Store';
-const webauthnChallenges = new Map<string, string>(); // uid -> challenge (or session -> challenge)
+import crypto from 'crypto';
+
+function signChallenge(challenge: string, type: 'reg' | 'auth', id: string) {
+  const secret = process.env.OTP_SECRET || 'fallback-secret-for-demo';
+  const expires = Date.now() + 5 * 60 * 1000;
+  const data = `${type}:${id}:${challenge}:${expires}`;
+  const sig = crypto.createHmac('sha256', secret).update(data).digest('hex');
+  return `${sig}.${expires}`;
+}
+
+function verifyChallengeSignature(challenge: string, type: 'reg' | 'auth', id: string, token: string) {
+  const secret = process.env.OTP_SECRET || 'fallback-secret-for-demo';
+  const parts = token.split('.');
+  if (parts.length !== 2) return false;
+  const [sig, expiresStr] = parts;
+  const expires = parseInt(expiresStr, 10);
+  if (Date.now() > expires) return false;
+  const data = `${type}:${id}:${challenge}:${expires}`;
+  const expectedSig = crypto.createHmac('sha256', secret).update(data).digest('hex');
+  return sig === expectedSig;
+}
 
 app.post('/api/webauthn/register/generate', async (req, res) => {
   const { uid, email } = req.body;
@@ -371,6 +390,8 @@ app.post('/api/webauthn/register/generate', async (req, res) => {
   
   try {
     const rpID = req.hostname === 'localhost' ? 'localhost' : req.hostname;
+    const rpName = 'Elite Store';
+    
     const options = await generateRegistrationOptions({
       rpName,
       rpID,
@@ -382,8 +403,9 @@ app.post('/api/webauthn/register/generate', async (req, res) => {
         userVerification: 'preferred',
       }
     });
-    webauthnChallenges.set(`reg_${uid}`, options.challenge);
-    res.json(options);
+    
+    const sessionToken = signChallenge(options.challenge, 'reg', uid);
+    res.json({ ...options, sessionToken });
   } catch (error: any) {
     console.error('[WebAuthn] Generate Reg Error:', error);
     res.status(500).json({ error: error.message });
@@ -391,11 +413,14 @@ app.post('/api/webauthn/register/generate', async (req, res) => {
 });
 
 app.post('/api/webauthn/register/verify', async (req, res) => {
-  const { uid, response } = req.body;
-  if (!uid || !response) return res.status(400).json({ error: 'Missing uid or response' });
+  const { uid, response, challenge, sessionToken } = req.body;
+  if (!uid || !response || !challenge || !sessionToken) {
+    return res.status(400).json({ error: 'بيانات غير مكتملة' });
+  }
 
-  const expectedChallenge = webauthnChallenges.get(`reg_${uid}`);
-  if (!expectedChallenge) return res.status(400).json({ error: 'Challenge not found or expired' });
+  if (!verifyChallengeSignature(challenge, 'reg', uid, sessionToken)) {
+      return res.status(400).json({ error: 'جلسة التسجيل غير صالحة أو منتهية' });
+  }
 
   try {
     const rpID = req.hostname === 'localhost' ? 'localhost' : req.hostname;
@@ -403,14 +428,16 @@ app.post('/api/webauthn/register/verify', async (req, res) => {
     
     const verification = await verifyRegistrationResponse({
       response,
-      expectedChallenge,
+      expectedChallenge: challenge,
       expectedOrigin: origin,
       expectedRPID: rpID,
     });
 
     if (verification.verified && verification.registrationInfo) {
-      webauthnChallenges.delete(`reg_${uid}`);
-      
+      if (getApps().length === 0) {
+        return res.status(500).json({ error: 'Firebase Admin غير مفعل. لا يمكن حفظ البصمة.' });
+      }
+
       const { credentialPublicKey, credentialID, counter } = verification.registrationInfo;
       const passkeyId = response.id;
       
@@ -425,7 +452,7 @@ app.post('/api/webauthn/register/verify', async (req, res) => {
 
       res.json({ success: true });
     } else {
-      res.status(400).json({ error: 'Verification failed' });
+      res.status(400).json({ error: 'فشل التوثيق من المتصفح' });
     }
   } catch (error: any) {
     console.error('[WebAuthn] Verify Reg Error:', error);
@@ -441,8 +468,8 @@ app.post('/api/webauthn/login/generate', async (req, res) => {
       rpID,
       userVerification: 'preferred',
     });
-    webauthnChallenges.set(`auth_${sessionId}`, options.challenge);
-    res.json(options);
+    const sessionToken = signChallenge(options.challenge, 'auth', sessionId);
+    res.json({ ...options, sessionToken });
   } catch (error: any) {
     console.error('[WebAuthn] Generate Auth Error:', error);
     res.status(500).json({ error: error.message });
@@ -450,13 +477,22 @@ app.post('/api/webauthn/login/generate', async (req, res) => {
 });
 
 app.post('/api/webauthn/login/verify', async (req, res) => {
-  const { response } = req.body;
+  const { response, challenge, sessionToken } = req.body;
   const sessionId = req.headers['x-session-id'] as string || "anonymous";
   
-  const expectedChallenge = webauthnChallenges.get(`auth_${sessionId}`);
-  if (!expectedChallenge) return res.status(400).json({ error: 'Challenge not found or expired' });
+  if (!response || !challenge || !sessionToken) {
+    return res.status(400).json({ error: 'بيانات غير مكتملة' });
+  }
+
+  if (!verifyChallengeSignature(challenge, 'auth', sessionId, sessionToken)) {
+      return res.status(400).json({ error: 'جلسة التوثيق غير صالحة أو منتهية' });
+  }
 
   try {
+    if (getApps().length === 0) {
+      return res.status(500).json({ error: 'Firebase Admin غير مفعل. لا يمكن المطابقة.' });
+    }
+
     const passkeyId = response.id;
     const db = getFirestore();
     const passkeyDoc = await db.collection('passkeys').doc(passkeyId).get();
@@ -472,7 +508,7 @@ app.post('/api/webauthn/login/verify', async (req, res) => {
 
     const verification = await verifyAuthenticationResponse({
       response,
-      expectedChallenge,
+      expectedChallenge: challenge,
       expectedOrigin: origin,
       expectedRPID: rpID,
       authenticator: {
@@ -483,8 +519,6 @@ app.post('/api/webauthn/login/verify', async (req, res) => {
     });
 
     if (verification.verified) {
-      webauthnChallenges.delete(`auth_${sessionId}`);
-      
       await db.collection('passkeys').doc(passkeyId).update({ 
         counter: verification.authenticationInfo.newCounter,
         lastUsedAt: new Date().toISOString()

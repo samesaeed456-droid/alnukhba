@@ -49,6 +49,10 @@ export default function Auth() {
       const options = JSON.parse(resText);
       if (options.error) throw new Error(options.error);
 
+      // Extra stateless tokens
+      const sessionToken = options.sessionToken;
+      const expectedChallenge = options.challenge;
+
       let response;
       try {
         response = await startAuthentication(options);
@@ -66,7 +70,7 @@ export default function Auth() {
           'Content-Type': 'application/json',
           'x-session-id': currentSessionId
         },
-        body: JSON.stringify({ response })
+        body: JSON.stringify({ response, challenge: expectedChallenge, sessionToken })
       });
       
       const verifyText = await verifyRes.text();
@@ -86,8 +90,15 @@ export default function Auth() {
         throw new Error(verifyData.error || 'فشل التحقق');
       }
     } catch (err: any) {
-      console.error(err);
-      setError(err.message || "حدث خطأ أثناء الاتصال. يرجى المحاولة بالطريقة العادية.");
+      console.error("[WebAuthn Login Error]:", err);
+      if (err.name === 'NotAllowedError') {
+        setError('تم إلغاء تسجيل الدخول بالبصمة');
+      } else if (err.name === 'NotSupportedError') {
+        setError('مستشعرات البصمة غير مدعومة في هذا المتصفح أو يجب فتح التطبيق في تبويب جديد.');
+      } else {
+        const errorMsg = err.message || err.toString();
+        setError(`خطأ في البصمة: ${errorMsg}. יرجى المحاولة بالطريقة العادية.`);
+      }
     } finally {
       setIsLoading(false);
     }

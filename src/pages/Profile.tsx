@@ -59,12 +59,16 @@ export default function Profile() {
       const options = JSON.parse(resText);
       if (options.error) throw new Error(options.error);
 
+      // Extract our extra tokens from the new serverless setup
+      const sessionToken = options.sessionToken;
+      const expectedChallenge = options.challenge;
+
       const response = await startRegistration(options);
       
       const verifyRes = await fetch('/api/webauthn/register/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ uid: user.uid, response })
+        body: JSON.stringify({ uid: user.uid, response, challenge: expectedChallenge, sessionToken })
       });
       const verifyText = await verifyRes.text();
       if (!verifyRes.ok) {
@@ -80,11 +84,14 @@ export default function Profile() {
         throw new Error(verifyData.error || 'فشل التحقق');
       }
     } catch (err: any) {
-      console.error(err);
+      console.error("[WebAuthn Register Error]:", err);
       if (err.name === 'NotAllowedError') {
          showToast('تم إلغاء عملية البصمة', 'info');
+      } else if (err.name === 'NotSupportedError') {
+         showToast('مستشعرات البصمة غير مدعومة في هذا المتصفح أو يجب فتح التطبيق في تبويب جديد.', 'error');
       } else {
-         showToast('تعذر إعداد البصمة. تأكد من أن جهازك يدعم البصمة أو الوجه.', 'error');
+         const errorMsg = err.message || err.toString();
+         showToast(`خطأ: ${errorMsg}`, 'error');
       }
     } finally {
       setIsLoading(false);

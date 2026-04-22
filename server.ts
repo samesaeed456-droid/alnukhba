@@ -437,11 +437,19 @@ app.post('/api/webauthn/register/verify', async (req, res) => {
     });
 
     if (verification.verified && verification.registrationInfo) {
+      console.log('[WebAuthn] Registration Info:', JSON.stringify(verification.registrationInfo));
+      
+      const { credentialPublicKey, credentialID, counter } = verification.registrationInfo;
+      
+      if (!credentialPublicKey || !credentialID) {
+          console.error('[WebAuthn] Missing credential data in registrationInfo:', verification.registrationInfo);
+          return res.status(400).json({ error: 'لم يقم المتصفح بإرجاع بيانات المفتاح العامة بشكل صحيح.' });
+      }
+
       if (getApps().length === 0) {
         return res.status(500).json({ error: 'Firebase Admin غير مفعل. لا يمكن حفظ البصمة.' });
       }
 
-      const { credentialPublicKey, credentialID, counter } = verification.registrationInfo;
       const passkeyId = response.id;
       
       const db = getFirestore();

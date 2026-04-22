@@ -823,21 +823,6 @@ export default function Auth() {
                     </div>
 
                     <div>
-                      <div className="flex items-center justify-between px-1 mb-2">
-                        {isLogin && (
-                          <button 
-                            type="button" 
-                            onClick={() => {
-                              setStep('forgot_password');
-                              setError('');
-                              setSuccess('');
-                            }}
-                            className="text-[10px] font-bold text-slate-400 hover:text-solar transition-colors mr-auto"
-                          >
-                            نسيت كلمة المرور؟
-                          </button>
-                        )}
-                      </div>
                       <FloatingInput
                         label="كلمة المرور"
                         id="password"
@@ -874,6 +859,21 @@ export default function Auth() {
                           </div>
                         }
                       />
+                      {isLogin && (
+                        <div className="flex justify-end px-1 mt-2">
+                          <button 
+                            type="button" 
+                            onClick={() => {
+                              setStep('forgot_password');
+                              setError('');
+                              setSuccess('');
+                            }}
+                            className="text-[10px] font-bold text-slate-400 hover:text-solar transition-colors"
+                          >
+                            نسيت كلمة المرور؟
+                          </button>
+                        </div>
+                      )}
                     </div>
 
                     {!isLogin && (

@@ -509,7 +509,7 @@ export default function Checkout() {
       variants={containerVariants}
       initial="hidden"
       animate="visible"
-      className="min-h-screen bg-[#F8F9FB] max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-12 pb-32 lg:pb-12"
+      className="min-h-screen bg-[#F8F9FB] max-w-7xl mx-auto px-2 sm:px-6 py-4 sm:py-12 pb-32 lg:pb-12"
     >
       {/* Mobile Collapsible Summary */}
       <div className="lg:hidden mb-6">
@@ -641,7 +641,7 @@ export default function Checkout() {
           </div>
 
           {/* Progress Indicator */}
-          <motion.div variants={itemVariants} className="relative flex items-center justify-between max-w-md mx-auto lg:mx-0 mb-8 sm:mb-12">
+          <motion.div variants={itemVariants} className="relative flex items-center justify-between max-w-md mx-auto lg:mx-0 mb-6 sm:mb-12">
             <div className="absolute left-0 right-0 top-1/2 h-1 bg-slate-200 -z-10 -translate-y-1/2 rounded-full"></div>
             <motion.div 
               className="absolute right-0 top-1/2 h-1 bg-slate-900 -z-10 -translate-y-1/2 rounded-full transition-all duration-500"
@@ -655,21 +655,21 @@ export default function Checkout() {
               { num: 3, label: 'الدفع', icon: CreditCard },
               { num: 4, label: 'المراجعة', icon: CheckCircle }
             ].map((s) => (
-              <div key={s.num} className="flex flex-col items-center gap-1.5 sm:gap-2 bg-[#F8F9FB] px-2 sm:px-3">
+              <div key={s.num} className="flex flex-col items-center gap-1 sm:gap-2 bg-[#F8F9FB] px-1.5 sm:px-3">
                 <motion.div 
                   animate={{ 
                     backgroundColor: step >= s.num ? '#0F172A' : '#ffffff',
                     color: step >= s.num ? '#ffffff' : '#94a3b8',
                     borderColor: step >= s.num ? '#0F172A' : '#e2e8f0',
-                    scale: step === s.num ? 1.1 : 1
+                    scale: step === s.num ? 1.05 : 1
                   }}
-                  className={`w-9 h-9 sm:w-11 sm:h-11 rounded-full flex items-center justify-center font-bold border-2 transition-all duration-300 ${
+                  className={`w-8 h-8 sm:w-11 sm:h-11 rounded-full flex items-center justify-center font-bold border-2 transition-all duration-300 ${
                     step >= s.num ? 'shadow-lg shadow-slate-900/20' : ''
                   }`}
                 >
-                  {step > s.num ? <CheckCircle className="w-5 h-5" /> : <s.icon className="w-5 h-5" />}
+                  {step > s.num ? <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5" /> : <s.icon className="w-4 h-4 sm:w-5 sm:h-5" />}
                 </motion.div>
-                <span className={`text-[10px] sm:text-xs font-bold transition-colors ${step >= s.num ? 'text-slate-900' : 'text-slate-400'}`}>
+                <span className={`text-[9px] sm:text-xs font-bold transition-colors ${step >= s.num ? 'text-slate-900' : 'text-slate-400'}`}>
                   {s.label}
                 </span>
               </div>
@@ -680,7 +680,7 @@ export default function Checkout() {
           <motion.div 
             ref={stepContainerRef}
             variants={itemVariants} 
-            className="bg-white rounded-2xl sm:rounded-[32px] p-4 sm:p-10 shadow-2xl shadow-slate-200/40 border border-slate-100 relative overflow-hidden"
+            className="bg-white rounded-2xl sm:rounded-[32px] p-3 sm:p-10 shadow-2xl shadow-slate-200/40 border border-slate-100 relative overflow-hidden"
           >
             <AnimatePresence mode="wait">
               {step === 1 && (
@@ -737,16 +737,6 @@ export default function Checkout() {
                         >
                           <Plus className={`w-6 h-6 ${selectedAddressId === 'new' ? 'text-slate-900' : 'text-slate-400'}`} />
                           <span className={`text-sm font-bold ${selectedAddressId === 'new' ? 'text-slate-900' : 'text-slate-500'}`}>إضافة عنوان جديد</span>
-                        </div>
-                        <div className="space-y-2 sm:col-span-2">
-                          <label className="text-sm font-bold text-slate-700">تعليمات التوصيل (اختياري)</label>
-                          <textarea 
-                            name="deliveryInstructions"
-                            value={formData.deliveryInstructions}
-                            onChange={handleInputChange}
-                            placeholder="مثلاً: بجوار المسجد، أو الاتصال قبل الوصول..."
-                            className="w-full px-5 py-4 rounded-2xl border border-slate-100 bg-slate-50/50 focus:ring-4 focus:ring-slate-900/10 focus:bg-white focus:border-slate-900 outline-none transition-all duration-300 min-h-[100px]"
-                          />
                         </div>
                       </div>
                     </div>

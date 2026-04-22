@@ -125,9 +125,9 @@ export default function Search() {
       variants={containerVariants}
       initial="hidden"
       animate="visible"
-      className="max-w-[1600px] mx-auto px-2 sm:px-6 py-8"
+      className="max-w-[1600px] mx-auto px-2 sm:px-6 py-4 sm:py-8"
     >
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4 sm:mb-8">
         <motion.h1 
           variants={itemVariants}
           className="text-xl sm:text-2xl font-bold text-carbon"

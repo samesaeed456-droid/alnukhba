@@ -64,33 +64,33 @@ export default function Category() {
   if (!categoryName) return null;
 
   return (
-    <div className="min-h-screen bg-slate-50/50 pt-24 pb-6">
+    <div className="min-h-screen bg-slate-50/50 pt-20 sm:pt-24 pb-6">
       <div className="max-w-[1600px] mx-auto px-2 sm:px-6 lg:px-8">
         {/* Breadcrumb */}
-        <nav className="flex items-center gap-2 text-sm text-slate-500 mb-8">
+        <nav className="flex items-center gap-2 text-[10px] sm:text-sm text-slate-500 mb-4 sm:mb-8 overflow-x-auto hide-scrollbar whitespace-nowrap">
           <FastLink to="/" className="hover:text-solar transition-colors">الرئيسية</FastLink>
-          <ChevronRight className="w-4 h-4" />
+          <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 shrink-0" />
           <span className="text-carbon font-bold">{categoryName}</span>
         </nav>
 
-        <div className="mb-8 flex flex-col sm:flex-row sm:items-end justify-between gap-6">
+        <div className="mb-4 sm:mb-8 flex flex-col sm:flex-row sm:items-end justify-between gap-4 sm:gap-6">
           <div className="flex-1">
-            <h1 className="text-2xl font-black text-carbon mb-2">{categoryName}</h1>
-            <p className="text-slate-500 mb-6">
-              اكتشف أحدث المنتجات في قسم {categoryName} ({filteredProducts.length} منتج)
+            <h1 className="text-xl sm:text-2xl font-black text-carbon mb-1 sm:mb-2">{categoryName}</h1>
+            <p className="text-[11px] sm:text-sm text-slate-500 mb-4 sm:mb-6">
+              قسم {categoryName} ({filteredProducts.length} منتج)
             </p>
 
             {/* Category Search Bar */}
-            <div className="relative max-w-2xl">
+            <div className="relative max-w-2xl px-1 sm:px-0">
               <div className="relative group">
                 <input 
                   type="text" 
                   value={searchQuery}
                   onChange={handleSearchChange}
-                  placeholder={`ابحث في قسم ${categoryName}...`}
-                  className="w-full bg-white text-carbon placeholder-slate-400 py-4 pr-12 pl-28 sm:pl-32 rounded-2xl focus:outline-none focus:ring-2 focus:ring-solar/30 border border-slate-200 transition-all text-sm font-bold shadow-sm"
+                  placeholder={`ابحث في ${categoryName}...`}
+                  className="w-full bg-white text-carbon placeholder-slate-400 py-3 sm:py-4 pr-10 sm:pr-12 pl-24 sm:pl-32 rounded-xl sm:rounded-2xl focus:outline-none focus:ring-2 focus:ring-solar/30 border border-slate-200 transition-all text-xs sm:text-sm font-bold shadow-sm"
                 />
-                <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300 group-focus-within:text-solar transition-colors" />
+                <Search className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-slate-300 group-focus-within:text-solar transition-colors" />
                 
                 <div className="absolute left-2 top-1/2 -translate-y-1/2 flex items-center gap-1.5 bg-slate-50/80 p-1.5 rounded-xl border border-slate-100 backdrop-blur-sm">
                   {searchQuery && (

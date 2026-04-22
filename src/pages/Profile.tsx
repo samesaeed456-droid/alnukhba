@@ -63,7 +63,7 @@ export default function Profile() {
       const sessionToken = options.sessionToken;
       const expectedChallenge = options.challenge;
 
-      const response = await startRegistration(options);
+      const response = await startRegistration({ optionsJSON: options });
       
       const verifyRes = await fetch('/api/webauthn/register/verify', {
         method: 'POST',

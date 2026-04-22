@@ -55,7 +55,7 @@ export default function Auth() {
 
       let response;
       try {
-        response = await startAuthentication(options);
+        response = await startAuthentication({ optionsJSON: options });
       } catch (authErr: any) {
          if (authErr.name === 'NotAllowedError') {
            setIsLoading(false);

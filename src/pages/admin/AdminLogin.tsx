@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Zap, Lock, ShieldCheck, Eye, EyeOff, Check, ArrowLeft, Loader2 } from 'lucide-react';
+import { Zap, Lock, ShieldCheck, Eye, EyeOff, Check, ArrowLeft, Loader2, Fingerprint } from 'lucide-react';
 import { FloatingInput } from '../../components/FloatingInput';
 import { Toaster, toast } from 'sonner';
 import { useStore } from '@/context/StoreContext';
+import { startAuthentication } from '@simplewebauthn/browser';
+import { signInWithCustomToken } from 'firebase/auth';
 import { 
   auth, db, doc, getDoc, loginWithEmail, signupWithEmail,
   query, collection, where, getDocs
@@ -21,6 +23,70 @@ export default function AdminLogin() {
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+
+  const handlePasskeyLogin = async () => {
+    setIsLoading(true);
+    localStorage.setItem('admin_attempt', 'true');
+    try {
+      const currentSessionId = localStorage.getItem('local_session_id') || 'anon';
+      
+      const res = await fetch('/api/webauthn/login/generate', {
+        method: 'POST',
+        headers: { 'x-session-id': currentSessionId }
+      });
+      
+      const resText = await res.text();
+      if (!res.ok) throw new Error(`Server returned ${res.status}: ${resText}`);
+      const options = JSON.parse(resText);
+      if (options.error) throw new Error(options.error);
+
+      const sessionToken = options.sessionToken;
+      const expectedChallenge = options.challenge;
+
+      let response;
+      try {
+        response = await startAuthentication({ optionsJSON: options });
+      } catch (authErr: any) {
+         if (authErr.name === 'NotAllowedError') {
+           setIsLoading(false);
+           return; 
+         }
+         throw authErr;
+      }
+
+      const verifyRes = await fetch('/api/webauthn/login/verify', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-session-id': currentSessionId
+        },
+        body: JSON.stringify({ response, challenge: expectedChallenge, sessionToken })
+      });
+      
+      const verifyText = await verifyRes.text();
+      if (!verifyRes.ok) throw new Error(`Server returned ${verifyRes.status}: ${verifyText}`);
+      const verifyData = JSON.parse(verifyText);
+      
+      if (verifyData.success) {
+        await signInWithCustomToken(auth, verifyData.customToken);
+        toast.success('تم تسجيل الدخول بالبصمة بنجاح!');
+        // Navigation will be handled by useEffect auth listener
+      } else {
+        throw new Error(verifyData.error || 'فشل التحقق');
+      }
+    } catch (err: any) {
+      console.error("[Admin Passkey Login Error]:", err);
+      if (err.name === 'NotAllowedError') {
+        toast.error('تم إلغاء العملية');
+      } else if (err.name === 'NotSupportedError') {
+        toast.error('المتصفح لا يدعم البصمة هنا. يرجى فتح المتصفح بشكل كامل.');
+      } else {
+        toast.error(`خطأ في البصمة: ${err.message || 'يرجى المحاولة بالطريقة التقليدية'}`);
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
   
   // Check if already logged in with authorized phone/email
   useEffect(() => {
@@ -76,6 +142,13 @@ export default function AdminLogin() {
           localStorage.setItem('admin_name', userData?.adminName || userData?.displayName || userData?.name || user.displayName || currentAdminName);
           localStorage.setItem('admin_role', currentAdminRole);
           navigate('/admin');
+        } else {
+          // If logged in but not an admin, we stay on login and maybe show a notice
+          // Only show if they explicitly tried to log in here
+          if (localStorage.getItem('admin_attempt') === 'true') {
+            toast.error('هذا الحساب ليس لديه صلاحيات إدارية');
+            localStorage.removeItem('admin_attempt');
+          }
         }
       }
       setIsCheckingAuth(false);
@@ -88,6 +161,7 @@ export default function AdminLogin() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    localStorage.setItem('admin_attempt', 'true');
 
     try {
       const loginEmail = getAdminDummyEmail(phone, countryCode);
@@ -317,9 +391,23 @@ export default function AdminLogin() {
                       icon={<Lock className="w-5 h-5" />}
                       iconPosition="start"
                       endElement={
-                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="p-2 text-slate-400">
-                          {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                        </button>
+                        <div className="h-full flex items-center pr-1">
+                          {!password ? (
+                            <button 
+                              type="button" 
+                              onClick={handlePasskeyLogin} 
+                              disabled={isLoading}
+                              className="px-4 h-full flex items-center justify-center text-orange-500 hover:text-orange-600 transition-all hover:scale-110 active:scale-95"
+                              title="دخول سريع بالبصمة"
+                            >
+                              <Fingerprint className="w-5 h-5" />
+                            </button>
+                          ) : (
+                            <button type="button" onClick={() => setShowPassword(!showPassword)} className="px-4 h-full flex items-center justify-center text-slate-400 hover:text-carbon">
+                              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </button>
+                          )}
+                        </div>
                       }
                       required
                       dir="ltr"

@@ -101,6 +101,7 @@ export interface UserProfile {
   createdAt?: string;
   notifications?: any[];
   orders?: any[];
+  currentSessionId?: string;
 }
 
 export interface Order {

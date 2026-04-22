@@ -4,10 +4,11 @@ import {
   User, Phone, MapPin, Package, Heart, LogOut, 
   ChevronLeft, Edit2, Check, Key, Globe, 
   MessageCircle, FileText, Shield, Trash2, Settings, Award, Camera, BadgeCheck, Plus, ChevronDown, CreditCard, ArrowDownToLine, Clock, ArrowUpRight, ArrowDownLeft,
-  Eye, EyeOff, AlertCircle, CheckCircle2, Search, Truck, UserPlus, HelpCircle, Smartphone,
+  Eye, EyeOff, AlertCircle, CheckCircle2, Search, Truck, UserPlus, HelpCircle, Smartphone, Fingerprint,
   ShieldAlert, Wallet, ChevronRight, Zap, MessageSquare, History, Lock, ShieldCheck
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { startRegistration } from '@simplewebauthn/browser';
 import { useStore } from '../context/StoreContext';
 import { Address } from '../types';
 import ConfirmationModal from '../components/ConfirmationModal';
@@ -37,6 +38,46 @@ export default function Profile() {
   const [deletionReason, setDeletionReason] = useState('');
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showAddAddress, setShowAddAddress] = useState(false);
+  const [hasPasskey, setHasPasskey] = useState(false);
+
+  const handleRegisterPasskey = useCallback(async () => {
+    if (!user) return;
+    setIsLoading(true);
+    try {
+      const res = await fetch('/api/webauthn/register/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ uid: user.uid, email: user.email || user.phone || 'user' })
+      });
+      const options = await res.json();
+      if (options.error) throw new Error(options.error);
+
+      const response = await startRegistration(options);
+      
+      const verifyRes = await fetch('/api/webauthn/register/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ uid: user.uid, response })
+      });
+      const verifyData = await verifyRes.json();
+      
+      if (verifyData.success) {
+        setHasPasskey(true);
+        showToast('تم إعداد الدخول بالبصمة بنجاح!', 'success');
+      } else {
+        throw new Error(verifyData.error || 'فشل التحقق');
+      }
+    } catch (err: any) {
+      console.error(err);
+      if (err.name === 'NotAllowedError') {
+         showToast('تم إلغاء عملية البصمة', 'info');
+      } else {
+         showToast('تعذر إعداد البصمة. تأكد من أن جهازك يدعم البصمة أو الوجه.', 'error');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user, showToast]);
 
   const allCities = useMemo(() => {
     const zoneCities = shippingZones.filter(z => z.isActive).flatMap(z => z.cities);
@@ -898,6 +939,27 @@ export default function Profile() {
                     setCurrentView('edit');
                   }} />
                   <MenuItem icon={Key} label="تغيير كلمة المرور" bg="bg-slate-50" iconColor="text-carbon" onClick={() => setShowPasswordModal(true)} />
+                  {/* Passkey Setup Button */}
+                  <div className="border-b border-slate-50 px-3 sm:px-4 py-3 sm:py-4 flex flex-col gap-2 hover:bg-slate-50 transition-colors">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3 sm:gap-4">
+                        <div className="w-10 h-10 shrink-0 rounded-xl bg-orange-50 flex items-center justify-center">
+                          <Fingerprint className="w-5 h-5 text-orange-500" />
+                        </div>
+                        <span className="font-bold text-sm sm:text-base text-carbon">الدخول بالبصمة (Passkey)</span>
+                      </div>
+                      <button 
+                         onClick={handleRegisterPasskey}
+                         disabled={isLoading}
+                         className="bg-carbon text-white text-xs sm:text-sm font-bold py-1.5 px-3 rounded-lg hover:bg-black transition-colors"
+                      >
+                         {hasPasskey ? 'تمت الإضافة' : 'تفعيل'}
+                      </button>
+                    </div>
+                    <p className="text-xs text-titanium/60 pr-14 leading-relaxed">
+                      سجل دخولك لاحقاً بلمسة واحدة باستخدام مستشعر البصمة أو الوجه في جهازك.
+                    </p>
+                  </div>
                   <MenuItem icon={MapPin} label="عناوين التوصيل" bg="bg-slate-50" iconColor="text-carbon" onClick={() => {
                       window.scrollTo(0, 0);
                       setCurrentView('addresses');

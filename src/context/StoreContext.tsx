@@ -353,10 +353,33 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
+        // Enforce single session policy
+        let localSessionId = localStorage.getItem('local_session_id');
+        if (!localSessionId) {
+          localSessionId = Math.random().toString(36).substring(2) + Date.now().toString(36);
+          localStorage.setItem('local_session_id', localSessionId);
+        }
+
+        // Update current session in Firestore
+        updateDoc(doc(db, 'users', firebaseUser.uid), {
+          currentSessionId: localSessionId,
+          lastActive: new Date().toISOString()
+        }).catch(err => console.error("Session update failed:", err));
+
         // Set up real-time listener for user document
         unsubUser = onSnapshot(doc(db, 'users', firebaseUser.uid), (docSnap) => {
           if (docSnap.exists()) {
             const userData = { ...docSnap.data(), uid: docSnap.id } as UserProfile;
+            
+            // Check for multi-device login
+            const currentLocalSession = localStorage.getItem('local_session_id');
+            if (userData.currentSessionId && currentLocalSession && userData.currentSessionId !== currentLocalSession) {
+              console.log("Session mismatch detected. Logging out...");
+              auth.signOut();
+              showToast('تم تسجيل الدخول من جهاز آخر، تم تسجيل خروجك لحماية حسابك', 'error');
+              return;
+            }
+
             setUser(userData);
             localStorage.setItem('store_user', JSON.stringify(userData));
           } else {
@@ -1954,6 +1977,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const logout = React.useCallback(async () => {
     try {
+      localStorage.removeItem('local_session_id');
       await auth.signOut();
       setUser(null);
       setWishlist([]);

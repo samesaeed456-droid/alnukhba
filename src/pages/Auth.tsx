@@ -1,7 +1,9 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { Lock, User, ArrowRight, AlertCircle, CheckCircle2, Eye, EyeOff, Zap, ChevronDown, ShieldCheck, Loader2, Smartphone } from 'lucide-react';
+import { Lock, User, ArrowRight, AlertCircle, CheckCircle2, Eye, EyeOff, Zap, ChevronDown, ShieldCheck, Loader2, Smartphone, Fingerprint } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { startAuthentication } from '@simplewebauthn/browser';
+import { signInWithCustomToken } from 'firebase/auth';
 import { useStore } from '../context/StoreContext';
 import { parseSmartError } from '../lib/errorUtils';
 import { 
@@ -28,6 +30,58 @@ export default function Auth() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, updateUser, showToast } = useStore();
+
+  const handlePasskeyLogin = async () => {
+    setIsLoading(true);
+    setError('');
+    try {
+      const currentSessionId = localStorage.getItem('local_session_id') || 'anon';
+      
+      const res = await fetch('/api/webauthn/login/generate', {
+        method: 'POST',
+        headers: { 'x-session-id': currentSessionId }
+      });
+      const options = await res.json();
+      if (options.error) throw new Error(options.error);
+
+      let response;
+      try {
+        response = await startAuthentication(options);
+      } catch (authErr: any) {
+         if (authErr.name === 'NotAllowedError') {
+           setIsLoading(false);
+           return; 
+         }
+         throw authErr;
+      }
+
+      const verifyRes = await fetch('/api/webauthn/login/verify', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-session-id': currentSessionId
+        },
+        body: JSON.stringify({ response })
+      });
+      
+      const verifyData = await verifyRes.json();
+      if (verifyData.success) {
+        await signInWithCustomToken(auth, verifyData.customToken);
+        showToast('تم تسجيل الدخول بالبصمة بنجاح!');
+        setTimeout(() => {
+          navigate(redirectPath);
+          window.scrollTo(0, 0);
+        }, 500);
+      } else {
+        throw new Error(verifyData.error || 'فشل التحقق');
+      }
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || "حدث خطأ أثناء الاتصال. يرجى المحاولة بالطريقة العادية.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const queryParams = new URLSearchParams(location.search);
   const redirectPath = queryParams.get('redirect') || '/profile';
@@ -197,10 +251,20 @@ export default function Auth() {
 
       if (response.ok && data.success) {
         const prevStep = (window as any)._authPrevStep;
+        
         if (prevStep === 'forgot_password') {
           setStep('reset_password');
           delete (window as any)._authPrevStep;
           setIsLoading(false);
+          return;
+        }
+
+        if (prevStep === 'login') {
+          const email = getDummyEmail(formData.countryCode, formData.phone);
+          await loginWithEmail(email, formData.password);
+          delete (window as any)._authPrevStep;
+          showToast('تم تسجيل الدخول بنجاح');
+          navigate(redirectPath);
           return;
         }
 
@@ -307,11 +371,37 @@ export default function Auth() {
 
     try {
       if (isLogin) {
-        // Direct login
+        // Enforce SMS verification for login too
         const email = getDummyEmail(formData.countryCode, formData.phone);
-        await loginWithEmail(email, formData.password);
-        showToast('تم تسجيل الدخول بنجاح');
-        navigate(redirectPath);
+        
+        try {
+          // First, verify credentials without fully logging in
+          // We'll sign in and then immediately out to confirm password is correct
+          const userCred = await loginWithEmail(email, formData.password);
+          await auth.signOut();
+          
+          // Now send OTP for multi-factor verification
+          const fullPhone = formData.countryCode + formData.phone;
+          const response = await fetch('/api/send-otp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ phone: fullPhone }),
+          });
+
+          const data = await response.json();
+
+          if (response.ok && data.success) {
+            setVerificationToken(data.token);
+            (window as any)._authPrevStep = 'login';
+            setStep('verification');
+            showToast('تم التحقق من كلمة المرور، يرجى إدخال كود التحقق المرسل لهاتفك');
+          } else {
+            setError(data.error || 'تعذر إرسال كود التحقق');
+          }
+        } catch (authErr: any) {
+          const smartError = parseSmartError(authErr);
+          setError(smartError.message);
+        }
       } else {
         // Signup requires OTP via backend
         const fullPhone = formData.countryCode + formData.phone;
@@ -798,6 +888,18 @@ export default function Auth() {
                         </AnimatePresence>
                       )}
                     </motion.button>
+                     
+                    {isLogin && (
+                      <button
+                        type="button"
+                        onClick={handlePasskeyLogin}
+                        disabled={isLoading}
+                        className="w-full h-12 sm:h-14 bg-slate-50 hover:bg-slate-100 disabled:opacity-50 text-carbon font-bold rounded-xl sm:rounded-2xl transition-all flex items-center justify-center gap-2 border border-slate-100 shadow-sm text-base sm:text-lg mt-3"
+                      >
+                         <Fingerprint className="w-6 h-6 text-orange-500" />
+                         تسجيل الدخول بالبصمة أو الوجه
+                      </button>
+                    )}
                   </form>
                 ) : step === 'forgot_password' ? (
                   <form onSubmit={handleForgotPassword} className="space-y-6 sm:space-y-7">

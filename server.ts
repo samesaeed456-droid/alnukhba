@@ -5,6 +5,8 @@ import dotenv from "dotenv";
 import { v2 as cloudinary } from 'cloudinary';
 import { initializeApp, cert, getApps } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
+import { getFirestore } from 'firebase-admin/firestore';
+import { generateRegistrationOptions, verifyRegistrationResponse, generateAuthenticationOptions, verifyAuthenticationResponse } from '@simplewebauthn/server';
 
 dotenv.config();
 
@@ -358,6 +360,150 @@ app.post("/api/verify-otp", (req, res) => {
   otpStore.delete(phone);
   res.json({ success: true });
 });
+
+// --- WEBAUTHN PASSKEYS ENDPOINTS ---
+const rpName = 'Elite Store';
+const webauthnChallenges = new Map<string, string>(); // uid -> challenge (or session -> challenge)
+
+app.post('/api/webauthn/register/generate', async (req, res) => {
+  const { uid, email } = req.body;
+  if (!uid || !email) return res.status(400).json({ error: 'Missing uid or email' });
+  
+  try {
+    const rpID = req.hostname === 'localhost' ? 'localhost' : req.hostname;
+    const options = await generateRegistrationOptions({
+      rpName,
+      rpID,
+      userID: new Uint8Array(Buffer.from(uid)),
+      userName: email,
+      attestationType: 'none',
+      authenticatorSelection: {
+        residentKey: 'preferred',
+        userVerification: 'preferred',
+      }
+    });
+    webauthnChallenges.set(`reg_${uid}`, options.challenge);
+    res.json(options);
+  } catch (error: any) {
+    console.error('[WebAuthn] Generate Reg Error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/webauthn/register/verify', async (req, res) => {
+  const { uid, response } = req.body;
+  if (!uid || !response) return res.status(400).json({ error: 'Missing uid or response' });
+
+  const expectedChallenge = webauthnChallenges.get(`reg_${uid}`);
+  if (!expectedChallenge) return res.status(400).json({ error: 'Challenge not found or expired' });
+
+  try {
+    const rpID = req.hostname === 'localhost' ? 'localhost' : req.hostname;
+    const origin = req.headers.origin || `http://${req.headers.host}`;
+    
+    const verification = await verifyRegistrationResponse({
+      response,
+      expectedChallenge,
+      expectedOrigin: origin,
+      expectedRPID: rpID,
+    });
+
+    if (verification.verified && verification.registrationInfo) {
+      webauthnChallenges.delete(`reg_${uid}`);
+      
+      const { credentialPublicKey, credentialID, counter } = verification.registrationInfo;
+      const passkeyId = response.id;
+      
+      const db = getFirestore();
+      await db.collection('passkeys').doc(passkeyId).set({
+        credentialPublicKey: Buffer.from(credentialPublicKey).toString('base64'),
+        credentialID: Buffer.from(credentialID).toString('base64'),
+        counter,
+        uid,
+        createdAt: new Date().toISOString()
+      });
+
+      res.json({ success: true });
+    } else {
+      res.status(400).json({ error: 'Verification failed' });
+    }
+  } catch (error: any) {
+    console.error('[WebAuthn] Verify Reg Error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/webauthn/login/generate', async (req, res) => {
+  try {
+    const rpID = req.hostname === 'localhost' ? 'localhost' : req.hostname;
+    const sessionId = req.headers['x-session-id'] as string || "anonymous";
+    const options = await generateAuthenticationOptions({
+      rpID,
+      userVerification: 'preferred',
+    });
+    webauthnChallenges.set(`auth_${sessionId}`, options.challenge);
+    res.json(options);
+  } catch (error: any) {
+    console.error('[WebAuthn] Generate Auth Error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/webauthn/login/verify', async (req, res) => {
+  const { response } = req.body;
+  const sessionId = req.headers['x-session-id'] as string || "anonymous";
+  
+  const expectedChallenge = webauthnChallenges.get(`auth_${sessionId}`);
+  if (!expectedChallenge) return res.status(400).json({ error: 'Challenge not found or expired' });
+
+  try {
+    const passkeyId = response.id;
+    const db = getFirestore();
+    const passkeyDoc = await db.collection('passkeys').doc(passkeyId).get();
+    
+    if (!passkeyDoc.exists) {
+      return res.status(400).json({ error: 'لم يتم العثور على البصمة في النظام. جرجى تسجيل الدخول بالطريقة العادية وربطها أولاً.' });
+    }
+    
+    const passkey = passkeyDoc.data()!;
+
+    const rpID = req.hostname === 'localhost' ? 'localhost' : req.hostname;
+    const origin = req.headers.origin || `http://${req.headers.host}`;
+
+    const verification = await verifyAuthenticationResponse({
+      response,
+      expectedChallenge,
+      expectedOrigin: origin,
+      expectedRPID: rpID,
+      authenticator: {
+        credentialPublicKey: new Uint8Array(Buffer.from(passkey.credentialPublicKey, 'base64')),
+        credentialID: new Uint8Array(Buffer.from(passkey.credentialID, 'base64')),
+        counter: passkey.counter,
+      }
+    });
+
+    if (verification.verified) {
+      webauthnChallenges.delete(`auth_${sessionId}`);
+      
+      await db.collection('passkeys').doc(passkeyId).update({ 
+        counter: verification.authenticationInfo.newCounter,
+        lastUsedAt: new Date().toISOString()
+      });
+      
+      const customToken = await getAuth().createCustomToken(passkey.uid);
+      res.json({ success: true, customToken });
+    } else {
+      res.status(400).json({ error: 'فشل التحقق من البصمة' });
+    }
+  } catch (error: any) {
+    console.error('[WebAuthn] Verify Auth Error:', error);
+    if (error.code === 'app/no-app') {
+       return res.status(500).json({ error: 'Firebase Admin ليس معداً. لا يمكن إنشاء توكن الدخول' });
+    }
+    res.status(500).json({ error: error.message });
+  }
+});
+// --- END WEBAUTHN ---
 
 async function startLocalServer() {
   console.log("Setting up Vite middleware for local dev...");

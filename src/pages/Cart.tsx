@@ -144,11 +144,11 @@ export default function Cart() {
       variants={containerVariants}
       initial="hidden"
       animate="visible"
-      className="max-w-[1600px] mx-auto px-4 sm:px-6 py-8"
+      className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-12"
     >
       <motion.h1 
         variants={itemVariants}
-        className="text-xl sm:text-2xl font-bold text-carbon mb-8"
+        className="text-2xl sm:text-3xl font-black text-carbon mb-8 sm:mb-12"
       >
         سلة التسوق
       </motion.h1>

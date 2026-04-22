@@ -23,11 +23,11 @@ export default function About() {
       variants={containerVariants}
       initial="hidden"
       animate="visible"
-      className="max-w-7xl mx-auto px-4 sm:px-6 py-12"
+      className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12"
     >
       {/* Hero Section */}
-      <motion.div variants={itemVariants} className="text-center mb-20">
-        <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 mb-6 leading-tight">
+      <motion.div variants={itemVariants} className="text-center mb-12 sm:mb-20">
+        <h1 className="text-2xl sm:text-4xl md:text-5xl font-black text-slate-900 mb-4 sm:mb-6 leading-tight">
           نحن هنا لنعيد تعريف <br className="hidden sm:block" />
           <motion.span 
             initial={{ opacity: 0, scale: 0.9 }}
@@ -38,30 +38,30 @@ export default function About() {
             تجربة التسوق الإلكتروني
           </motion.span>
         </h1>
-        <p className="text-lg sm:text-xl text-slate-500 max-w-3xl mx-auto leading-relaxed">
+        <p className="text-sm sm:text-xl text-slate-500 max-w-3xl mx-auto leading-relaxed">
           منذ تأسيسنا في عام 2020، أخذنا على عاتقنا مهمة توفير أحدث المنتجات التقنية والإلكترونية بأفضل الأسعار، مع التركيز التام على جودة الخدمة ورضا العميل.
         </p>
       </motion.div>
 
       {/* Image Grid */}
-      <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 mb-24">
+      <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 mb-16 sm:mb-24">
         <motion.div 
           whileHover={{ y: -10 }}
-          className="md:col-span-2 h-64 sm:h-96 rounded-3xl overflow-hidden shadow-lg relative group"
+          className="md:col-span-2 h-56 sm:h-96 rounded-2xl sm:rounded-3xl overflow-hidden shadow-lg relative group"
         >
           <img 
             src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&q=80&w=1600" 
             alt="Our Team" 
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-8">
-            <h3 className="text-xl font-bold text-white">فريق عمل شغوف</h3>
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-6 sm:p-8">
+            <h3 className="text-lg sm:text-xl font-bold text-white">فريق عمل شغوف</h3>
           </div>
         </motion.div>
-        <div className="flex flex-col gap-4 sm:gap-6">
+        <div className="grid grid-cols-2 md:flex md:flex-col gap-4 sm:gap-6">
           <motion.div 
             whileHover={{ y: -5 }}
-            className="h-48 sm:h-[calc(50%-12px)] rounded-3xl overflow-hidden shadow-lg relative group"
+            className="h-40 sm:h-[calc(50%-12px)] rounded-2xl sm:rounded-3xl overflow-hidden shadow-lg relative group"
           >
             <img 
               src="https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=800" 
@@ -72,7 +72,7 @@ export default function About() {
           </motion.div>
           <motion.div 
             whileHover={{ y: -5 }}
-            className="h-48 sm:h-[calc(50%-12px)] rounded-3xl overflow-hidden shadow-lg relative group"
+            className="h-40 sm:h-[calc(50%-12px)] rounded-2xl sm:rounded-3xl overflow-hidden shadow-lg relative group"
           >
             <img 
               src="https://images.unsplash.com/photo-1556761175-5973dc0f32e7?auto=format&fit=crop&q=80&w=800" 
@@ -85,15 +85,15 @@ export default function About() {
       </motion.div>
 
       {/* Core Values */}
-      <div className="mb-24">
-        <motion.div variants={itemVariants} className="text-center mb-12">
-          <h2 className="text-2xl font-black text-slate-900 mb-4">قيمنا الأساسية</h2>
-          <p className="text-slate-500 max-w-2xl mx-auto">
+      <div className="mb-16 sm:mb-24">
+        <motion.div variants={itemVariants} className="text-center mb-8 sm:mb-12">
+          <h2 className="text-xl sm:text-2xl font-black text-slate-900 mb-3 sm:mb-4">قيمنا الأساسية</h2>
+          <p className="text-sm sm:text-base text-slate-500 max-w-2xl mx-auto px-4">
             نؤمن بأن النجاح الحقيقي يبنى على أسس وقيم راسخة لا نحيد عنها في تعاملاتنا اليومية.
           </p>
         </motion.div>
 
-        <motion.div variants={containerVariants} className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <motion.div variants={containerVariants} className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-8">
           {[
             {
               icon: Target,
@@ -115,13 +115,13 @@ export default function About() {
               key={idx} 
               variants={itemVariants}
               whileHover={{ y: -10 }}
-              className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow"
+              className="bg-white p-6 sm:p-8 rounded-2xl sm:rounded-3xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow"
             >
-              <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center mb-6">
-                <val.icon className="w-7 h-7 text-blue-600" />
+              <div className="w-12 h-12 sm:w-14 sm:h-14 bg-blue-50 rounded-xl sm:rounded-2xl flex items-center justify-center mb-4 sm:mb-6">
+                <val.icon className="w-6 h-6 sm:w-7 sm:h-7 text-blue-600" />
               </div>
-              <h3 className="text-xl font-bold text-slate-900 mb-3">{val.title}</h3>
-              <p className="text-slate-500 leading-relaxed">{val.desc}</p>
+              <h3 className="text-lg sm:text-xl font-bold text-slate-900 mb-2 sm:mb-3">{val.title}</h3>
+              <p className="text-xs sm:text-base text-slate-500 leading-relaxed">{val.desc}</p>
             </motion.div>
           ))}
         </motion.div>
@@ -130,7 +130,7 @@ export default function About() {
       {/* Stats */}
       <motion.div 
         variants={itemVariants}
-        className="bg-slate-900 rounded-3xl p-12 sm:p-16 text-white relative overflow-hidden"
+        className="bg-slate-900 rounded-2xl sm:rounded-3xl p-8 sm:p-16 text-white relative overflow-hidden"
       >
         <motion.div 
           animate={{ scale: [1, 1.2, 1], opacity: [0.2, 0.3, 0.2] }}
@@ -143,7 +143,7 @@ export default function About() {
           className="absolute bottom-0 left-0 w-64 h-64 bg-indigo-600/20 rounded-full translate-y-1/2 -translate-x-1/2 blur-3xl"
         ></motion.div>
         
-        <div className="relative z-10 grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+        <div className="relative z-10 grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 text-center">
           {[
             { num: "+50K", label: "عميل سعيد" },
             { num: "+10K", label: "منتج متاح" },
@@ -156,12 +156,12 @@ export default function About() {
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
               transition={{ delay: idx * 0.1 }}
-              className="space-y-2"
+              className="space-y-1 sm:space-y-2"
             >
-              <div className="text-3xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-white/60">
+              <div className="text-2xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-white/60">
                 {stat.num}
               </div>
-              <div className="text-slate-400 font-bold">{stat.label}</div>
+              <div className="text-[10px] sm:text-base text-slate-400 font-bold uppercase tracking-wider">{stat.label}</div>
             </motion.div>
           ))}
         </div>

@@ -141,18 +141,18 @@ export default function TrackOrder() {
         className="max-w-7xl mx-auto px-4 sm:px-6"
       >
         {/* Header Section */}
-        <motion.div variants={itemVariants} className="text-center mb-10">
-          <Link to="/" className="inline-flex items-center justify-center w-12 h-12 bg-white rounded-2xl mb-6 border border-bg-hover text-carbon hover:bg-bg-hover transition-all shadow-lg">
+        <motion.div variants={itemVariants} className="text-center mb-8 sm:mb-10">
+          <Link to="/" className="inline-flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 bg-white rounded-xl sm:rounded-2xl mb-4 sm:mb-6 border border-bg-hover text-carbon hover:bg-bg-hover transition-all shadow-lg">
             <ArrowRight className="w-5 h-5" />
           </Link>
-          <h1 className="text-3xl sm:text-4xl font-black text-carbon mb-3 tracking-tight">تتبع مسار طلبك</h1>
-          <p className="text-muted text-sm sm:text-base max-w-md mx-auto">
+          <h1 className="text-2xl sm:text-4xl font-black text-carbon mb-2 sm:mb-3 tracking-tight">تتبع مسار طلبك</h1>
+          <p className="text-muted text-xs sm:text-base max-w-md mx-auto px-4 font-medium">
             أدخل رقم الطلب الخاص بك لمعرفة حالته ومتابعة مساره خطوة بخطوة حتى يصل إليك.
           </p>
         </motion.div>
 
         {/* Search Box */}
-        <motion.div variants={itemVariants} className="bg-white rounded-[2rem] p-4 sm:p-6 shadow-xl border border-bg-hover mb-8">
+        <motion.div variants={itemVariants} className="bg-white rounded-2xl sm:rounded-[2rem] p-4 sm:p-6 shadow-xl border border-bg-hover mb-6 sm:mb-8">
           <form onSubmit={handleTrack} className="flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1">
               <FloatingInput 
@@ -171,7 +171,7 @@ export default function TrackOrder() {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               disabled={isTracking || !orderId.trim()}
-              className="h-14 px-8 bg-carbon hover:bg-black disabled:bg-slate-200 disabled:cursor-not-allowed text-white font-bold rounded-2xl transition-all flex items-center justify-center gap-2 shadow-lg sm:w-auto w-full"
+              className="h-14 px-8 bg-carbon hover:bg-black disabled:bg-slate-200 disabled:cursor-not-allowed text-white font-black rounded-2xl transition-all flex items-center justify-center gap-2 shadow-lg sm:w-auto w-full"
             >
               {isTracking ? (
                 <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}>
@@ -194,10 +194,10 @@ export default function TrackOrder() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              className="space-y-6"
+              className="space-y-4 sm:space-y-6"
             >
               {/* Order Info Cards */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
                 {[
                   { label: 'حالة الطلب', value: getStatusText(trackedOrder.status), icon: Clock, color: 'text-solar', bg: 'bg-solar/10' },
                   { label: 'رقم الطلب', value: `#${trackedOrder.id}`, icon: Package, color: 'text-solar', bg: 'bg-solar/10' },
@@ -209,13 +209,13 @@ export default function TrackOrder() {
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: idx * 0.1 }}
-                    className="bg-bg-card rounded-2xl p-4 shadow-lg border border-bg-hover flex flex-col items-center text-center gap-2"
+                    className="bg-white rounded-xl sm:rounded-2xl p-3 sm:p-4 shadow-lg border border-bg-hover flex flex-col items-center text-center gap-1 sm:gap-2"
                   >
-                    <div className={`w-10 h-10 rounded-full ${info.bg} ${info.color} flex items-center justify-center mb-1`}>
-                      <info.icon className="w-5 h-5" />
+                    <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full ${info.bg} ${info.color} flex items-center justify-center mb-1`}>
+                      <info.icon className="w-4 h-4 sm:w-5 sm:h-5" />
                     </div>
-                    <div className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase">{info.label}</div>
-                    <div className="text-xs sm:text-sm font-black text-carbon truncate w-full">{info.value}</div>
+                    <div className="text-[9px] sm:text-xs font-bold text-slate-400 uppercase">{info.label}</div>
+                    <div className="text-[10px] sm:text-sm font-black text-carbon truncate w-full">{info.value}</div>
                   </motion.div>
                 ))}
               </div>
@@ -225,9 +225,9 @@ export default function TrackOrder() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
-                className="bg-white rounded-[2rem] p-6 sm:p-10 shadow-xl border border-bg-hover"
+                className="bg-white rounded-2xl sm:rounded-[2rem] p-5 sm:p-10 shadow-xl border border-bg-hover"
               >
-                <h3 className="text-lg font-black text-carbon mb-8 flex items-center gap-2">
+                <h3 className="text-base sm:text-lg font-black text-carbon mb-6 sm:mb-8 flex items-center gap-2">
                   <MapPin className="w-5 h-5 text-solar" />
                   مسار الطلب
                 </h3>
@@ -243,7 +243,7 @@ export default function TrackOrder() {
                     />
                   </div>
 
-                  <div className="space-y-8 sm:space-y-10">
+                  <div className="space-y-6 sm:space-y-10">
                     {getSteps(trackedOrder).map((step, idx) => (
                       <motion.div 
                         key={step.id} 
@@ -253,12 +253,12 @@ export default function TrackOrder() {
                         className="relative flex items-start gap-4 sm:gap-6"
                       >
                         {/* Status Node */}
-                        <div className="absolute -right-[24px] sm:-right-[32px] top-0">
+                        <div className="absolute -right-[23px] sm:-right-[32px] top-0">
                           <motion.div 
                             initial={{ scale: 0 }}
                             animate={{ scale: 1 }}
                             transition={{ delay: idx * 0.15 + 0.6, type: "spring" }}
-                            className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full border-4 border-white flex items-center justify-center z-10 transition-colors shadow-sm ${
+                            className={`w-5 h-5 sm:w-8 sm:h-8 rounded-full border-4 border-white flex items-center justify-center z-10 transition-colors shadow-sm ${
                               step.status === 'completed' ? 'bg-emerald-500 text-white' : 
                               step.status === 'current' ? 'bg-solar text-white' : 
                               step.status === 'cancelled' ? 'bg-red-500 text-white' :
@@ -272,7 +272,7 @@ export default function TrackOrder() {
                                 transition={{ duration: 1.5, repeat: Infinity }}
                               />
                             )}
-                            <step.icon className="w-3 h-3 sm:w-4 sm:h-4" />
+                            <step.icon className="w-2.5 h-2.5 sm:w-4 sm:h-4" />
                           </motion.div>
                         </div>
 
@@ -284,7 +284,7 @@ export default function TrackOrder() {
                           }`}>
                             {step.title}
                           </h4>
-                          <p className="text-xs sm:text-sm text-slate-400 flex items-center gap-1">
+                          <p className="text-[10px] sm:text-sm text-slate-400 flex items-center gap-1 font-medium">
                             <Clock className="w-3 h-3" />
                             {step.date}
                           </p>
@@ -300,23 +300,23 @@ export default function TrackOrder() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5 }}
-                className="bg-white rounded-[2rem] shadow-xl border border-bg-hover overflow-hidden"
+                className="bg-white rounded-2xl sm:rounded-[2rem] shadow-xl border border-bg-hover overflow-hidden"
               >
                 <button 
                   onClick={() => setShowItems(!showItems)}
-                  className="w-full flex items-center justify-between p-6 sm:p-8 bg-white hover:bg-bg-hover transition-colors group"
+                  className="w-full flex items-center justify-between p-5 sm:p-8 bg-white hover:bg-bg-hover transition-colors group"
                 >
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-bg-section rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                      <Receipt className="w-6 h-6 text-solar" />
+                  <div className="flex items-center gap-3 sm:gap-4">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-bg-section rounded-xl sm:rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <Receipt className="w-5 h-5 sm:w-6 sm:h-6 text-solar" />
                     </div>
                     <div className="text-right">
-                      <h4 className="font-black text-carbon text-lg">تفاصيل الفاتورة</h4>
-                      <p className="text-sm text-slate-400">{trackedOrder.items.length} منتجات • {formatPrice(trackedOrder.total)}</p>
+                      <h4 className="font-black text-carbon text-base sm:text-lg">تفاصيل الفاتورة</h4>
+                      <p className="text-[11px] sm:text-sm text-slate-400 font-medium">{trackedOrder.items.length} منتجات • {formatPrice(trackedOrder.total)}</p>
                     </div>
                   </div>
                   <motion.div animate={{ rotate: showItems ? 180 : 0 }}>
-                    <ChevronDown className="w-6 h-6 text-slate-400" />
+                    <ChevronDown className="w-5 h-5 sm:w-6 sm:h-6 text-slate-400" />
                   </motion.div>
                 </button>
 
@@ -328,47 +328,47 @@ export default function TrackOrder() {
                       exit={{ height: 0, opacity: 0 }}
                       className="overflow-hidden border-t border-bg-hover bg-white"
                     >
-                      <div className="p-6 sm:p-10 space-y-8 bg-white">
+                      <div className="p-4 sm:p-10 space-y-6 sm:space-y-8 bg-white">
                         {/* Header: Logo & Store Info vs Invoice Title */}
-                        <div className="flex flex-col sm:flex-row justify-between items-start gap-6 border-b border-bg-hover pb-8">
-                          <div className="flex items-center gap-4">
-                            <div className="w-16 h-16 bg-carbon rounded-2xl flex items-center justify-center text-white shrink-0">
-                              <Store className="w-8 h-8" />
+                        <div className="flex flex-col sm:flex-row justify-between items-start gap-4 sm:gap-6 border-b border-bg-hover pb-6 sm:pb-8">
+                          <div className="flex items-center gap-3 sm:gap-4">
+                            <div className="w-12 h-12 sm:w-16 sm:h-16 bg-carbon rounded-xl sm:rounded-2xl flex items-center justify-center text-white shrink-0">
+                              <Store className="w-6 h-6 sm:w-8 sm:h-8" />
                             </div>
                             <div>
-                              <h2 className="text-2xl font-black text-carbon">متجر النخبة</h2>
-                              <p className="text-sm text-slate-400 mt-1">تعز - الراهدة جوار ورشة عبد الكافي للألمنيوم</p>
-                              <p className="text-sm text-slate-400">info@alnukhba.store</p>
+                              <h2 className="text-lg sm:text-2xl font-black text-carbon">متجر النخبة</h2>
+                              <p className="text-[10px] sm:text-sm text-slate-400 mt-0.5">تعز - الراهدة جوار ورشة عبد الكافي للألمنيوم</p>
+                              <p className="text-[10px] sm:text-sm text-slate-400">info@alnukhba.store</p>
                             </div>
                           </div>
-                          <div className="text-right sm:text-left">
-                            <h1 className="text-4xl font-black text-carbon mb-2 uppercase tracking-wider">فاتورة</h1>
-                            <p className="text-lg font-bold text-slate-400">رقم الفاتورة: #{trackedOrder.id}</p>
-                            <p className="text-sm text-slate-400 mt-1">تاريخ الإصدار: {new Date((trackedOrder.date as any)?.seconds ? (trackedOrder.date as any).seconds * 1000 : trackedOrder.date).toLocaleDateString('ar-YE', { year: 'numeric', month: 'numeric', day: 'numeric' })}</p>
+                          <div className="text-right sm:text-left w-full sm:w-auto">
+                            <h1 className="text-2xl sm:text-4xl font-black text-carbon mb-1 sm:mb-2 uppercase tracking-wider">فاتورة</h1>
+                            <p className="text-lg sm:text-lg font-bold text-slate-400">رقم الفاتورة: #{trackedOrder.id}</p>
+                            <p className="text-[10px] sm:text-sm text-slate-400 mt-1">تاريخ الإصدار: {new Date((trackedOrder.date as any)?.seconds ? (trackedOrder.date as any).seconds * 1000 : trackedOrder.date).toLocaleDateString('ar-YE', { year: 'numeric', month: 'numeric', day: 'numeric' })}</p>
                           </div>
                         </div>
 
                         {/* Customer & Order Meta */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 bg-bg-section p-6 rounded-2xl border border-bg-hover">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-8 bg-bg-section p-4 sm:p-6 rounded-xl sm:rounded-2xl border border-bg-hover">
                           <div>
-                            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">فاتورة إلى</h3>
-                            <p className="text-lg font-bold text-carbon">{trackedOrder.customerName || user?.name || 'عميل المتجر'}</p>
-                            <p className="text-sm text-slate-500 mt-1">{trackedOrder.customerPhone || user?.phone || 'رقم الجوال غير محدد'}</p>
-                            <p className="text-sm text-slate-500">{trackedOrder.shippingAddress || user?.address || 'اليمن'}</p>
+                            <h3 className="text-[9px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 sm:mb-3">فاتورة إلى</h3>
+                            <p className="text-base sm:text-lg font-bold text-carbon">{trackedOrder.customerName || user?.name || 'عميل المتجر'}</p>
+                            <p className="text-xs sm:text-sm text-slate-500 mt-1">{trackedOrder.customerPhone || user?.phone || 'رقم الجوال غير محدد'}</p>
+                            <p className="text-xs sm:text-sm text-slate-500">{trackedOrder.shippingAddress || user?.address || 'اليمن'}</p>
                           </div>
                           <div className="sm:text-left">
-                            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">تفاصيل الدفع والتوصيل</h3>
-                            <p className="text-sm text-slate-500 mb-1"><span className="font-medium text-carbon">طريقة الدفع:</span> {trackedOrder.paymentMethod}</p>
-                            <p className="text-sm text-slate-500 mb-1"><span className="font-medium text-carbon">حالة الطلب:</span> {trackedOrder.status === 'delivered' ? 'مكتمل' : 'قيد المعالجة'}</p>
-                            <p className="text-sm text-slate-500 mb-1"><span className="font-medium text-carbon">طريقة التوصيل:</span> {trackedOrder.shippingMethod === 'pickup' ? 'استلام من الفرع' : 'توصيل الى العنوان'}</p>
+                            <h3 className="text-[9px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 sm:mb-3">تفاصيل الدفع والتوصيل</h3>
+                            <p className="text-xs sm:text-sm text-slate-500 mb-1"><span className="font-bold text-carbon">طريقة الدفع:</span> {trackedOrder.paymentMethod}</p>
+                            <p className="text-xs sm:text-sm text-slate-500 mb-1"><span className="font-bold text-carbon">حالة الطلب:</span> {trackedOrder.status === 'delivered' ? 'مكتمل' : 'قيد المعالجة'}</p>
+                            <p className="text-xs sm:text-sm text-slate-500 mb-1"><span className="font-bold text-carbon">طريقة التوصيل:</span> {trackedOrder.shippingMethod === 'pickup' ? 'استلام من الفرع' : 'توصيل الى العنوان'}</p>
                             {trackedOrder.deliveryInstructions && (
-                              <p className="text-sm text-slate-500 mb-1"><span className="font-medium text-carbon">تعليمات التوصيل:</span> {trackedOrder.deliveryInstructions}</p>
+                              <p className="text-xs sm:text-sm text-slate-500 mb-1"><span className="font-bold text-carbon">تعليمات التوصيل:</span> {trackedOrder.deliveryInstructions}</p>
                             )}
                           </div>
                         </div>
 
-                        {/* Items Table */}
-                        <div className="overflow-x-auto">
+                        {/* Items Table - Desktop view */}
+                        <div className="hidden sm:block overflow-x-auto">
                           <table className="w-full text-right border-collapse">
                             <thead>
                               <tr className="border-b-2 border-bg-hover">
@@ -401,47 +401,65 @@ export default function TrackOrder() {
                           </table>
                         </div>
 
+                        {/* Mobile Item Cards */}
+                        <div className="sm:hidden space-y-3">
+                          {trackedOrder.items?.map((item, idx) => (
+                            <div key={idx} className="bg-bg-section rounded-xl p-3 border border-bg-hover flex gap-3">
+                              <div className="w-14 h-14 bg-white rounded-lg border border-bg-hover overflow-hidden shrink-0">
+                                <img src={item.product?.image || undefined} alt={item.product?.name} className="w-full h-full object-cover" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs font-bold text-carbon truncate">{item.product?.name || 'منتج محذوف'}</p>
+                                <div className="flex justify-between items-center mt-1">
+                                  <p className="text-[10px] text-slate-500">{item.quantity} × {formatPrice(item.product?.price || 0)}</p>
+                                  <p className="text-xs font-black text-carbon">{formatPrice((item.product?.price || 0) * item.quantity)}</p>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+
                         {/* Totals */}
-                        <div className="flex flex-col sm:flex-row justify-between items-start gap-8 pt-6 border-t border-bg-hover">
+                        <div className="flex flex-col sm:flex-row justify-between items-start gap-6 sm:gap-8 pt-6 border-t border-bg-hover">
                           <div className="w-full sm:w-1/2">
                             <div className="bg-bg-section p-4 rounded-xl border border-bg-hover">
-                              <div className="flex items-center gap-3 mb-2">
-                                <ShieldCheck className="w-5 h-5 text-state-success" />
-                                <p className="font-bold text-carbon text-sm">معلومات هامة</p>
+                              <div className="flex items-center gap-2 mb-2">
+                                <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5 text-state-success" />
+                                <p className="font-bold text-carbon text-[10px] sm:text-sm">معلومات هامة</p>
                               </div>
-                              <p className="text-xs text-slate-400 leading-relaxed">
+                              <p className="text-[9px] sm:text-xs text-slate-400 leading-relaxed font-medium">
                                 يرجى الاحتفاظ بهذه الفاتورة لضمان حقوقك في الاسترجاع أو الاستبدال خلال 14 يوماً من تاريخ الشراء وفقاً لسياسة المتجر.
                               </p>
                             </div>
                           </div>
                           
-                          <div className="w-full sm:w-1/2 space-y-3">
-                            <div className="flex justify-between items-center text-sm">
-                              <span className="text-slate-400">المجموع الفرعي:</span>
+                          <div className="w-full sm:w-1/2 space-y-2 sm:space-y-3">
+                            <div className="flex justify-between items-center text-xs sm:text-sm">
+                              <span className="text-slate-400 font-bold">المجموع الفرعي:</span>
                               <span className="font-bold text-carbon">{formatPrice(trackedOrder.subtotal || trackedOrder.items.reduce((sum, item) => sum + (item.product.price * item.quantity), 0))}</span>
                             </div>
-                            <div className="flex justify-between items-center text-sm">
-                              <span className="text-slate-400">رسوم التوصيل:</span>
+                            <div className="flex justify-between items-center text-xs sm:text-sm">
+                              <span className="text-slate-400 font-bold">رسوم التوصيل:</span>
                               <span className="font-bold text-carbon">{formatPrice(trackedOrder.shippingFee || (trackedOrder.shippingMethod === 'delivery' ? 7000 : 0))}</span>
                             </div>
-                            <div className="flex justify-between items-center text-sm">
-                              <span className="text-slate-400">الخصم:</span>
+                            <div className="flex justify-between items-center text-xs sm:text-sm">
+                              <span className="text-slate-400 font-bold">الخصم:</span>
                               <span className={`font-bold ${trackedOrder.discountAmount > 0 ? 'text-emerald-500' : 'text-carbon'}`}>
                                 {trackedOrder.discountAmount > 0 ? `-${formatPrice(trackedOrder.discountAmount)}` : formatPrice(0)}
                               </span>
                             </div>
                             <div className="h-px w-full bg-bg-hover my-2" />
                             <div className="flex justify-between items-center">
-                              <span className="text-lg font-black text-carbon">الإجمالي الكلي:</span>
-                              <span className="text-2xl font-black text-solar">{formatPrice(trackedOrder.total)}</span>
+                              <span className="text-base sm:text-lg font-black text-carbon">الإجمالي الكلي:</span>
+                              <span className="text-xl sm:text-2xl font-black text-solar">{formatPrice(trackedOrder.total)}</span>
                             </div>
                           </div>
                         </div>
 
                         {/* Footer */}
-                        <div className="text-center pt-8 mt-8 border-t border-bg-hover">
-                          <p className="text-sm font-bold text-carbon mb-1">شكراً لتسوقكم معنا!</p>
-                          <p className="text-xs text-slate-400">alnukhba.store</p>
+                        <div className="text-center pt-6 sm:pt-8 mt-6 sm:mt-8 border-t border-bg-hover">
+                          <p className="text-[10px] sm:text-sm font-bold text-carbon mb-1">شكراً لتسوقكم معنا!</p>
+                          <p className="text-[10px] font-bold text-slate-400">alnukhba.store</p>
                         </div>
                       </div>
                     </motion.div>

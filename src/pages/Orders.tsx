@@ -6,11 +6,9 @@ import { useStore } from '../context/StoreContext';
 import PriceDisplay from '../components/PriceDisplay';
 
 export default function Orders() {
-  const { orders, formatPrice, user } = useStore();
+  const { orders, user } = useStore();
 
   const userOrders = useMemo(() => {
-    // If admin, we have all orders in 'orders', so we must filter by user ID.
-    // If normal user, the context already filtered them by uid via Firestore query.
     if (user?.role === 'admin') {
       return orders.filter(o => o.userId === user.uid);
     }
@@ -65,16 +63,16 @@ export default function Orders() {
       variants={containerVariants}
       initial="hidden"
       animate="visible"
-      className="max-w-7xl mx-auto px-4 py-6 sm:py-8 mb-20"
+      className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-12 mb-20"
     >
-      <div className="flex items-center justify-between mb-6">
-        <motion.div variants={itemVariants} className="flex items-center gap-3">
-          <Link to="/profile" className="p-2 bg-white rounded-xl border border-slate-100 hover:bg-slate-50 transition-colors shadow-sm">
-            <ChevronRight className="w-5 h-5 text-carbon" />
+      <div className="flex items-center justify-between mb-8">
+        <motion.div variants={itemVariants} className="flex items-center gap-4">
+          <Link to="/profile" className="w-10 h-10 flex items-center justify-center bg-white rounded-xl border border-slate-100 hover:bg-slate-50 transition-all shadow-sm group">
+            <ChevronRight className="w-5 h-5 text-carbon group-hover:translate-x-0.5 transition-transform" />
           </Link>
           <div>
-            <h1 className="text-xl font-bold text-carbon">طلباتي</h1>
-            <p className="text-xs text-titanium/60 mt-0.5">سجل مشترياتك وتتبع الطلبات</p>
+            <h1 className="text-2xl sm:text-3xl font-black text-carbon tracking-tight">طلباتي</h1>
+            <p className="text-xs sm:text-sm text-slate-400 font-bold mt-0.5">سجل مشترياتك وتتبع طلباتك خطوة بخطوة</p>
           </div>
         </motion.div>
       </div>
@@ -82,79 +80,76 @@ export default function Orders() {
       {userOrders.length === 0 ? (
         <motion.div 
           variants={itemVariants}
-          className="bg-white rounded-2xl p-8 sm:p-12 text-center border border-slate-100 shadow-sm"
+          className="bg-white rounded-[2rem] p-10 sm:p-20 text-center border border-slate-100 shadow-xl"
         >
-          <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-100">
-            <ShoppingBag className="w-8 h-8 text-slate-300" />
+          <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6 border border-slate-100 shadow-inner">
+            <ShoppingBag className="w-10 h-10 text-slate-300" />
           </div>
-          <h2 className="text-lg font-bold text-carbon mb-2">لا توجد طلبات بعد</h2>
-          <p className="text-sm text-titanium/60 mb-6">ابدأ التسوق الآن وأضف منتجاتك المفضلة للسلة</p>
-          <Link to="/" className="inline-flex items-center gap-2 bg-carbon hover:bg-carbon/90 text-white px-6 py-2.5 rounded-xl text-sm font-bold transition-colors shadow-sm">
-            تصفح المنتجات
+          <h2 className="text-xl font-black text-carbon mb-2">لا توجد طلبات بعد</h2>
+          <p className="text-sm text-slate-400 font-bold mb-8 max-w-xs mx-auto">ابدأ التسوق الآن واكتشف أحدث المنتجات والعروض الحصرية التي نقدمها لك.</p>
+          <Link to="/" className="inline-flex items-center gap-3 bg-carbon hover:bg-black text-white px-8 py-3.5 rounded-xl text-sm font-black transition-all shadow-lg shadow-carbon/20">
+            اذهب للتسوق
             <ArrowLeft className="w-4 h-4" />
           </Link>
         </motion.div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {userOrders.map((order) => (
             <motion.div 
               key={order.id}
               variants={itemVariants}
-              className="bg-white rounded-2xl overflow-hidden border border-slate-100 shadow-sm flex flex-col"
+              className="bg-white rounded-2xl overflow-hidden border border-slate-100 shadow-xl flex flex-col group hover:border-carbon/20 transition-all"
             >
-              {/* Order Header */}
-              <div className="p-4 border-b border-slate-50 flex items-center justify-between bg-slate-50/50">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-white border border-slate-100 flex items-center justify-center shadow-sm shrink-0">
-                    <Package className="w-5 h-5 text-carbon" />
+              <div className="p-5 border-b border-slate-50 flex items-center justify-between bg-slate-50/30">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-white border border-slate-100 flex items-center justify-center shadow-sm shrink-0 group-hover:scale-110 transition-transform">
+                    <Package className="w-6 h-6 text-carbon" />
                   </div>
                   <div>
-                    <div className="font-bold text-carbon text-sm">طلب #{order.id}</div>
-                    <div className="text-xs text-titanium/60 mt-0.5">{new Date((order.date as any)?.seconds ? (order.date as any).seconds * 1000 : order.date).toLocaleDateString('ar-EG', { year: 'numeric', month: 'short', day: 'numeric' })}</div>
+                    <div className="font-black text-carbon text-sm sm:text-base tracking-tight">طلب #{order.id}</div>
+                    <div className="text-[10px] sm:text-xs text-slate-400 font-bold mt-1 uppercase" dir="ltr">{new Date((order.date as any)?.seconds ? (order.date as any).seconds * 1000 : order.date).toLocaleDateString('ar-EG', { year: 'numeric', month: 'short', day: 'numeric' })}</div>
                   </div>
                 </div>
-                <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold border ${getStatusColor(order.status)}`}>
+                <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] sm:text-xs font-black border uppercase shadow-sm ${getStatusColor(order.status)}`}>
                   {getStatusIcon(order.status)}
                   <span>{getStatusText(order.status)}</span>
                 </div>
               </div>
 
-              {/* Order Items Preview */}
-              <div className="p-4 flex-1">
-                <div className="flex -space-x-2 space-x-reverse mb-3">
-                  {order.items?.slice(0, 4).map((item, idx) => (
-                    <div key={idx} className="w-10 h-10 rounded-lg border-2 border-white bg-slate-50 overflow-hidden relative z-10 shadow-sm">
+              <div className="p-5 flex-1">
+                <div className="flex -space-x-3 space-x-reverse mb-4">
+                  {order.items?.slice(0, 5).map((item, idx) => (
+                    <div key={idx} className="w-12 h-12 rounded-xl border-2 border-white bg-white overflow-hidden relative z-[5] shadow-lg">
                       <img src={item.product?.image || undefined} alt={item.product?.name || 'محذوف'} className="w-full h-full object-cover" />
                     </div>
                   ))}
-                  {(order.items?.length || 0) > 4 && (
-                    <div className="w-10 h-10 rounded-lg border-2 border-white bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-500 relative z-0 shadow-sm">
-                      +{(order.items?.length || 0) - 4}
+                  {(order.items?.length || 0) > 5 && (
+                    <div className="w-12 h-12 rounded-xl border-2 border-white bg-slate-50 flex items-center justify-center text-xs font-black text-slate-500 relative z-0 shadow-lg">
+                      +{(order.items?.length || 0) - 5}
                     </div>
                   )}
                 </div>
-                <div className="text-xs text-titanium/80 line-clamp-1">
-                  {order.items?.map(i => i.product?.name || 'منتج محذوف غير متوفر').join('، ')}
+                <div className="text-xs text-slate-500 font-bold line-clamp-1 leading-relaxed">
+                  {order.items?.map(i => i.product?.name || 'منتج محذوف').join('، ')}
                 </div>
               </div>
 
-              {/* Order Footer */}
-              <div className="p-4 border-t border-slate-50 bg-slate-50/30 flex items-center justify-between mt-auto">
+              <div className="p-5 border-t border-slate-50 bg-slate-50/50 flex items-center justify-between mt-auto">
                 <div>
-                  <div className="text-[10px] font-bold text-titanium/60 mb-0.5">الإجمالي</div>
+                  <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">الإجمالي الكلي</div>
                   <PriceDisplay 
                     price={order.total} 
-                    numberClassName="text-sm font-black text-carbon"
-                    currencyClassName="text-[10px] text-titanium font-bold"
+                    numberClassName="text-base sm:text-lg font-black text-carbon"
+                    currencyClassName="text-xs text-solar font-bold"
                   />
                 </div>
                 
                 <Link 
                   to={`/track-order?id=${order.id}`}
-                  className="flex items-center gap-1.5 bg-white text-carbon px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-200 hover:bg-slate-50 transition-colors shadow-sm"
+                  className="flex items-center gap-2 bg-white text-carbon hover:bg-carbon hover:text-white px-5 py-2.5 rounded-xl text-xs font-black border border-slate-200 transition-all shadow-md active:scale-95"
                 >
-                  التفاصيل والتتبع
-                  <ChevronLeft className="w-3.5 h-3.5" />
+                  التتبع والتفاصيل
+                  <ChevronLeft className="w-4 h-4" />
                 </Link>
               </div>
             </motion.div>

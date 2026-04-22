@@ -137,185 +137,187 @@ export default function Contact() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-8 sm:py-12">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-12">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
           
           {/* Contact Info Cards */}
           <div className="lg:col-span-1 space-y-4 order-2 lg:order-1">
-            <div className="mb-6">
-              <h2 className="text-xl font-black text-carbon mb-2">معلومات التواصل</h2>
-              <p className="text-sm text-slate-500 font-medium">نحن هنا لمساعدتك والإجابة على جميع استفساراتك</p>
+            <div className="mb-4 sm:mb-6">
+              <h2 className="text-lg sm:text-xl font-black text-carbon mb-1 sm:mb-2 text-center lg:text-right">معلومات التواصل</h2>
+              <p className="text-xs sm:text-sm text-slate-500 font-medium text-center lg:text-right">نحن هنا لمساعدتك والإجابة على جميع استفساراتك</p>
             </div>
 
-            {contactMethods.map((method, idx) => (
-              <motion.a
-                key={idx}
-                href={method.link}
-                target={method.link ? "_blank" : undefined}
-                rel="noopener noreferrer"
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: idx * 0.1 }}
-                className={`flex items-center gap-4 p-5 rounded-3xl bg-white border border-slate-100 shadow-sm hover:shadow-md transition-all group ${!method.link && 'pointer-events-none'}`}
-              >
-                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${method.color}`}>
-                  <method.icon className="w-6 h-6" />
-                </div>
-                <div>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">{method.title}</p>
-                  <p className="text-sm font-black text-carbon group-hover:text-solar transition-colors">{method.value}</p>
-                </div>
-              </motion.a>
-            ))}
-
-            <div className="p-6 rounded-3xl bg-carbon text-white relative overflow-hidden">
-              <div className="relative z-10">
-                <h3 className="font-black mb-2">هل لديك سؤال سريع؟</h3>
-                <p className="text-xs text-slate-300 mb-4 leading-relaxed">تواصل معنا عبر الواتساب للحصول على رد فوري خلال دقائق.</p>
-                <a 
-                  href={`https://wa.me/${settings.socialMedia?.whatsapp || settings.contactPhone}`}
-                  target="_blank"
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-solar text-carbon rounded-xl text-xs font-black hover:scale-105 transition-all"
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-3 sm:gap-4">
+              {contactMethods.map((method, idx) => (
+                <motion.a
+                  key={idx}
+                  href={method.link}
+                  target={method.link ? "_blank" : undefined}
+                  rel="noopener noreferrer"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: idx * 0.1 }}
+                  className={`flex items-center gap-3 sm:gap-4 p-4 sm:p-5 rounded-2xl sm:rounded-3xl bg-white border border-slate-100 shadow-sm hover:shadow-md transition-all group ${!method.link && 'pointer-events-none'}`}
                 >
-                  ابدأ المحادثة
-                  <MessageCircle className="w-4 h-4" />
-                </a>
-              </div>
-              <MessageCircle className="absolute -bottom-4 -left-4 w-24 h-24 text-white/5 -rotate-12" />
-            </div>
-          </div>
-
-          {/* Contact Form */}
-          <div className="lg:col-span-2 order-1 lg:order-2">
-            <AnimatePresence mode="wait">
-              {!isSubmitted ? (
-                <motion.div 
-                  key="contact-form"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  className="bg-white rounded-[2.5rem] p-6 sm:p-10 shadow-xl shadow-slate-200/40 border border-slate-100 relative overflow-hidden"
-                >
-                  <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-carbon via-solar to-solar" />
-                  
-                  <div className="mb-8">
-                    <h2 className="text-2xl font-black text-carbon mb-2">أرسل لنا رسالة</h2>
-                    <p className="text-sm text-slate-500 font-medium">املأ النموذج أدناه وسنقوم بالرد عليك في أقرب وقت ممكن</p>
+                  <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0 ${method.color}`}>
+                    <method.icon className="w-5 h-5 sm:w-6 sm:h-6" />
                   </div>
+                  <div>
+                    <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">{method.title}</p>
+                    <p className="text-xs sm:text-sm font-black text-carbon group-hover:text-solar transition-colors truncate max-w-[150px] sm:max-w-none">{method.value}</p>
+                  </div>
+                </motion.a>
+              ))}
+            </div>
 
-                  <form onSubmit={handleSubmit} className="space-y-6">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                      <div>
-                        <FloatingInput 
-                          id="name"
-                          label="الاسم الكامل"
-                          required
-                          type="text" 
-                          value={formData.name}
-                          onChange={(e) => {
-                            setFormData({...formData, name: e.target.value});
-                            if (errors.name) setErrors({ ...errors, name: '' });
-                          }}
-                          error={errors.name}
-                          icon={<User className="w-5 h-5" />}
-                          iconPosition="end"
-                        />
-                      </div>
-                      <div>
-                        <FloatingInput 
-                          id="phone"
-                          label="رقم الجوال (9 أرقام)"
-                          required
-                          type="tel" 
-                          value={formData.phone}
-                          onChange={handlePhoneChange}
-                          error={errors.phone}
-                          dir="ltr"
-                          className="text-left"
-                          icon={<Phone className="w-5 h-5" />}
-                          iconPosition="start"
-                          maxLength={PHONE_LENGTH}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <div className="relative group">
-                        <div className={`
-                          relative flex items-center h-14 bg-white border rounded-xl overflow-hidden shadow-sm transition-all duration-200
-                          ${errors.subject ? 'border-red-400' : 'border-slate-200 focus-within:border-solar focus-within:ring-1 focus-within:ring-solar'}
-                        `}>
-                          <div className="flex-1 h-full flex flex-col justify-center px-4">
-                            <select
-                              id="subject"
-                              value={formData.subject}
-                              onChange={(e) => setFormData({...formData, subject: e.target.value})}
-                              className="w-full h-full bg-transparent outline-none text-carbon font-semibold text-sm sm:text-base pt-5 pb-1 appearance-none cursor-pointer"
-                            >
-                              {MESSAGE_TYPES.map(type => (
-                                <option key={type.id} value={type.label}>{type.label}</option>
-                              ))}
-                            </select>
-                            <label className="absolute pointer-events-none top-1.5 right-4 text-[10px] sm:text-xs font-bold text-slate-500">
-                              نوع الرسالة
-                            </label>
-                          </div>
-                          <div className="px-4 text-slate-400">
-                            <ChevronDown className="w-5 h-5" />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="relative">
-                      <FloatingInput 
-                        id="message"
-                        label="الرسالة"
-                        required
-                        isTextArea
-                        containerClassName="min-h-[160px]"
-                        value={formData.message}
-                        onChange={handleMessageChange}
-                        error={errors.message}
-                        maxLength={MAX_MESSAGE_LENGTH}
-                      />
-                      <div className={`absolute bottom-2 left-4 text-[10px] font-bold ${formData.message.length >= MAX_MESSAGE_LENGTH ? 'text-red-500' : 'text-slate-400'}`}>
-                        {formData.message.length} / {MAX_MESSAGE_LENGTH}
-                      </div>
-                    </div>
-
-                    {Object.keys(errors).length > 0 && (
-                      <motion.div 
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="p-4 bg-red-50 rounded-2xl flex items-center gap-3 text-red-600 text-xs font-bold"
+                  <div className="p-5 sm:p-6 rounded-2xl sm:rounded-3xl bg-carbon text-white relative overflow-hidden mt-4">
+                    <div className="relative z-10">
+                      <h3 className="font-black text-sm sm:text-base mb-1 sm:mb-2">هل لديك سؤال سريع؟</h3>
+                      <p className="text-[10px] sm:text-xs text-slate-300 mb-4 leading-relaxed">تواصل معنا عبر الواتساب للحصول على رد فوري خلال دقائق.</p>
+                      <a 
+                        href={`https://wa.me/${settings.socialMedia?.whatsapp || settings.contactPhone}`}
+                        target="_blank"
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-solar text-carbon rounded-xl text-[10px] sm:text-xs font-black hover:scale-105 transition-all"
                       >
-                        <AlertCircle className="w-4 h-4 shrink-0" />
-                        يرجى التأكد من صحة جميع الحقول المطلوبة
-                      </motion.div>
-                    )}
+                        ابدأ المحادثة
+                        <MessageCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                      </a>
+                    </div>
+                    <MessageCircle className="absolute -bottom-4 -left-4 w-20 h-20 sm:w-24 sm:h-24 text-white/5 -rotate-12" />
+                  </div>
+                </div>
 
-                    <button 
-                      type="submit"
-                      disabled={isSubmitting}
-                      className="w-full bg-carbon text-white h-16 rounded-2xl font-black text-sm transition-all flex items-center justify-center gap-3 hover:bg-slate-800 disabled:opacity-70 shadow-xl shadow-slate-900/10 active:scale-[0.98]"
-                    >
-                      {isSubmitting ? (
-                        <motion.div
-                          animate={{ rotate: 360 }}
-                          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                        >
-                          <Clock className="w-6 h-6" />
-                        </motion.div>
-                      ) : (
-                        <>
-                          إرسال الرسالة
-                          <Send className="w-5 h-5 -rotate-45" />
-                        </>
-                      )}
-                    </button>
-                  </form>
-                </motion.div>
+                {/* Contact Form */}
+                <div className="lg:col-span-2 order-1 lg:order-2">
+                  <AnimatePresence mode="wait">
+                    {!isSubmitted ? (
+                      <motion.div 
+                        key="contact-form"
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        className="bg-white rounded-2xl sm:rounded-[2.5rem] p-5 sm:p-10 shadow-xl shadow-slate-200/40 border border-slate-100 relative overflow-hidden"
+                      >
+                        <div className="absolute top-0 left-0 w-full h-1.5 sm:h-2 bg-gradient-to-r from-carbon via-solar to-solar" />
+                        
+                        <div className="mb-6 sm:mb-8 text-center sm:text-right">
+                          <h2 className="text-xl sm:text-2xl font-black text-carbon mb-1 sm:mb-2">أرسل لنا رسالة</h2>
+                          <p className="text-xs sm:text-sm text-slate-500 font-medium">املأ النموذج أدناه وسنقوم بالرد عليك في أقرب وقت ممكن</p>
+                        </div>
+
+                        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                            <div>
+                              <FloatingInput 
+                                id="name"
+                                label="الاسم الكامل"
+                                required
+                                type="text" 
+                                value={formData.name}
+                                onChange={(e) => {
+                                  setFormData({...formData, name: e.target.value});
+                                  if (errors.name) setErrors({ ...errors, name: '' });
+                                }}
+                                error={errors.name}
+                                icon={<User className="w-5 h-5" />}
+                                iconPosition="end"
+                              />
+                            </div>
+                            <div>
+                              <FloatingInput 
+                                id="phone"
+                                label="رقم الجوال (9 أرقام)"
+                                required
+                                type="tel" 
+                                value={formData.phone}
+                                onChange={handlePhoneChange}
+                                error={errors.phone}
+                                dir="ltr"
+                                className="text-left"
+                                icon={<Phone className="w-5 h-5" />}
+                                iconPosition="start"
+                                maxLength={PHONE_LENGTH}
+                              />
+                            </div>
+                          </div>
+
+                          <div className="space-y-2">
+                            <div className="relative group">
+                              <div className={`
+                                relative flex items-center h-12 sm:h-14 bg-white border rounded-xl overflow-hidden shadow-sm transition-all duration-200
+                                ${errors.subject ? 'border-red-400' : 'border-slate-200 focus-within:border-solar focus-within:ring-1 focus-within:ring-solar'}
+                              `}>
+                                <div className="flex-1 h-full flex flex-col justify-center px-4">
+                                  <select
+                                    id="subject"
+                                    value={formData.subject}
+                                    onChange={(e) => setFormData({...formData, subject: e.target.value})}
+                                    className="w-full h-full bg-transparent outline-none text-carbon font-semibold text-xs sm:text-base pt-5 pb-1 appearance-none cursor-pointer"
+                                  >
+                                    {MESSAGE_TYPES.map(type => (
+                                      <option key={type.id} value={type.label}>{type.label}</option>
+                                    ))}
+                                  </select>
+                                  <label className="absolute pointer-events-none top-1 sm:top-1.5 right-4 text-[9px] sm:text-[10px] font-bold text-slate-500">
+                                    نوع الرسالة
+                                  </label>
+                                </div>
+                                <div className="px-4 text-slate-400">
+                                  <ChevronDown className="w-4 h-4 sm:w-5 sm:h-5" />
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="relative">
+                            <FloatingInput 
+                              id="message"
+                              label="الرسالة"
+                              required
+                              isTextArea
+                              containerClassName="min-h-[120px] sm:min-h-[160px]"
+                              value={formData.message}
+                              onChange={handleMessageChange}
+                              error={errors.message}
+                              maxLength={MAX_MESSAGE_LENGTH}
+                            />
+                            <div className={`absolute bottom-2 left-4 text-[9px] sm:text-[10px] font-bold ${formData.message.length >= MAX_MESSAGE_LENGTH ? 'text-red-500' : 'text-slate-400'}`}>
+                              {formData.message.length} / {MAX_MESSAGE_LENGTH}
+                            </div>
+                          </div>
+
+                          {Object.keys(errors).length > 0 && (
+                            <motion.div 
+                              initial={{ opacity: 0, y: -10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              className="p-3 sm:p-4 bg-red-50 rounded-xl sm:rounded-2xl flex items-center gap-2 sm:gap-3 text-red-600 text-[10px] sm:text-xs font-bold"
+                            >
+                              <AlertCircle className="w-4 h-4 shrink-0" />
+                              يرجى التأكد من صحة جميع الحقول المطلوبة
+                            </motion.div>
+                          )}
+
+                          <button 
+                            type="submit"
+                            disabled={isSubmitting}
+                            className="w-full bg-carbon text-white h-14 sm:h-16 rounded-xl sm:rounded-2xl font-black text-xs sm:text-sm transition-all flex items-center justify-center gap-2 sm:gap-3 hover:bg-slate-800 disabled:opacity-70 shadow-xl shadow-slate-900/10 active:scale-[0.98]"
+                          >
+                            {isSubmitting ? (
+                              <motion.div
+                                animate={{ rotate: 360 }}
+                                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                              >
+                                <Clock className="w-5 h-5 sm:w-6 sm:h-6" />
+                              </motion.div>
+                            ) : (
+                              <>
+                                إرسال الرسالة
+                                <Send className="w-4 h-4 sm:w-5 sm:h-5 -rotate-45" />
+                              </>
+                            )}
+                          </button>
+                        </form>
+                      </motion.div>
               ) : (
                 <motion.div 
                   key="success-message"

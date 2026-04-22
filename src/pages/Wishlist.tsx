@@ -30,7 +30,7 @@ export default function Wishlist() {
 
   if (wishlist.length === 0) {
     return (
-      <motion.div className="max-w-[1600px] mx-auto px-2 sm:px-6 py-12 flex flex-col items-center justify-center min-h-[60vh]">
+      <motion.div className="max-w-4xl mx-auto px-4 sm:px-6 py-12 flex flex-col items-center justify-center min-h-[60vh]">
         <motion.div 
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
@@ -62,14 +62,14 @@ export default function Wishlist() {
   }
 
   return (
-    <div className="max-w-[1600px] mx-auto px-2 sm:px-6 py-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-12">
       <motion.div 
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
-        className="flex items-center justify-between mb-8"
+        className="flex items-center justify-between mb-8 sm:mb-12"
       >
-        <h1 className="text-xl sm:text-2xl font-bold text-carbon flex items-center gap-3">
-          <Heart className="w-8 h-8 text-red-500 fill-red-500" />
+        <h1 className="text-2xl sm:text-3xl font-black text-carbon flex items-center gap-4">
+          <Heart className="w-10 h-10 text-red-500 fill-red-500" />
           المفضلة
         </h1>
         <div className="flex items-center gap-4">

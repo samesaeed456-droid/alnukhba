@@ -553,7 +553,7 @@ export default function Profile() {
       variants={containerVariants}
       initial="hidden"
       animate="visible"
-      className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8"
+      className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-8"
     >
       <AnimatePresence>
         {showPasswordModal && (
@@ -811,56 +811,56 @@ export default function Profile() {
             initial="hidden"
             animate="visible"
             exit="exit"
-            className="max-w-7xl mx-auto"
+            className="max-w-4xl mx-auto"
           >
-            <motion.h1 variants={itemVariants} className="text-xl sm:text-2xl font-bold text-carbon mb-6 px-2">حسابي</motion.h1>
+            <motion.h1 variants={itemVariants} className="text-xl sm:text-2xl font-black text-carbon mb-6 px-1">حسابي</motion.h1>
             
             {/* Minimal Profile Header */}
-            <motion.div variants={itemVariants} className="bg-white rounded-xl p-3 shadow-sm border border-slate-100 mb-6 flex items-center gap-3">
+            <motion.div variants={itemVariants} className="bg-white rounded-2xl p-4 shadow-xl border border-slate-100 mb-6 flex items-center gap-4">
               <div className="relative group/avatar shrink-0">
-                <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center border border-slate-200 overflow-hidden">
+                <div className="w-14 h-14 sm:w-16 sm:h-16 bg-slate-50 rounded-full flex items-center justify-center border border-slate-100 overflow-hidden shadow-inner">
                   {user.avatar ? (
                     <img src={user.avatar || undefined} alt={user.name} className="w-full h-full object-cover" />
                   ) : (
-                    <User className="w-6 h-6 text-slate-400" />
+                    <User className="w-7 h-7 sm:w-8 sm:h-8 text-slate-300" />
                   )}
                 </div>
-                <label className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover/avatar:opacity-100 transition-all cursor-pointer">
-                  <Camera className="w-4 h-4 text-white" />
+                <label className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full opacity-0 group-hover/avatar:opacity-100 transition-all cursor-pointer backdrop-blur-[2px]">
+                  <Camera className="w-5 h-5 text-white" />
                   <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
                 </label>
               </div>
               
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1.5 mb-0.5">
-                  <h2 className="text-base font-bold text-carbon truncate">{user.displayName || user.name || 'مستخدم جديد'}</h2>
-                  <BadgeCheck className="w-4 h-4 text-carbon shrink-0" />
+                <div className="flex items-center gap-1.5 mb-1">
+                  <h2 className="text-lg font-black text-carbon truncate">{user.displayName || user.name || 'مستخدم جديد'}</h2>
+                  <BadgeCheck className="w-4 h-4 text-solar shrink-0" />
                 </div>
-                <p className="text-xs text-titanium/80 truncate" dir="ltr">{user.countryCode || '+967'} {user.phone}</p>
+                <p className="text-xs sm:text-sm text-slate-500 font-bold tracking-wide truncate" dir="ltr">{user.countryCode || '+967'} {user.phone}</p>
               </div>
             </motion.div>
 
-            <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
               {/* Column 1 */}
-              <div className="space-y-6">
+              <div className="space-y-6 sm:space-y-8">
                 {/* Digital Wallet Section */}
                 <Section title="المحفظة الرقمية">
-                  <div className="p-5 bg-gradient-to-br from-slate-900 to-carbon relative overflow-hidden group">
+                  <div className="p-6 bg-slate-900 relative overflow-hidden group">
                     {/* Background Glow */}
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-solar/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
                     
-                    <div className="relative z-10 flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center">
-                          <Wallet className="w-5 h-5 text-emerald-400" />
+                    <div className="relative z-10 flex items-center justify-between mb-6">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center border border-white/5 shadow-inner">
+                          <Wallet className="w-6 h-6 text-solar" />
                         </div>
                         <div>
-                          <p className="text-xs text-slate-400 font-medium mb-0.5">الرصيد الحالي</p>
+                          <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mb-1">الرصيد الحالي</p>
                           <div className="flex items-baseline gap-1">
                             <PriceDisplay 
                               price={user.walletBalance || 0} 
-                              numberClassName="text-xl font-black text-white tracking-tight"
-                              currencyClassName="text-sm text-emerald-400 font-bold"
+                              numberClassName="text-2xl font-black text-white tracking-tight"
+                              currencyClassName="text-sm text-solar font-bold"
                             />
                           </div>
                         </div>
@@ -872,87 +872,86 @@ export default function Profile() {
                         window.scrollTo(0, 0);
                         setCurrentView('wallet');
                       }}
-                      className="w-full bg-white/10 hover:bg-white/20 text-white border border-white/10 py-3 rounded-xl font-bold transition-all flex items-center justify-center gap-2 text-sm backdrop-blur-sm"
+                      className="w-full bg-solar text-carbon py-3.5 rounded-xl font-black transition-all flex items-center justify-center gap-2 text-sm shadow-lg shadow-solar/20 hover:scale-[1.02] active:scale-[0.98]"
                     >
                       <Plus className="w-4 h-4" />
-                      إيداع رصيد في محفظتك
+                      إيداع رصيد الآن
                     </button>
                   </div>
                 </Section>
 
                 <Section title="النشاط">
-                  <MenuItem icon={Package} label="طلباتي" bg="bg-carbon/10" iconColor="text-carbon" onClick={() => navigate('/orders')} />
-                  <MenuItem icon={Clock} label="سجل العمليات" bg="bg-orange-50" iconColor="text-solar" onClick={() => {
+                  <MenuItem icon={Package} label="طلباتي" bg="bg-indigo-50" iconColor="text-indigo-600" onClick={() => navigate('/orders')} />
+                  <MenuItem icon={Clock} label="سجل العمليات" bg="bg-amber-50" iconColor="text-amber-600" onClick={() => {
                     window.scrollTo(0, 0);
                     setCurrentView('wallet');
                   }} />
-                  <MenuItem icon={Heart} label="المفضلة" bg="bg-red-50" iconColor="text-red-500" onClick={() => navigate('/wishlist')} />
+                  <MenuItem icon={Heart} label="المفضلة" bg="bg-rose-50" iconColor="text-rose-600" onClick={() => navigate('/wishlist')} />
                 </Section>
               </div>
 
               {/* Column 2 */}
-              <div className="space-y-6">
+              <div className="space-y-6 sm:space-y-8">
                 <Section title="المعلومات الشخصية">
-                  <MenuItem icon={Edit2} label="تعديل الحساب" bg="bg-slate-100" iconColor="text-carbon" onClick={() => {
+                  <MenuItem icon={Edit2} label="تعديل الحساب" bg="bg-slate-50" iconColor="text-carbon" onClick={() => {
                     window.scrollTo(0, 0);
                     setCurrentView('edit');
                   }} />
-                  <MenuItem icon={Key} label="تغيير كلمة المرور" bg="bg-slate-100" iconColor="text-carbon" onClick={() => setShowPasswordModal(true)} />
-                </Section>
-
-                <Section title="الإعدادات">
-                  <MenuItem 
-                    icon={MapPin} 
-                    label="عناوين التوصيل" 
-                    bg="bg-carbon/10" 
-                    iconColor="text-carbon" 
-                    onClick={() => {
+                  <MenuItem icon={Key} label="تغيير كلمة المرور" bg="bg-slate-50" iconColor="text-carbon" onClick={() => setShowPasswordModal(true)} />
+                  <MenuItem icon={MapPin} label="عناوين التوصيل" bg="bg-slate-50" iconColor="text-carbon" onClick={() => {
                       window.scrollTo(0, 0);
                       setCurrentView('addresses');
-                    }} 
-                  />
-                  <div className="p-4 border-t border-slate-50">
+                  }} />
+                </Section>
+
+                <Section title="الإعدادات والتنبيهات">
+                  <div className="p-4 sm:p-5">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center">
-                          <BadgeCheck className="w-5 h-5 text-titanium/60" />
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center shadow-sm">
+                          <BadgeCheck className="w-5 h-5 text-slate-500" />
                         </div>
-                        <span className="font-bold text-sm sm:text-base text-carbon">التنبيهات</span>
+                        <span className="font-bold text-sm sm:text-base text-carbon">إشعارات التطبيق</span>
                       </div>
                       <button 
                         onClick={() => {
                           const newPrefs = { ...user.preferences, notifications: !user.preferences?.notifications };
                           updateUser({ ...user, preferences: newPrefs });
                         }}
-                        className={`w-12 h-6 rounded-full transition-all relative ${user.preferences?.notifications ? 'bg-carbon' : 'bg-slate-200'}`}
+                        className={`w-12 h-6 rounded-full transition-all relative ${user.preferences?.notifications ? 'bg-solar' : 'bg-slate-200'}`}
                       >
-                        <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${user.preferences?.notifications ? 'left-1' : 'left-7'}`} />
+                        <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${user.preferences?.notifications ? 'left-1' : 'left-7'} shadow-sm`} />
                       </button>
                     </div>
                   </div>
                 </Section>
+
+                {user.role === 'admin' && (
+                  <Section title="الإدارة">
+                    <MenuItem icon={Settings} label="لوحة تحكم المشرف" bg="bg-carbon text-white" iconColor="text-white" onClick={() => navigate('/admin')} />
+                  </Section>
+                )}
               </div>
+            </motion.div>
 
-              {/* Column 3 */}
-              <div className="space-y-6">
-                <Section title="الإدارة">
-                  <MenuItem icon={Settings} label="لوحة تحكم الإدارة" bg="bg-carbon/10" iconColor="text-carbon" onClick={() => navigate('/admin')} />
-                </Section>
-
-                <Section title="الدعم والقانونية">
-                  <MenuItem icon={MessageCircle} label="تواصل معنا" bg="bg-teal-50" iconColor="text-teal-600" onClick={() => navigate('/contact')} />
-                  <MenuItem icon={FileText} label="الشروط والأحكام" bg="bg-slate-50" iconColor="text-titanium/80" onClick={() => navigate('/terms')} />
-                  <MenuItem icon={Shield} label="سياسة الخصوصية" bg="bg-slate-50" iconColor="text-titanium/80" onClick={() => navigate('/privacy')} />
+            <motion.div variants={itemVariants} className="mt-8 space-y-6 sm:space-y-8">
+               <Section title="الدعم والقانونية">
+                  <MenuItem icon={MessageCircle} label="تواصل معنا" bg="bg-emerald-50" iconColor="text-emerald-600" onClick={() => navigate('/contact')} />
+                  <div className="grid grid-cols-1 sm:grid-cols-2">
+                    <MenuItem icon={FileText} label="الشروط والأحكام" bg="bg-slate-50" iconColor="text-slate-500" onClick={() => navigate('/terms')} />
+                    <MenuItem icon={Shield} label="سياسة الخصوصية" bg="bg-slate-50" iconColor="text-slate-500" onClick={() => navigate('/privacy')} />
+                  </div>
                 </Section>
 
                 <Section title="إدارة الحساب">
-                  <MenuItem icon={LogOut} label="تسجيل الخروج" isDestructive={true} onClick={() => setShowLogoutConfirm(true)} />
-                  <MenuItem icon={Trash2} label="حذف الحساب" isDestructive={true} onClick={() => {
-                    setDeletionReason('');
-                    setShowDeleteAccountModal(true);
-                  }} />
+                  <div className="grid grid-cols-1 sm:grid-cols-2">
+                    <MenuItem icon={LogOut} label="تسجيل الخروج" isDestructive={true} onClick={() => setShowLogoutConfirm(true)} />
+                    <MenuItem icon={Trash2} label="حذف الحساب نهائياً" isDestructive={true} onClick={() => {
+                        setDeletionReason('');
+                        setShowDeleteAccountModal(true);
+                    }} />
+                  </div>
                 </Section>
-              </div>
             </motion.div>
           </motion.div>
         ) : currentView === 'wallet' ? (

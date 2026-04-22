@@ -478,7 +478,7 @@ export default function Auth() {
 
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 sm:p-6 bg-slate-50 relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center p-0 sm:p-6 bg-slate-50 relative overflow-hidden">
       {/* Background Decorative Elements */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
         <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] bg-solar/5 rounded-full blur-[120px]" />
@@ -489,7 +489,7 @@ export default function Auth() {
         initial="hidden"
         animate="visible"
         variants={containerVariants}
-        className="w-full max-w-7xl flex flex-col md:flex-row bg-white rounded-[40px] shadow-2xl shadow-slate-200/50 border border-slate-100 overflow-hidden relative z-10"
+        className="w-full max-w-7xl flex flex-col md:flex-row bg-white rounded-none sm:rounded-[40px] shadow-2xl shadow-slate-200/50 border-0 sm:border border-slate-100 overflow-hidden relative z-10 min-h-screen sm:min-h-0"
       >
         {/* Left Side: Image/Branding (Visible on Desktop) */}
         <div className="hidden md:flex md:w-1/2 bg-carbon relative overflow-hidden">
@@ -543,7 +543,7 @@ export default function Auth() {
         </div>
 
         {/* Right Side: Form */}
-        <div className="w-full md:w-1/2 p-5 sm:p-10 lg:p-14 flex flex-col justify-center min-h-[500px] sm:min-h-[600px] relative">
+        <div className="w-full md:w-1/2 p-6 sm:p-10 lg:p-14 flex flex-col justify-center min-h-[500px] sm:min-h-[600px] relative bg-white">
           {step !== 'form' && (
             <button 
               onClick={() => {
@@ -551,25 +551,25 @@ export default function Auth() {
                 setError('');
                 setSuccess('');
               }}
-              className="absolute top-4 right-4 sm:top-8 sm:right-8 p-2 text-slate-400 hover:text-carbon hover:bg-slate-100 rounded-full transition-all z-20"
+              className="absolute top-6 right-6 sm:top-8 sm:right-8 p-2.5 text-slate-400 hover:text-carbon hover:bg-slate-100 rounded-full transition-all z-20 shadow-sm border border-slate-50"
               title="العودة"
             >
               <ArrowRight className="w-5 h-5 rotate-180" />
             </button>
           )}
 
-          <div className="md:hidden flex justify-center mb-6">
-            <div>
-              <Logo variant="dark" className="h-10" />
-            </div>
+          <div className="md:hidden flex justify-center mb-8">
+            <Link to="/">
+              <Logo variant="dark" className="h-12" />
+            </Link>
           </div>
 
-          <div className="mb-6 sm:mb-8">
+          <div className="mb-6 sm:mb-8 text-center md:text-right">
             <motion.h1 
               key={step + (isLogin ? 'login-title' : 'signup-title')}
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="text-2xl sm:text-3xl font-black text-carbon mb-2 tracking-tight"
+              className="text-2xl sm:text-3xl font-black text-carbon mb-2 sm:mb-3 tracking-tight"
             >
               {getTitle()}
             </motion.h1>
@@ -578,16 +578,16 @@ export default function Auth() {
               initial={{ opacity: 0, y: -5 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="text-slate-500 font-medium text-sm sm:text-base leading-relaxed"
+              className="text-slate-500 font-bold text-xs sm:text-base leading-relaxed px-4 sm:px-0"
             >
               {getSubtitle()}
             </motion.p>
           </div>
 
           {step === 'form' && (
-            <div className="relative flex p-1 bg-slate-100 rounded-2xl mb-8 w-full max-w-[320px] mx-auto md:mx-0">
+            <div className="relative flex p-1 bg-slate-100 rounded-2xl mb-8 w-full max-w-[320px] mx-auto md:mx-0 shadow-inner">
               <motion.div
-                className="absolute inset-y-1 bg-white rounded-xl shadow-sm z-0"
+                className="absolute inset-y-1 bg-white rounded-xl shadow-md z-0"
                 initial={false}
                 animate={{
                   x: isLogin ? '-100%' : '0%',
@@ -602,7 +602,7 @@ export default function Auth() {
                   setError('');
                   setSuccess('');
                 }}
-                className={`relative z-10 flex-1 py-2.5 text-sm font-bold transition-colors ${!isLogin ? 'text-carbon' : 'text-slate-400'}`}
+                className={`relative z-10 flex-1 py-3 text-sm font-black transition-colors ${!isLogin ? 'text-carbon' : 'text-slate-400'}`}
               >
                 إنشاء حساب
               </button>
@@ -613,7 +613,7 @@ export default function Auth() {
                   setError('');
                   setSuccess('');
                 }}
-                className={`relative z-10 flex-1 py-2.5 text-sm font-bold transition-colors ${isLogin ? 'text-carbon' : 'text-slate-400'}`}
+                className={`relative z-10 flex-1 py-3 text-sm font-black transition-colors ${isLogin ? 'text-carbon' : 'text-slate-400'}`}
               >
                 تسجيل الدخول
               </button>

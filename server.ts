@@ -42,6 +42,7 @@ console.log('[Startup] Cloudinary Check:', {
 });
 
 const app = express();
+app.set("trust proxy", true);
 
 // Increase payload limit for base64 images
 app.use(express.json({ limit: "50mb" }));
@@ -389,7 +390,8 @@ app.post('/api/webauthn/register/generate', async (req, res) => {
   if (!uid || !email) return res.status(400).json({ error: 'Missing uid or email' });
   
   try {
-    const rpID = req.hostname === 'localhost' ? 'localhost' : req.hostname;
+    const host = req.get('host') || 'localhost';
+    const rpID = host.split(':')[0];
     const rpName = 'Elite Store';
     
     const options = await generateRegistrationOptions({
@@ -423,8 +425,9 @@ app.post('/api/webauthn/register/verify', async (req, res) => {
   }
 
   try {
-    const rpID = req.hostname === 'localhost' ? 'localhost' : req.hostname;
-    const origin = req.headers.origin || `http://${req.headers.host}`;
+    const host = req.get('host') || 'localhost';
+    const rpID = host.split(':')[0];
+    const origin = req.headers.origin || (req.secure ? 'https://' : 'http://') + host;
     
     const verification = await verifyRegistrationResponse({
       response,
@@ -462,7 +465,8 @@ app.post('/api/webauthn/register/verify', async (req, res) => {
 
 app.post('/api/webauthn/login/generate', async (req, res) => {
   try {
-    const rpID = req.hostname === 'localhost' ? 'localhost' : req.hostname;
+    const host = req.get('host') || 'localhost';
+    const rpID = host.split(':')[0];
     const sessionId = req.headers['x-session-id'] as string || "anonymous";
     const options = await generateAuthenticationOptions({
       rpID,
@@ -503,8 +507,9 @@ app.post('/api/webauthn/login/verify', async (req, res) => {
     
     const passkey = passkeyDoc.data()!;
 
-    const rpID = req.hostname === 'localhost' ? 'localhost' : req.hostname;
-    const origin = req.headers.origin || `http://${req.headers.host}`;
+    const host = req.get('host') || 'localhost';
+    const rpID = host.split(':')[0];
+    const origin = req.headers.origin || (req.secure ? 'https://' : 'http://') + host;
 
     const verification = await verifyAuthenticationResponse({
       response,

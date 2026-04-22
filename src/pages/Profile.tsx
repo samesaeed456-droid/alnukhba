@@ -86,7 +86,7 @@ export default function Profile() {
     } catch (err: any) {
       console.error("[WebAuthn Register Error]:", err);
       if (err.name === 'NotAllowedError') {
-         showToast('تم إلغاء عملية البصمة', 'info');
+         showToast('تم إلغاء عملية البصمة أو المتصفح حظر الطلب. تأكد من فتح الرابط في تبويب جديد وليس داخل إطار المعاينة.', 'info');
       } else if (err.name === 'NotSupportedError') {
          showToast('مستشعرات البصمة غير مدعومة في هذا المتصفح أو يجب فتح التطبيق في تبويب جديد.', 'error');
       } else {

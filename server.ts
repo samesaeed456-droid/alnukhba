@@ -362,6 +362,20 @@ app.post("/api/verify-otp", (req, res) => {
   res.json({ success: true });
 });
 
+import fs from 'fs';
+
+function getDb() {
+  const adminApp = getApps()[0];
+  const configPath = path.join(process.cwd(), 'firebase-applet-config.json');
+  if (fs.existsSync(configPath)) {
+    const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    if (config.firestoreDatabaseId) {
+      return getFirestore(adminApp, config.firestoreDatabaseId);
+    }
+  }
+  return getFirestore(adminApp);
+}
+
 // --- WEBAUTHN PASSKEYS ENDPOINTS ---
 import crypto from 'crypto';
 
@@ -468,7 +482,7 @@ app.post('/api/webauthn/register/verify', async (req, res) => {
       }
 
       const passkeyId = response.id;
-      const db = getFirestore();
+      const db = getDb();
       
       await db.collection('passkeys').doc(passkeyId).set({
         credentialPublicKey: safeBuffer(credential.publicKey).toString('base64'),
@@ -523,7 +537,7 @@ app.post('/api/webauthn/login/verify', async (req, res) => {
     }
 
     const passkeyId = response.id;
-    const db = getFirestore();
+    const db = getDb();
     const passkeyDoc = await db.collection('passkeys').doc(passkeyId).get();
     
     if (!passkeyDoc.exists) {

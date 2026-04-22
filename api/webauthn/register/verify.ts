@@ -3,6 +3,20 @@ import { verifyRegistrationResponse } from '@simplewebauthn/server';
 import { getFirestore } from 'firebase-admin/firestore';
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import crypto from 'crypto';
+import fs from 'fs';
+import path from 'path';
+
+function getDb() {
+  const adminApp = getApps()[0];
+  const configPath = path.join(process.cwd(), 'firebase-applet-config.json');
+  if (fs.existsSync(configPath)) {
+    const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    if (config.firestoreDatabaseId) {
+      return getFirestore(adminApp, config.firestoreDatabaseId);
+    }
+  }
+  return getFirestore(adminApp);
+}
 
 // Initialize Firebase Admin if not already initialized
 if (getApps().length === 0 && process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_PRIVATE_KEY) {
@@ -92,7 +106,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       const passkeyId = response.id;
-      const db = getFirestore();
+      const db = getDb();
       
       const savedData = {
         credentialPublicKey: safeBuffer(credential.publicKey).toString('base64'),

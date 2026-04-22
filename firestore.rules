@@ -189,10 +189,19 @@ service cloud.firestore {
     }
 
     match /passkeys/{passkeyId} {
-      // Internal server-side access via Admin SDK bypasses these rules.
-      // But we should allow users to delete their own passkeys if we add a UI for it.
-      allow read: if isSignedIn() && resource.data.uid == request.auth.uid;
+      allow get, list: if isSignedIn() && resource.data.uid == request.auth.uid;
       allow delete: if isSignedIn() && resource.data.uid == request.auth.uid;
+    }
+
+    match /notification_tokens/{token} {
+      allow read: if isAdmin();
+      allow get: if true;
+      allow create, update: if true;
+      allow delete: if isAdmin() || (isSignedIn() && resource.data.uid == request.auth.uid);
+    }
+
+    match /system/connection_test {
+      allow read: if true;
     }
 
     match /test/connection {

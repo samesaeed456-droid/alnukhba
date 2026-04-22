@@ -37,7 +37,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const options = await generateRegistrationOptions({
       rpName,
       rpID,
-      userID: safeBuffer(uid),
+      userID: Uint8Array.from(safeBuffer(uid)),
       userName: email,
       attestationType: 'none',
       authenticatorSelection: {

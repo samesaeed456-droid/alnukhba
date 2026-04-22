@@ -851,13 +851,27 @@ export default function Auth() {
                         className="text-left"
                         error={!!error}
                         endElement={
-                          <button
-                            type="button"
-                            onClick={() => setShowPassword(!showPassword)}
-                            className={`px-4 transition-colors h-full flex items-center justify-center ${formData.password ? 'text-slate-400 hover:text-solar' : 'text-slate-200'}`}
-                          >
-                            {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                          </button>
+                          <div className="h-full flex items-center">
+                            {isLogin && !formData.password ? (
+                              <button
+                                type="button"
+                                onClick={handlePasskeyLogin}
+                                disabled={isLoading}
+                                className="px-4 h-full flex items-center justify-center text-orange-500 hover:text-orange-600 transition-all hover:scale-110 active:scale-95"
+                                title="تسجيل الدخول بالبصمة"
+                              >
+                                <Fingerprint className="w-5 h-5 sm:w-6 sm:h-6" />
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                className={`px-4 transition-colors h-full flex items-center justify-center ${formData.password ? 'text-slate-400 hover:text-solar' : 'text-slate-200'}`}
+                              >
+                                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                              </button>
+                            )}
+                          </div>
                         }
                       />
                     </div>
@@ -909,18 +923,6 @@ export default function Auth() {
                         </AnimatePresence>
                       )}
                     </motion.button>
-                     
-                    {isLogin && (
-                      <button
-                        type="button"
-                        onClick={handlePasskeyLogin}
-                        disabled={isLoading}
-                        className="w-full h-12 sm:h-14 bg-slate-50 hover:bg-slate-100 disabled:opacity-50 text-carbon font-bold rounded-xl sm:rounded-2xl transition-all flex items-center justify-center gap-2 border border-slate-100 shadow-sm text-base sm:text-lg mt-3"
-                      >
-                         <Fingerprint className="w-6 h-6 text-orange-500" />
-                         تسجيل الدخول بالبصمة أو الوجه
-                      </button>
-                    )}
                   </form>
                 ) : step === 'forgot_password' ? (
                   <form onSubmit={handleForgotPassword} className="space-y-6 sm:space-y-7">

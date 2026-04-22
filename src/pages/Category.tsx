@@ -5,10 +5,11 @@ import { motion } from 'motion/react';
 import { ChevronRight, SlidersHorizontal, Check, Search, Camera, X, Sparkles, Upload } from 'lucide-react';
 import { useStore, useStoreState, useStoreActions } from '../context/StoreContext';
 import { FastLink } from '../components/FastLink';
+import { ProductCardSkeleton } from '../components/Skeleton';
 
 export default function Category() {
   const { categoryName } = useParams<{ categoryName: string }>();
-  const { products } = useStoreState();
+  const { products, isLoading } = useStoreState();
   const { formatPrice } = useStoreActions();
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
@@ -174,7 +175,13 @@ export default function Category() {
 
           {/* Products Grid */}
           <div className="w-full lg:w-3/4">
-            {filteredProducts.length > 0 ? (
+            {isLoading ? (
+              <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-2 sm:gap-6">
+                {[...Array(10)].map((_, i) => (
+                  <ProductCardSkeleton key={i} />
+                ))}
+              </div>
+            ) : filteredProducts.length > 0 ? (
               <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-2 sm:gap-6">
                 {filteredProducts.map((product) => (
                   <ProductCard key={product.id} product={product} wide />

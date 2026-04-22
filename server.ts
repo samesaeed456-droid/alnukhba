@@ -427,7 +427,7 @@ app.post('/api/webauthn/register/generate', async (req, res) => {
     const options = await generateRegistrationOptions({
       rpName,
       rpID,
-      userID: safeBuffer(uid),
+      userID: Uint8Array.from(safeBuffer(uid)),
       userName: email,
       attestationType: 'none',
       authenticatorSelection: {

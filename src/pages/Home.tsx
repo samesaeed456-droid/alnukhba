@@ -5,6 +5,7 @@ import { useStoreState, useStoreActions } from '../context/StoreContext';
 import ProductSlider from '../components/ProductSlider';
 import RecommendedProducts from '../components/RecommendedProducts';
 import ImageSlider from '../components/ImageSlider';
+import { ProductCardSkeleton, BannerSkeleton, CategorySkeleton, SectionHeaderSkeleton } from '../components/Skeleton';
 
 // Home Components
 import Hero from '../components/home/Hero';
@@ -18,7 +19,7 @@ export default function Home() {
   const [activeCategory, setActiveCategory] = useState('الكل');
   const [isCategoryLoading] = useState(false);
   
-  const { products, banners } = useStoreState();
+  const { products, banners, isLoading } = useStoreState();
   const { formatPrice } = useStoreActions();
 
   const handleCategoryChange = useCallback((categoryName: string) => {
@@ -114,7 +115,29 @@ export default function Home() {
 
       {/* Main Product Section */}
       <div className="min-h-[300px]">
-        {activeCategory !== 'الكل' ? (
+        {isLoading ? (
+          <div className="px-2 sm:px-4 flex flex-col gap-8 animate-fade-in">
+            <div className="flex flex-col gap-6">
+              <SectionHeaderSkeleton />
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-6">
+                {[...Array(10)].map((_, i) => (
+                  <ProductCardSkeleton key={i} />
+                ))}
+              </div>
+            </div>
+
+            <BannerSkeleton />
+
+            <div className="flex flex-col gap-6">
+              <SectionHeaderSkeleton />
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-6">
+                {[...Array(5)].map((_, i) => (
+                  <ProductCardSkeleton key={i} />
+                ))}
+              </div>
+            </div>
+          </div>
+        ) : activeCategory !== 'الكل' ? (
           <CategoryFilteredSection 
             categoryName={activeCategory}
             products={filteredProducts}

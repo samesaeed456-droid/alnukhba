@@ -2,7 +2,8 @@ import React, { useMemo, useCallback, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Tag, Zap, Flame, ShoppingCart, Heart, Percent, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { useStore } from '../context/StoreContext';
+import { useStore, useStoreState } from '../context/StoreContext';
+import { ProductCardSkeleton } from '../components/Skeleton';
 
 // Specialized Deal Card with FOMO elements
 const DealCard = React.memo(({ product, index }: { product: any, index: number, key?: React.Key }) => {
@@ -141,7 +142,7 @@ const DealCard = React.memo(({ product, index }: { product: any, index: number, 
 });
 
 export default function Deals() {
-  const { products } = useStore();
+  const { products, isLoading } = useStoreState();
   const dealProducts = useMemo(() => {
     return products.filter(p => p.originalPrice && p.originalPrice > p.price);
   }, [products]);
@@ -183,7 +184,13 @@ export default function Deals() {
       <div className="max-w-[1600px] mx-auto px-2 sm:px-6 pt-12 pb-6">
         {/* Deals Grid */}
         <AnimatePresence mode="popLayout">
-          {dealProducts.length > 0 ? (
+          {isLoading ? (
+            <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-2 sm:gap-8">
+              {[...Array(10)].map((_, i) => (
+                <ProductCardSkeleton key={i} />
+              ))}
+            </div>
+          ) : dealProducts.length > 0 ? (
             <motion.div 
               layout
               className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-2 sm:gap-8"

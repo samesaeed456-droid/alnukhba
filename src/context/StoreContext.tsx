@@ -156,6 +156,7 @@ interface StoreState {
   searchTerms: SearchTerm[];
   visits: Visit[];
   systemError: string | null;
+  isLoading: boolean;
 }
 
 interface StoreActions {
@@ -328,6 +329,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return saved ? JSON.parse(saved) : null;
   });
   const [isAuthReady, setIsAuthReady] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [systemError, setSystemError] = useState<string | null>(null);
 
   // Connection check removed per user request
@@ -499,8 +501,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       }) as unknown as Product[];
       setProducts(productsData);
       localStorage.setItem('store_products', JSON.stringify(productsData));
+      setIsLoading(false);
     }, (error) => {
       console.error('Products sync error:', error);
+      setIsLoading(false);
       // setSystemError('فشل مزامنة المنتجات. يرجى التحقق من الاتصال.');
     });
     return () => unsubscribe();
@@ -2508,8 +2512,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     products, cart, wishlist, orders, user,
     notifications, notificationSettings, subscriptions, recentlyViewed, language, settings, categories, inventoryLogs, customers, discount, coupons,
     banners, marketingNotifications, adminUsers, activityLogs,
-    supportTickets, blogPosts, staticPages, shippingZones, abandonedCarts, searchTerms, visits, systemError
-  }), [products, cart, wishlist, orders, user, notifications, notificationSettings, subscriptions, recentlyViewed, language, settings, categories, inventoryLogs, customers, discount, coupons, banners, marketingNotifications, adminUsers, activityLogs, supportTickets, blogPosts, staticPages, shippingZones, abandonedCarts, searchTerms, visits, systemError]);
+    supportTickets, blogPosts, staticPages, shippingZones, abandonedCarts, searchTerms, visits, systemError, isLoading
+  }), [products, cart, wishlist, orders, user, notifications, notificationSettings, subscriptions, recentlyViewed, language, settings, categories, inventoryLogs, customers, discount, coupons, banners, marketingNotifications, adminUsers, activityLogs, supportTickets, blogPosts, staticPages, shippingZones, abandonedCarts, searchTerms, visits, systemError, isLoading]);
 
   const actionsValue = useMemo(() => ({
     addProduct, updateProduct, deleteProduct,

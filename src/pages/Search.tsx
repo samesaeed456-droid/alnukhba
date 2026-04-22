@@ -10,7 +10,7 @@ import { FloatingInput } from '../components/FloatingInput';
 
 export default function Search() {
   const location = useLocation();
-  const { products } = useStoreState();
+  const { products, isLoading: isGlobalLoading } = useStoreState();
   const { addToCart, toggleWishlist, isInWishlist } = useStoreActions();
   
   // Initialize state from URL params
@@ -24,7 +24,6 @@ export default function Search() {
   const [selectedCategory, setSelectedCategory] = useState(initialCategory);
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 2000000]);
   const [itemsToShow, setItemsToShow] = useState(12);
-  const [isLoading, setIsLoading] = useState(false);
   const [isFiltering, setIsFiltering] = useState(false);
   const observerTarget = React.useRef(null);
   const navigate = useNavigate();
@@ -278,7 +277,7 @@ export default function Search() {
             </p>
           </motion.div>
 
-          {isFiltering ? (
+          {isFiltering || isGlobalLoading ? (
             <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-2 sm:gap-8">
               {Array.from({ length: 8 }).map((_, i) => (
                 <ProductCardSkeleton key={i} />
@@ -388,7 +387,7 @@ export default function Search() {
           )}
           
           <div ref={observerTarget} className="mt-6">
-            {isLoading && (
+            {isGlobalLoading && (
               <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-2 sm:gap-8">
                 {Array.from({ length: 4 }).map((_, i) => (
                   <ProductCardSkeleton key={i} />

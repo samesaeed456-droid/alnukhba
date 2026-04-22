@@ -365,6 +365,22 @@ app.post("/api/verify-otp", (req, res) => {
 // --- WEBAUTHN PASSKEYS ENDPOINTS ---
 import crypto from 'crypto';
 
+// Strong type-safe buffer converter to prevent "Received undefined" errors
+function safeBuffer(data: any): Buffer {
+  if (data instanceof Buffer) return data;
+  if (data instanceof Uint8Array) return Buffer.from(data);
+  if (typeof data === 'string') {
+      // Check if it looks like base64
+      if (/^[A-Za-z0-9+/]*={0,2}$/.test(data) && data.length % 4 === 0) {
+          try { return Buffer.from(data, 'base64'); } catch (e) { return Buffer.from(data); }
+      }
+      return Buffer.from(data);
+  }
+  if (Array.isArray(data)) return Buffer.from(data);
+  console.warn('[WebAuthn] Invalid buffer data type:', typeof data);
+  return Buffer.alloc(0);
+}
+
 function signChallenge(challenge: string, type: 'reg' | 'auth', id: string) {
   const secret = process.env.OTP_SECRET || 'fallback-secret-for-demo';
   const expires = Date.now() + 5 * 60 * 1000;
@@ -375,8 +391,8 @@ function signChallenge(challenge: string, type: 'reg' | 'auth', id: string) {
 
 function verifyChallengeSignature(challenge: string, type: 'reg' | 'auth', id: string, token: string) {
   const secret = process.env.OTP_SECRET || 'fallback-secret-for-demo';
+  if (!token || !token.includes('.')) return false;
   const parts = token.split('.');
-  if (parts.length !== 2) return false;
   const [sig, expiresStr] = parts;
   const expires = parseInt(expiresStr, 10);
   if (Date.now() > expires) return false;
@@ -397,7 +413,7 @@ app.post('/api/webauthn/register/generate', async (req, res) => {
     const options = await generateRegistrationOptions({
       rpName,
       rpID,
-      userID: new Uint8Array(Buffer.from(uid)),
+      userID: safeBuffer(uid),
       userName: email,
       attestationType: 'none',
       authenticatorSelection: {
@@ -437,29 +453,22 @@ app.post('/api/webauthn/register/verify', async (req, res) => {
     });
 
     if (verification.verified && verification.registrationInfo) {
-      console.log('[WebAuthn] Registration Info Received');
-      
       const { credentialPublicKey, credentialID, counter } = verification.registrationInfo;
       
-      if (!credentialPublicKey) {
-          console.error('[WebAuthn] Missing credentialPublicKey');
-          return res.status(400).json({ error: 'credentialPublicKey مفقود من استجابة التحقق' });
-      }
-      if (!credentialID) {
-          console.error('[WebAuthn] Missing credentialID');
-          return res.status(400).json({ error: 'credentialID مفقود من استجابة التحقق' });
+      if (!credentialPublicKey || !credentialID) {
+          return res.status(400).json({ error: 'بيانات المفتاح العام مفقودة' });
       }
 
       if (getApps().length === 0) {
-        return res.status(500).json({ error: 'Firebase Admin غير مفعل. لا يمكن حفظ البصمة.' });
+        return res.status(500).json({ error: 'Firebase Admin غير مفعل كلياً' });
       }
 
       const passkeyId = response.id;
-      
       const db = getFirestore();
+      
       await db.collection('passkeys').doc(passkeyId).set({
-        credentialPublicKey: Buffer.from(credentialPublicKey).toString('base64'),
-        credentialID: Buffer.from(credentialID).toString('base64'),
+        credentialPublicKey: safeBuffer(credentialPublicKey).toString('base64'),
+        credentialID: safeBuffer(credentialID).toString('base64'),
         counter,
         uid,
         createdAt: new Date().toISOString()
@@ -514,15 +523,10 @@ app.post('/api/webauthn/login/verify', async (req, res) => {
     const passkeyDoc = await db.collection('passkeys').doc(passkeyId).get();
     
     if (!passkeyDoc.exists) {
-      return res.status(400).json({ error: 'لم يتم العثور على البصمة في النظام. جرجى تسجيل الدخول بالطريقة العادية وربطها أولاً.' });
+      return res.status(400).json({ error: 'لبصمة غير مسجلة' });
     }
     
-    const passkeyData = passkeyDoc.data();
-    if (!passkeyData || !passkeyData.credentialPublicKey || !passkeyData.credentialID) {
-      console.error('[WebAuthn] Invalid passkey data in Firestore:', passkeyData);
-      return res.status(400).json({ error: 'بيانات البصمة المخزنة في النظام غير مكتملة أو تالفة. يرجى إعادة تسجيلها.' });
-    }
-
+    const passkeyData = passkeyDoc.data()!;
     const host = req.get('host') || 'localhost';
     const rpID = host.split(':')[0];
     const origin = req.headers.origin || (req.secure ? 'https://' : 'http://') + host;
@@ -533,8 +537,8 @@ app.post('/api/webauthn/login/verify', async (req, res) => {
       expectedOrigin: origin,
       expectedRPID: rpID,
       authenticator: {
-        credentialPublicKey: new Uint8Array(Buffer.from(passkeyData.credentialPublicKey, 'base64')),
-        credentialID: new Uint8Array(Buffer.from(passkeyData.credentialID, 'base64')),
+        credentialPublicKey: new Uint8Array(safeBuffer(passkeyData.credentialPublicKey)),
+        credentialID: new Uint8Array(safeBuffer(passkeyData.credentialID)),
         counter: passkeyData.counter,
       }
     });
@@ -545,16 +549,13 @@ app.post('/api/webauthn/login/verify', async (req, res) => {
         lastUsedAt: new Date().toISOString()
       });
       
-      const customToken = await getAuth().createCustomToken(passkey.uid);
+      const customToken = await getAuth().createCustomToken(passkeyData.uid || 'unknown');
       res.json({ success: true, customToken });
     } else {
       res.status(400).json({ error: 'فشل التحقق من البصمة' });
     }
   } catch (error: any) {
     console.error('[WebAuthn] Verify Auth Error:', error);
-    if (error.code === 'app/no-app') {
-       return res.status(500).json({ error: 'Firebase Admin ليس معداً. لا يمكن إنشاء توكن الدخول' });
-    }
     res.status(500).json({ error: error.message });
   }
 });

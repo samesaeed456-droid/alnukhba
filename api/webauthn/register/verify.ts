@@ -71,10 +71,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
 
     if (verification.verified && verification.registrationInfo) {
+      console.log('[WebAuthn] Full Registration Info:', JSON.stringify(verification.registrationInfo, (key, value) => 
+        value instanceof Uint8Array ? Array.from(value) : value
+      ));
+      
       const { credentialPublicKey, credentialID, counter } = verification.registrationInfo;
       
-      if (!credentialPublicKey || !credentialID) {
-          return res.status(400).json({ error: 'بيانات المفتاح العام مفقودة من المتصفح' });
+      // We check for these specifically because we need them to authenticate later
+      if (!credentialPublicKey) {
+          console.error('[WebAuthn] Missing credentialPublicKey in registrationInfo');
+          return res.status(400).json({ error: 'لم يتم العثور على المفتاح العام (credentialPublicKey) في الرد.' });
+      }
+      if (!credentialID) {
+          console.error('[WebAuthn] Missing credentialID in registrationInfo');
+          return res.status(400).json({ error: 'لم يتم العثور على معرف المفتاح (credentialID) في الرد.' });
       }
 
       if (getApps().length === 0) {
@@ -84,17 +94,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const passkeyId = response.id;
       const db = getFirestore();
       
-      await db.collection('passkeys').doc(passkeyId).set({
+      const savedData = {
         credentialPublicKey: safeBuffer(credentialPublicKey).toString('base64'),
         credentialID: safeBuffer(credentialID).toString('base64'),
         counter,
         uid,
         createdAt: new Date().toISOString()
-      });
+      };
+
+      await db.collection('passkeys').doc(passkeyId).set(savedData);
 
       res.status(200).json({ success: true });
     } else {
-      res.status(400).json({ error: 'فشل التوثيق من المتصفح' });
+      console.error('[WebAuthn] Registration Verification Failed or Info Missing:', verification);
+      res.status(400).json({ error: 'فشل التوثيق الحيوي: المتصفح لم يرسل البيانات المطلوبة بشكل صحيح.' });
     }
   } catch (error: any) {
     console.error('[WebAuthn] Verify Reg Error:', error);

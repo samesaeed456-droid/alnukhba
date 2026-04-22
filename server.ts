@@ -453,10 +453,14 @@ app.post('/api/webauthn/register/verify', async (req, res) => {
     });
 
     if (verification.verified && verification.registrationInfo) {
+      console.log('[WebAuthn] Full Registration Info:', JSON.stringify(verification.registrationInfo, (key, value) => 
+        value instanceof Uint8Array ? Array.from(value) : value
+      ));
+      
       const { credentialPublicKey, credentialID, counter } = verification.registrationInfo;
       
       if (!credentialPublicKey || !credentialID) {
-          return res.status(400).json({ error: 'بيانات المفتاح العام مفقودة' });
+          return res.status(400).json({ error: 'لم يتم العثور على المفتاح العام في الرد المرسل من جهازك.' });
       }
 
       if (getApps().length === 0) {
@@ -476,7 +480,7 @@ app.post('/api/webauthn/register/verify', async (req, res) => {
 
       res.json({ success: true });
     } else {
-      res.status(400).json({ error: 'فشل التوثيق من المتصفح' });
+      res.status(400).json({ error: 'فشل التوثيق الحيوي: المتصفح لم يرسل البيانات المطلوبة بشكل صحيح.' });
     }
   } catch (error: any) {
     console.error('[WebAuthn] Verify Reg Error:', error);

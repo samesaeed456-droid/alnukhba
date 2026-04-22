@@ -12,6 +12,7 @@ import ProductCard from '../components/ProductCard';
 import RecommendedProducts from '../components/RecommendedProducts';
 import ProductSlider from '../components/ProductSlider';
 import ProductGallery from '../components/ProductGallery';
+import KitProductItem from '../components/KitProductItem';
 import { FastLink } from '../components/FastLink';
 import { FastImage } from '../components/FastImage';
 import { copyToClipboard } from '../lib/clipboard';
@@ -106,6 +107,33 @@ export default function ProductDetail() {
   }, [product?.name, product?.description, showToast]);
 
   const allImages = useMemo(() => (product ? [product.image, ...(product.images || [])] : []), [product]);
+
+  const kitProducts = useMemo(() => {
+    if (!product) return [];
+    
+    // 1. Check for explicit kits
+    if (product.kitProductIds && product.kitProductIds.length > 0) {
+      return products.filter(p => product.kitProductIds?.includes(p.id));
+    }
+    
+    // 2. Smart logic for kits based on categories
+    const categoryRules: Record<string, string[]> = {
+      'طاقة شمسية': ['محولات', 'بطاريات', 'إكسسوارات'],
+      'شاشات': ['إكسسوارات', 'إلكترونيات'],
+      'بطاريات': ['شواحن', 'إلكترونيات', 'إكسسوارات'],
+      'إلكترونيات': ['بطاريات', 'إكسسوارات']
+    };
+
+    const targetCategories = categoryRules[product.category] || [];
+    if (targetCategories.length > 0) {
+      return products
+        .filter(p => p.id !== product.id && targetCategories.includes(p.category))
+        .sort((a, b) => b.rating - a.rating)
+        .slice(0, 4);
+    }
+
+    return [];
+  }, [product, products]);
 
   if (!product) {
     return (
@@ -542,6 +570,31 @@ export default function ProductDetail() {
         </div>
       </div>
 
+      {/* Kit / Completion Section */}
+      {kitProducts.length > 0 && (
+        <div className="mt-12 sm:mt-20">
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center gap-3">
+              <div className="w-2 h-8 bg-solar rounded-full" />
+              <div>
+                <h2 className="text-xl sm:text-2xl font-black text-carbon tracking-tight">أكمل منظومتك</h2>
+                <p className="text-xs sm:text-sm text-titanium/40 font-bold mt-1">منتجات مكملة وضرورية تعمل بشكل مثالي مع هذا المنتج</p>
+              </div>
+            </div>
+            <div className="hidden sm:flex items-center gap-2 px-4 py-2 bg-slate-50 rounded-xl border border-slate-100">
+              <Sparkles className="w-4 h-4 text-solar" />
+              <span className="text-xs font-black text-carbon">توصيات ذكية</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+            {kitProducts.map((kitProd) => (
+              <KitProductItem key={kitProd.id} product={kitProd} />
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Simple Professional Specifications Table (Accordion on Mobile) */}
       <div className="mt-8 mb-8 max-w-5xl">
         <div className="bg-white sm:rounded-[32px] border-y sm:border border-slate-100 shadow-sm overflow-hidden">
@@ -680,10 +733,10 @@ export default function ProductDetail() {
           {product.inStock !== false ? (
             <button 
               onClick={handleAddToCart}
-              className={`w-full h-[52px] rounded-2xl font-bold text-sm transition-all flex items-center justify-between px-5 shadow-2xl backdrop-blur-md ${
+              className={`w-full h-[52px] rounded-2xl font-black text-sm transition-all flex items-center justify-between px-5 shadow-2xl backdrop-blur-md border border-white/20 ${
                 isAdded 
                   ? 'bg-emerald-500 text-white shadow-emerald-500/30' 
-                  : 'bg-carbon/95 text-white shadow-carbon/30 hover:bg-black'
+                  : 'bg-solar text-carbon shadow-solar/40 hover:bg-white active:scale-95'
               }`}
             >
               <div className="flex items-center gap-2.5">
@@ -691,7 +744,7 @@ export default function ProductDetail() {
                 <span className="text-[13px]">{isAdded ? 'تمت الإضافة للسلة' : 'أضف إلى السلة'}</span>
               </div>
               <div className="flex items-center gap-3">
-                <div className="w-px h-5 bg-white/20" />
+                <div className={`w-px h-5 ${isAdded ? 'bg-white/20' : 'bg-carbon/20'}`} />
                 <span className="font-black tracking-wide text-sm">{formatPrice(product.price * quantity)}</span>
               </div>
             </button>

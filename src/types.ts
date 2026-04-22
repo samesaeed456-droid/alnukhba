@@ -31,6 +31,7 @@ export interface Product {
   metaDescription?: string;
   sku?: string;
   status?: 'active' | 'draft';
+  kitProductIds?: string[];
 }
 
 export interface CartItem {

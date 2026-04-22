@@ -72,22 +72,23 @@ async function saveToken(token: string) {
 }
 
 // Handle foreground messages
-export function onForegroundMessage() {
-  const { messaging } = require("./firebase");
-  if (!messaging) return;
+export async function onForegroundMessage() {
+  try {
+    const { messaging } = await import("./firebase");
+    if (!messaging) return;
 
-  onMessage(messaging, (payload) => {
-    console.log('Message received in foreground: ', payload);
-    
-    // You can show a custom toast or UI here
-    if (payload.notification) {
-      const { title, body, icon, image } = payload.notification;
-      // Using standard browser Notification if user permits
-      new Notification(title || 'إشعار جديد', {
-        body,
-        icon: icon || '/logo192.png',
-        image: image || undefined
-      });
-    }
-  });
+    onMessage(messaging, (payload) => {
+      console.log('Message received in foreground: ', payload);
+      
+      if (payload.notification) {
+        const { title, body, icon, image } = payload.notification;
+        new Notification(title || 'إشعار جديد', {
+          body,
+          icon: icon || '/logo192.png'
+        });
+      }
+    });
+  } catch (err) {
+    console.error('Error in onForegroundMessage:', err);
+  }
 }

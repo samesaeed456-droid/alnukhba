@@ -457,9 +457,9 @@ app.post('/api/webauthn/register/verify', async (req, res) => {
         value instanceof Uint8Array ? Array.from(value) : value
       ));
       
-      const { credentialPublicKey, credentialID, counter } = verification.registrationInfo;
+      const { credential } = verification.registrationInfo;
       
-      if (!credentialPublicKey || !credentialID) {
+      if (!credential || !credential.publicKey || !credential.id) {
           return res.status(400).json({ error: 'لم يتم العثور على المفتاح العام في الرد المرسل من جهازك.' });
       }
 
@@ -471,9 +471,9 @@ app.post('/api/webauthn/register/verify', async (req, res) => {
       const db = getFirestore();
       
       await db.collection('passkeys').doc(passkeyId).set({
-        credentialPublicKey: safeBuffer(credentialPublicKey).toString('base64'),
-        credentialID: safeBuffer(credentialID).toString('base64'),
-        counter,
+        credentialPublicKey: safeBuffer(credential.publicKey).toString('base64'),
+        credentialID: credential.id, // Store as is (Base64URLString)
+        counter: credential.counter,
         uid,
         createdAt: new Date().toISOString()
       });
@@ -540,9 +540,9 @@ app.post('/api/webauthn/login/verify', async (req, res) => {
       expectedChallenge: challenge,
       expectedOrigin: origin,
       expectedRPID: rpID,
-      authenticator: {
-        credentialPublicKey: new Uint8Array(safeBuffer(passkeyData.credentialPublicKey)),
-        credentialID: new Uint8Array(safeBuffer(passkeyData.credentialID)),
+      credential: {
+        id: passkeyData.credentialID || response.id,
+        publicKey: new Uint8Array(safeBuffer(passkeyData.credentialPublicKey)),
         counter: passkeyData.counter,
       }
     });

@@ -88,9 +88,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       expectedChallenge: challenge,
       expectedOrigin: origin,
       expectedRPID: rpID,
-      authenticator: {
-        credentialPublicKey: new Uint8Array(safeBuffer(passkeyData.credentialPublicKey)),
-        credentialID: new Uint8Array(safeBuffer(passkeyData.credentialID)),
+      credential: {
+        id: passkeyData.credentialID || response.id,
+        publicKey: new Uint8Array(safeBuffer(passkeyData.credentialPublicKey)),
         counter: passkeyData.counter,
       },
     });

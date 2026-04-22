@@ -75,14 +75,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         value instanceof Uint8Array ? Array.from(value) : value
       ));
       
-      const { credentialPublicKey, credentialID, counter } = verification.registrationInfo;
+      const { credential } = verification.registrationInfo;
       
       // We check for these specifically because we need them to authenticate later
-      if (!credentialPublicKey) {
+      if (!credential || !credential.publicKey) {
           console.error('[WebAuthn] Missing credentialPublicKey in registrationInfo');
           return res.status(400).json({ error: 'لم يتم العثور على المفتاح العام (credentialPublicKey) في الرد.' });
       }
-      if (!credentialID) {
+      if (!credential.id) {
           console.error('[WebAuthn] Missing credentialID in registrationInfo');
           return res.status(400).json({ error: 'لم يتم العثور على معرف المفتاح (credentialID) في الرد.' });
       }
@@ -95,9 +95,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const db = getFirestore();
       
       const savedData = {
-        credentialPublicKey: safeBuffer(credentialPublicKey).toString('base64'),
-        credentialID: safeBuffer(credentialID).toString('base64'),
-        counter,
+        credentialPublicKey: safeBuffer(credential.publicKey).toString('base64'),
+        credentialID: credential.id, // Store as is (Base64URLString)
+        counter: credential.counter,
         uid,
         createdAt: new Date().toISOString()
       };

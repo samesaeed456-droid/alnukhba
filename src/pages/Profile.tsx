@@ -816,13 +816,13 @@ export default function Profile() {
             <motion.h1 variants={itemVariants} className="text-xl sm:text-2xl font-black text-carbon mb-6 px-1">حسابي</motion.h1>
             
             {/* Minimal Profile Header */}
-            <motion.div variants={itemVariants} className="bg-white rounded-2xl p-4 shadow-xl border border-slate-100 mb-6 flex items-center gap-4">
+            <motion.div variants={itemVariants} className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 mb-4 flex items-center gap-4">
               <div className="relative group/avatar shrink-0">
-                <div className="w-14 h-14 sm:w-16 sm:h-16 bg-slate-50 rounded-full flex items-center justify-center border border-slate-100 overflow-hidden shadow-inner">
+                <div className="w-12 h-12 sm:w-16 sm:h-16 bg-slate-50 rounded-full flex items-center justify-center border border-slate-100 overflow-hidden shadow-inner">
                   {user.avatar ? (
                     <img src={user.avatar || undefined} alt={user.name} className="w-full h-full object-cover" />
                   ) : (
-                    <User className="w-7 h-7 sm:w-8 sm:h-8 text-slate-300" />
+                    <User className="w-6 h-6 sm:w-8 sm:h-8 text-slate-300" />
                   )}
                 </div>
                 <label className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full opacity-0 group-hover/avatar:opacity-100 transition-all cursor-pointer backdrop-blur-[2px]">
@@ -845,22 +845,22 @@ export default function Profile() {
               <div className="space-y-6 sm:space-y-8">
                 {/* Digital Wallet Section */}
                 <Section title="المحفظة الرقمية">
-                  <div className="p-6 bg-slate-900 relative overflow-hidden group">
+                  <div className="p-4 sm:p-6 bg-slate-900 relative overflow-hidden group">
                     {/* Background Glow */}
                     <div className="absolute top-0 right-0 w-32 h-32 bg-solar/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
                     
-                    <div className="relative z-10 flex items-center justify-between mb-6">
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center border border-white/5 shadow-inner">
-                          <Wallet className="w-6 h-6 text-solar" />
+                    <div className="relative z-10 flex items-center justify-between mb-4 sm:mb-6">
+                      <div className="flex items-center gap-3 sm:gap-4">
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-white/10 flex items-center justify-center border border-white/5 shadow-inner">
+                          <Wallet className="w-5 h-5 sm:w-6 sm:h-6 text-solar" />
                         </div>
                         <div>
-                          <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mb-1">الرصيد الحالي</p>
+                          <p className="text-[9px] sm:text-[10px] text-slate-400 font-black uppercase tracking-widest mb-0.5 sm:mb-1">الرصيد الحالي</p>
                           <div className="flex items-baseline gap-1">
                             <PriceDisplay 
                               price={user.walletBalance || 0} 
-                              numberClassName="text-2xl font-black text-white tracking-tight"
-                              currencyClassName="text-sm text-solar font-bold"
+                              numberClassName="text-xl sm:text-2xl font-black text-white tracking-tight"
+                              currencyClassName="text-[10px] sm:text-sm text-solar font-bold"
                             />
                           </div>
                         </div>
@@ -872,10 +872,10 @@ export default function Profile() {
                         window.scrollTo(0, 0);
                         setCurrentView('wallet');
                       }}
-                      className="w-full bg-solar text-carbon py-3.5 rounded-xl font-black transition-all flex items-center justify-center gap-2 text-sm shadow-lg shadow-solar/20 hover:scale-[1.02] active:scale-[0.98]"
+                      className="w-full bg-solar text-carbon py-2.5 sm:py-3.5 rounded-xl font-black transition-all flex items-center justify-center gap-2 text-[11px] sm:text-sm shadow-lg shadow-solar/20 hover:scale-[1.02] active:scale-[0.98]"
                     >
-                      <Plus className="w-4 h-4" />
-                      إيداع رصيد الآن
+                      <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                      إيداع رصيد
                     </button>
                   </div>
                 </Section>
@@ -978,20 +978,20 @@ export default function Profile() {
 
             <div className="space-y-6">
               {/* Balance Card */}
-              <div className="bg-gradient-to-br from-slate-900 to-carbon rounded-2xl sm:rounded-3xl p-5 sm:p-8 relative overflow-hidden shadow-xl">
+              <div className="bg-gradient-to-br from-slate-900 to-carbon rounded-2xl p-4 sm:p-8 relative overflow-hidden shadow-lg">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
                 <div className="relative z-10">
                   <div className="flex items-center gap-3 mb-2 sm:mb-6">
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-emerald-500/20 flex items-center justify-center">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-white/10 flex items-center justify-center">
                       <Wallet className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-400" />
                     </div>
                     <div>
-                      <p className="text-xs sm:text-sm text-slate-400 font-medium mb-0.5 sm:mb-1">الرصيد الحالي</p>
+                      <p className="text-[10px] sm:text-sm text-slate-400 font-bold mb-0.5 sm:mb-1">الرصيد الحالي</p>
                       <div className="flex items-baseline gap-2">
                         <PriceDisplay 
                           price={user.walletBalance || 0} 
-                          numberClassName="text-2xl sm:text-3xl md:text-4xl font-black text-white tracking-tight"
-                          currencyClassName="text-lg sm:text-xl text-emerald-400 font-bold"
+                          numberClassName="text-xl sm:text-3xl md:text-4xl font-black text-white tracking-tight"
+                          currencyClassName="text-xs sm:text-xl text-emerald-400 font-bold"
                         />
                       </div>
                     </div>

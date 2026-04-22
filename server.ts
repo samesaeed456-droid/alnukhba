@@ -437,13 +437,17 @@ app.post('/api/webauthn/register/verify', async (req, res) => {
     });
 
     if (verification.verified && verification.registrationInfo) {
-      console.log('[WebAuthn] Registration Info:', JSON.stringify(verification.registrationInfo));
+      console.log('[WebAuthn] Registration Info Received');
       
       const { credentialPublicKey, credentialID, counter } = verification.registrationInfo;
       
-      if (!credentialPublicKey || !credentialID) {
-          console.error('[WebAuthn] Missing credential data in registrationInfo:', verification.registrationInfo);
-          return res.status(400).json({ error: 'لم يقم المتصفح بإرجاع بيانات المفتاح العامة بشكل صحيح.' });
+      if (!credentialPublicKey) {
+          console.error('[WebAuthn] Missing credentialPublicKey');
+          return res.status(400).json({ error: 'credentialPublicKey مفقود من استجابة التحقق' });
+      }
+      if (!credentialID) {
+          console.error('[WebAuthn] Missing credentialID');
+          return res.status(400).json({ error: 'credentialID مفقود من استجابة التحقق' });
       }
 
       if (getApps().length === 0) {
@@ -513,7 +517,11 @@ app.post('/api/webauthn/login/verify', async (req, res) => {
       return res.status(400).json({ error: 'لم يتم العثور على البصمة في النظام. جرجى تسجيل الدخول بالطريقة العادية وربطها أولاً.' });
     }
     
-    const passkey = passkeyDoc.data()!;
+    const passkeyData = passkeyDoc.data();
+    if (!passkeyData || !passkeyData.credentialPublicKey || !passkeyData.credentialID) {
+      console.error('[WebAuthn] Invalid passkey data in Firestore:', passkeyData);
+      return res.status(400).json({ error: 'بيانات البصمة المخزنة في النظام غير مكتملة أو تالفة. يرجى إعادة تسجيلها.' });
+    }
 
     const host = req.get('host') || 'localhost';
     const rpID = host.split(':')[0];
@@ -525,9 +533,9 @@ app.post('/api/webauthn/login/verify', async (req, res) => {
       expectedOrigin: origin,
       expectedRPID: rpID,
       authenticator: {
-        credentialPublicKey: new Uint8Array(Buffer.from(passkey.credentialPublicKey, 'base64')),
-        credentialID: new Uint8Array(Buffer.from(passkey.credentialID, 'base64')),
-        counter: passkey.counter,
+        credentialPublicKey: new Uint8Array(Buffer.from(passkeyData.credentialPublicKey, 'base64')),
+        credentialID: new Uint8Array(Buffer.from(passkeyData.credentialID, 'base64')),
+        counter: passkeyData.counter,
       }
     });
 

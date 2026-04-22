@@ -3,9 +3,12 @@ import { getMessaging, getToken, onMessage } from "firebase/messaging";
 import { db, auth } from "./firebase";
 import { doc, setDoc, arrayUnion } from "firebase/firestore";
 
-// VAPID key is required for Web Push. In production, this should be an environment variable.
-// Example: BPi-O...
+// VAPID key is required for Web Push.
 const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY;
+
+if (!VAPID_KEY) {
+  console.warn("FCM VAPID Key is missing! Push notifications registration will fail. Please add VITE_FIREBASE_VAPID_KEY to your environment variables.");
+}
 
 export async function requestNotificationPermission() {
   if (!("Notification" in window)) {

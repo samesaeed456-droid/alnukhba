@@ -26,6 +26,24 @@ export default function Profile() {
       setCurrentView((location.state as any).view);
     }
   }, [location.state]);
+
+  // Check if user has a passkey
+  useEffect(() => {
+    if (user && user.uid) {
+      const checkPasskey = async () => {
+        try {
+          const { db, collection, query, where, getDocs } = await import('../lib/firebase');
+          const q = query(collection(db, 'passkeys'), where('uid', '==', user.uid));
+          const snapshot = await getDocs(q);
+          setHasPasskey(!snapshot.empty);
+        } catch (error) {
+          console.error("Error checking passkey status:", error);
+        }
+      };
+      checkPasskey();
+    }
+  }, [user]);
+
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showAddressDeleteConfirm, setShowAddressDeleteConfirm] = useState(false);
@@ -969,10 +987,10 @@ export default function Profile() {
                       </div>
                       <button 
                          onClick={handleRegisterPasskey}
-                         disabled={isLoading}
-                         className="bg-carbon text-white text-xs sm:text-sm font-bold py-1.5 px-3 rounded-lg hover:bg-black transition-colors"
+                         disabled={isLoading || hasPasskey}
+                         className={`text-xs sm:text-sm font-bold py-1.5 px-3 rounded-lg transition-colors ${hasPasskey ? 'bg-green-500 text-white cursor-default opacity-100 hover:bg-green-500 disabled:opacity-100' : 'bg-carbon text-white hover:bg-black'}`}
                       >
-                         {hasPasskey ? 'تمت الإضافة' : 'تفعيل'}
+                         {hasPasskey ? 'تم التفعيل' : 'تفعيل'}
                       </button>
                     </div>
                     <p className="text-xs text-titanium/60 pr-14 leading-relaxed">

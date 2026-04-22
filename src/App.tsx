@@ -51,7 +51,8 @@ const AdminCloud = lazy(() => import('./pages/admin/Cloud.tsx'));
 import Maintenance from './pages/Maintenance';
 import BlockedOverlay from './components/BlockedOverlay';
 import OfflineStatus from './components/OfflineStatus';
-import { AlertCircle, X } from 'lucide-react';
+import { AlertCircle, X, Bell } from 'lucide-react';
+import { requestNotificationPermission, onForegroundMessage } from './lib/notifications';
 
 const SystemAlert = () => {
   const { systemError } = useStore();
@@ -167,6 +168,34 @@ const MainRoutes = () => {
   const [bypassMaintenance, setBypassMaintenance] = useState(
     sessionStorage.getItem('bypassMaintenance') === 'true'
   );
+
+  useEffect(() => {
+    // Register notification handler
+    onForegroundMessage();
+    
+    // Check if we should ask for permission
+    const hasAsked = localStorage.getItem('notifications_asked');
+    if (!hasAsked) {
+      const timer = setTimeout(() => {
+        toast('هل تود تلقي إشعارات بآخر العروض والطلبات؟', {
+          action: {
+            label: 'تفعيل',
+            onClick: () => {
+              requestNotificationPermission();
+              localStorage.setItem('notifications_asked', 'true');
+            }
+          },
+          cancel: {
+            label: 'ليس الآن',
+            onClick: () => localStorage.setItem('notifications_asked', 'true')
+          },
+          duration: 10000,
+          icon: <Bell className="w-5 h-5 text-solar" />
+        });
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, []);
 
   const handleBypass = () => {
     sessionStorage.setItem('bypassMaintenance', 'true');

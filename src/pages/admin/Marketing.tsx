@@ -27,7 +27,7 @@ export default function Marketing() {
 
   // Notification State
   const [notifForm, setNotifForm] = useState({
-    title: '', message: '', target: 'all' as MarketingNotification['target'], type: 'push' as MarketingNotification['type'], scheduledFor: ''
+    title: '', message: '', target: 'all' as MarketingNotification['target'], type: 'push' as MarketingNotification['type'], scheduledFor: '', image: '', link: ''
   });
 
   const [confirmModal, setConfirmModal] = useState<{
@@ -53,10 +53,40 @@ export default function Marketing() {
     setEditingBanner(null);
   };
 
-  const handleSendNotification = (e: React.FormEvent) => {
+  const handleSendNotification = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (notifForm.type === 'push') {
+      const loadingToast = toast.loading('جاري إرسال الإشعار لجميع الأجهزة...');
+      try {
+        const response = await fetch('/api/admin/notifications/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: notifForm.title,
+            message: notifForm.message,
+            image: notifForm.image,
+            url: notifForm.link,
+            target: notifForm.target
+          })
+        });
+        
+        const data = await response.json();
+        toast.dismiss(loadingToast);
+        
+        if (data.success) {
+          toast.success(`تم الإرسال بنجاح لـ ${data.sentCount} جهاز`);
+        } else {
+          toast.error(data.error || 'فشل الإرسال');
+        }
+      } catch (err) {
+        toast.dismiss(loadingToast);
+        toast.error('خطأ في الاتصال بالخادم');
+      }
+    }
+    
     sendMarketingNotification(notifForm);
-    setNotifForm({ title: '', message: '', target: 'all', type: 'push', scheduledFor: '' });
+    setNotifForm({ title: '', message: '', target: 'all', type: 'push', scheduledFor: '', image: '', link: '' });
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -288,6 +318,28 @@ export default function Marketing() {
                   </select>
                 </div>
                 
+                <div>
+                  <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">رابط التوجيه (اختياري)</label>
+                  <input
+                    type="text"
+                    value={notifForm.link}
+                    onChange={(e) => setNotifForm({ ...notifForm, link: e.target.value })}
+                    className="w-full px-4 py-3 bg-bg-general border border-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-carbon/20 focus:border-carbon font-bold text-carbon transition-all"
+                    placeholder="مثلاً: /product/123"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">رابط الصورة (اختياري)</label>
+                  <input
+                    type="text"
+                    value={notifForm.image}
+                    onChange={(e) => setNotifForm({ ...notifForm, image: e.target.value })}
+                    className="w-full px-4 py-3 bg-bg-general border border-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-carbon/20 focus:border-carbon font-bold text-carbon transition-all"
+                    placeholder="https://example.com/image.jpg"
+                  />
+                </div>
+
                 <div>
                   <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">وقت الإرسال (اختياري)</label>
                   <input

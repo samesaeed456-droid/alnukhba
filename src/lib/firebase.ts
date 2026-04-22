@@ -1,4 +1,5 @@
 import { initializeApp } from 'firebase/app';
+import { getMessaging, getToken, onMessage, Messaging } from 'firebase/messaging';
 import { 
   getAuth, 
   GoogleAuthProvider, 
@@ -43,6 +44,17 @@ const app = initializeApp(firebaseConfig);
 
 // Initialize Services
 export const auth = getAuth(app);
+export let messaging: Messaging | null = null;
+
+// Initialize messaging only in browser
+if (typeof window !== 'undefined') {
+  try {
+    messaging = getMessaging(app);
+  } catch (err) {
+    console.warn('Firebase Messaging not supported or failed to initialize:', err);
+  }
+}
+
 export const db = initializeFirestore(app, {
   experimentalForceLongPolling: true,
 }, firebaseConfig.firestoreDatabaseId);
@@ -160,5 +172,7 @@ export {
   getDocFromServer,
   addDoc,
   writeBatch,
-  runTransaction
+  runTransaction,
+  getToken,
+  onMessage
 };

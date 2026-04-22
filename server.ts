@@ -6,6 +6,7 @@ import { v2 as cloudinary } from 'cloudinary';
 import { initializeApp, cert, getApps } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
+import { getMessaging } from 'firebase-admin/messaging';
 import { generateRegistrationOptions, verifyRegistrationResponse, generateAuthenticationOptions, verifyAuthenticationResponse } from '@simplewebauthn/server';
 
 dotenv.config();
@@ -50,6 +51,63 @@ app.use(express.json({ limit: "50mb" }));
 // API Routes
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok" });
+});
+
+// Notifications API
+app.post("/api/admin/notifications/send", async (req, res) => {
+  const { title, message, image, url, target } = req.body;
+  
+  if (!title || !message) {
+    return res.status(400).json({ error: "Title and message are required" });
+  }
+
+  try {
+    const db = getFirestore();
+    let tokens: string[] = [];
+
+    if (target === 'all') {
+      const tokensSnap = await db.collection('notification_tokens').get();
+      tokens = tokensSnap.docs.map(doc => doc.id);
+    } else {
+      // Implement targeted logic here (e.g. VIP, etc.)
+      const tokensSnap = await db.collection('notification_tokens').get();
+      tokens = tokensSnap.docs.map(doc => doc.id);
+    }
+
+    if (tokens.length === 0) {
+      return res.status(404).json({ error: "No subscribers found" });
+    }
+
+    const messaging = getMessaging();
+    
+    // FCM v1 allows sending in batches or to single tokens
+    // For many tokens, we should send multicast or loop (multicast is deprecated in v1 SDK, we use sendEach)
+    const messages = tokens.map(token => ({
+      token,
+      notification: {
+        title,
+        body: message,
+        image: image || undefined,
+      },
+      data: {
+        url: url || '/',
+        image: image || '',
+      }
+    }));
+
+    const response = await messaging.sendEach(messages);
+    
+    console.log(`[Notifications] Sent ${response.successCount} messages, ${response.failureCount} failed.`);
+    
+    res.json({ 
+      success: true, 
+      sentCount: response.successCount, 
+      failureCount: response.failureCount 
+    });
+  } catch (error: any) {
+    console.error("[Notifications] Error sending messages:", error);
+    res.status(500).json({ error: error.message });
+  }
 });
 
 app.get("/api/cloudinary/usage", async (req, res) => {

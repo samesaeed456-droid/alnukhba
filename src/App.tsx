@@ -51,6 +51,7 @@ const AdminCloud = lazy(() => import('./pages/admin/Cloud.tsx'));
 import Maintenance from './pages/Maintenance';
 import BlockedOverlay from './components/BlockedOverlay';
 import OfflineStatus from './components/OfflineStatus';
+import NotificationGatingModal from './components/NotificationGatingModal';
 import { AlertCircle, X, Bell } from 'lucide-react';
 import { requestNotificationPermission, onForegroundMessage, refreshNotificationToken } from './lib/notifications';
 
@@ -277,6 +278,7 @@ export default function App() {
       <OfflineStatus />
       <SystemAlert />
       <BlockedOverlay />
+      <NotificationGatingModal />
       <MotionConfig reducedMotion="user">
         <Toaster 
           position="top-center" 

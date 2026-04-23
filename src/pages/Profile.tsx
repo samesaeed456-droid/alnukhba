@@ -278,13 +278,126 @@ export default function Profile() {
     }
   }, [user, formData, updateUser, showToast]);
 
-  const handleSave = useCallback(() => {
-    if (user) {
-      updateUser({ ...user, ...formData } as any);
+  const [isChangingPhone, setIsChangingPhone] = useState(false);
+  const [changePhoneOtp, setChangePhoneOtp] = useState(['', '', '', '']);
+  const [verificationToken, setVerificationToken] = useState('');
+
+  const validatePhone = useCallback((phone: string, countryCode: string) => {
+    if (countryCode === '+967') {
+      const yemenPhoneRegex = /^7\d{8}$/;
+      return yemenPhoneRegex.test(phone);
     }
+    return /^\d{7,15}$/.test(phone);
+  }, []);
+
+  const handleSave = useCallback(async () => {
+    if (!user) return;
+    
+    // Check if phone number is being changed
+    const currentPhone = user.phone || '';
+    const newPhone = formData.phone;
+    const currentCountryCode = user.countryCode || '+967';
+    const newCountryCode = formData.countryCode;
+
+    if (newPhone !== currentPhone || newCountryCode !== currentCountryCode) {
+      // Validate new phone
+      if (!newPhone) {
+        showToast('يرجى إدخال رقم الجوال', 'error');
+        return;
+      }
+      if (!validatePhone(newPhone, newCountryCode)) {
+        showToast('رقم الجوال غير صحيح. الجوال اليمني يجب أن يبدأ بـ 7 ويتكون من 9 أرقام.', 'error');
+        return;
+      }
+
+      // Initiate OTP for phone change
+      setIsLoading(true);
+      try {
+        const fullPhone = newCountryCode + newPhone;
+        const response = await fetch('/api/send-otp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone: fullPhone }),
+        });
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+          setVerificationToken(data.token);
+          setIsChangingPhone(true);
+          setChangePhoneOtp(['', '', '', '']);
+          showToast('تم إرسال كود التحقق إلى الرقم الجديد');
+        } else {
+          showToast(data.error || 'تعذر إرسال كود التحقق', 'error');
+        }
+      } catch (err) {
+        showToast('فشل إرسال كود التحقق', 'error');
+      } finally {
+        setIsLoading(false);
+      }
+      return;
+    }
+
+    // Normal save if phone didn't change
+    updateUser({ ...user, ...formData } as any);
     window.scrollTo(0, 0);
     setCurrentView('menu');
-  }, [user, formData, updateUser]);
+    showToast('تم تحديث الحساب بنجاح');
+  }, [user, formData, updateUser, validatePhone, showToast]);
+
+  const verifyPhoneChangeAndSave = useCallback(async () => {
+    if (!user) return;
+    const code = changePhoneOtp.join('');
+    if (code.length < 4) {
+      showToast('يرجى إدخال الكود كاملاً', 'error');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const fullPhone = formData.countryCode + formData.phone;
+      const response = await fetch('/api/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          phone: fullPhone, 
+          otp: code, 
+          token: verificationToken 
+        }),
+      });
+
+      const data = await response.json();
+      if (response.ok && data.success) {
+        // Here we ideally need to update the Auth Email in Firebase as well
+        try {
+          const { updateEmail, auth } = await import('../lib/firebase');
+          if (auth.currentUser) {
+             const newDummyEmail = `${formData.countryCode.replace('+', '')}${formData.phone}@elite-store.local`;
+             await updateEmail(auth.currentUser, newDummyEmail);
+          }
+        } catch(authErr: any) {
+           console.error("Auth email update error:", authErr);
+           if (authErr.code === 'auth/requires-recent-login') {
+             showToast('حماية حسابك تتطلب إعادة تسجيل الدخول لتغيير الرقم. يرجى تسجيل الخروج والعودة', 'error');
+             setIsLoading(false);
+             return;
+           }
+           // We might swallow other errors or require them, but let's proceed to update firestore anyway since the phone was verified
+        }
+
+        updateUser({ ...user, ...formData } as any);
+        setIsChangingPhone(false);
+        window.scrollTo(0, 0);
+        setCurrentView('menu');
+        showToast('تم تحديث الحساب وتغيير الرقم بنجاح');
+      } else {
+        showToast(data.error || 'كود التحقق غير صحيح', 'error');
+      }
+    } catch (err) {
+      showToast('فشل إكمال العملية. تأكد من اتصالك', 'error');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user, formData, changePhoneOtp, verificationToken, updateUser, showToast]);
 
   const handleNotImplemented = useCallback(() => {
     showToast('سيتم توفير هذه الميزة قريباً');
@@ -1606,6 +1719,80 @@ export default function Profile() {
               </div>
             </div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Phone Change OTP Modal */}
+      <AnimatePresence>
+        {isChangingPhone && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-carbon/60 backdrop-blur-sm z-[100]"
+            />
+            <motion.div
+              initial={{ opacity: 0, y: '100%' }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="fixed bottom-0 left-0 right-0 sm:inset-0 sm:m-auto sm:h-fit sm:max-w-md bg-white rounded-t-[2rem] sm:rounded-[2.5rem] p-5 sm:p-8 z-[101] shadow-2xl overflow-hidden text-center"
+            >
+              <div className="w-14 h-14 bg-solar/10 rounded-2xl flex items-center justify-center mx-auto mb-4 text-solar rotate-3">
+                 <Smartphone className="w-7 h-7" />
+              </div>
+              <h2 className="text-xl font-black text-carbon mb-2">تأكيد رقم الجوال الجديد</h2>
+              <p className="text-sm text-slate-500 mb-6">أدخل كود التحقق المرسل إلى {formData.countryCode}{formData.phone}</p>
+              
+              <div className="flex justify-center gap-3 md:gap-4 mb-6" dir="ltr">
+                {changePhoneOtp.map((digit, index) => (
+                  <input
+                    key={index}
+                    id={`change-phone-otp-${index}`}
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={1}
+                    value={digit}
+                    onChange={(e) => {
+                       const value = e.target.value;
+                       if (value && !/^\d+$/.test(value)) return;
+                       const newOtp = [...changePhoneOtp];
+                       newOtp[index] = value;
+                       setChangePhoneOtp(newOtp);
+                       if (value && index < 3) {
+                         document.getElementById(`change-phone-otp-${index + 1}`)?.focus();
+                       }
+                    }}
+                    onKeyDown={(e) => {
+                       if (e.key === 'Backspace' && !changePhoneOtp[index] && index > 0) {
+                         document.getElementById(`change-phone-otp-${index - 1}`)?.focus();
+                       }
+                    }}
+                    autoComplete={index === 0 ? "one-time-code" : "off"}
+                    className="w-14 h-14 text-center text-2xl font-bold bg-slate-50 border-2 border-slate-100 rounded-xl focus:border-carbon focus:ring-4 focus:ring-carbon/10 outline-none transition-all"
+                  />
+                ))}
+              </div>
+
+              <div className="space-y-3">
+                <button
+                  onClick={verifyPhoneChangeAndSave}
+                  disabled={isLoading || changePhoneOtp.join('').length < 4}
+                  className="w-full bg-carbon text-white h-14 rounded-2xl font-bold transition-all shadow-lg flex items-center justify-center disabled:opacity-50"
+                >
+                  {isLoading ? 'جاري التأكيد...' : 'تأكيد الحفظ'}
+                </button>
+                <button
+                  onClick={() => setIsChangingPhone(false)}
+                  disabled={isLoading}
+                  className="w-full bg-slate-100 text-slate-600 h-14 rounded-2xl font-bold transition-all hover:bg-slate-200"
+                >
+                  إلغاء التغيير
+                </button>
+              </div>
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
 

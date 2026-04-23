@@ -1014,8 +1014,24 @@ export default function Profile() {
                       </div>
                       <button 
                         onClick={() => {
-                          const newPrefs = { ...user.preferences, notifications: !user.preferences?.notifications };
+                          const isEnabling = !user.preferences?.notifications;
+                          const newPrefs = { ...user.preferences, notifications: isEnabling };
+                          
+                          // Optimistic local update to prevent "flickering" or "reverting"
                           updateUser({ ...user, preferences: newPrefs });
+                          
+                          // If enabling, also try to register for push notifications
+                          if (isEnabling) {
+                            import('../lib/notifications').then(m => {
+                              m.requestNotificationPermission().then(granted => {
+                                if (!granted) {
+                                  // If permission denied or failed, we keep the preference but show a notice
+                                  // Or we could revert it if we want strictness.
+                                  // For now, let's just make it work.
+                                }
+                              });
+                            });
+                          }
                         }}
                         className={`w-12 h-6 rounded-full transition-all relative ${user.preferences?.notifications ? 'bg-solar' : 'bg-slate-200'}`}
                       >

@@ -1929,13 +1929,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const updateUser = React.useCallback(async (newUser: UserProfile) => {
     if (!auth.currentUser) return;
+    
+    // Save current user for error reversal if needed
+    const prevUser = user;
+    setUser(newUser);
 
     try {
       // Ensure we don't accidentally drop the admin role if it was set
-      if (user?.role === 'admin' && newUser.role !== 'admin') {
+      if (prevUser?.role === 'admin' && newUser.role !== 'admin') {
         newUser.role = 'admin';
-        if (user.adminRole) {
-          newUser.adminRole = user.adminRole;
+        if (prevUser.adminRole) {
+          newUser.adminRole = prevUser.adminRole;
         }
       }
 
@@ -1943,7 +1947,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         ...newUser,
         updatedAt: serverTimestamp()
       });
-      setUser(newUser);
+      
       showToast('تم تحديث البيانات بنجاح');
 
       // Sync back to admin_users to keep the Dashboard perfectly synced
@@ -1968,6 +1972,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       }
 
     } catch (error) {
+      // Revert optimistic update on failure
+      if (prevUser) setUser(prevUser);
       handleFirestoreError(error, OperationType.UPDATE, `users/${auth.currentUser.uid}`);
     }
   }, [showToast, user]);

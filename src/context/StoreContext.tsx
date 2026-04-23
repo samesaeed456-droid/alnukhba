@@ -1930,6 +1930,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const updateUser = React.useCallback(async (newUser: UserProfile) => {
     if (!auth.currentUser) return;
     
+    const uid = auth.currentUser.uid;
     // Save current user for error reversal if needed
     const prevUser = user;
     setUser(newUser);
@@ -1943,10 +1944,25 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      await updateDoc(doc(db, 'users', auth.currentUser.uid), {
-        ...newUser,
+      // Identify updated fields only to avoid overwriting server-side fields like session IDs
+      const updateData: any = {
         updatedAt: serverTimestamp()
-      });
+      };
+      
+      if (newUser.name !== undefined) updateData.name = newUser.name;
+      if (newUser.displayName !== undefined) updateData.displayName = newUser.displayName;
+      if (newUser.avatar !== undefined) updateData.avatar = newUser.avatar;
+      if (newUser.photoURL !== undefined) updateData.photoURL = newUser.photoURL;
+      if (newUser.phone !== undefined) updateData.phone = newUser.phone;
+      if (newUser.address !== undefined) updateData.address = newUser.address;
+      if (newUser.preferences !== undefined) updateData.preferences = newUser.preferences;
+      if (newUser.notificationsEnabled !== undefined) updateData.notificationsEnabled = newUser.notificationsEnabled;
+      if (newUser.fcmTokens !== undefined) updateData.fcmTokens = newUser.fcmTokens;
+      
+      // Admin might want to keep their role synced
+      if (newUser.role) updateData.role = newUser.role;
+
+      await updateDoc(doc(db, 'users', uid), updateData);
       
       showToast('تم تحديث البيانات بنجاح');
 

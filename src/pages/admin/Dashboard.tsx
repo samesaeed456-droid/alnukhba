@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { 
   Package, ShoppingCart, Users, Banknote, TrendingUp, TrendingDown, 
   Calendar, Download, MapPin, ArrowUpRight, Activity, CreditCard, 
@@ -17,6 +17,7 @@ import { toast } from 'sonner';
 import { BASE_CURRENCY_SYMBOL } from '@/lib/finance';
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const { 
     products, 
     orders, 
@@ -377,9 +378,19 @@ export default function Dashboard() {
               {stats.abandonedCarts > 0 ? 'تنبيه' : 'مثالي'}
             </div>
           </div>
-          <div className="w-full">
-            <span className="text-slate-400 text-[10px] sm:text-xs font-black uppercase tracking-widest block mb-1">سلال متروكة</span>
-            <span className="text-xl sm:text-2xl font-black text-slate-900">{stats.abandonedCarts}</span>
+          <div className="w-full flex justify-between items-end">
+            <div className="text-right">
+              <span className="text-slate-400 text-[10px] sm:text-xs font-black uppercase tracking-widest block mb-1">سلال متروكة</span>
+              <span className="text-xl sm:text-2xl font-black text-slate-900">{stats.abandonedCarts}</span>
+            </div>
+            {stats.abandonedCarts > 0 && (
+              <button 
+                onClick={() => navigate('/admin/marketing')}
+                className="text-[10px] font-black text-rose-600 bg-rose-50 px-3 py-1.5 rounded-lg hover:bg-rose-100 transition-all border border-rose-100 mb-1"
+              >
+                إرسال تذكير
+              </button>
+            )}
           </div>
         </motion.div>
       </div>

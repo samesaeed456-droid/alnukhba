@@ -56,7 +56,7 @@ app.get("/api/health", (req, res) => {
 // Notifications API
 app.post("/api/admin/notifications/send", async (req, res) => {
   console.log("[API] Received POST request to /api/admin/notifications/send");
-  const { title, message, image, url, target } = req.body;
+  const { title, message, image, url, target, targetUserId, actions } = req.body;
   
   if (!title || !message) {
     return res.status(400).json({ error: "Title and message are required" });
@@ -76,8 +76,30 @@ app.post("/api/admin/notifications/send", async (req, res) => {
     if (target === 'all') {
       const tokensSnap = await db.collection('notification_tokens').get();
       tokens = tokensSnap.docs.map(doc => doc.id);
+    } else if (target === 'specific_user' && targetUserId) {
+      const tokensSnap = await db.collection('notification_tokens')
+        .where('userId', '==', targetUserId)
+        .get();
+      tokens = tokensSnap.docs.map(doc => doc.id);
+    } else if (target === 'abandoned_cart') {
+      const abandonedSnap = await db.collection('abandonedCarts').get();
+      const userIds = abandonedSnap.docs.map(doc => doc.id);
+      if (userIds.length > 0) {
+        const tokensSnap = await db.collection('notification_tokens')
+          .where('userId', 'in', userIds.slice(0, 10))
+          .get();
+        tokens = tokensSnap.docs.map(doc => doc.id);
+      }
+    } else if (target === 'vip') {
+      const vipSnap = await db.collection('users').where('orderCount', '>=', 10).get();
+      const userIds = vipSnap.docs.map(doc => doc.id);
+      if (userIds.length > 0) {
+        const tokensSnap = await db.collection('notification_tokens')
+          .where('userId', 'in', userIds.slice(0, 10))
+          .get();
+        tokens = tokensSnap.docs.map(doc => doc.id);
+      }
     } else {
-      // Implement targeted logic here (e.g. VIP, etc.)
       const tokensSnap = await db.collection('notification_tokens').get();
       tokens = tokensSnap.docs.map(doc => doc.id);
     }
@@ -87,9 +109,12 @@ app.post("/api/admin/notifications/send", async (req, res) => {
     }
 
     const messaging = getMessaging();
+    const actionButtons = actions ? JSON.parse(actions) : [
+      { action: 'open', title: 'عرض التفاصيل' },
+      { action: 'close', title: 'إغلاق' }
+    ];
     
     // FCM v1 allows sending in batches or to single tokens
-    // For many tokens, we should send multicast or loop (multicast is deprecated in v1 SDK, we use sendEach)
     const messages = tokens.map(token => ({
       token,
       notification: {
@@ -100,10 +125,66 @@ app.post("/api/admin/notifications/send", async (req, res) => {
       data: {
         url: url || '/',
         image: image || '',
+        actions: JSON.stringify(actionButtons)
+      },
+      android: {
+        notification: {
+          icon: 'stock_ticker_update',
+          color: '#f7931a',
+          sound: 'default'
+        }
+      },
+      apns: {
+        payload: {
+          aps: {
+            badge: 1,
+            sound: 'default'
+          }
+        }
       }
     }));
 
     const response = await messaging.sendEach(messages);
+    
+    // Save to global history
+    const historyRef = await db.collection('marketing_notifications').add({
+      title,
+      message,
+      target,
+      image: image || null,
+      url: url || null,
+      sentCount: response.successCount,
+      failureCount: response.failureCount,
+      date: new Date().toISOString(),
+      type: 'push',
+      status: 'sent',
+      openedCount: 0,
+      clickedCount: 0
+    });
+
+    // Save to user individual inboxes if it's a small target, or handle background
+    // (For thousands of users, we'd handle this differently, but let's implement for small targets)
+    if (target !== 'all' && tokens.length < 50) {
+      // Find UIDs for these tokens
+      const userTokensSnap = await db.collection('notification_tokens')
+        .where('token', 'in', tokens.slice(0, 10)) // Firestore limit for 'in'
+        .get();
+        
+      for (const tokenDoc of userTokensSnap.docs) {
+        const uid = tokenDoc.data().uid;
+        if (uid) {
+          await db.collection('users').doc(uid).collection('notifications').add({
+            title,
+            body: message,
+            image: image || null,
+            url: url || null,
+            isRead: false,
+            type: 'system',
+            createdAt: new Date().toISOString()
+          });
+        }
+      }
+    }
     
     console.log(`[Notifications] Sent ${response.successCount} messages, ${response.failureCount} failed.`);
     

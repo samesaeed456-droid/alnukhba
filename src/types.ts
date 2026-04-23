@@ -153,6 +153,9 @@ export interface AppNotification {
   productId?: string;
   type: 'sale' | 'stock' | 'order' | 'system';
   userId?: string;
+  image?: string;
+  url?: string;
+  actions?: { action: string; title: string; icon?: string }[];
 }
 
 export interface Coupon {
@@ -216,6 +219,9 @@ export interface MarketingNotification {
   status: 'sent' | 'scheduled' | 'draft';
   scheduledFor?: string;
   type: 'push' | 'email' | 'sms';
+  image?: string;
+  url?: string;
+  actions?: { action: string; title: string; icon?: string }[];
 }
 
 export type AdminPermission = 

@@ -105,11 +105,17 @@ export async function onForegroundMessage() {
       }
 
       if (payload.notification) {
-        const { title, body, icon, image } = payload.notification;
+        const { title, body, icon } = payload.notification;
+        // Use payload.data for deep link and images in foreground
+        const urlToOpen = payload.data?.url || '/';
+        const imageUrl = payload.data?.image || payload.notification.image;
+
         new Notification(title || 'إشعار جديد', {
           body,
-          icon: icon || '/logo192.png'
-        });
+          icon: icon || '/icon-192x192.png',
+          image: imageUrl,
+          data: { url: urlToOpen }
+        } as any);
       }
     });
   } catch (err) {

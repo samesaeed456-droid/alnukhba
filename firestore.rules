@@ -76,6 +76,12 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    match /users/{userId}/notifications/{notificationId} {
+      allow read, list: if isOwner(userId) || isAdmin();
+      allow update: if isOwner(userId) && incoming().diff(existing()).affectedKeys().hasOnly(['isRead']);
+      allow create, delete: if isAdmin();
+    }
+
     match /admin_users/{adminId} {
       // Pillar 8: Secure List Queries (RADICAL SOLUTION GATE)
       // Allow public list ONLY with email filter for login logic, OR allow full list if the user is an actual admin

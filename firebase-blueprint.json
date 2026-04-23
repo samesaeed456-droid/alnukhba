@@ -100,12 +100,33 @@
         "orderCounter": { "type": "number", "description": "The sequential index for orders" }
       },
       "required": ["orderCounter"]
+    },
+    "UserNotification": {
+      "title": "UserNotification",
+      "description": "History of notifications sent to a specific user",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "body": { "type": "string" },
+        "image": { "type": "string" },
+        "url": { "type": "string" },
+        "type": { "type": "string" },
+        "isRead": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "title", "body", "createdAt"]
     }
   },
   "firestore": {
     "/users/{userId}": {
       "schema": "User",
       "description": "Core user accounts"
+    },
+    "/users/{userId}/notifications/{notificationId}": {
+      "schema": "UserNotification",
+      "description": "Personal notification inbox"
     },
     "/admin_users/{adminId}": {
       "schema": "AdminUser",

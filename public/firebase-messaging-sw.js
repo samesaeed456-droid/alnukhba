@@ -27,8 +27,16 @@ messaging.onBackgroundMessage((payload) => {
   const notificationTitle = payload.notification.title;
   const notificationOptions = {
     body: payload.notification.body,
-    icon: payload.notification.icon || '/logo192.png',
+    icon: payload.notification.icon || '/icon-192x192.png',
+    badge: '/icon-192x192.png',
     image: payload.data.image || payload.notification.image, // Support rich images
+    vibrate: [200, 100, 200, 100, 200, 100, 200],
+    tag: 'elite-store-notification',
+    renotify: true,
+    actions: payload.data.actions ? JSON.parse(payload.data.actions) : [
+      { action: 'open', title: 'عرض التفاصيل' },
+      { action: 'close', title: 'إغلاق' }
+    ],
     data: {
       url: payload.data.url || '/' // Support redirect link
     }
@@ -39,10 +47,15 @@ messaging.onBackgroundMessage((payload) => {
 
 // Handle notification click
 self.addEventListener('notificationclick', (event) => {
-  event.notification.close();
+  const action = event.action;
+  const notification = event.notification;
   
+  notification.close();
+  
+  if (action === 'close') return;
+
   // Open the link provided in the notification data
-  const urlToOpen = event.notification.data.url || '/';
+  const urlToOpen = notification.data.url || '/';
   
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {

@@ -298,8 +298,8 @@ export default function Notifications() {
                       <div className="p-5 sm:p-6 flex gap-5">
                         {/* Icon/Image with Status Indicator */}
                         <div className="relative shrink-0">
-                          <div className={`w-14 h-14 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center border transition-all duration-300 group-hover:scale-105 ${
-                            notification.productId 
+                          <div className={`w-14 h-14 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center border transition-all duration-300 group-hover:scale-105 overflow-hidden ${
+                            notification.image || notification.productId 
                               ? 'bg-slate-50 border-slate-100' 
                               : notification.type === 'sale' 
                                 ? 'bg-rose-50 text-rose-600 border-rose-100'
@@ -307,7 +307,14 @@ export default function Notifications() {
                                   ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
                                   : 'bg-blue-50 text-blue-600 border-blue-100'
                           }`}>
-                            {notification.productId ? (
+                            {notification.image ? (
+                              <img 
+                                src={notification.image} 
+                                alt="" 
+                                className="w-full h-full object-cover" 
+                                referrerPolicy="no-referrer"
+                              />
+                            ) : notification.productId ? (
                               <img 
                                 src={getProductImage(notification.productId)} 
                                 alt="" 
@@ -341,13 +348,13 @@ export default function Notifications() {
 
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
-                              {notification.productId && (
+                              {(notification.url || notification.productId) && (
                                 <Link 
-                                  to={`/product/${notification.productId}`}
+                                  to={notification.url || `/product/${notification.productId}`}
                                   onClick={() => markNotificationAsRead(notification.id)}
                                   className="px-4 py-2 rounded-xl bg-carbon text-white text-[10px] font-bold hover:bg-carbon/90 transition-all active:scale-95 flex items-center gap-2 shadow-lg shadow-carbon/20"
                                 >
-                                  عرض المنتج
+                                  عرض التفاصيل
                                   <ArrowRight className="w-3 h-3" />
                                 </Link>
                               )}

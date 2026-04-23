@@ -170,8 +170,8 @@ export default function NotificationsDrawer() {
                         }`}
                       >
                         <div className="flex gap-4">
-                          <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
-                            notification.productId 
+                          <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 overflow-hidden ${
+                            notification.image || notification.productId 
                               ? 'bg-slate-100' 
                               : notification.type === 'sale' 
                                 ? 'bg-rose-50 text-rose-600'
@@ -179,7 +179,14 @@ export default function NotificationsDrawer() {
                                   ? 'bg-emerald-50 text-emerald-600'
                                   : 'bg-blue-50 text-blue-600'
                           }`}>
-                            {notification.productId ? (
+                            {notification.image ? (
+                              <img 
+                                src={notification.image} 
+                                alt="" 
+                                className="w-full h-full object-cover" 
+                                referrerPolicy="no-referrer"
+                              />
+                            ) : notification.productId ? (
                               <img 
                                 src={getProductImage(notification.productId) || undefined} 
                                 alt="" 
@@ -206,16 +213,16 @@ export default function NotificationsDrawer() {
                             
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2">
-                                {notification.productId && (
+                                {(notification.url || notification.productId) && (
                                   <Link 
-                                    to={`/product/${notification.productId}`}
+                                    to={notification.url || `/product/${notification.productId}`}
                                     onClick={() => {
                                       markNotificationAsRead(notification.id);
                                       setIsNotificationsOpen(false);
                                     }}
                                     className="px-3 py-1.5 rounded-lg bg-carbon text-white text-[9px] font-bold flex items-center gap-1.5"
                                   >
-                                    عرض المنتج
+                                    عرض التفاصيل
                                     <ArrowRight className="w-2.5 h-2.5" />
                                   </Link>
                                 )}

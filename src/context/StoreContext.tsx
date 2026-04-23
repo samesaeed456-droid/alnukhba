@@ -729,6 +729,40 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  // Sync cart to abandonedCarts for abandoned cart notifications
+  useEffect(() => {
+    if (!user || cart.length === 0) return;
+
+    const timeoutId = setTimeout(async () => {
+      try {
+        const cartId = user.uid || user.phone;
+        const total = cart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
+        
+        await setDoc(doc(db, 'abandonedCarts', cartId), {
+          id: cartId,
+          userId: user.uid || null,
+          customerName: user.displayName || user.name || 'عميل',
+          customerPhone: user.phone || '',
+          items: cart.map(item => ({
+            productId: item.id.split('-')[0], // Extract real product ID
+            name: item.product.name,
+            price: item.product.price,
+            quantity: item.quantity,
+            image: item.product.image
+          })),
+          total,
+          date: new Date().toISOString(),
+          updatedAt: serverTimestamp(),
+          recovered: false
+        });
+      } catch (error) {
+        console.error('Failed to sync abandoned cart:', error);
+      }
+    }, 10000); // 10 second debounce to avoid excessive writes
+
+    return () => clearTimeout(timeoutId);
+  }, [cart, user]);
+
   const [discount, setDiscount] = useState<{ code: string | null; amount: number; type: 'percentage' | 'fixed'; pointsUsed?: number }>({
     code: null,
     amount: 0,
@@ -1855,6 +1889,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       finalOrderData.createdAt = newOrderData.createdAt;
 
       await setDoc(doc(db, 'orders', orderId), finalOrderData);
+      
+      // 3.1 Mark Abandoned Cart as Recovered
+      if (auth.currentUser) {
+        try {
+          await deleteDoc(doc(db, 'abandonedCarts', auth.currentUser.uid));
+        } catch (err) {
+          // Ignore if doc doesn't exist
+        }
+      }
 
       // 4. Update Stock
       for (const item of validatedItems) {
@@ -1886,12 +1929,66 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const updateOrderStatus = React.useCallback(async (orderId: string, status: Order['status']) => {
     try {
-      await updateDoc(doc(db, 'orders', orderId), {
+      const orderRef = doc(db, 'orders', orderId);
+      const orderSnap = await getDoc(orderRef);
+      
+      if (!orderSnap.exists()) {
+        showToast('الطلب غير موجود', 'error');
+        return;
+      }
+
+      await updateDoc(orderRef, {
         status,
         updatedAt: serverTimestamp()
       });
+      
       showToast('تم تحديث حالة الطلب');
       logActivity('تحديث حالة طلب', `تم تحديث حالة الطلب ${orderId} إلى: ${status}`);
+
+      // Send Push Notification
+      const orderData = orderSnap.data() as Order;
+      const targetUserId = orderData.userId;
+      
+      if (targetUserId && targetUserId !== 'guest') {
+        let statusTitle = 'تحديث حالة الطلب';
+        let statusMessage = `تم تحديث حالة طلبك ${orderId} إلى ${status}`;
+
+        switch(status) {
+          case 'processing': 
+            statusTitle = 'بدأ تجهيز طلبك 📦';
+            statusMessage = `طلبك رقم ${orderId} قيد التجهيز الآن، سنخطرك عند شحنه.`;
+            break;
+          case 'shipped': 
+            statusTitle = 'تم شحن طلبك 🚚';
+            statusMessage = `خبر سعيد! طلبك رقم ${orderId} في الطريق إليك الآن.`;
+            break;
+          case 'delivered': 
+            statusTitle = 'وصل طلبك! 🎉';
+            statusMessage = `نأمل أن تعجبك مشترياتك. شكراً لثقتك بمتجر النخبة!`;
+            break;
+          case 'cancelled': 
+            statusTitle = 'تم إلغاء الطلب';
+            statusMessage = `نأسف، تم إلغاء طلبك رقم ${orderId}. لمزيد من التفاصيل يرجى التواصل مع الدعم.`;
+            break;
+        }
+
+        try {
+          await fetch('/api/admin/notifications/send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              title: statusTitle,
+              message: statusMessage,
+              target: 'specific_user',
+              targetUserId: targetUserId,
+              url: `/profile` // Redirect to profile or specific order if possible
+            })
+          });
+        } catch (notifErr) {
+          console.error('Failed to send order status notification:', notifErr);
+        }
+      }
+
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `orders/${orderId}`);
     }

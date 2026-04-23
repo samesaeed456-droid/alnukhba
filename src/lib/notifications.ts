@@ -83,6 +83,13 @@ export async function onForegroundMessage() {
     onMessage(messaging, (payload) => {
       console.log('Message received in foreground: ', payload);
       
+      const isAdminPath = typeof window !== 'undefined' && window.location.pathname.startsWith('/admin');
+      const isAdminAuth = typeof window !== 'undefined' && window.localStorage.getItem('admin_auth') === 'true';
+      if (isAdminPath || isAdminAuth) {
+        console.log('Foreground message blocked for admin to avoid cluttering control panel.');
+        return;
+      }
+
       if (payload.notification) {
         const { title, body, icon, image } = payload.notification;
         new Notification(title || 'إشعار جديد', {

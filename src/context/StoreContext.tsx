@@ -657,6 +657,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             
             if (!currentUser && !hasLocalUser) return; // Do not push to guests
             
+            // Do not show marketing notifications to admins to avoid cluttering their dashboard
+            const isAdminPath = typeof window !== 'undefined' && window.location.pathname.startsWith('/admin');
+            const isAdminAuth = typeof window !== 'undefined' && window.localStorage.getItem('admin_auth') === 'true';
+            
+            let isUserAdmin = isAdminPath || isAdminAuth;
+            if (hasLocalUser && !isUserAdmin) {
+              try {
+                const localUser = JSON.parse(hasLocalUser);
+                if (localUser.role === 'admin') isUserAdmin = true;
+              } catch (e) {}
+            }
+            if (isUserAdmin) return;
+            
             // If the notification targets a specific user, strictly ensure the current user matches
             if (docData.target === 'specific_user') {
               if (!currentUser) return; // Ignore if not logged in

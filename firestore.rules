@@ -34,12 +34,11 @@ service cloud.firestore {
 
     function isValidUser(data) {
       return data.uid is string && 
-             (!('email' in data) || (data.email is string && data.email.size() <= 200)) &&
-             (!('role' in data) || (data.role in ['user', 'admin'])) &&
+             data.email is string && data.email.size() <= 200 &&
+             data.role in ['user', 'admin'] &&
              (!('walletBalance' in data) || data.walletBalance is number) &&
              (!('currentSessionId' in data) || (data.currentSessionId is string && data.currentSessionId.size() <= 128)) &&
-             (!('lastActive' in data) || (data.lastActive is string && data.lastActive.size() <= 128)) &&
-             (!('phone' in data) || (data.phone is string && data.phone.size() <= 30));
+             (!('lastActive' in data) || (data.lastActive is string && data.lastActive.size() <= 128));
     }
 
     function isValidOrder(data) {

@@ -626,9 +626,6 @@ export default function Profile() {
     exit: { opacity: 0, y: -20 }
   };
 
-  const [localNotifPref, setLocalNotifPref] = useState<boolean | null>(null);
-  const isNotificationEnabled = localNotifPref !== null ? localNotifPref : !!user.preferences?.notifications;
-
   return (
     <motion.div 
       variants={containerVariants}
@@ -1017,10 +1014,9 @@ export default function Profile() {
                       </div>
                       <button 
                         onClick={() => {
-                          const isEnabling = !isNotificationEnabled;
+                          const isEnabling = !user.preferences?.notifications;
                           const newPrefs = { ...user.preferences, notifications: isEnabling };
                           
-                          setLocalNotifPref(isEnabling);
                           // Optimistic local update to prevent "flickering" or "reverting"
                           updateUser({ ...user, preferences: newPrefs });
                           
@@ -1028,17 +1024,18 @@ export default function Profile() {
                           if (isEnabling) {
                             import('../lib/notifications').then(m => {
                               m.requestNotificationPermission().then(granted => {
-                                // Reset local override after a small delay to let Snapshot take over
-                                setTimeout(() => setLocalNotifPref(null), 2000);
+                                if (!granted) {
+                                  // If permission denied or failed, we keep the preference but show a notice
+                                  // Or we could revert it if we want strictness.
+                                  // For now, let's just make it work.
+                                }
                               });
                             });
-                          } else {
-                            setTimeout(() => setLocalNotifPref(null), 2000);
                           }
                         }}
-                        className={`w-12 h-6 rounded-full transition-all relative ${isNotificationEnabled ? 'bg-solar' : 'bg-slate-200'}`}
+                        className={`w-12 h-6 rounded-full transition-all relative ${user.preferences?.notifications ? 'bg-solar' : 'bg-slate-200'}`}
                       >
-                        <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${isNotificationEnabled ? 'left-1' : 'left-7'} shadow-sm`} />
+                        <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${user.preferences?.notifications ? 'left-1' : 'left-7'} shadow-sm`} />
                       </button>
                     </div>
                   </div>

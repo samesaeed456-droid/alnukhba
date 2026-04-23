@@ -211,7 +211,7 @@ export default function Dashboard() {
       const orderDate = (o.date as any)?.seconds ? new Date((o.date as any).seconds * 1000) : new Date(o.date);
       return {
         id: o.id,
-        shortId: o.id.substring(0, 4),
+        shortId: (o.id || '').substring(0, 4),
         type: 'طلب جديد',
         user: o.customerName,
         time: orderDate.toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' }),
@@ -227,7 +227,7 @@ export default function Dashboard() {
       // Fill with activity logs if not enough orders
       const logs = activityLogs.slice(0, 4 - lastOrders.length).map(log => ({
         id: log.id,
-        shortId: log.id.substring(0, 4),
+        shortId: (log.id || '').substring(0, 4),
         type: log.action,
         user: log.userName || 'النظام',
         time: new Date((log.date as any)?.seconds ? (log.date as any).seconds * 1000 : log.date).toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' }),

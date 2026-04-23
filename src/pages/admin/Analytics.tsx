@@ -266,10 +266,11 @@ const Analytics = () => {
     const sources: Record<string, number> = {};
     visits.forEach(v => {
       let source = 'مباشر';
-      if (v.referrer.includes('facebook')) source = 'فيسبوك';
-      else if (v.referrer.includes('google')) source = 'جوجل';
-      else if (v.referrer.includes('twitter')) source = 'تويتر';
-      else if (v.referrer !== 'Direct') source = 'روابط خارجية';
+      const referrer = v.referrer || '';
+      if (referrer.includes('facebook')) source = 'فيسبوك';
+      else if (referrer.includes('google')) source = 'جوجل';
+      else if (referrer.includes('twitter')) source = 'تويتر';
+      else if (referrer !== 'Direct' && referrer !== '') source = 'روابط خارجية';
       
       sources[source] = (sources[source] || 0) + 1;
     });

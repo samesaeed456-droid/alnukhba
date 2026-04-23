@@ -429,8 +429,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const ownerPhones = ['776668370', '967776668370', '+967776668370'];
       
       const isOwner = 
-        ownerEmails.includes(user.email) || 
-        user.email.includes('elite-store.local') ||
+        (user.email && ownerEmails.includes(user.email)) || 
+        (user.email && user.email.includes('elite-store.local')) ||
         (user.phone && ownerPhones.some(p => user.phone?.includes(p)));
 
       if (isOwner) {
@@ -754,7 +754,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (saved) {
       const parsed = JSON.parse(saved);
       // Ensure new statuses are included for existing users
-      if (parsed.autoNotifications && !parsed.autoNotifications.onStatusChange.includes('pending')) {
+      if (parsed.autoNotifications && parsed.autoNotifications.onStatusChange && !parsed.autoNotifications.onStatusChange.includes('pending')) {
         parsed.autoNotifications.onStatusChange = Array.from(new Set([...parsed.autoNotifications.onStatusChange, 'pending', 'processing']));
       }
       return parsed;

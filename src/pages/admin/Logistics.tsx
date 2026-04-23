@@ -80,7 +80,7 @@ const Logistics = () => {
 
   // Filter out cities that already have a shipping rate defined (except the one being edited)
   const availableCities = YEMEN_CITIES.filter(city => 
-    !shippingZones.some(zone => zone.cities.includes(city) && zone.id !== editingZone?.id)
+    !shippingZones.some(zone => (zone.cities || []).includes(city) && zone.id !== editingZone?.id)
   );
 
   return (
@@ -139,7 +139,7 @@ const Logistics = () => {
                     onClick={() => setConfirmModal({
                       isOpen: true,
                       title: 'حذف سعر الشحن',
-                      message: `هل أنت متأكد من حذف سعر الشحن لمدينة "${zone.cities[0] || zone.name}"؟`,
+                      message: `هل أنت متأكد من حذف سعر الشحن لمدينة "${zone.cities?.[0] || zone.name || ''}"؟`,
                       onConfirm: () => deleteShippingZone(zone.id)
                     })}
                     className="p-2.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"

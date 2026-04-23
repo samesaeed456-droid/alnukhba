@@ -194,7 +194,7 @@ export default function Products() {
       })
       .sort((a, b) => {
         let comparison = 0;
-        if (sortBy === 'name') comparison = a.name.localeCompare(b.name);
+        if (sortBy === 'name') comparison = (a.name || '').localeCompare(b.name || '');
         if (sortBy === 'price') comparison = a.price - b.price;
         if (sortBy === 'stockCount') comparison = (a.stockCount || 0) - (b.stockCount || 0);
         if (sortBy === 'rating') comparison = a.rating - b.rating;

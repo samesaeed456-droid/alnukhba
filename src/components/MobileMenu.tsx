@@ -37,7 +37,7 @@ export default React.memo(function MobileMenu({ isOpen, onClose }: MobileMenuPro
   ];
 
   const renderMenuItem = (item: any) => {
-    const isActive = window.location.pathname === item.path && (!item.state || window.location.search.includes(item.state.view));
+    const isActive = window.location.pathname === item.path && (!item.state || window.location.search.includes(item.state?.view));
     
     return (
       <div key={item.label}>

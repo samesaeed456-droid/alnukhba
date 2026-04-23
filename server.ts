@@ -55,6 +55,7 @@ app.get("/api/health", (req, res) => {
 
 // Notifications API
 app.post("/api/admin/notifications/send", async (req, res) => {
+  console.log("[API] Received POST request to /api/admin/notifications/send");
   const { title, message, image, url, target } = req.body;
   
   if (!title || !message) {

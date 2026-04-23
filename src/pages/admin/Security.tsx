@@ -63,9 +63,9 @@ export default function Security() {
   const togglePermission = (permId: AdminPermission) => {
     setAdminForm(prev => ({
       ...prev,
-      permissions: prev.permissions.includes(permId)
-        ? prev.permissions.filter(p => p !== permId)
-        : [...prev.permissions, permId]
+      permissions: (prev.permissions || []).includes(permId)
+        ? (prev.permissions || []).filter(p => p !== permId)
+        : [...(prev.permissions || []), permId]
     }));
   };
 
@@ -397,7 +397,7 @@ export default function Security() {
                         </div>
                         <div className="text-right">
                           <span className="text-sm font-bold block text-carbon">الصلاحيات المتقدمة</span>
-                          <span className="text-[10px] text-gray-500">تحكم بكلمة صلاحية على حدة</span>
+                          <span className="text-[10px] text-gray-500">تحويل يدوي للصلاحيات</span>
                         </div>
                       </div>
                       {showAdvanced ? <ChevronUp className="w-5 h-5 text-gray-400" /> : <ChevronDown className="w-5 h-5 text-gray-400" />}
@@ -418,15 +418,15 @@ export default function Security() {
                                 type="button"
                                 onClick={() => togglePermission(perm.id)}
                                 className={`flex items-center gap-2 p-3 rounded-xl border-2 transition-all text-right ${
-                                  adminForm.permissions.includes(perm.id)
+                                  (adminForm.permissions || []).includes(perm.id)
                                     ? 'bg-solar/5 border-solar text-solar'
                                     : 'bg-white border-gray-100 text-gray-500 hover:border-gray-200'
                                 }`}
                               >
                                 <div className={`w-5 h-5 rounded-md flex items-center justify-center transition-all ${
-                                  adminForm.permissions.includes(perm.id) ? 'bg-solar text-white' : 'bg-gray-50 text-gray-300'
+                                  (adminForm.permissions || []).includes(perm.id) ? 'bg-solar text-white' : 'bg-gray-50 text-gray-300'
                                 }`}>
-                                  {adminForm.permissions.includes(perm.id) ? <UserCheck className="w-3 h-3" /> : <Shield className="w-3 h-3" />}
+                                  {(adminForm.permissions || []).includes(perm.id) ? <UserCheck className="w-3 h-3" /> : <Shield className="w-3 h-3" />}
                                 </div>
                                 <span className="text-[10px] font-bold">{perm.label}</span>
                               </button>
@@ -607,15 +607,15 @@ export default function Security() {
                                 type="button"
                                 onClick={() => togglePermission(perm.id)}
                                 className={`flex items-center gap-2 p-3 rounded-xl border-2 transition-all text-right ${
-                                  adminForm.permissions.includes(perm.id)
+                                  (adminForm.permissions || []).includes(perm.id)
                                     ? 'bg-solar/5 border-solar text-solar'
                                     : 'bg-white border-gray-100 text-gray-500 hover:border-gray-200'
                                 }`}
                               >
                                 <div className={`w-5 h-5 rounded-md flex items-center justify-center transition-all ${
-                                  adminForm.permissions.includes(perm.id) ? 'bg-solar text-white' : 'bg-gray-50 text-gray-300'
+                                  (adminForm.permissions || []).includes(perm.id) ? 'bg-solar text-white' : 'bg-gray-50 text-gray-300'
                                 }`}>
-                                  {adminForm.permissions.includes(perm.id) ? <UserCheck className="w-3 h-3" /> : <Shield className="w-3 h-3" />}
+                                  {(adminForm.permissions || []).includes(perm.id) ? <UserCheck className="w-3 h-3" /> : <Shield className="w-3 h-3" />}
                                 </div>
                                 <span className="text-[10px] font-bold">{perm.label}</span>
                               </button>

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useStore } from '../../context/StoreContext';
 import { FloatingInput } from '../../components/FloatingInput';
+import { ImageUploadField } from '../../components/ImageUploadField';
 import ConfirmationModal from '../../components/ConfirmationModal';
 import { 
   Settings as SettingsIcon, 
@@ -214,22 +215,13 @@ const Settings = () => {
                     </div>
 
                     <div className="space-y-2">
-                      <FloatingInput
+                      <ImageUploadField
                         id="storeLogo"
-                        label="شعار المتجر (URL)"
-                        type="url"
+                        label="شعار المتجر"
                         value={formData.storeLogo || ''}
-                        onChange={(e) => setFormData({ ...formData, storeLogo: e.target.value })}
-                        bgClass="bg-slate-50"
-                        icon={<ImageIcon className="w-5 h-5" />}
-                        iconPosition="start"
-                        dir="ltr"
+                        onChange={(url) => setFormData({ ...formData, storeLogo: url })}
+                        description="يرجى رفع شعار المتجر الرسمي (يفضل بخلفية شفافة)"
                       />
-                      {formData.storeLogo && (
-                        <div className="mt-2 w-16 h-16 bg-slate-50 rounded-2xl border border-slate-200 overflow-hidden flex items-center justify-center">
-                          <img src={formData.storeLogo || undefined} alt="Logo Preview" className="max-w-full max-h-full object-contain" />
-                        </div>
-                      )}
                     </div>
                   </div>
 
@@ -646,26 +638,16 @@ const Settings = () => {
                           أيقونة المتجر (Favicon)
                         </h4>
                         <div className="space-y-4">
-                          <FloatingInput
+                          <ImageUploadField
                             id="favicon"
-                            label="رابط الأيقونة (Favicon URL)"
-                            type="url"
+                            label="تحميل الأيقونة (Favicon)"
                             value={formData.seo?.favicon || ''}
-                            onChange={(e) => setFormData({ 
+                            onChange={(url) => setFormData({ 
                               ...formData, 
-                              seo: { ...(formData.seo || {}), favicon: e.target.value } 
+                              seo: { ...(formData.seo || {}), favicon: url } 
                             })}
-                            bgClass="bg-white"
-                            dir="ltr"
+                            description="الأيقونة التي تظهر في تبويب المتصفح"
                           />
-                          {formData.seo?.favicon && (
-                            <div className="flex items-center gap-4 p-4 bg-white rounded-2xl border border-slate-100">
-                              <div className="w-10 h-10 bg-slate-50 rounded-lg border border-slate-200 overflow-hidden flex items-center justify-center">
-                                <img src={formData.seo.favicon || undefined} alt="Favicon" className="w-full h-full object-contain" />
-                              </div>
-                              <p className="text-xs text-slate-500 font-medium">معاينة الأيقونة التي ستظهر في تبويب المتصفح</p>
-                            </div>
-                          )}
                         </div>
                       </div>
                     </div>
@@ -677,17 +659,15 @@ const Settings = () => {
                           معاينة التواصل الاجتماعي (OG Image)
                         </h4>
                         <div className="space-y-6">
-                          <FloatingInput
+                          <ImageUploadField
                             id="ogImage"
-                            label="رابط صورة المشاركة (OG Image URL)"
-                            type="url"
+                            label="صورة المشاركة (OG Image)"
                             value={formData.seo?.ogImage || ''}
-                            onChange={(e) => setFormData({ 
+                            onChange={(url) => setFormData({ 
                               ...formData, 
-                              seo: { ...(formData.seo || {}), ogImage: e.target.value } 
+                              seo: { ...(formData.seo || {}), ogImage: url } 
                             })}
-                            bgClass="bg-white"
-                            dir="ltr"
+                            description="الصورة التي تظهر عند مشاركة رابط الموقع"
                           />
                           
                           <div className="space-y-3">
@@ -861,17 +841,15 @@ const Settings = () => {
                               className="overflow-hidden"
                             >
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mt-6 md:mt-8 pt-6 md:pt-8 border-t border-slate-50">
-                                <FloatingInput
+                                <ImageUploadField
                                   id={`logo-${method.id}`}
-                                  label="رابط الشعار (URL)"
+                                  label="شعار المحفظة / البنك"
                                   value={method.logo || ''}
-                                  onChange={(e) => {
+                                  onChange={(url) => {
                                     const newMethods = [...(formData.paymentMethods || [])];
-                                    newMethods[index] = { ...method, logo: e.target.value };
+                                    newMethods[index] = { ...method, logo: url };
                                     setFormData({ ...formData, paymentMethods: newMethods });
                                   }}
-                                  bgClass="bg-slate-50"
-                                  dir="ltr"
                                 />
                                 <FloatingInput
                                   id={`acc-${method.id}`}

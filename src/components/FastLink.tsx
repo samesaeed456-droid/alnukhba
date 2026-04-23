@@ -32,7 +32,7 @@ export const FastLink: React.FC<FastLinkProps> = ({
   const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     if (instant) {
       e.preventDefault();
-      navigate(to as string);
+      navigate(to as string, { state: props.state });
     }
     if (onClick) onClick(e);
   };

@@ -73,7 +73,7 @@ export default React.memo(function MobileBottomNav({}: MobileBottomNavProps) {
     { path: '/search', icon: Grid, label: 'الأقسام', prefetch: 'Search' },
     { path: 'cart', icon: ShoppingCart, label: 'السلة', isButton: true, prefetch: 'Cart' },
     { path: '/deals', icon: Tag, label: 'العروض', prefetch: 'Deals' },
-    { path: user ? '/profile' : '/auth', icon: User, label: 'حسابي', matchPaths: ['/profile', '/auth'], prefetch: user ? 'Profile' : 'Auth' },
+    { path: user ? '/profile' : '/auth', icon: User, label: 'حسابي', matchPaths: ['/profile', '/auth'], prefetch: user ? 'Profile' : 'Auth', state: { from: location.pathname + location.search } },
   ];
 
   return (
@@ -132,6 +132,7 @@ export default React.memo(function MobileBottomNav({}: MobileBottomNavProps) {
                 <FastLink 
                   key={item.label}
                   to={item.path} 
+                  state={(item as any).state}
                   prefetchPage={item.prefetch as any}
                   className="flex-1 h-full flex flex-col items-center justify-center gap-1 active:scale-95 transition-all duration-200 relative group"
                 >

@@ -105,7 +105,9 @@ export default function Auth() {
   };
 
   const queryParams = new URLSearchParams(location.search);
-  const redirectPath = queryParams.get('redirect') || '/profile';
+  const searchRedirectPath = queryParams.get('redirect');
+  const stateRedirectPath = (location.state as any)?.from;
+  const redirectPath = searchRedirectPath || stateRedirectPath || '/profile';
   const mode = queryParams.get('mode');
 
   React.useEffect(() => {

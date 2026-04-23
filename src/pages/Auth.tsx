@@ -92,12 +92,19 @@ export default function Auth() {
     } catch (err: any) {
       console.error("[WebAuthn Login Error]:", err);
       if (err.name === 'NotAllowedError') {
-        setError('تم إلغاء تسجيل الدخول بالبصمة');
+        // This is usually user cancel, don't show a loud error unless it's a real failure
+        return;
       } else if (err.name === 'NotSupportedError') {
         setError('مستشعرات البصمة غير مدعومة في هذا المتصفح أو يجب فتح التطبيق في تبويب جديد.');
+      } else if (err.message?.includes('غير مفعلة')) {
+        setError('البصمة غير مفعلة في حسابك. يرجى تسجيل الدخول أولاً وتفعيلها من الإعدادات.');
       } else {
         const errorMsg = err.message || err.toString();
-        setError(`خطأ في البصمة: ${errorMsg}. יرجى المحاولة بالطريقة العادية.`);
+        if (errorMsg.includes('The operation either timed out or was not allowed')) {
+           setError('البصمة غير مفعلة في حسابك أو تم إلغاء المحاولة.');
+        } else {
+           setError(`خطأ في البصمة: ${errorMsg}. يرجى استخدام كلمة المرور.`);
+        }
       }
     } finally {
       setIsLoading(false);
@@ -293,7 +300,23 @@ export default function Auth() {
 
         // Proceed with Signup
         const email = getDummyEmail(formData.countryCode, formData.phone);
-        const userCred = await signupWithEmail(email, formData.password);
+        let userCred;
+        try {
+           userCred = await signupWithEmail(email, formData.password);
+        } catch (signupError: any) {
+           console.error("Signup error in verify:", signupError);
+           if (signupError.code === 'auth/email-already-in-use') {
+             setError('هذا الرقم مسجل مسبقاً في حساب آخر، يمنع إنشاء حسابين بنفس الرقم. يرجى تسجيل الدخول.');
+             setStep('form');
+             setIsLogin(true);
+           } else {
+             const smartError = parseSmartError(signupError);
+             setError(smartError.message);
+             setStep('form');
+           }
+           setIsLoading(false);
+           return;
+        }
         
         try {
           // Update Firebase Auth profile
@@ -426,7 +449,32 @@ export default function Auth() {
           setError(smartError.message);
         }
       } else {
-        // Signup requires OTP via backend
+        // Pre-check if phone already exists before sending OTP on signup
+        const email = getDummyEmail(formData.countryCode, formData.phone);
+        
+        try {
+          const { collection, query, where, getDocs, db } = await import('../lib/firebase');
+          const q = query(collection(db, 'users'), where('phone', '==', formData.phone), where('countryCode', '==', formData.countryCode));
+          const snapshot = await getDocs(q);
+          
+          if (!snapshot.empty) {
+             setError('هذا الرقم مسجل مسبقاً في حساب آخر، يمنع إنشاء حسابين بنفس الرقم. يرجى تسجيل الدخول.');
+             setIsLoading(false);
+             return;
+          }
+        } catch (dbErr) {
+          console.warn("Could not check Firestore, falling back to Auth pre-check", dbErr);
+          try {
+            await loginWithEmail(email, "a_very_fake_password_12345");
+          } catch (checkErr: any) {
+            if (checkErr.code === 'auth/wrong-password' || checkErr.code === 'auth/too-many-requests') {
+               setError('هذا الرقم مسجل مسبقاً في حساب آخر، يرجى تسجيل الدخول.');
+               setIsLoading(false);
+               return;
+            }
+          }
+        }
+
         const fullPhone = formData.countryCode + formData.phone;
 
         try {
@@ -453,7 +501,12 @@ export default function Auth() {
     } catch (err: any) {
       console.error("Full Auth Error Object:", err);
       const smartError = parseSmartError(err);
-      setError(smartError.message);
+      
+      if (smartError.code === 'auth/email-already-in-use') {
+         setError('هذا الرقم مسجل مسبقاً، יمنع إنشاء حسابين بنفس الرقم. يرجى تسجيل الدخول.');
+      } else {
+         setError(smartError.message);
+      }
       
       if (smartError.isConfigError || smartError.message === 'حدث خطأ غير متوقع، يرجى المحاولة لاحقاً') {
         console.error("Technical Details:", smartError.technicalDetails || err.message || err);

@@ -688,7 +688,7 @@ app.post('/api/webauthn/login/verify', async (req, res) => {
     const passkeyDoc = await db.collection('passkeys').doc(passkeyId).get();
     
     if (!passkeyDoc.exists) {
-      return res.status(400).json({ error: 'لبصمة غير مسجلة' });
+      return res.status(400).json({ error: 'البصمة غير مفعلة في حسابك. يرجى تفعيلها من الإعدادات بعد تسجيل الدخول.' });
     }
     
     const passkeyData = passkeyDoc.data()!;

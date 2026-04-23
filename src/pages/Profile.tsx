@@ -376,6 +376,11 @@ export default function Profile() {
           }
         } catch(authErr: any) {
            console.error("Auth email update error:", authErr);
+           if (authErr.code === 'auth/email-already-in-use') {
+             showToast('هذا الرقم مسجل مسبقاً في حساب آخر! يمنع تكرار نفس الرقم.', 'error');
+             setIsLoading(false);
+             return;
+           }
            if (authErr.code === 'auth/requires-recent-login') {
              showToast('حماية حسابك تتطلب إعادة تسجيل الدخول لتغيير الرقم. يرجى تسجيل الخروج والعودة', 'error');
              setIsLoading(false);

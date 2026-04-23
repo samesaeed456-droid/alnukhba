@@ -62,6 +62,13 @@ app.post("/api/admin/notifications/send", async (req, res) => {
     return res.status(400).json({ error: "Title and message are required" });
   }
 
+  if (getApps().length === 0) {
+    console.error("[Notifications] Error: Firebase Admin SDK is not initialized.");
+    return res.status(500).json({ 
+      error: "خطأ: لم يتم إعداد خوادم Firebase للإرسال. الرجاء إضافة FIREBASE_PROJECT_ID و FIREBASE_CLIENT_EMAIL و FIREBASE_PRIVATE_KEY في إعدادات البيئة (Secrets)." 
+    });
+  }
+
   try {
     const db = getFirestore();
     let tokens: string[] = [];

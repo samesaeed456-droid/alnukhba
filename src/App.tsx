@@ -52,7 +52,7 @@ import Maintenance from './pages/Maintenance';
 import BlockedOverlay from './components/BlockedOverlay';
 import OfflineStatus from './components/OfflineStatus';
 import { AlertCircle, X, Bell } from 'lucide-react';
-import { requestNotificationPermission, onForegroundMessage } from './lib/notifications';
+import { requestNotificationPermission, onForegroundMessage, refreshNotificationToken } from './lib/notifications';
 
 const SystemAlert = () => {
   const { systemError } = useStore();
@@ -172,6 +172,9 @@ const MainRoutes = () => {
   useEffect(() => {
     // Register notification handler
     onForegroundMessage();
+
+    // Refresh token silently if permission is already granted
+    refreshNotificationToken();
     
     // Check if we should ask for permission
     const hasAsked = localStorage.getItem('notifications_asked');

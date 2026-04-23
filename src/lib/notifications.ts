@@ -23,6 +23,13 @@ export async function requestNotificationPermission() {
   return false;
 }
 
+export async function refreshNotificationToken() {
+  if (!("Notification" in window) || Notification.permission !== 'granted') {
+    return false;
+  }
+  return await setupNotifications();
+}
+
 async function setupNotifications() {
   try {
     const { messaging } = await import("./firebase");
@@ -32,14 +39,21 @@ async function setupNotifications() {
     if ('serviceWorker' in navigator) {
       const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
       
+      // Wait for service worker to be ready
+      await navigator.serviceWorker.ready;
+      
       const token = await getToken(messaging, {
         vapidKey: VAPID_KEY,
         serviceWorkerRegistration: registration
       });
 
       if (token) {
-        console.log('FCM Token received:', token);
-        await saveToken(token);
+        console.log('FCM Token current:', token);
+        const savedToken = localStorage.getItem('fcm_token');
+        // Only save if it's a new token or if we haven't associated it with the current user
+        if (token !== savedToken || auth.currentUser) {
+          await saveToken(token);
+        }
         return true;
       }
     }

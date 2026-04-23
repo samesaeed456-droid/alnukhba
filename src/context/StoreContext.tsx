@@ -261,8 +261,8 @@ const StoreActionsContext = createContext<StoreActions | undefined>(undefined);
 const StoreUIContext = createContext<StoreUI | undefined>(undefined);
 
 import { migrateLocalDataToFirebase } from '../lib/migrateData';
-
 import { getAdminDummyEmail } from '../lib/adminAuth';
+import { refreshNotificationToken } from '../lib/notifications';
 
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [products, setProducts] = useState<Product[]>(() => {
@@ -384,6 +384,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
             setUser(userData);
             localStorage.setItem('store_user', JSON.stringify(userData));
+            
+            // Try to link notification token to this logged in user
+            refreshNotificationToken();
           } else {
             // Gentle creation: only set essential and firebase-provided fields with merge:true
             // to avoid overwriting fields (like name/phone) being simultaneously saved by Auth.tsx

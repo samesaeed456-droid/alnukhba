@@ -4,6 +4,7 @@ import { useStore } from '../../context/StoreContext';
 import { motion, AnimatePresence } from 'motion/react';
 import { Banner, MarketingNotification } from '../../types';
 import { FloatingInput } from '../../components/FloatingInput';
+import ImageUploadField from '../../components/ImageUploadField';
 import ConfirmationModal from '../../components/ConfirmationModal';
 import { toast } from 'sonner';
 
@@ -347,33 +348,14 @@ export default function Marketing() {
                 </div>
                 
                 <div>
-                  <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">صورة الإشعار (Rich Media)</label>
-                  <div className="flex flex-col gap-3">
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={notifForm.image}
-                        onChange={(e) => setNotifForm({ ...notifForm, image: e.target.value })}
-                        className="flex-1 px-4 py-3 bg-bg-general border border-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-carbon/20 focus:border-carbon font-bold text-carbon transition-all text-xs"
-                        placeholder="رابط الصورة المباشر..."
-                      />
-                      <label className="shrink-0 w-12 h-12 bg-white border-2 border-dashed border-gray-200 rounded-xl flex items-center justify-center cursor-pointer hover:border-carbon/30 hover:bg-gray-50 transition-all text-gray-400">
-                        <Plus className="w-5 h-5" />
-                        <input type="file" className="hidden" accept="image/*" onChange={handleNotifImageUpload} />
-                      </label>
-                    </div>
-                    {notifForm.image && (
-                      <div className="relative w-full aspect-video rounded-xl overflow-hidden border border-gray-100">
-                        <img src={notifForm.image} alt="Preview" className="w-full h-full object-cover" />
-                        <button 
-                          type="button"
-                          onClick={() => setNotifForm({...notifForm, image: ''})}
-                          className="absolute top-2 left-2 p-1.5 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-all shadow-lg"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </button>
-                      </div>
-                    )}
+                  <div className="mb-4">
+                    <ImageUploadField
+                      label="صورة الإشعار (Rich Media)"
+                      value={notifForm.image}
+                      onChange={(url) => setNotifForm({ ...notifForm, image: url })}
+                      onRemove={() => setNotifForm({ ...notifForm, image: '' })}
+                      aspectRatio="21/9"
+                    />
                   </div>
                 </div>
 

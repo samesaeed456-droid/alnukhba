@@ -26,10 +26,11 @@ const compressImageLocally = (file: File, maxWidth = 1000): Promise<string> => {
         canvas.height = height;
         const ctx = canvas.getContext('2d');
         if (ctx) {
-          ctx.fillStyle = '#FFFFFF';
-          ctx.fillRect(0, 0, width, height);
+          // Do not fill with white color to preserve transparency
           ctx.drawImage(img, 0, 0, width, height);
-          resolve(canvas.toDataURL('image/webp', 0.8));
+          // Use original image type if png to ensure transparency, otherwise webp
+          const outputType = file.type === 'image/png' ? 'image/png' : 'image/webp';
+          resolve(canvas.toDataURL(outputType, 0.8));
         } else {
           resolve(event.target?.result as string);
         }

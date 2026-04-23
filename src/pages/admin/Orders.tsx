@@ -50,6 +50,8 @@ export default function Orders() {
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
   const [activeModalTab, setActiveModalTab] = useState<'items' | 'customer' | 'timeline'>('items');
   const [isActionMenuOpen, setIsActionMenuOpen] = useState(false);
+  const [isImageModalOpen, setIsImageModalOpen] = useState(false);
+  const [currentImage, setCurrentImage] = useState<string | null>(null);
   
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
@@ -1191,7 +1193,10 @@ export default function Orders() {
                                     alt="إثبات الدفع" 
                                     className="w-full h-auto max-h-32 sm:max-h-48 object-cover transition-transform group-hover:scale-110" 
                                     referrerPolicy="no-referrer"
-                                    onClick={() => window.open(selectedOrder.paymentProof, '_blank')}
+                                    onClick={() => {
+                                      setCurrentImage(selectedOrder.paymentProof || null);
+                                      setIsImageModalOpen(true);
+                                    }}
                                   />
                                   <div className="absolute inset-0 bg-carbon/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                     <span className="text-white text-[9px] sm:text-[10px] font-black">اضغط للتكبير</span>
@@ -1239,6 +1244,45 @@ export default function Orders() {
                   </motion.div>
                 </AnimatePresence>
               </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Image Viewer Modal */}
+      <AnimatePresence>
+        {isImageModalOpen && currentImage && (
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => {
+                setIsImageModalOpen(false);
+                setCurrentImage(null);
+              }}
+              className="absolute inset-0 bg-carbon/90 backdrop-blur-sm cursor-zoom-out"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="relative w-full max-w-4xl max-h-[90vh] flex items-center justify-center pointer-events-none"
+            >
+              <img 
+                src={currentImage} 
+                alt="Full size" 
+                className="max-w-full max-h-[90vh] object-contain rounded-xl pointer-events-auto"
+              />
+              <button
+                onClick={() => {
+                  setIsImageModalOpen(false);
+                  setCurrentImage(null);
+                }}
+                className="absolute -top-12 right-0 sm:-right-12 p-3 bg-white/10 text-white rounded-full hover:bg-white/20 transition-all pointer-events-auto backdrop-blur-md"
+              >
+                <X className="w-6 h-6" />
+              </button>
             </motion.div>
           </div>
         )}

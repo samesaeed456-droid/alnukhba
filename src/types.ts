@@ -287,6 +287,7 @@ export interface StoreSettings {
     facebook?: string;
     snapchat?: string;
     tiktok?: string;
+    youtube?: string;
     whatsapp?: string;
   };
   shippingFee: number;

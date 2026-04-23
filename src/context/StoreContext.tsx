@@ -815,6 +815,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       contactPhone: '',
       contactPhone2: '',
       address: '',
+      socialMedia: {
+        instagram: '',
+        twitter: '',
+        facebook: '',
+        whatsapp: '',
+        tiktok: '',
+        youtube: ''
+      },
       shippingFee: 0,
       freeShippingThreshold: 0,
       currency: 'YER',
@@ -826,10 +834,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       fontFamily: 'Inter',
       homeSectionOrder: ['hero', 'categories', 'deals', 'featured', 'new_arrivals', 'category_sliders'],
       seo: {
-        metaTitle: 'متجري',
-        metaDescription: '',
-        favicon: '',
-        ogImage: ''
+        metaTitle: 'متجر النخبة للإلكترونيات',
+        metaDescription: 'الرؤية الجديدة للطاقة الشمسية والإلكترونيات الذكية في اليمن',
+        favicon: '/favicon.svg',
+        ogImage: '/favicon.svg'
       },
       autoNotifications: {
         enabled: true,

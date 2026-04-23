@@ -11,7 +11,8 @@ import {
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword,
   sendPasswordResetEmail, 
-  updatePassword, 
+  updatePassword,
+  updateEmail,
   EmailAuthProvider, 
   reauthenticateWithCredential 
 } from 'firebase/auth';
@@ -174,5 +175,6 @@ export {
   writeBatch,
   runTransaction,
   getToken,
-  onMessage
+  onMessage,
+  updateEmail
 };

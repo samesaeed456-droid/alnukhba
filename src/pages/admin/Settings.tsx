@@ -19,6 +19,8 @@ import {
   Instagram,
   Twitter,
   Facebook,
+  Music,
+  Youtube,
   MessageCircle,
   MapPin,
   CreditCard,
@@ -437,6 +439,34 @@ const Settings = () => {
                             })}
                             bgClass="bg-slate-50/50"
                             icon={<Facebook className="w-5 h-5 text-blue-600" />}
+                            iconPosition="start"
+                            dir="ltr"
+                          />
+                          <FloatingInput
+                            id="tiktok"
+                            label="تيك توك"
+                            type="url"
+                            value={formData.socialMedia?.tiktok || ''}
+                            onChange={(e) => setFormData({ 
+                              ...formData, 
+                              socialMedia: { ...formData.socialMedia, tiktok: e.target.value } 
+                            })}
+                            bgClass="bg-slate-50/50"
+                            icon={<Music className="w-5 h-5 text-black" />}
+                            iconPosition="start"
+                            dir="ltr"
+                          />
+                          <FloatingInput
+                            id="youtube"
+                            label="يوتيوب"
+                            type="url"
+                            value={formData.socialMedia?.youtube || ''}
+                            onChange={(e) => setFormData({ 
+                              ...formData, 
+                              socialMedia: { ...formData.socialMedia, youtube: e.target.value } 
+                            })}
+                            bgClass="bg-slate-50/50"
+                            icon={<Youtube className="w-5 h-5 text-red-600" />}
                             iconPosition="start"
                             dir="ltr"
                           />

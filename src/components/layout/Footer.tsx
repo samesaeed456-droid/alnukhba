@@ -1,7 +1,7 @@
 import React, { lazy, Suspense, useCallback } from 'react';
 import { motion } from 'motion/react';
 import { FastLink } from '../FastLink';
-import { Zap, Facebook, Twitter, Instagram, Youtube, Mail, Phone, MapPin, ChevronLeft, ShieldCheck, Code } from 'lucide-react';
+import { Zap, Facebook, Twitter, Instagram, Youtube, Music, Mail, Phone, MapPin, ChevronLeft, ShieldCheck, Code } from 'lucide-react';
 import { useStore } from '../../context/StoreContext';
 
 import Logo from '../Logo';
@@ -16,7 +16,8 @@ export default React.memo(function Footer() {
     { icon: Facebook, url: settings.socialMedia?.facebook, color: 'hover:bg-[#1877F2] hover:border-[#1877F2]' },
     { icon: Twitter, url: settings.socialMedia?.twitter, color: 'hover:bg-[#1DA1F2] hover:border-[#1DA1F2]' },
     { icon: Instagram, url: settings.socialMedia?.instagram, color: 'hover:bg-[#E4405F] hover:border-[#E4405F]' },
-    { icon: Youtube, url: '#', color: 'hover:bg-[#FF0000] hover:border-[#FF0000]' }
+    { icon: Music, url: settings.socialMedia?.tiktok, color: 'hover:bg-black hover:border-black' },
+    { icon: Youtube, url: settings.socialMedia?.youtube, color: 'hover:bg-[#FF0000] hover:border-[#FF0000]' }
   ].filter(s => s.url && s.url !== '#');
 
   const handleOpenDevModal = useCallback(() => setIsDevModalOpen(true), []);

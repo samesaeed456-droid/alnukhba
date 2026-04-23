@@ -1,7 +1,7 @@
 import React, { Suspense, lazy, useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { MotionConfig, motion } from 'motion/react';
-import { Toaster, toast } from 'sonner';
+import { Toaster } from 'sonner';
 import Layout from './components/Layout';
 import { StoreProvider, useStore } from './context/StoreContext';
 

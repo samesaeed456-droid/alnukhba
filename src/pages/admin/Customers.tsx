@@ -173,7 +173,7 @@ export default function Customers() {
   const handleSendReminder = async (customer: UserType) => {
     setIsActionMenuOpen(false);
     try {
-      const response = await fetch('/api/send-sms', {
+      const response = await fetch('/api/sms', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

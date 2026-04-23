@@ -36,7 +36,7 @@ export const smsService = {
     if (!phone || !message) return { success: false, error: 'رقم الهاتف والرسالة مطلوبان' };
 
     try {
-      const response = await fetch('/api/send-sms', {
+      const response = await fetch('/api/sms', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone, message })
@@ -59,7 +59,7 @@ export const smsService = {
     }
 
     try {
-      const response = await fetch('/api/send-bulk-sms', {
+      const response = await fetch('/api/sms', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phones, message })

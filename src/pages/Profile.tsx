@@ -306,7 +306,7 @@ export default function Profile() {
       const domain = window.location.hostname;
       const message = `تطبيق النخبة: كود التحقق الخاص بك هو ${generatedOtp}. يرجى عدم مشاركة هذا الكود مع أي شخص لضمان أمان حسابك.\n\n@${domain} #${generatedOtp}`;
 
-      const response = await fetch('/api/send-sms', {
+      const response = await fetch('/api/sms', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone: fullPhone, message })
@@ -438,7 +438,7 @@ export default function Profile() {
       const domain = window.location.hostname;
       const message = `كود استعادة كلمة المرور الخاص بك هو: ${generatedOtp}\n\n@${domain} #${generatedOtp}`;
 
-      const response = await fetch('/api/send-sms', {
+      const response = await fetch('/api/sms', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone: fullPhone, message })
@@ -468,7 +468,7 @@ export default function Profile() {
       const domain = window.location.hostname;
       const message = `كود استعادة كلمة المرور الجديد الخاص بك هو: ${generatedOtp}\n\n@${domain} #${generatedOtp}`;
 
-      const response = await fetch('/api/send-sms', {
+      const response = await fetch('/api/sms', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone: fullPhone, message })

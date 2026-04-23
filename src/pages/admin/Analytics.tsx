@@ -86,7 +86,7 @@ const Analytics = () => {
     try {
       // If we have a phone number, we can try to send a real SMS via our API
       if (cart.customerPhone) {
-        const response = await fetch('/api/send-sms', {
+        const response = await fetch('/api/sms', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

@@ -52,6 +52,7 @@ import Maintenance from './pages/Maintenance';
 import BlockedOverlay from './components/BlockedOverlay';
 import OfflineStatus from './components/OfflineStatus';
 import NotificationGatingModal from './components/NotificationGatingModal';
+import InstallAppBanner from './components/InstallAppBanner';
 import { AlertCircle, X, Bell } from 'lucide-react';
 import { requestNotificationPermission, onForegroundMessage, refreshNotificationToken } from './lib/notifications';
 
@@ -278,6 +279,7 @@ export default function App() {
       <OfflineStatus />
       <SystemAlert />
       <BlockedOverlay />
+      <InstallAppBanner />
       <NotificationGatingModal />
       <MotionConfig reducedMotion="user">
         <Toaster 

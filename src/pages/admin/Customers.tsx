@@ -335,8 +335,8 @@ export default function Customers() {
   const handleExportCSV = () => {
     const headers = ['الاسم', 'رقم الهاتف', 'العنوان', 'الرصيد', 'عدد الطلبات', 'إجمالي الإنفاق', 'تاريخ الانضمام'];
     const csvData = filteredCustomers.map(c => [
-      `"${c.name.replace(/"/g, '""')}"`,
-      `"${c.phone}"`,
+      `"${(c.name || '').replace(/"/g, '""')}"`,
+      `"${c.phone || ''}"`,
       `"${(c.address || '').replace(/"/g, '""')}"`,
       c.walletBalance || 0,
       c.orderCount || 0,
@@ -658,7 +658,7 @@ export default function Customers() {
                     </div>
                     <div className="flex items-center gap-2 mt-2">
                       <a 
-                        href={`https://wa.me/${customer.phone.replace(/\s+/g, '')}`}
+                        href={`https://wa.me/${(customer.phone || '').replace(/\s+/g, '')}`}
                         target="_blank"
                         rel="noreferrer"
                         className="flex-1 flex items-center justify-center gap-2 py-2 bg-emerald-50 text-emerald-600 rounded-xl text-xs font-bold hover:bg-emerald-100 transition-all"
@@ -805,7 +805,7 @@ export default function Customers() {
                               <div className="h-px bg-slate-100 my-1 mx-2" />
                               
                               <a 
-                                href={`https://wa.me/${customer.phone.replace(/\s+/g, '')}`}
+                                href={`https://wa.me/${(customer.phone || '').replace(/\s+/g, '')}`}
                                 target="_blank"
                                 rel="noreferrer"
                                 onClick={() => setIsActionMenuOpen(false)}

@@ -364,18 +364,32 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           localStorage.setItem('local_session_id', localSessionId);
         }
 
-        // Update current session in Firestore
-        updateDoc(doc(db, 'users', firebaseUser.uid), {
-          currentSessionId: localSessionId,
-          lastActive: new Date().toISOString()
-        }).catch(err => console.error("Session update failed:", err));
+        // 1. Try to find in admin_users first (Prioritize administrative identity)
+        const adminDoc = await getDoc(doc(db, 'admin_users', firebaseUser.uid));
+        if (adminDoc.exists()) {
+           const adminData = adminDoc.data();
+           const userData = {
+              uid: firebaseUser.uid,
+              email: firebaseUser.email || adminData.email,
+              name: adminData.name,
+              role: 'admin',
+              adminRole: adminData.role,
+              isActive: adminData.isActive
+           } as UserProfile;
+           
+           setUser(userData);
+           localStorage.setItem('store_user', JSON.stringify(userData));
+           setIsAuthReady(true);
+           refreshNotificationToken();
+           return;
+        }
 
-        // Set up real-time listener for user document
+        // 2. Fallback to standard users collection
         unsubUser = onSnapshot(doc(db, 'users', firebaseUser.uid), (docSnap) => {
           if (docSnap.exists()) {
             const userData = { ...docSnap.data(), uid: docSnap.id } as UserProfile;
             
-            // Check for multi-device login
+            // Session protection (only for normal users)
             const currentLocalSession = localStorage.getItem('local_session_id');
             if (userData.currentSessionId && currentLocalSession && userData.currentSessionId !== currentLocalSession) {
               console.log("Session mismatch detected. Logging out...");
@@ -386,28 +400,22 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
             setUser(userData);
             localStorage.setItem('store_user', JSON.stringify(userData));
-            
-            // Try to link notification token to this logged in user
             refreshNotificationToken();
           } else {
-            // Gentle creation: only set essential and firebase-provided fields with merge:true
-            // to avoid overwriting fields (like name/phone) being simultaneously saved by Auth.tsx
-            const defaultData: any = {
-              uid: firebaseUser.uid,
-              email: firebaseUser.email || '',
-              role: 'user',
-              walletBalance: 0,
-              createdAt: serverTimestamp()
-            };
-            
-            if (firebaseUser.displayName) defaultData.displayName = firebaseUser.displayName;
-            if (firebaseUser.photoURL) defaultData.photoURL = firebaseUser.photoURL;
+             // 3. User doesn't exist in either collection: Create customer profile
+             const defaultData: any = {
+               uid: firebaseUser.uid,
+               email: firebaseUser.email || '',
+               role: 'user',
+               walletBalance: 0,
+               createdAt: serverTimestamp()
+             };
+             
+             if (firebaseUser.displayName) defaultData.displayName = firebaseUser.displayName;
+             if (firebaseUser.photoURL) defaultData.photoURL = firebaseUser.photoURL;
 
-            setDoc(doc(db, 'users', firebaseUser.uid), defaultData, { merge: true })
-              .catch(error => console.error("Error creating fallback profile:", error));
-
-            // Don't set user state here with empty fields, let the snapshot update it naturally
-            // once Auth.tsx finishes its true save, or this setDoc finishes.
+             setDoc(doc(db, 'users', firebaseUser.uid), defaultData, { merge: true })
+               .catch(error => console.error("Error creating fallback profile:", error));
           }
           setIsAuthReady(true);
         }, (error) => {
@@ -1588,35 +1596,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         updatedAt: serverTimestamp()
       });
 
-      // Synchronize changes to the main `users` collection for better integration
-      try {
-        if (finalData.email) {
-          const usersQuery = query(collection(db, 'users'), where('email', '==', finalData.email));
-          const userDocs = await getDocs(usersQuery);
-          if (userDocs && !userDocs.empty && userDocs.docs && userDocs.docs.length > 0) {
-            const userDocRef = doc(db, 'users', userDocs.docs[0].id);
-            const updatesToUser: any = {};
-            if (finalData.name) {
-              updatesToUser.adminName = finalData.name;
-            }
-            if (finalData.role) {
-              updatesToUser.adminRole = finalData.role;
-              updatesToUser.role = 'admin';
-            }
-            if (finalData.phone) updatesToUser.phone = finalData.phone;
-            if (finalData.countryCode) updatesToUser.countryCode = finalData.countryCode;
-            
-            if (Object.keys(updatesToUser).length > 0) {
-              await updateDoc(userDocRef, updatesToUser);
-            }
-          }
-        }
-      } catch (syncError) {
-        console.error('Failed to sync admin details to users collection:', syncError);
-      }
-
-      showToast('تم تحديث بيانات المشرف');
-      logActivity('تحديث مشرف', logDetails || `تم تحديث بيانات المشرف ID: ${id}`);
+      showToast('تم تحديث بيانات المشرف بنجاح');
+      logActivity('تعديل مشرف', logDetails || `تم تحديث بيانات المشرف بنجاح: ${id}`);
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `admin_users/${id}`);
     }

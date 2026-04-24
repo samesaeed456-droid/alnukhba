@@ -73,12 +73,6 @@ if (typeof window !== 'undefined') {
   });
 }
 
-export const googleProvider = new GoogleAuthProvider();
-
-// Auth Helpers
-export const signInWithGoogle = () => signInWithPopup(auth, googleProvider);
-export const signInWithGoogleRedirect = () => signInWithRedirect(auth, googleProvider);
-export const getGoogleRedirectResult = () => getRedirectResult(auth);
 export const loginWithEmail = (email: string, pass: string) => signInWithEmailAndPassword(auth, email, pass);
 export const signupWithEmail = (email: string, pass: string) => createUserWithEmailAndPassword(auth, email, pass);
 export const resetPassword = (email: string) => sendPasswordResetEmail(auth, email);

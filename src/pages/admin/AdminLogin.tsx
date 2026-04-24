@@ -147,34 +147,6 @@ export default function AdminLogin() {
         }
         
         if (isAuthorized) {
-          const userDoc = await getDoc(doc(db, 'users', user.uid));
-          const userData = userDoc.data();
-          
-          // Ensure the user record in 'users' collection has the admin flag and name
-          if (userData?.role !== 'admin' || userData?.adminName !== currentAdminName) {
-            const { updateDoc, setDoc } = await import('../../lib/firebase');
-            await setDoc(doc(db, 'users', user.uid), { 
-              role: 'admin',
-              adminName: currentAdminName,
-              email: user.email,
-              name: currentAdminName, 
-              lastActive: new Date().toISOString()
-            }, { merge: true });
-            
-            // If they are a super admin but don't have a record in admin_users, create one
-            if (superAdmins.includes(user.email) && adminSnap.empty) {
-              await setDoc(doc(db, 'admin_users', user.uid), {
-                id: user.uid,
-                name: currentAdminName,
-                email: user.email,
-                role: 'super_admin',
-                isActive: true,
-                permissions: ['view_dashboard', 'manage_orders', 'manage_products', 'manage_customers', 'manage_marketing', 'manage_coupons', 'manage_settings', 'manage_security', 'view_logs', 'manage_logistics', 'manage_messages'],
-                createdAt: new Date().toISOString()
-              }, { merge: true });
-            }
-          }
-
           localStorage.setItem('admin_auth', 'true');
           localStorage.setItem('admin_email', user.email);
           localStorage.setItem('admin_name', currentAdminName);

@@ -311,6 +311,17 @@ export default function Security() {
 
               <div className="flex-1 overflow-y-auto p-6 pt-2 custom-scrollbar pb-24 sm:pb-6">
                 <form id="add-admin-form" onSubmit={handleAddAdmin} className="space-y-6">
+                  {/* Help Note */}
+                  <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4 flex items-start gap-3">
+                    <Shield className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+                    <div className="text-right">
+                      <p className="text-xs font-bold text-amber-700">ملاحظة هامة للمشرفين</p>
+                      <p className="text-[10px] text-amber-600 mt-1 leading-relaxed">
+                        عند إضافة مشرف جديد، سيتم إنشاء حساب له تلقائياً. لا يحتاج المشرف لعمل "إنشاء حساب" من واجهة المتجر، بل يجب عليه الذهاب لصفحة دخول الإدارة واستخدام البريد وكلمة المرور المحددة هنا.
+                      </p>
+                    </div>
+                  </div>
+
                   {/* Basic Info Group */}
                   <div className="space-y-4">
                     <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block">المعلومات الأساسية</span>

@@ -104,29 +104,44 @@ export default function AdminLogin() {
         let currentAdminRole = isAuthorized ? 'super_admin' : 'editor';
         let currentAdminName = isAuthorized ? 'المدير العام' : 'مشرف';
 
-        // Check if the user exists in our admin_users collection
-        const adminQuery = query(collection(db, 'admin_users'), where('email', '==', user.email));
-        const adminSnap = await getDocs(adminQuery);
+        // Check if the user is authorized in the admin_users collection
+        // Since we now use UID as document ID in admin_users, we check directly for maximum speed and security
+        const adminDoc = await getDoc(doc(db, 'admin_users', user.uid));
         
-        if (adminSnap && !adminSnap.empty && adminSnap.docs && adminSnap.docs.length > 0) {
-          isAuthorized = true;
-          const adminDoc = adminSnap.docs[0];
+        if (adminDoc.exists()) {
           const adminData = adminDoc.data();
+          if (adminData.isActive === false) {
+             toast.error('هذا الحساب تم تعطيله من قبل المدير العام');
+             await auth.signOut();
+             return;
+          }
+          isAuthorized = true;
           currentAdminRole = adminData.role || 'editor';
           currentAdminName = adminData.name || 'مشرف';
+        } else {
+          // Fallback check for emails (to handle the very first login after manual addition)
+          const adminQuery = query(collection(db, 'admin_users'), where('email', '==', user.email));
+          const adminSnap = await getDocs(adminQuery);
+          
+          if (adminSnap && !adminSnap.empty && adminSnap.docs && adminSnap.docs.length > 0) {
+            isAuthorized = true;
+            const legacyDoc = adminSnap.docs[0];
+            const adminData = legacyDoc.data();
+            currentAdminRole = adminData.role || 'editor';
+            currentAdminName = adminData.name || 'مشرف';
 
-          // If the admin record exists but is not keyed by the user's current UID, 
-          // we migrate it (or create a copy) to be keyed by UID for security rules efficiency
-          if (adminDoc.id !== user.uid) {
+            // Radical Sync: Record exists by email but not by UID (document ID mismatch).
+            // We migrate it NOW so future logins are instant and rules work perfectly.
             const { setDoc, deleteDoc } = await import('../../lib/firebase');
             await setDoc(doc(db, 'admin_users', user.uid), {
               ...adminData,
               id: user.uid,
               lastLogin: new Date().toISOString()
             }, { merge: true });
-            // Optionally delete old record if it was a temporary ID
-            if (adminDoc.id.length > 20 && !adminDoc.id.includes('@')) { // Basic check for random ID
-               await deleteDoc(doc(db, 'admin_users', adminDoc.id));
+            
+            // Cleanup the legacy random ID record if it's different
+            if (legacyDoc.id !== user.uid) {
+              await deleteDoc(doc(db, 'admin_users', legacyDoc.id));
             }
           }
         }

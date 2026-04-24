@@ -106,7 +106,7 @@ service cloud.firestore {
     match /admin_users/{adminId} {
       // Pillar 8: Secure List Queries (RADICAL SOLUTION GATE)
       // Allow public list ONLY with email filter for login logic, OR allow full list if the user is an actual admin
-      allow list: if (resource.data.email != null) || isAdmin(); 
+      allow list: if (isSignedIn() && resource.data.email == request.auth.token.email) || isAdmin(); 
       
       allow get: if isSignedIn() && (isOwner(adminId) || isAdmin());
       allow create, update, delete: if isAdmin();

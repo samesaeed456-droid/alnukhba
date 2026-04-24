@@ -386,52 +386,7 @@ app.post("/api/sms", async (req, res) => {
   }
 });
 
-// Admin API: Reset or Sync Admin Password and return UID
-app.post("/api/admin/update-password", async (req, res) => {
-  const { email, newPassword } = req.body;
-  if (!email || !newPassword) {
-    return res.status(400).json({ success: false, error: "البريد الإلكتروني وكلمة المرور الجديدة مطلوبان" });
-  }
 
-  if (getApps().length === 0) {
-    return res.status(500).json({ success: false, error: "إعدادات Firebase Admin غير متوفرة في السيرفر" });
-  }
-
-  try {
-    const adminAuth = getAuth();
-    let userRecord;
-    try {
-      userRecord = await adminAuth.getUserByEmail(email);
-      // Update password for existing user
-      await adminAuth.updateUser(userRecord.uid, {
-        password: newPassword
-      });
-      return res.json({ 
-        success: true, 
-        uid: userRecord.uid,
-        message: "تم تحديث كلمة المرور بنجاح" 
-      });
-    } catch (e: any) {
-      if (e.code === 'auth/user-not-found') {
-        // Create new user if doesn't exist
-        userRecord = await adminAuth.createUser({
-          email,
-          password: newPassword,
-          emailVerified: true
-        });
-        return res.json({ 
-          success: true, 
-          uid: userRecord.uid,
-          message: "تم إنشاء حساب توثيق جديد للمشرف" 
-        });
-      }
-      throw e;
-    }
-  } catch (error: any) {
-    console.error("[Admin Account Sync Error]:", error);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
 
 // Admin API: Update User Phone/Email from server
 app.post("/api/update-phone", async (req, res) => {

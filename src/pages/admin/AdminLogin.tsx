@@ -14,6 +14,12 @@ import {
 import { getAdminDummyEmail } from '../../lib/adminAuth';
 import Logo from '../../components/Logo';
 
+const SUPER_ADMINS = [
+  'samesaeed456@gmail.com', 
+  'samisaeed2027@gmail.com',
+  'samesaeed@gmail.com'
+];
+
 export default function AdminLogin() {
   const navigate = useNavigate();
   const { adminUsers, logActivity } = useStore();
@@ -92,15 +98,8 @@ export default function AdminLogin() {
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
       if (user && user.email) {
-        // Super Admins hardcoded list
-        const superAdmins = [
-          'samesaeed456@gmail.com', 
-          'samisaeed2027@gmail.com',
-          'samesaeed@gmail.com'
-        ];
-        
         const userEmail = user.email.toLowerCase();
-        let isAuthorized = superAdmins.includes(userEmail);
+        let isAuthorized = SUPER_ADMINS.includes(userEmail);
         let currentAdminRole = isAuthorized ? 'super_admin' : 'editor';
         let currentAdminName = isAuthorized ? 'المدير العام' : 'مشرف';
 
@@ -185,40 +184,20 @@ export default function AdminLogin() {
           authError.code === 'auth/invalid-email';
 
         if (isCredentialError) {
-          const adminsRef = collection(db, 'admin_users');
-          const allAdmins = await getDocs(adminsRef);
-          const adminDoc = allAdmins.docs.find(d => d.data()?.email?.toLowerCase() === email.toLowerCase())?.data();
-          
-          if (adminDoc) {
-            if (adminDoc.password === password) {
-              toast.info('جاري تفعيل الحساب الإداري لأول مرة...');
-              try {
-                result = await signupWithEmail(email, password);
-              } catch (signUpErr: any) {
-                if (signUpErr.code === 'auth/email-already-in-use') {
-                   // Possible password sync failure, try force sync via server
-                   const syncRes = await fetch('/api/admin/update-password', {
-                     method: 'POST',
-                     headers: { 'Content-Type': 'application/json' },
-                     body: JSON.stringify({ email, newPassword: password })
-                   });
-                   const syncData = await syncRes.json();
-                   if (syncData.success) {
-                      result = await loginWithEmail(email, password);
-                   } else {
-                      throw new Error(syncData.error || 'فشل تحديث البيانات التوثيقية');
-                   }
-                } else {
-                  throw signUpErr;
-                }
+          if (SUPER_ADMINS.includes(email.toLowerCase()) && (authError.code === 'auth/user-not-found' || authError.code === 'auth/invalid-credential')) {
+            toast.info('جاري تفعيل حساب المدير العام لأول مرة...');
+            try {
+              result = await signupWithEmail(email, password);
+            } catch (signUpErr: any) {
+              if (signUpErr.code === 'auth/email-already-in-use') {
+                 toast.error('أنت مسجل في النظام مسبقاً، لكن يبدو أن كلمة المرور غير صحيحة.');
+                 setIsLoading(false);
+                 return;
               }
-            } else {
-              toast.error('كلمة المرور غير صحيحة');
-              setIsLoading(false);
-              return;
+              throw signUpErr;
             }
           } else {
-            toast.error('هذا البريد غير مسجل في قائمة المشرفين');
+            toast.error('البريد غير مسجل كمشرف، أو كلمة المرور خاطئة.');
             setIsLoading(false);
             return;
           }

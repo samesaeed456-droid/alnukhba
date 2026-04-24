@@ -15,7 +15,6 @@ import CartDrawer from './layout/CartDrawer';
 import WishlistDrawer from './layout/WishlistDrawer';
 import NotificationsDrawer from './layout/NotificationsDrawer';
 import FloatingActions from './layout/FloatingActions';
-import InstallPrompt from './InstallPrompt';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -108,8 +107,6 @@ export default function Layout({ children }: LayoutProps) {
         showScrollTop={showScrollTop} 
         scrollToTop={scrollToTop} 
       />
-
-      <InstallPrompt />
     </div>
   );
 }

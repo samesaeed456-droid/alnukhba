@@ -392,8 +392,14 @@ app.post("/api/sms", async (req, res) => {
 app.post("/api/update-phone", async (req, res) => {
   const { oldPhone, oldCountryCode, newPhone, newCountryCode } = req.body;
   
-  if (!oldPhone || !oldCountryCode || !newPhone || !newCountryCode) {
+  if (!newPhone || !newCountryCode) {
     return res.status(400).json({ success: false, error: "بيانات غير مكتملة" });
+  }
+
+  if (!oldPhone || !oldCountryCode) {
+     // If they didn't have an old phone, we don't need to update the firebase auth email 
+     // because they probably signed up with google. They just want to set their phone in Firestore.
+     return res.json({ success: true, message: "تم تخطي تحديث نظام المصادقة لعدم وجود رقم سابق" });
   }
 
   if (getApps().length === 0) {
@@ -414,7 +420,16 @@ app.post("/api/update-phone", async (req, res) => {
     }
 
     // Fetch the user by old email
-    const userRecord = await getAuth().getUserByEmail(oldEmail);
+    let userRecord;
+    try {
+      userRecord = await getAuth().getUserByEmail(oldEmail);
+    } catch(e: any) {
+      if (e.code === 'auth/user-not-found') {
+        // If the old email doesn't exist, they probably signed in with google. We can skip syncing.
+        return res.json({ success: true, message: "الحساب ليس مرتبط برقم الهاتف السابق في المصادقة" });
+      }
+      throw e;
+    }
     
     // Update the user's email to match the new phone
     await getAuth().updateUser(userRecord.uid, {

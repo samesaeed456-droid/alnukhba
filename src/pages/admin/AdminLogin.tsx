@@ -17,7 +17,9 @@ import Logo from '../../components/Logo';
 const SUPER_ADMINS = [
   'samesaeed456@gmail.com', 
   'samisaeed2027@gmail.com',
-  'samesaeed@gmail.com'
+  'samesaeed@gmail.com',
+  '967776668370@elite-store.local',
+  '776668370@elite-store.local'
 ];
 
 export default function AdminLogin() {

@@ -1511,13 +1511,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       // Handle password synchronization for new admin
       if (finalAdmin.password && finalAdmin.email) {
         try {
-          fetch('/api/admin/update-password', {
+          const syncRes = await fetch('/api/admin/update-password', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email: finalAdmin.email, newPassword: finalAdmin.password })
-          }).then(res => res.json()).then(data => {
-            if (!data.success) console.error('Failed to sync password to Auth:', data.error);
           });
+          const syncData = await syncRes.json();
+          if (!syncData.success) {
+            console.error('Failed to sync password to Auth:', syncData.error);
+          }
         } catch (pwError) {
           console.error('Password sync attempt failed:', pwError);
         }
@@ -1543,13 +1545,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       // Handle password synchronization if changed
       if (finalData.password && finalData.email) {
         try {
-          fetch('/api/admin/update-password', {
+          const syncRes = await fetch('/api/admin/update-password', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email: finalData.email, newPassword: finalData.password })
-          }).then(res => res.json()).then(data => {
-            if (!data.success) console.error('Failed to sync password to Auth:', data.error);
           });
+          const syncData = await syncRes.json();
+          if (!syncData.success) {
+            console.error('Failed to sync password to Auth:', syncData.error);
+          }
         } catch (pwError) {
           console.error('Password sync attempt failed:', pwError);
         }

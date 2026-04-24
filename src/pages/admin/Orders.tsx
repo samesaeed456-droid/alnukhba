@@ -190,7 +190,6 @@ export default function Orders() {
 
   const handleStatusUpdate = (orderId: string, newStatus: Order['status'], isRevert: boolean = false) => {
     updateOrderStatus(orderId, newStatus);
-    showToast(`تم تحديث حالة الطلب إلى ${getStatusText(newStatus)}`, 'success');
   };
 
   const handleWhatsApp = (phone: string, orderId: string) => {
@@ -201,7 +200,6 @@ export default function Orders() {
   const handleBulkStatusUpdate = (newStatus: Order['status']) => {
     selectedOrders.forEach(id => updateOrderStatus(id, newStatus));
     setSelectedOrders([]);
-    showToast(`تم تحديث ${selectedOrders.length} طلبات بنجاح`, 'success');
   };
 
   const exportToCSV = () => {

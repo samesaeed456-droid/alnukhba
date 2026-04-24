@@ -1953,15 +1953,26 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       showToast('تم تحديث حالة الطلب');
       logActivity('تحديث حالة طلب', `تم تحديث حالة الطلب ${orderId} إلى: ${status}`);
 
-      // Send Push Notification
       const orderData = orderSnap.data() as Order;
       const targetUserId = orderData.userId;
       
+      // 1. Send SMS Notification (for all users, including guests)
+      try {
+        await notificationService.sendOrderStatusNotification(orderData, status);
+      } catch (smsErr) {
+        console.error('Failed to send SMS status notification:', smsErr);
+      }
+
+      // 2. Send App/Push Notification (only for registered users)
       if (targetUserId && targetUserId !== 'guest') {
         let statusTitle = 'تحديث حالة الطلب';
         let statusMessage = `تم تحديث حالة طلبك ${orderId} إلى ${status}`;
 
         switch(status) {
+          case 'pending':
+            statusTitle = 'الطلب قيد المراجعة ⏳';
+            statusMessage = `مرحباً، طلبك رقم ${orderId} قيد الانتظار للمراجعة الآن. سنقوم بإبلاغك فور البدء بتجهيزه.`;
+            break;
           case 'processing': 
             statusTitle = 'بدأ تجهيز طلبك 📦';
             statusMessage = `طلبك رقم ${orderId} قيد التجهيز الآن، سنخطرك عند شحنه.`;
@@ -1989,11 +2000,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
               message: statusMessage,
               target: 'specific_user',
               targetUserId: targetUserId,
-              url: `/profile` // Redirect to profile or specific order if possible
+              url: `/profile`
             })
           });
         } catch (notifErr) {
-          console.error('Failed to send order status notification:', notifErr);
+          console.error('Failed to send App notification:', notifErr);
         }
       }
 

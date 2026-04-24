@@ -95,10 +95,12 @@ export default function AdminLogin() {
         // Super Admins hardcoded list
         const superAdmins = [
           'samesaeed456@gmail.com', 
-          'samisaeed2027@gmail.com'
+          'samisaeed2027@gmail.com',
+          'samesaeed@gmail.com'
         ];
         
-        let isAuthorized = superAdmins.includes(user.email);
+        const userEmail = user.email.toLowerCase();
+        let isAuthorized = superAdmins.includes(userEmail);
         let currentAdminRole = isAuthorized ? 'super_admin' : 'editor';
         let currentAdminName = isAuthorized ? 'المدير العام' : 'مشرف';
 
@@ -421,6 +423,23 @@ export default function AdminLogin() {
                   <span className="font-bold text-xs text-slate-500 select-none">تذكر حذائي الإداري</span>
                   <input type="checkbox" className="hidden" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} />
                 </label>
+
+                <button 
+                  type="button"
+                  onClick={async () => {
+                    if (!email) return toast.error('يرجى إدخال البريد أولاً');
+                    try {
+                      const { sendPasswordResetEmail } = await import('firebase/auth');
+                      await sendPasswordResetEmail(auth, email);
+                      toast.success('تم إرسال رابط استعادة كلمة المرور لبريدك');
+                    } catch (e: any) {
+                      toast.error('فشل إرسال الرابط: ' + (e.message || 'خطأ غير معروف'));
+                    }
+                  }}
+                  className="text-xs font-black text-solar hover:text-solar/80 transition-colors"
+                >
+                  نسيت كلمة المرور؟
+                </button>
               </div>
 
               <button 

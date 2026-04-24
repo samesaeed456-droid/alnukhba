@@ -396,6 +396,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
               uid: firebaseUser.uid,
               email: firebaseUser.email || '',
               role: 'user',
+              walletBalance: 0,
               createdAt: serverTimestamp()
             };
             

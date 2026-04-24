@@ -1520,16 +1520,40 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       // MANDATORY Auth Sync: Create/Get Auth account first
       if (finalAdmin.email && finalAdmin.password) {
         try {
-          const syncRes = await fetch('/api/admin/update-password', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: finalAdmin.email, newPassword: finalAdmin.password })
-          });
-          const syncData = await syncRes.json();
-          if (syncData.success && syncData.uid) {
-            uidToUse = syncData.uid;
-          } else {
-            throw new Error(syncData.error || 'فشل مزامنة حساب التوثيق');
+          // Use a secondary Firebase app to create the user client-side without signing out the current admin
+          const { initializeApp } = await import('firebase/app');
+          const { getAuth, createUserWithEmailAndPassword, updatePassword, signInWithEmailAndPassword } = await import('firebase/auth');
+          const firebaseConfig = (await import('../../firebase-applet-config.json')).default;
+          
+          // Generate a unique name for the secondary app to avoid collisions
+          const secondaryAppName = `AdminCreator_${Date.now()}`;
+          const secondaryApp = initializeApp(firebaseConfig, secondaryAppName);
+          const secondaryAuth = getAuth(secondaryApp);
+          
+          try {
+            // Try to create the user
+            const credential = await createUserWithEmailAndPassword(secondaryAuth, finalAdmin.email, finalAdmin.password);
+            uidToUse = credential.user.uid;
+            
+            // Sign out the secondary app immediately so it doesn't linger
+            await secondaryAuth.signOut();
+          } catch (createError: any) {
+            // If user already exists, we must log in to update their password.
+            if (createError.code === 'auth/email-already-in-use') {
+               showToast('الحساب موجود مسبقاً في التوثيق. لا يمكن تغيير كلمة المرور هنا لدواعي الأمان. تمت مزامنة المعرف.', 'info');
+               // But we need the UID! We can't get UID of existing user without Firebase Admin SDK
+               // or without logging them in! Oh wait, if they exist we can't easily get UID unless we use signInWithEmailAndPassword.
+               // Let's try to sign in. If it fails due to wrong password, we can't link it.
+               try {
+                  const loginCred = await signInWithEmailAndPassword(secondaryAuth, finalAdmin.email, finalAdmin.password);
+                  uidToUse = loginCred.user.uid;
+                  await secondaryAuth.signOut();
+               } catch (loginError: any) {
+                  throw new Error('البريد موجود في النظام ولا يمكن مطابقة كلمة المرور.');
+               }
+            } else {
+               throw createError;
+            }
           }
         } catch (pwError: any) {
           console.error('Auth sync failed:', pwError);
@@ -1565,30 +1589,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     try {
       let finalData = { ...updatedData };
 
-      // Handle password synchronization if changed
+      // Handle password warning
       if (finalData.password && finalData.email) {
-        try {
-          const syncRes = await fetch('/api/admin/update-password', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: finalData.email, newPassword: finalData.password })
-          });
-          const syncData = await syncRes.json();
-          if (!syncData.success) {
-            console.error('Failed to sync password to Auth:', syncData.error);
-          } else if (syncData.uid && syncData.uid !== id) {
-             // If UID mismatch (rare), update the record to match UID
-             console.warn('UID mismatch detected during sync, migrating record...');
-             const adminData = (await getDoc(doc(db, 'admin_users', id))).data();
-             if (adminData) {
-                await setDoc(doc(db, 'admin_users', syncData.uid), { ...adminData, ...finalData, id: syncData.uid });
-                await deleteDoc(doc(db, 'admin_users', id));
-                id = syncData.uid;
-             }
-          }
-        } catch (pwError) {
-          console.error('Password sync attempt failed:', pwError);
-        }
+         showToast('لا يمكن تغيير كلمة المرور من هنا لأسباب أمنية. يرجى من المشرف استخدام خيار \"نسيت كلمة المرور\" في صفحة الدخول.', 'info');
+         delete finalData.password; // Don't try to sync password here
       }
 
       await updateDoc(doc(db, 'admin_users', id), {

@@ -367,33 +367,13 @@ export default function Profile() {
 
       const data = await response.json();
       if (response.ok && data.success) {
-        // Here we ideally need to update the Auth Email in Firebase as well
-        try {
-          const { updateEmail, auth } = await import('../lib/firebase');
-          if (auth.currentUser) {
-             const newDummyEmail = `${formData.countryCode.replace('+', '')}${formData.phone}@elite-store.local`;
-             await updateEmail(auth.currentUser, newDummyEmail);
-          }
-        } catch(authErr: any) {
-           console.error("Auth email update error:", authErr);
-           if (authErr.code === 'auth/email-already-in-use') {
-             showToast('هذا الرقم مسجل مسبقاً في حساب آخر! يمنع تكرار نفس الرقم.', 'error');
-             setIsLoading(false);
-             return;
-           }
-           if (authErr.code === 'auth/requires-recent-login') {
-             showToast('حماية حسابك تتطلب إعادة تسجيل الدخول لتغيير الرقم. يرجى تسجيل الخروج والعودة', 'error');
-             setIsLoading(false);
-             return;
-           }
-           // We might swallow other errors or require them, but let's proceed to update firestore anyway since the phone was verified
-        }
-
-        updateUser({ ...user, ...formData } as any);
+        // The updated updateUser in StoreContext now handles the Auth Email sync via Server API
+        // which avoids client-side "requires-recent-login" restrictions.
+        await updateUser({ ...user, ...formData } as any);
         setIsChangingPhone(false);
         window.scrollTo(0, 0);
         setCurrentView('menu');
-        showToast('تم تحديث الحساب وتغيير الرقم بنجاح');
+        showToast('تم تحديث الحساب وتغيير الرقم في كل مكان بنجاح');
       } else {
         showToast(data.error || 'كود التحقق غير صحيح', 'error');
       }

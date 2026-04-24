@@ -2063,9 +2063,37 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     
     // Save current user for error reversal if needed
     const prevUser = user;
+    
+    // Check if phone number is changing
+    const isPhoneChanging = prevUser && (
+      newUser.phone !== prevUser.phone || 
+      newUser.countryCode !== prevUser.countryCode
+    );
+
     setUser(newUser);
 
     try {
+      // 1. Sync with Firebase Auth via Server if phone changed
+      if (isPhoneChanging && prevUser) {
+        const syncResponse = await fetch('/api/update-phone', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            oldPhone: prevUser.phone,
+            oldCountryCode: prevUser.countryCode || '+967',
+            newPhone: newUser.phone,
+            newCountryCode: newUser.countryCode || '+967'
+          })
+        });
+        const syncData = await syncResponse.json();
+        if (!syncResponse.ok || !syncData.success) {
+          throw new Error(syncData.error || 'فشل مزامنة الرقم مع نظام تسجيل الدخول');
+        }
+        
+        // Also update the local email to match the new dummy email
+        newUser.email = `${(newUser.countryCode || '+967').replace('+', '')}${newUser.phone}@elite-store.local`;
+      }
+
       // Ensure we don't accidentally drop the admin role if it was set
       if (prevUser?.role === 'admin' && newUser.role !== 'admin') {
         newUser.role = 'admin';
@@ -2074,6 +2102,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         }
       }
 
+      // 2. Update Firestore
       await updateDoc(doc(db, 'users', auth.currentUser.uid), {
         ...newUser,
         updatedAt: serverTimestamp()
@@ -2089,11 +2118,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           const adminDocs = await getDocs(adminQuery);
           if (adminDocs && !adminDocs.empty && adminDocs.docs && adminDocs.docs.length > 0) {
              const adminDocRef = doc(db, 'admin_users', adminDocs.docs[0].id);
-             // We only sync the phone and timestamp back to admin record.
-             // We DO NOT sync the name back, because the admin might have 
-             // a specific "Admin Name" they want to keep separate from their client name.
              await updateDoc(adminDocRef, {
                phone: newUser.phone,
+               email: newUser.email, // Sync new dummy email if it changed
                updatedAt: serverTimestamp()
              });
           }
@@ -2102,10 +2129,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         }
       }
 
-    } catch (error) {
+    } catch (error: any) {
       // Revert optimistic update on failure
       if (prevUser) setUser(prevUser);
-      handleFirestoreError(error, OperationType.UPDATE, `users/${auth.currentUser.uid}`);
+      if (error.message === 'الرقم الجديد مسجل مسبقاً في حساب آخر') {
+        showToast(error.message, 'error');
+      } else {
+        handleFirestoreError(error, OperationType.UPDATE, `users/${auth.currentUser.uid}`);
+      }
     }
   }, [showToast, user]);
 
@@ -2149,6 +2180,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       }
 
       let docRef = null;
+      let userData: UserProfile | null = null;
 
       // Try by UID first
       const uidRef = doc(db, 'users', identifier);
@@ -2156,18 +2188,42 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
       if (uidSnap.exists()) {
         docRef = uidRef;
+        userData = { uid: uidSnap.id, ...uidSnap.data() } as UserProfile;
       } else {
         // Fallback to phone search
         const q = query(collection(db, 'users'), where('phone', '==', identifier));
         const snapshot = await getDocs(q);
         if (snapshot && !snapshot.empty && snapshot.docs && snapshot.docs.length > 0) {
           docRef = snapshot.docs[0].ref;
+          userData = { uid: snapshot.docs[0].id, ...snapshot.docs[0].data() } as UserProfile;
         }
       }
 
-      if (!docRef) {
+      if (!docRef || !userData) {
         showToast('العميل غير موجود', 'error');
         return;
+      }
+
+      // Check if phone is being updated
+      if (updates.phone && (updates.phone !== userData.phone || (updates.countryCode && updates.countryCode !== userData.countryCode))) {
+        const syncResponse = await fetch('/api/update-phone', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            oldPhone: userData.phone,
+            oldCountryCode: userData.countryCode || '+967',
+            newPhone: updates.phone,
+            newCountryCode: updates.countryCode || userData.countryCode || '+967'
+          })
+        });
+        const syncData = await syncResponse.json();
+        if (!syncResponse.ok || !syncData.success) {
+          showToast(syncData.error || 'فشل تحديث الرقم في نظام المصادقة', 'error');
+          return;
+        }
+        
+        // Update the email in Firestore too
+        updates.email = `${(updates.countryCode || userData.countryCode || '+967').replace('+', '')}${updates.phone}@elite-store.local`;
       }
 
       await updateDoc(docRef, {

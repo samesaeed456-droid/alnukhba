@@ -420,6 +420,51 @@ app.post("/api/reset-password", async (req, res) => {
   }
 });
 
+// Admin API: Update User Phone/Email from server
+app.post("/api/update-phone", async (req, res) => {
+  const { oldPhone, oldCountryCode, newPhone, newCountryCode } = req.body;
+  
+  if (!oldPhone || !oldCountryCode || !newPhone || !newCountryCode) {
+    return res.status(400).json({ success: false, error: "بيانات غير مكتملة" });
+  }
+
+  if (getApps().length === 0) {
+    return res.status(500).json({ success: false, error: "إعدادات Firebase Admin غير متوفرة في السيرفر" });
+  }
+
+  try {
+    const oldEmail = `${oldCountryCode.replace('+', '')}${oldPhone}@elite-store.local`;
+    const newEmail = `${newCountryCode.replace('+', '')}${newPhone}@elite-store.local`;
+    
+    // Check if new email already exists (to prevent duplicates)
+    try {
+      await getAuth().getUserByEmail(newEmail);
+      return res.status(400).json({ success: false, error: "الرقم الجديد مسجل مسبقاً في حساب آخر" });
+    } catch (e: any) {
+      // If user not found, we can proceed
+      if (e.code !== 'auth/user-not-found') throw e;
+    }
+
+    // Fetch the user by old email
+    const userRecord = await getAuth().getUserByEmail(oldEmail);
+    
+    // Update the user's email to match the new phone
+    await getAuth().updateUser(userRecord.uid, {
+      email: newEmail
+    });
+
+    console.log(`[Firebase Admin] Email updated from ${oldEmail} to ${newEmail}`);
+    res.json({ success: true, message: "تم تحديث الرقم في نظام المصادقة بنجاح" });
+    
+  } catch (error: any) {
+    console.error("[Firebase Admin] Phone update error:", error);
+    if (error.code === 'auth/user-not-found') {
+      return res.status(404).json({ success: false, error: "هذا الحساب غير موجود" });
+    }
+    res.status(500).json({ success: false, error: "فشل تحديث الرقم", details: error.message });
+  }
+});
+
 // Simple in-memory store for OTPs (For production, use Redis or Firestore)
 const otpStore = new Map<string, { code: string, expires: number }>();
 

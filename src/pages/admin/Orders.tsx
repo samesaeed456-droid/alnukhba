@@ -17,7 +17,7 @@ import { notificationService } from '../../services/notificationService';
 import { FloatingInput } from '../../components/FloatingInput';
 
 export default function Orders() {
-  const { orders, updateOrderStatus, formatPrice, showToast, logActivity } = useStore();
+  const { orders, updateOrderStatus, deleteOrder, formatPrice, showToast, logActivity } = useStore();
   
   const renderPrice = (price: number, className?: string) => {
     const formatted = formatPrice(price);
@@ -512,6 +512,19 @@ export default function Orders() {
                     >
                       <Eye className="w-4 h-4" />
                       التفاصيل
+                    </motion.button>
+                    <motion.button 
+                      whileHover={{ scale: 1.05, backgroundColor: '#EF4444', color: '#fff' }}
+                      whileTap={{ scale: 0.85 }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (window.confirm('هل أنت متأكد من حذف هذا الطلب؟')) {
+                          deleteOrder(order.id);
+                        }
+                      }}
+                      className="w-14 h-14 bg-white border border-bg-hover rounded-2xl flex items-center justify-center text-red-500 transition-all shadow-sm"
+                    >
+                      <Trash2 className="w-6 h-6" />
                     </motion.button>
                     <motion.button 
                       whileHover={{ scale: 1.05, backgroundColor: '#10B981', color: '#fff' }}

@@ -448,8 +448,11 @@ app.post("/api/send-otp", async (req, res) => {
     if (cleanPhone.length === 9 && cleanPhone.startsWith('7')) cleanPhone = '967' + cleanPhone;
     else if (cleanPhone.length === 10 && cleanPhone.startsWith('07')) cleanPhone = '967' + cleanPhone.substring(1);
     
+    const host = req.get('host') || 'localhost';
+    const domain = host.split(':')[0];
     const formattedPhone = `+${cleanPhone}`;
-    const message = `تطبيق النخبة: كود التحقق الخاص بك هو ${generatedOtp}.`;
+    // WebOTP format requirements: The last line must contain the domain and the code preceded by #
+    const message = `تطبيق النخبة: كود التحقق الخاص بك هو ${generatedOtp}.\n\n@${domain} #${generatedOtp}`;
     
     await axios.post(
       targetUrl,

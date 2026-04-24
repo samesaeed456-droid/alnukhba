@@ -1,7 +1,8 @@
 import React from 'react';
-import { X, Package, Truck, CreditCard, User, MapPin, Phone, Calendar, CheckCircle2, Clock, AlertCircle } from 'lucide-react';
+import { X, Package, Truck, CreditCard, User, MapPin, Phone, Calendar, CheckCircle2, Clock, AlertCircle, ShoppingCart, Trash2, Maximize2 } from 'lucide-react';
 import { Order } from '../../types';
 import { useStore } from '../../context/StoreContext';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface OrderDetailsModalProps {
   order: Order;
@@ -10,7 +11,8 @@ interface OrderDetailsModalProps {
 }
 
 export default function OrderDetailsModal({ order, isOpen, onClose }: OrderDetailsModalProps) {
-  const { formatPrice, updateOrderStatus } = useStore();
+  const { formatPrice, updateOrderStatus, deleteOrder } = useStore();
+  const [isZoomed, setIsZoomed] = React.useState(false);
 
   if (!isOpen) return null;
 
@@ -204,29 +206,96 @@ export default function OrderDetailsModal({ order, isOpen, onClose }: OrderDetai
                   <p className="text-xs font-mono text-gray-600 break-all">{order.paymentReference}</p>
                 </div>
               )}
+              
+              {order.paymentProof && (
+                <div className="mt-4 space-y-2">
+                  <label className="text-xs font-bold text-gray-500 uppercase block">سند التحويل</label>
+                  <div className="relative group rounded-xl overflow-hidden border border-gray-200 aspect-video bg-gray-100">
+                    <img 
+                      src={order.paymentProof} 
+                      alt="سند التحويل" 
+                      className="w-full h-full object-contain cursor-pointer transition-transform group-hover:scale-105"
+                      onClick={() => setIsZoomed(true)}
+                    />
+                    <div 
+                      className="absolute inset-0 bg-black/0 group-hover:bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all cursor-pointer"
+                      onClick={() => setIsZoomed(true)}
+                    >
+                      <div className="bg-white/90 p-2 rounded-lg text-carbon flex items-center gap-2 text-xs font-bold">
+                        <Maximize2 className="w-4 h-4" />
+                        تكبير السند
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
 
+        {/* Zoomed Image Modal */}
+        <AnimatePresence>
+          {isZoomed && order.paymentProof && (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md"
+              onClick={() => setIsZoomed(false)}
+            >
+              <div className="relative max-w-5xl w-full h-full flex items-center justify-center py-10">
+                <button 
+                  onClick={() => setIsZoomed(false)}
+                  className="absolute top-0 right-0 p-3 text-white hover:bg-white/10 rounded-full transition-colors z-[110]"
+                >
+                  <X className="w-8 h-8" />
+                </button>
+                <motion.img 
+                  initial={{ scale: 0.9, y: 20 }}
+                  animate={{ scale: 1, y: 0 }}
+                  exit={{ scale: 0.9, y: 20 }}
+                  src={order.paymentProof} 
+                  alt="سند التحويل مكبر" 
+                  className="max-w-full max-h-full object-contain shadow-2xl rounded-lg"
+                  onClick={(e) => e.stopPropagation()}
+                />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Footer */}
-        <div className="p-6 border-t border-gray-100 flex justify-end gap-3 rounded-b-3xl">
+        <div className="p-6 border-t border-gray-100 flex justify-between gap-3 rounded-b-3xl">
           <button 
-            onClick={onClose}
-            className="px-6 py-2.5 rounded-xl font-bold text-gray-600 hover:bg-gray-100 transition-colors"
+            onClick={() => {
+              if (window.confirm('هل أنت متأكد من حذف هذا الطلب؟')) {
+                deleteOrder(order.id);
+                onClose();
+              }
+            }}
+            className="px-6 py-2.5 rounded-xl font-bold bg-white text-red-500 border border-red-100 hover:bg-red-50 transition-colors flex items-center gap-2"
           >
-            إغلاق
+            <Trash2 className="w-5 h-5" />
+            <span>حذف الطلبية</span>
           </button>
-          <button 
-            className="px-6 py-2.5 rounded-xl font-bold bg-carbon text-white hover:bg-carbon/90 transition-colors flex items-center gap-2"
-            onClick={() => window.print()}
-          >
-            <Truck className="w-5 h-5" />
-            <span>طباعة الفاتورة</span>
-          </button>
+          
+          <div className="flex gap-3">
+            <button 
+              onClick={onClose}
+              className="px-6 py-2.5 rounded-xl font-bold text-gray-600 hover:bg-gray-100 transition-colors"
+            >
+              إغلاق
+            </button>
+            <button 
+              className="px-6 py-2.5 rounded-xl font-bold bg-carbon text-white hover:bg-carbon/90 transition-colors flex items-center gap-2"
+              onClick={() => window.print()}
+            >
+              <Truck className="w-5 h-5" />
+              <span>طباعة الفاتورة</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>
   );
 }
-
-import { ShoppingCart } from 'lucide-react';

@@ -45,6 +45,7 @@ interface StoreContextType {
   clearCart: () => void;
   placeOrder: (paymentMethod: string, shippingMethod?: 'delivery' | 'pickup', paymentReference?: string, customerName?: string, customerPhone?: string, shippingAddress?: string) => string;
   updateOrderStatus: (orderId: string, status: Order['status'], isRevert?: boolean) => Promise<void>;
+  deleteOrder: (id: string) => Promise<void>;
   toggleWishlist: (product: Product) => void;
   isInWishlist: (productId: string) => boolean;
   updateUser: (user: UserProfile) => void;
@@ -212,6 +213,7 @@ interface StoreActions {
     paymentProof?: string
   ) => Promise<string>;
   updateOrderStatus: (orderId: string, status: Order['status']) => Promise<void>;
+  deleteOrder: (id: string) => Promise<void>;
   toggleWishlist: (product: Product) => void;
   isInWishlist: (productId: string) => boolean;
   updateUser: (user: UserProfile) => void;
@@ -2013,6 +2015,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }
   }, [showToast, logActivity]);
 
+  const deleteOrder = React.useCallback(async (id: string) => {
+    try {
+      await deleteDoc(doc(db, 'orders', id));
+      showToast('تم حذف الطلب بنجاح', 'success');
+      logActivity('حذف طلب', `تم حذف الطلب رقم: ${id}`);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, `orders/${id}`);
+    }
+  }, [showToast, logActivity]);
+
   const toggleWishlist = React.useCallback((product: Product) => {
     setWishlist(prev => {
       const exists = prev.some(p => String(p.id) === String(product.id));
@@ -2674,6 +2686,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     updateCustomer, blockCustomer,
     addCustomer, deleteCustomer,
     addToCart, updateCartQuantity, removeFromCart, clearCart, placeOrder, updateOrderStatus,
+    deleteOrder,
     toggleWishlist, isInWishlist, updateUser, deleteAccount, logout,
     applyDiscountCode, removeDiscount,
     addCoupon, updateCoupon, deleteCoupon, toggleCouponStatus,
@@ -2701,6 +2714,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     updateCustomer, blockCustomer,
     addCustomer, deleteCustomer,
     addToCart, updateCartQuantity, removeFromCart, clearCart, placeOrder, updateOrderStatus,
+    deleteOrder,
     toggleWishlist, isInWishlist, updateUser, deleteAccount, logout,
     applyDiscountCode, removeDiscount,
     addCoupon, updateCoupon, deleteCoupon, toggleCouponStatus,

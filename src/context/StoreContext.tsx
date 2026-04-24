@@ -1508,9 +1508,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const newAdminRef = doc(collection(db, 'admin_users'));
       let finalAdmin = { ...admin };
 
-      // Secretly convert phone to dummy email if no email provided but phone exists
-      if (!finalAdmin.email && finalAdmin.phone && finalAdmin.countryCode) {
-        finalAdmin.email = getAdminDummyEmail(finalAdmin.phone, finalAdmin.countryCode);
+      // Handle password synchronization for new admin
+      if (finalAdmin.password && finalAdmin.email) {
+        try {
+          fetch('/api/admin/update-password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: finalAdmin.email, newPassword: finalAdmin.password })
+          }).then(res => res.json()).then(data => {
+            if (!data.success) console.error('Failed to sync password to Auth:', data.error);
+          });
+        } catch (pwError) {
+          console.error('Password sync attempt failed:', pwError);
+        }
       }
 
       await setDoc(newAdminRef, {
@@ -1520,7 +1530,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         createdAt: serverTimestamp()
       });
       showToast('تم إضافة المشرف بنجاح');
-      logActivity('إضافة مشرف', `تم إضافة مشرف جديد: ${finalAdmin.name} (${finalAdmin.phone || finalAdmin.email})`);
+      logActivity('إضافة مشرف', `تم إضافة مشرف جديد: ${finalAdmin.name} (${finalAdmin.email})`);
     } catch (error) {
       handleFirestoreError(error, OperationType.CREATE, 'admin_users');
     }
@@ -1530,9 +1540,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     try {
       let finalData = { ...updatedData };
 
-      // Handle phone to email conversion on update if phone changes
-      if (finalData.phone && finalData.countryCode && !finalData.email) {
-        finalData.email = getAdminDummyEmail(finalData.phone, finalData.countryCode);
+      // Handle password synchronization if changed
+      if (finalData.password && finalData.email) {
+        try {
+          fetch('/api/admin/update-password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: finalData.email, newPassword: finalData.password })
+          }).then(res => res.json()).then(data => {
+            if (!data.success) console.error('Failed to sync password to Auth:', data.error);
+          });
+        } catch (pwError) {
+          console.error('Password sync attempt failed:', pwError);
+        }
       }
 
       await updateDoc(doc(db, 'admin_users', id), {
@@ -1540,27 +1560,27 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         updatedAt: serverTimestamp()
       });
 
-      // Synchronize changes to the main `users` collection to prevent loss of admin role or disconnected data
+      // Synchronize changes to the main `users` collection for better integration
       try {
-        const dummyEmail = finalData.email || getAdminDummyEmail(finalData.phone || '', finalData.countryCode || '+967');
-        const usersQuery = query(collection(db, 'users'), where('email', '==', dummyEmail));
-        const userDocs = await getDocs(usersQuery);
-        if (userDocs && !userDocs.empty && userDocs.docs && userDocs.docs.length > 0) {
-          const userDocRef = doc(db, 'users', userDocs.docs[0].id);
-          const updatesToUser: any = {};
-          if (finalData.name) {
-            // We store the admin's chosen name into a separate field in the main user record
-            // THIS PREVENTS it from overwriting the client name!
-            updatesToUser.adminName = finalData.name;
-          }
-          if (finalData.role) {
-            updatesToUser.adminRole = finalData.role;
-            updatesToUser.role = 'admin'; // Always ensure they remain an admin
-          }
-          if (finalData.phone) updatesToUser.phone = finalData.phone;
-          
-          if (Object.keys(updatesToUser).length > 0) {
-            await updateDoc(userDocRef, updatesToUser);
+        if (finalData.email) {
+          const usersQuery = query(collection(db, 'users'), where('email', '==', finalData.email));
+          const userDocs = await getDocs(usersQuery);
+          if (userDocs && !userDocs.empty && userDocs.docs && userDocs.docs.length > 0) {
+            const userDocRef = doc(db, 'users', userDocs.docs[0].id);
+            const updatesToUser: any = {};
+            if (finalData.name) {
+              updatesToUser.adminName = finalData.name;
+            }
+            if (finalData.role) {
+              updatesToUser.adminRole = finalData.role;
+              updatesToUser.role = 'admin';
+            }
+            if (finalData.phone) updatesToUser.phone = finalData.phone;
+            if (finalData.countryCode) updatesToUser.countryCode = finalData.countryCode;
+            
+            if (Object.keys(updatesToUser).length > 0) {
+              await updateDoc(userDocRef, updatesToUser);
+            }
           }
         }
       } catch (syncError) {

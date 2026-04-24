@@ -387,10 +387,10 @@ app.post("/api/sms", async (req, res) => {
 });
 
 // Admin API: Reset Password from server
-app.post("/api/reset-password", async (req, res) => {
-  const { phone, countryCode, newPassword } = req.body;
-  if (!phone || !countryCode || !newPassword) {
-    return res.status(400).json({ success: false, error: "بيانات غير مكتملة" });
+app.post("/api/admin/update-password", async (req, res) => {
+  const { email, newPassword } = req.body;
+  if (!email || !newPassword) {
+    return res.status(400).json({ success: false, error: "البريد الإلكتروني وكلمة المرور الجديدة مطلوبان" });
   }
 
   if (getApps().length === 0) {
@@ -398,25 +398,31 @@ app.post("/api/reset-password", async (req, res) => {
   }
 
   try {
-    const dummyEmail = `${countryCode.replace('+', '')}${phone}@elite-store.local`;
-    
-    // Attempt to fetch the user by email
-    const userRecord = await getAuth().getUserByEmail(dummyEmail);
-    
-    // Update the user's password
-    await getAuth().updateUser(userRecord.uid, {
+    const adminAuth = getAuth();
+    let userRecord;
+    try {
+      userRecord = await adminAuth.getUserByEmail(email);
+    } catch (e: any) {
+      if (e.code === 'auth/user-not-found') {
+        // If user doesn't exist in Auth, we'll just let them sign up later or create them now
+        userRecord = await adminAuth.createUser({
+          email,
+          password: newPassword,
+          emailVerified: true
+        });
+        return res.json({ success: true, message: "تم إنشاء حساب توثيق جديد للمشرف" });
+      }
+      throw e;
+    }
+
+    await adminAuth.updateUser(userRecord.uid, {
       password: newPassword
     });
 
-    console.log(`[Firebase Admin] Password updated successfully for user: ${dummyEmail}`);
-    res.json({ success: true, message: "تم تغيير كلمة المرور بنجاح" });
-    
+    res.json({ success: true, message: "تم تحديث كلمة المرور بنجاح" });
   } catch (error: any) {
-    console.error("[Firebase Admin] Password reset error:", error);
-    if (error.code === 'auth/user-not-found') {
-      return res.status(404).json({ success: false, error: "هذا الحساب غير موجود" });
-    }
-    res.status(500).json({ success: false, error: "فشل تغيير كلمة المرور", details: error.message });
+    console.error("[Admin Password Reset Error]:", error);
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 

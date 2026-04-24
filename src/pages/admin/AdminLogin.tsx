@@ -8,7 +8,7 @@ import { useStore } from '@/context/StoreContext';
 import { startAuthentication } from '@simplewebauthn/browser';
 import { signInWithCustomToken } from 'firebase/auth';
 import { 
-  auth, db, doc, getDoc, loginWithEmail, signupWithEmail,
+  auth, db, doc, getDoc, loginWithEmail, signupWithEmail, signInWithGoogle,
   query, collection, where, getDocs
 } from '../../lib/firebase';
 import { getAdminDummyEmail } from '../../lib/adminAuth';
@@ -16,8 +16,7 @@ import { getAdminDummyEmail } from '../../lib/adminAuth';
 export default function AdminLogin() {
   const navigate = useNavigate();
   const { adminUsers, logActivity } = useStore();
-  const [phone, setPhone] = useState('');
-  const [countryCode, setCountryCode] = useState('+967');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
@@ -88,66 +87,70 @@ export default function AdminLogin() {
     }
   };
   
-  // Check if already logged in with authorized phone/email
+  // Check if already logged in with authorized email
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
       if (user && user.email) {
-        const authorizedEmails = [
+        // Super Admins hardcoded list
+        const superAdmins = [
           'samesaeed456@gmail.com', 
-          'samisaeed2027@gmail.com', 
-          '967776668370@elite-store.local'
+          'samisaeed2027@gmail.com'
         ];
         
-        // Also check if the user exists in our admin_users collection
-        let isAuthorized = authorizedEmails.includes(user.email);
-        let currentAdminRole = 'editor';
-        let currentAdminName = 'المدير العام';
+        let isAuthorized = superAdmins.includes(user.email);
+        let currentAdminRole = isAuthorized ? 'super_admin' : 'editor';
+        let currentAdminName = isAuthorized ? 'المدير العام' : 'مشرف';
 
-        if (!isAuthorized) {
-          const adminQuery = query(collection(db, 'admin_users'), where('email', '==', user.email));
-          const adminSnap = await getDocs(adminQuery);
-          if (adminSnap && !adminSnap.empty && adminSnap.docs && adminSnap.docs.length > 0) {
-            isAuthorized = true;
-            currentAdminRole = adminSnap.docs[0].data().role || 'editor';
-            currentAdminName = adminSnap.docs[0].data().name || 'مشرف';
-          }
+        // Check if the user exists in our admin_users collection
+        const adminQuery = query(collection(db, 'admin_users'), where('email', '==', user.email));
+        const adminSnap = await getDocs(adminQuery);
+        
+        if (adminSnap && !adminSnap.empty && adminSnap.docs && adminSnap.docs.length > 0) {
+          isAuthorized = true;
+          const adminData = adminSnap.docs[0].data();
+          currentAdminRole = adminData.role || 'editor';
+          currentAdminName = adminData.name || 'مشرف';
         }
         
         if (isAuthorized) {
           const userDoc = await getDoc(doc(db, 'users', user.uid));
           const userData = userDoc.data();
           
-          if (userData?.role !== 'admin') {
+          // Ensure the user record in 'users' collection has the admin flag and name
+          if (userData?.role !== 'admin' || userData?.adminName !== currentAdminName) {
             const { updateDoc, setDoc } = await import('../../lib/firebase');
-            await updateDoc(doc(db, 'users', user.uid), { 
+            await setDoc(doc(db, 'users', user.uid), { 
               role: 'admin',
-              adminName: userData?.adminName || userData?.displayName || userData?.name || user.displayName || currentAdminName
-            });
+              adminName: currentAdminName,
+              email: user.email,
+              name: currentAdminName, 
+              lastActive: new Date().toISOString()
+            }, { merge: true });
             
-            if (authorizedEmails.includes(user.email)) {
+            // If they are a super admin but don't have a record in admin_users, create one
+            if (superAdmins.includes(user.email) && adminSnap.empty) {
               await setDoc(doc(db, 'admin_users', user.uid), {
                 id: user.uid,
-                name: user.displayName || userData?.name || 'المدير العام',
+                name: currentAdminName,
                 email: user.email,
                 role: 'super_admin',
                 isActive: true,
-                permissions: ['view_dashboard', 'manage_orders', 'manage_products', 'manage_customers', 'manage_marketing', 'manage_coupons', 'manage_settings', 'manage_security', 'view_logs', 'manage_logistics', 'manage_messages']
+                permissions: ['view_dashboard', 'manage_orders', 'manage_products', 'manage_customers', 'manage_marketing', 'manage_coupons', 'manage_settings', 'manage_security', 'view_logs', 'manage_logistics', 'manage_messages'],
+                createdAt: new Date().toISOString()
               }, { merge: true });
-              currentAdminRole = 'super_admin';
             }
           }
 
           localStorage.setItem('admin_auth', 'true');
           localStorage.setItem('admin_email', user.email);
-          localStorage.setItem('admin_name', userData?.adminName || userData?.displayName || userData?.name || user.displayName || currentAdminName);
+          localStorage.setItem('admin_name', currentAdminName);
           localStorage.setItem('admin_role', currentAdminRole);
           navigate('/admin');
         } else {
-          // If logged in but not an admin, we stay on login and maybe show a notice
-          // Only show if they explicitly tried to log in here
           if (localStorage.getItem('admin_attempt') === 'true') {
             toast.error('هذا الحساب ليس لديه صلاحيات إدارية');
             localStorage.removeItem('admin_attempt');
+            await auth.signOut();
           }
         }
       }
@@ -160,59 +163,35 @@ export default function AdminLogin() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!email || !password) return;
+    
     setIsLoading(true);
     localStorage.setItem('admin_attempt', 'true');
 
     try {
-      const loginEmail = getAdminDummyEmail(phone, countryCode);
       let result;
-      
       try {
-        result = await loginWithEmail(loginEmail, password);
+        result = await loginWithEmail(email, password);
       } catch (authError: any) {
-        // RADICAL SOLUTION: If user doesn't exist in Auth, check if they were pre-registered by Super Admin
+        // If user not found in Auth, check if they exist in admin_users (pre-registered by super admin)
         if (authError.code === 'auth/user-not-found' || authError.code === 'auth/invalid-credential') {
-          const { collection, getDocs, query, where } = await import('../../lib/firebase');
           const adminsRef = collection(db, 'admin_users');
+          const emailQuery = query(adminsRef, where('email', '==', email));
+          const querySnapshot = await getDocs(emailQuery);
           
-          // Get normalized phone for query
-          const cleanPhone = phone.replace(/\D/g, '');
-          const cleanCountry = countryCode.replace(/\D/g, '');
-          let phoneOnly = cleanPhone;
-          if (cleanPhone.startsWith(cleanCountry)) {
-            phoneOnly = cleanPhone.substring(cleanCountry.length);
-          }
-          const normalizedPhone = phoneOnly.startsWith('0') ? phoneOnly.substring(1) : phoneOnly;
-
-          // Search by email (legacy/consistent) or by raw phone/country combo
-          const q = query(
-            adminsRef, 
-            where('phone', '==', normalizedPhone),
-            where('countryCode', '==', countryCode)
-          );
-          
-          let querySnapshot = await getDocs(q);
-          
-          // If phone search fails, try searching by the computed dummy email
-          if (querySnapshot.empty) {
-            const emailQuery = query(adminsRef, where('email', '==', loginEmail));
-            querySnapshot = await getDocs(emailQuery);
-          }
-          
-          if (querySnapshot && !querySnapshot.empty && querySnapshot.docs && querySnapshot.docs.length > 0) {
+          if (!querySnapshot.empty) {
             const adminDoc = querySnapshot.docs[0].data();
-            // Verify password matches the one set by Admin
+            // Verify password matches (This is a bridge for pre-registered admins)
             if (adminDoc.password === password) {
-              toast.info('جاري تفعيل حسابك الإداري لأول مرة...');
-              // Create the Auth account on the fly!
-              result = await signupWithEmail(loginEmail, password);
+              toast.info('جاري تفعيل الحساب الإداري...');
+              result = await signupWithEmail(email, password);
             } else {
-              toast.error('كلمة المرور غير مطابقة للسجل الإداري');
+              toast.error('كلمة المرور غير صحيحة');
               setIsLoading(false);
               return;
             }
           } else {
-            toast.error('هذا الرقم غير مسجل في قائمة المسؤولين');
+            toast.error('هذا البريد غير مسجل في قائمة المشرفين');
             setIsLoading(false);
             return;
           }
@@ -221,88 +200,11 @@ export default function AdminLogin() {
         }
       }
 
-      const user = result.user;
-      
-      // Forcefully check if this user is in the admin_users collection
-      const { collection, getDocs, query, where, doc, getDoc, updateDoc, setDoc } = await import('../../lib/firebase');
-      const adminsRef = collection(db, 'admin_users');
-      
-      // Try by dummy email, or by phone
-      const forceLoginEmail = getAdminDummyEmail(phone, countryCode);
-      const forceEmailQuery = query(adminsRef, where('email', '==', forceLoginEmail));
-      let forceAdminSnapshot = await getDocs(forceEmailQuery);
-      
-      if (forceAdminSnapshot.empty) {
-        const cleanPhoneRaw = phone.replace(/\D/g, '');
-        const cleanCountryRaw = countryCode.replace(/\D/g, '');
-        let phoneOnlyRaw = cleanPhoneRaw;
-        if (cleanPhoneRaw.startsWith(cleanCountryRaw)) {
-          phoneOnlyRaw = cleanPhoneRaw.substring(cleanCountryRaw.length);
-        }
-        const forceNormalizedPhone = phoneOnlyRaw.startsWith('0') ? phoneOnlyRaw.substring(1) : phoneOnlyRaw;
-
-        const forcePhoneQuery = query(
-            adminsRef, 
-            where('phone', '==', forceNormalizedPhone),
-            where('countryCode', '==', countryCode)
-        );
-        forceAdminSnapshot = await getDocs(forcePhoneQuery);
-      }
-      
-      if (forceAdminSnapshot && !forceAdminSnapshot.empty && forceAdminSnapshot.docs && forceAdminSnapshot.docs.length > 0) {
-         // This IS a registered admin. Force sync their profile.
-         const adminData = forceAdminSnapshot.docs[0].data();
-         const userRef = doc(db, 'users', user.uid);
-         const userDoc = await getDoc(userRef);
-         
-         if (!userDoc.exists()) {
-           await setDoc(userRef, {
-              uid: user.uid,
-              email: user.email || forceLoginEmail,
-              name: adminData.name,
-              displayName: adminData.name,
-              adminName: adminData.name,
-              role: 'admin',
-              adminRole: adminData.role || 'admin',
-              createdAt: new Date().toISOString()
-           });
-         } else {
-           await updateDoc(userRef, { 
-             role: 'admin', 
-             adminRole: adminData.role || 'admin',
-             adminName: adminData.name
-           });
-         }
-      }
-
-      // Re-fetch user profile after potential forced sync
-      const finalUserDoc = await getDoc(doc(db, 'users', user.uid));
-      const userData = finalUserDoc.data();
-      
-      const isAuthorizedAdmin = userData?.role === 'admin';
-
-      if (isAuthorizedAdmin) {
-        localStorage.setItem('admin_auth', 'true');
-        localStorage.setItem('admin_email', user.email || '');
-        localStorage.setItem('admin_name', userData?.adminName || userData?.displayName || userData?.name || user.displayName || 'المدير');
-        localStorage.setItem('admin_role', userData?.adminRole || 'super_admin');
-        
-        if (rememberMe) {
-          localStorage.setItem('admin_remember', 'true');
-        }
-        
-        logActivity('تسجيل دخول مشرف', `تم تسجيل دخول المشرف: ${userData?.displayName || userData?.name || user.displayName || 'المدير'}`);
-        toast.success(`مرحباً بك مجدداً، ${userData?.displayName || userData?.name || user.displayName || 'المدير'}`);
-        navigate('/admin');
-      } else {
-        await auth.signOut();
-        toast.error('ليس لديك صلاحية الوصول للوحة التحكم');
-        logActivity('محاولة دخول فاشلة', `محاولة دخول غير مصرح بها للرقم: ${countryCode + phone}`);
-      }
+      // If login successful, the useEffect Auth listener will handle the redirection logic
     } catch (error: any) {
       console.error('Login error:', error);
-      let message = 'البيانات غير صحيحة';
-      if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') message = 'المستخدم غير موجود أو البيانات خاطئة';
+      let message = 'حدث خطأ أثناء تسجيل الدخول';
+      if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') message = 'البيانات غير صحيحة';
       if (error.code === 'auth/wrong-password') message = 'كلمة المرور خاطئة';
       if (error.code === 'auth/too-many-requests') message = 'تم حظر المحاولات مؤقتاً، حاول لاحقاً';
       
@@ -358,6 +260,38 @@ export default function AdminLogin() {
             </div>
 
             <AnimatePresence mode="wait">
+              <motion.div
+                key="social-login"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="mb-6"
+              >
+                <button
+                  type="button"
+                  onClick={async () => {
+                    localStorage.setItem('admin_attempt', 'true');
+                    try {
+                      await signInWithGoogle();
+                    } catch (e: any) {
+                      toast.error('فشل تسجيل الدخول عبر جوجل');
+                    }
+                  }}
+                  className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-white border-2 border-slate-100 rounded-2xl font-bold text-slate-600 hover:bg-slate-50 hover:border-slate-200 transition-all active:scale-95 shadow-sm"
+                >
+                  <img src="https://www.google.com/favicon.ico" className="w-5 h-5" alt="Google" />
+                  <span>الدخول عبر حساب جوجل</span>
+                </button>
+
+                <div className="relative my-8">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-slate-100"></div>
+                  </div>
+                  <div className="relative flex justify-center text-[10px] font-black uppercase tracking-widest">
+                    <span className="bg-white px-4 text-slate-400">أو عبر البريد الإداري</span>
+                  </div>
+                </div>
+              </motion.div>
+
               <motion.form 
                 key="login"
                 initial={{ opacity: 0, x: 20 }}
@@ -366,28 +300,17 @@ export default function AdminLogin() {
                 onSubmit={handleLogin} 
                 className="space-y-6"
               >
-                  {/* Phone Only Login */}
                   <div className="space-y-6">
                     <FloatingInput
-                      label="رقم الهاتف المسجل"
-                      id="adminPhone"
-                      type="tel"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
-                      placeholder="77x xxx xxx"
+                      label="البريد الإلكتروني للإدارة"
+                      id="adminEmail"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="admin@elite.com"
                       dir="ltr"
-                      className="tracking-widest text-left"
-                      startElement={
-                        <div className="flex items-center justify-center h-full text-slate-400 font-bold px-4 border-r border-slate-200">
-                          <select 
-                            value={countryCode}
-                            onChange={(e) => setCountryCode(e.target.value)}
-                            className="bg-transparent border-none outline-none text-xs cursor-pointer appearance-none text-center"
-                          >
-                            <option value="+967">🇾🇪 +967</option>
-                          </select>
-                        </div>
-                      }
+                      className="text-left"
+                      required
                     />
 
                     <FloatingInput 

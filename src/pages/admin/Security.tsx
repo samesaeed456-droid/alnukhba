@@ -72,14 +72,13 @@ export default function Security() {
   const handleAddAdmin = (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Prevent duplicate phone numbers
-    const phoneExists = adminUsers.some(a => 
-      a.phone?.replace(/\D/g, '') === adminForm.phone?.replace(/\D/g, '') && 
-      a.countryCode === adminForm.countryCode
+    // Prevent duplicate emails
+    const emailExists = adminUsers.some(a => 
+      a.email.toLowerCase() === adminForm.email.toLowerCase()
     );
 
-    if (phoneExists) {
-      showToast('هذا الرقم مسجل مسبقاً لمشرف آخر. يرجى استخدام رقم مختلف أو تعديل الحساب الحالي.', 'error');
+    if (emailExists) {
+      showToast('هذا البريد مسجل مسبقاً لمشرف آخر. يرجى استخدام بريد مختلف.', 'error');
       return;
     }
 
@@ -325,12 +324,23 @@ export default function Security() {
                       icon={<User className="w-4 h-4" />}
                       iconPosition="start"
                     />
+
+                    <FloatingInput
+                      id="adminEmail"
+                      label="البريد الإلكتروني"
+                      type="email"
+                      required
+                      value={adminForm.email}
+                      onChange={(e) => setAdminForm({ ...adminForm, email: e.target.value })}
+                      placeholder="admin@elite.com"
+                      dir="ltr"
+                      className="text-left"
+                    />
                     
                     <FloatingInput
                       id="adminPhone"
-                      label="رقم الهاتف"
+                      label="رقم الهاتف (اختياري)"
                       type="tel"
-                      required
                       value={adminForm.phone || ''}
                       onChange={(e) => setAdminForm({ ...adminForm, phone: e.target.value.replace(/\D/g, '') })}
                       placeholder="77x xxx xxx"
@@ -358,7 +368,6 @@ export default function Security() {
                       onChange={(e) => setAdminForm({ ...adminForm, password: e.target.value })}
                       icon={<Lock className="w-4 h-4" />}
                       iconPosition="start"
-                      placeholder="اتركها كما هي إذا لم ترد التغيير"
                     />
                   </div>
 
@@ -512,12 +521,23 @@ export default function Security() {
                       icon={<User className="w-4 h-4" />}
                       iconPosition="start"
                     />
+
+                    <FloatingInput
+                      id="editAdminEmail"
+                      label="البريد الإلكتروني"
+                      type="email"
+                      required
+                      value={adminForm.email}
+                      onChange={(e) => setAdminForm({ ...adminForm, email: e.target.value })}
+                      placeholder="admin@elite.com"
+                      dir="ltr"
+                      className="text-left"
+                    />
                     
                     <FloatingInput
                       id="editAdminPhone"
-                      label="رقم الهاتف"
+                      label="رقم الهاتف (اختياري)"
                       type="tel"
-                      required
                       value={adminForm.phone || ''}
                       onChange={(e) => setAdminForm({ ...adminForm, phone: e.target.value.replace(/\D/g, '') })}
                       placeholder="77x xxx xxx"
@@ -539,15 +559,15 @@ export default function Security() {
                     <div className="space-y-1">
                       <FloatingInput
                         id="editAdminPassword"
-                        label="كلمة المرور (لا يمكن تغييرها من هنا)"
+                        label="تغيير كلمة المرور (اختياري)"
                         type="password"
-                        readOnly
-                        value="••••••••••••••"
-                        onChange={() => {}}
-                        icon={<Lock className="w-4 h-4 text-gray-300" />}
+                        value={adminForm.password || ''}
+                        onChange={(e) => setAdminForm({ ...adminForm, password: e.target.value })}
+                        icon={<Lock className="w-4 h-4" />}
                         iconPosition="start"
+                        placeholder="اتركها فارغة إذا لم ترد التغيير"
                       />
-                      <p className="text-[9px] text-gray-400 px-1 text-right">لأسباب أمنية، لا يمكن تغيير كلمة مرور المشرف بعد إنشائها. إذا نسيها، عليه إنشائها كحساب جديد أو تغييرها من ملفه.</p>
+                      <p className="text-[9px] text-gray-400 px-1 text-right">في حال تعيين كلمة مرور جديدة، سيتم تحديثها عند دخول المشرف القادم.</p>
                     </div>
                   </div>
 

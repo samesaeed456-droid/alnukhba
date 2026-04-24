@@ -4,7 +4,7 @@ import { useStore } from '../../context/StoreContext';
 import { motion, AnimatePresence } from 'motion/react';
 import { Banner, MarketingNotification } from '../../types';
 import { FloatingInput } from '../../components/FloatingInput';
-import ImageUploadField from '../../components/ImageUploadField';
+import { ImageUploadField } from '../../components/ImageUploadField';
 import ConfirmationModal from '../../components/ConfirmationModal';
 import { toast } from 'sonner';
 
@@ -350,11 +350,10 @@ export default function Marketing() {
                 <div>
                   <div className="mb-4">
                     <ImageUploadField
+                      id="notif-image-upload"
                       label="صورة الإشعار (Rich Media)"
                       value={notifForm.image}
                       onChange={(url) => setNotifForm({ ...notifForm, image: url })}
-                      onRemove={() => setNotifForm({ ...notifForm, image: '' })}
-                      aspectRatio="21/9"
                     />
                   </div>
                 </div>

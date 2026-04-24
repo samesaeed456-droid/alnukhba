@@ -108,9 +108,25 @@ export default function AdminLogin() {
         
         if (adminSnap && !adminSnap.empty && adminSnap.docs && adminSnap.docs.length > 0) {
           isAuthorized = true;
-          const adminData = adminSnap.docs[0].data();
+          const adminDoc = adminSnap.docs[0];
+          const adminData = adminDoc.data();
           currentAdminRole = adminData.role || 'editor';
           currentAdminName = adminData.name || 'مشرف';
+
+          // If the admin record exists but is not keyed by the user's current UID, 
+          // we migrate it (or create a copy) to be keyed by UID for security rules efficiency
+          if (adminDoc.id !== user.uid) {
+            const { setDoc, deleteDoc } = await import('../../lib/firebase');
+            await setDoc(doc(db, 'admin_users', user.uid), {
+              ...adminData,
+              id: user.uid,
+              lastLogin: new Date().toISOString()
+            }, { merge: true });
+            // Optionally delete old record if it was a temporary ID
+            if (adminDoc.id.length > 20 && !adminDoc.id.includes('@')) { // Basic check for random ID
+               await deleteDoc(doc(db, 'admin_users', adminDoc.id));
+            }
+          }
         }
         
         if (isAuthorized) {

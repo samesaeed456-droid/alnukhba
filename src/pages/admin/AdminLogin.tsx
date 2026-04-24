@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Zap, Lock, ShieldCheck, Eye, EyeOff, Check, ArrowLeft, Loader2, Fingerprint } from 'lucide-react';
+import { Zap, Lock, ShieldCheck, Eye, EyeOff, Check, ArrowLeft, Loader2, Fingerprint, Home } from 'lucide-react';
 import { FloatingInput } from '../../components/FloatingInput';
 import { Toaster, toast } from 'sonner';
 import { useStore } from '@/context/StoreContext';
@@ -335,6 +335,14 @@ export default function AdminLogin() {
             className="bg-white rounded-[2.5rem] p-8 sm:p-10 shadow-2xl shadow-slate-200/50 border border-slate-100 relative overflow-hidden"
           >
             <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-carbon via-solar to-solar" />
+            
+            <button 
+              onClick={() => navigate('/')}
+              className="absolute top-6 right-6 p-2 text-slate-400 hover:text-carbon hover:bg-slate-50 rounded-xl transition-all group flex items-center gap-2 text-[10px] font-black uppercase tracking-tighter"
+            >
+              <Home className="w-3.5 h-3.5" />
+              <span>الرجوع للمتجر</span>
+            </button>
             
             <div className="text-center mb-10">
               <div className="w-16 h-16 bg-solar rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-gold/20 -rotate-3 hover:rotate-0 transition-transform duration-300">

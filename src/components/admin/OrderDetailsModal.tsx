@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Package, Truck, CreditCard, User, MapPin, Phone, Calendar, CheckCircle2, Clock, AlertCircle, ShoppingCart, Trash2, Maximize2 } from 'lucide-react';
+import { X, Package, Truck, CreditCard, User, MapPin, Phone, Calendar, CheckCircle2, Clock, AlertCircle, ShoppingCart, Trash2, Maximize2, ExternalLink } from 'lucide-react';
 import { Order } from '../../types';
 import { useStore } from '../../context/StoreContext';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -209,7 +209,18 @@ export default function OrderDetailsModal({ order, isOpen, onClose }: OrderDetai
               
               {order.paymentProof && (
                 <div className="mt-4 space-y-2">
-                  <label className="text-xs font-bold text-gray-500 uppercase block">سند التحويل</label>
+                  <div className="flex justify-between items-center mb-1">
+                    <label className="text-xs font-bold text-gray-500 uppercase">سند التحويل</label>
+                    <a 
+                      href={order.paymentProof} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-[10px] font-bold text-blue-600 flex items-center gap-1 hover:underline"
+                    >
+                      <ExternalLink className="w-3 h-3" />
+                      فتح في نافذة جديدة
+                    </a>
+                  </div>
                   <div className="relative group rounded-xl overflow-hidden border border-gray-200 aspect-video bg-gray-100">
                     <img 
                       src={order.paymentProof} 
@@ -244,12 +255,24 @@ export default function OrderDetailsModal({ order, isOpen, onClose }: OrderDetai
               onClick={() => setIsZoomed(false)}
             >
               <div className="relative max-w-5xl w-full h-full flex items-center justify-center py-10">
-                <button 
-                  onClick={() => setIsZoomed(false)}
-                  className="absolute top-0 right-0 p-3 text-white hover:bg-white/10 rounded-full transition-colors z-[110]"
-                >
-                  <X className="w-8 h-8" />
-                </button>
+                <div className="absolute top-0 right-0 flex gap-2 z-[110]">
+                  <a 
+                    href={order.paymentProof} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="p-3 text-white hover:bg-white/10 rounded-full transition-colors flex items-center gap-2 font-bold text-sm"
+                    title="فتح في نافذة جديدة"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <ExternalLink className="w-6 h-6" />
+                  </a>
+                  <button 
+                    onClick={() => setIsZoomed(false)}
+                    className="p-3 text-white hover:bg-white/10 rounded-full transition-colors"
+                  >
+                    <X className="w-8 h-8" />
+                  </button>
+                </div>
                 <motion.img 
                   initial={{ scale: 0.9, y: 20 }}
                   animate={{ scale: 1, y: 0 }}

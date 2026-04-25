@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { motion, AnimatePresence } from 'motion/react';
+import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Zap, Lock, ShieldCheck, Eye, EyeOff, Check, ArrowLeft, Loader2, Fingerprint, Home } from 'lucide-react';
 import { FloatingInput } from '../../components/FloatingInput';
 import { Toaster, toast } from 'sonner';
@@ -8,11 +8,10 @@ import { useStore } from '@/context/StoreContext';
 import { startAuthentication } from '@simplewebauthn/browser';
 import { signInWithCustomToken } from 'firebase/auth';
 import { 
-  auth, db, doc, getDoc, loginWithEmail, signupWithEmail,
+  auth, db, doc, getDoc, loginWithEmail, signupWithEmail, signInWithGoogle,
   query, collection, where, getDocs
 } from '../../lib/firebase';
 import { getAdminDummyEmail } from '../../lib/adminAuth';
-import Logo from '../../components/Logo';
 
 export default function AdminLogin() {
   const navigate = useNavigate();
@@ -174,39 +173,18 @@ export default function AdminLogin() {
       try {
         result = await loginWithEmail(email, password);
       } catch (authError: any) {
-        const isCredentialError = 
-          authError.code === 'auth/user-not-found' || 
-          authError.code === 'auth/invalid-credential' ||
-          authError.code === 'auth/invalid-email';
-
-        if (isCredentialError) {
+        // If user not found in Auth, check if they exist in admin_users (pre-registered by super admin)
+        if (authError.code === 'auth/user-not-found' || authError.code === 'auth/invalid-credential') {
           const adminsRef = collection(db, 'admin_users');
-          const allAdmins = await getDocs(adminsRef);
-          const adminDoc = allAdmins.docs.find(d => d.data()?.email?.toLowerCase() === email.toLowerCase())?.data();
+          const emailQuery = query(adminsRef, where('email', '==', email));
+          const querySnapshot = await getDocs(emailQuery);
           
-          if (adminDoc) {
+          if (!querySnapshot.empty) {
+            const adminDoc = querySnapshot.docs[0].data();
+            // Verify password matches (This is a bridge for pre-registered admins)
             if (adminDoc.password === password) {
-              toast.info('جاري تفعيل الحساب الإداري لأول مرة...');
-              try {
-                result = await signupWithEmail(email, password);
-              } catch (signUpErr: any) {
-                if (signUpErr.code === 'auth/email-already-in-use') {
-                   // Possible password sync failure, try force sync via server
-                   const syncRes = await fetch('/api/admin/update-password', {
-                     method: 'POST',
-                     headers: { 'Content-Type': 'application/json' },
-                     body: JSON.stringify({ email, newPassword: password })
-                   });
-                   const syncData = await syncRes.json();
-                   if (syncData.success) {
-                      result = await loginWithEmail(email, password);
-                   } else {
-                      throw new Error(syncData.error || 'فشل تحديث البيانات التوثيقية');
-                   }
-                } else {
-                  throw signUpErr;
-                }
-              }
+              toast.info('جاري تفعيل الحساب الإداري...');
+              result = await signupWithEmail(email, password);
             } else {
               toast.error('كلمة المرور غير صحيحة');
               setIsLoading(false);
@@ -229,7 +207,6 @@ export default function AdminLogin() {
       if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') message = 'البيانات غير صحيحة';
       if (error.code === 'auth/wrong-password') message = 'كلمة المرور خاطئة';
       if (error.code === 'auth/too-many-requests') message = 'تم حظر المحاولات مؤقتاً، حاول لاحقاً';
-      if (error.message && !error.code) message = error.message;
       
       toast.error(message);
     } finally {
@@ -251,186 +228,159 @@ export default function AdminLogin() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-0 sm:p-6 font-sans relative overflow-hidden" dir="rtl">
-      {/* Background Decorative Elements */}
-      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-        <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] bg-solar/5 rounded-full blur-[120px]" />
-        <div className="absolute bottom-[-10%] left-[-10%] w-[40%] h-[40%] bg-carbon/5 rounded-full blur-[120px]" />
+    <div className="min-h-screen bg-slate-50 flex font-sans" dir="rtl">
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12 relative z-10">
+        <div className="w-full max-w-md">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white rounded-[2.5rem] p-8 sm:p-10 shadow-2xl shadow-slate-200/50 border border-slate-100 relative overflow-hidden"
+          >
+            <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-carbon via-solar to-solar" />
+            
+            <button 
+              onClick={() => navigate('/')}
+              className="absolute top-6 right-6 p-2 text-slate-400 hover:text-carbon hover:bg-slate-50 rounded-xl transition-all group flex items-center gap-2 text-[10px] font-black uppercase tracking-tighter"
+            >
+              <Home className="w-3.5 h-3.5" />
+              <span>الرجوع للمتجر</span>
+            </button>
+            
+            <div className="text-center mb-10">
+              <div className="w-16 h-16 bg-solar rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-gold/20 -rotate-3 hover:rotate-0 transition-transform duration-300">
+                <Zap className="w-8 h-8 text-carbon fill-current" />
+              </div>
+              <h1 className="text-2xl font-black text-carbon mb-2 tracking-tight">
+                لوحة تحكم النخبة
+              </h1>
+              <p className="text-sm text-slate-500 font-bold flex items-center justify-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-emerald-500" />
+                دخول آمن للمدراء
+              </p>
+            </div>
+
+            <AnimatePresence mode="wait">
+              <motion.div
+                key="social-login"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="mb-6"
+              >
+                <button
+                  type="button"
+                  onClick={async () => {
+                    localStorage.setItem('admin_attempt', 'true');
+                    try {
+                      await signInWithGoogle();
+                    } catch (e: any) {
+                      toast.error('فشل تسجيل الدخول عبر جوجل');
+                    }
+                  }}
+                  className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-white border-2 border-slate-100 rounded-2xl font-bold text-slate-600 hover:bg-slate-50 hover:border-slate-200 transition-all active:scale-95 shadow-sm"
+                >
+                  <img src="https://www.google.com/favicon.ico" className="w-5 h-5" alt="Google" />
+                  <span>الدخول عبر حساب جوجل</span>
+                </button>
+
+                <div className="relative my-8">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-slate-100"></div>
+                  </div>
+                  <div className="relative flex justify-center text-[10px] font-black uppercase tracking-widest">
+                    <span className="bg-white px-4 text-slate-400">أو عبر البريد الإداري</span>
+                  </div>
+                </div>
+              </motion.div>
+
+              <motion.form 
+                key="login"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                onSubmit={handleLogin} 
+                className="space-y-6"
+              >
+                  <div className="space-y-6">
+                    <FloatingInput
+                      label="البريد الإلكتروني للإدارة"
+                      id="adminEmail"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="admin@elite.com"
+                      dir="ltr"
+                      className="text-left"
+                      required
+                    />
+
+                    <FloatingInput 
+                      id="adminPassword"
+                      label="كلمة المرور"
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      icon={<Lock className="w-5 h-5" />}
+                      iconPosition="start"
+                      endElement={
+                        <div className="h-full flex items-center pr-1">
+                          {!password ? (
+                            <button 
+                              type="button" 
+                              onClick={handlePasskeyLogin} 
+                              disabled={isLoading}
+                              className="px-4 h-full flex items-center justify-center text-orange-500 hover:text-orange-600 transition-all hover:scale-110 active:scale-95"
+                              title="دخول سريع بالبصمة"
+                            >
+                              <Fingerprint className="w-5 h-5" />
+                            </button>
+                          ) : (
+                            <button type="button" onClick={() => setShowPassword(!showPassword)} className="px-4 h-full flex items-center justify-center text-slate-400 hover:text-carbon">
+                              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </button>
+                          )}
+                        </div>
+                      }
+                      required
+                      dir="ltr"
+                      className="text-left"
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between text-xs">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <div className={`w-4 h-4 rounded border flex items-center justify-center ${rememberMe ? 'bg-carbon border-carbon text-white' : 'border-slate-300'}`}>
+                        {rememberMe && <Check className="w-3 h-3" />}
+                      </div>
+                      <span className="font-bold text-slate-500">تذكرني</span>
+                      <input type="checkbox" className="hidden" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} />
+                    </label>
+                  </div>
+
+                  <button 
+                    type="submit"
+                    disabled={isLoading}
+                    className="w-full h-14 bg-carbon text-white rounded-2xl font-black text-sm flex items-center justify-center gap-3 hover:bg-slate-800 transition-all shadow-xl shadow-slate-900/20 disabled:opacity-70"
+                  >
+                    {isLoading ? <Loader2 className="animate-spin" /> : <>الدخول للإدارة <ArrowLeft className="w-5 h-5" /></>}
+                  </button>
+                </motion.form>
+            </AnimatePresence>
+          </motion.div>
+          <div className="mt-8 text-center text-sm font-bold text-slate-400">متجر النخبة © {new Date().getFullYear()}</div>
+        </div>
       </div>
 
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-6xl flex flex-col md:flex-row bg-white rounded-none sm:rounded-[40px] shadow-2xl shadow-slate-200/50 border-0 sm:border border-slate-100 overflow-hidden relative z-10 min-h-screen sm:min-h-0"
-      >
-        {/* Left Side: Branding & Info */}
-        <div className="hidden md:flex md:w-1/2 bg-carbon relative overflow-hidden">
-          <div className="absolute inset-0">
-            <img 
-              src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&q=80&w=2000" 
-              alt="Admin Experience" 
-              className="w-full h-full object-cover opacity-30 mix-blend-overlay"
-              referrerPolicy="no-referrer"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-carbon via-carbon/50 to-transparent" />
+      <div className="hidden lg:block lg:w-1/2 relative overflow-hidden bg-carbon">
+        <div className="absolute inset-0 bg-gradient-to-br from-carbon via-slate-900 to-black opacity-90 z-10" />
+        <img src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&q=80&w=2000" className="absolute inset-0 w-full h-full object-cover opacity-40 mix-blend-overlay" />
+        <div className="relative z-20 h-full flex flex-col items-center justify-center text-white p-12 text-center">
+          <div className="w-20 h-20 bg-solar/20 backdrop-blur-md rounded-3xl border border-solar/30 flex items-center justify-center mb-8">
+            <Zap className="w-10 h-10 text-solar fill-solar" />
           </div>
-          
-          <div className="relative z-10 p-12 flex flex-col justify-between h-full text-white">
-            <div>
-              <Logo variant="light" className="h-12" />
-            </div>
-            
-            <div className="space-y-6">
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.3 }}
-              >
-                <div className="w-16 h-16 bg-solar/20 backdrop-blur-md rounded-2xl border border-solar/30 flex items-center justify-center mb-6">
-                  <Zap className="w-8 h-8 text-solar fill-solar" />
-                </div>
-                <h2 className="text-4xl font-black leading-tight mb-4 tracking-tight">
-                  نظام الإدارة المتطور<br /> لمتجر النخبة
-                </h2>
-                <p className="text-slate-400 text-lg font-medium leading-relaxed">
-                  تحكم كامل بمتجرك، منتجاتك، وعملائك في منصة واحدة ذكية وسريعة.
-                </p>
-              </motion.div>
-              
-              <div className="flex items-center gap-8 pt-8 border-t border-white/10">
-                <div className="flex flex-col">
-                  <span className="text-2xl font-black text-white">100%</span>
-                  <span className="text-[10px] text-slate-400 font-black uppercase tracking-wider">تحكم آمن</span>
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-2xl font-black text-white">Live</span>
-                  <span className="text-[10px] text-slate-400 font-black uppercase tracking-wider">مراقبة فورية</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="text-[10px] text-slate-500 font-bold tracking-widest uppercase">
-              إدارة النخبة الذكية • الإصدار 4.2.0
-            </div>
-          </div>
+          <h2 className="text-3xl font-black mb-4">نظام الإدارة المتطور</h2>
+          <p className="text-slate-400 max-w-sm">تحكم كامل بمتجرك، منتجاتك، وعملائك في منصة واحدة ذكية وسريعة.</p>
         </div>
-
-        {/* Right Side: Form */}
-        <div className="w-full md:w-1/2 p-8 sm:p-12 lg:p-16 flex flex-col justify-center bg-white relative">
-          <button 
-            onClick={() => navigate('/')}
-            className="absolute top-8 right-8 p-2.5 text-slate-400 hover:text-carbon hover:bg-slate-50 rounded-2xl transition-all border border-slate-50 flex items-center gap-2 text-[10px] font-black uppercase tracking-tighter"
-          >
-            <Home className="w-4 h-4" />
-            <span>الرجوع للمتجر</span>
-          </button>
-
-          <div className="md:hidden flex justify-center mb-10">
-            <Logo variant="dark" className="h-12" />
-          </div>
-
-          <div className="mb-10 text-center md:text-right">
-            <h1 className="text-3xl font-black text-carbon mb-2 tracking-tight">
-              تسجيل دخول الإدارة
-            </h1>
-            <p className="text-slate-500 font-bold text-sm leading-relaxed flex items-center justify-center md:justify-start gap-2">
-              <ShieldCheck className="w-4 h-4 text-emerald-500" />
-              يرجى إدخال بياناتك للوصول للوحة التحكم
-            </p>
-          </div>
-
-          <AnimatePresence mode="wait">
-            <motion.form 
-              key="login"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              onSubmit={handleLogin} 
-              className="space-y-6"
-            >
-              <div className="space-y-5">
-                <FloatingInput
-                  label="البريد الإلكتروني للإدارة"
-                  id="adminEmail"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@elite.com"
-                  dir="ltr"
-                  className="text-left"
-                  required
-                />
-
-                <div className="relative">
-                  <FloatingInput 
-                    id="adminPassword"
-                    label="كلمة المرور"
-                    type={showPassword ? "text" : "password"}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    icon={<Lock className="w-5 h-5" />}
-                    iconPosition="start"
-                    required
-                    dir="ltr"
-                    className="text-left"
-                  />
-                  <div className="absolute left-1 top-1 bottom-1 flex items-center gap-1">
-                    {!password && (
-                      <button 
-                        type="button" 
-                        onClick={handlePasskeyLogin} 
-                        disabled={isLoading}
-                        className="px-3 h-full flex items-center justify-center text-orange-500 hover:text-orange-600 transition-all hover:scale-110 active:scale-95"
-                        title="دخول سريع بالبصمة"
-                      >
-                        <Fingerprint className="w-5 h-5" />
-                      </button>
-                    )}
-                    <button 
-                      type="button" 
-                      onClick={() => setShowPassword(!showPassword)} 
-                      className="px-3 h-full flex items-center justify-center text-slate-400 hover:text-carbon transition-colors"
-                    >
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <label className="flex items-center gap-2 cursor-pointer group">
-                  <div className={`w-5 h-5 rounded-lg border-2 flex items-center justify-center transition-all ${rememberMe ? 'bg-carbon border-carbon text-white shadow-lg shadow-carbon/20' : 'border-slate-200 group-hover:border-slate-300'}`}>
-                    {rememberMe && <Check className="w-3.5 h-3.5 stroke-[3]" />}
-                  </div>
-                  <span className="font-bold text-xs text-slate-500 select-none">تذكر حذائي الإداري</span>
-                  <input type="checkbox" className="hidden" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} />
-                </label>
-              </div>
-
-              <button 
-                type="submit"
-                disabled={isLoading}
-                className="w-full h-14 bg-carbon text-white rounded-2xl font-black text-sm flex items-center justify-center gap-3 hover:bg-slate-800 transition-all hover:shadow-2xl hover:shadow-carbon/30 active:scale-[0.98] disabled:opacity-70 group"
-              >
-                {isLoading ? (
-                  <Loader2 className="animate-spin w-5 h-5" />
-                ) : (
-                  <>
-                    <span>تسجيل الدخول للنظام</span>
-                    <ArrowLeft className="w-5 h-5 transition-transform group-hover:-translate-x-1" />
-                  </>
-                )}
-              </button>
-
-              <div className="pt-6 text-center border-t border-slate-100">
-                <p className="text-[10px] text-slate-400 font-bold leading-relaxed">
-                  هذا النظام محمي بطبقات أمان النخبة. أي محاولة دخول غير مصرح بها يتم تسجيلها فورياً.
-                </p>
-              </div>
-            </motion.form>
-          </AnimatePresence>
-        </div>
-      </motion.div>
+      </div>
       <Toaster position="top-center" richColors />
     </div>
   );

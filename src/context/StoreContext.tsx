@@ -396,6 +396,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
               uid: firebaseUser.uid,
               email: firebaseUser.email || '',
               role: 'user',
+              walletBalance: 0,
               createdAt: serverTimestamp()
             };
             
@@ -1505,31 +1506,47 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const addAdminUser = React.useCallback(async (admin: Omit<AdminUser, 'id'>) => {
     try {
-      const newAdminRef = doc(collection(db, 'admin_users'));
       let finalAdmin = { ...admin };
+      let uidToUse: string | null = null;
 
-      // Handle password synchronization for new admin
-      if (finalAdmin.password && finalAdmin.email) {
+      // MANDATORY Auth Sync: Create/Get Auth account first
+      if (finalAdmin.email && finalAdmin.password) {
         try {
-          fetch('/api/admin/update-password', {
+          const syncRes = await fetch('/api/admin/update-password', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email: finalAdmin.email, newPassword: finalAdmin.password })
-          }).then(res => res.json()).then(data => {
-            if (!data.success) console.error('Failed to sync password to Auth:', data.error);
           });
-        } catch (pwError) {
-          console.error('Password sync attempt failed:', pwError);
+          const syncData = await syncRes.json();
+          if (syncData.success && syncData.uid) {
+            uidToUse = syncData.uid;
+          } else {
+            throw new Error(syncData.error || 'فشل مزامنة حساب التوثيق');
+          }
+        } catch (pwError: any) {
+          console.error('Auth sync failed:', pwError);
+          showToast('فشل إنشاء حساب التوثيق: ' + pwError.message, 'error');
+          return;
         }
       }
 
-      await setDoc(newAdminRef, {
+      if (!uidToUse) {
+        showToast('لا يمكن إضافة مشرف بدون بريد وإعداد توثيق سليم', 'error');
+        return;
+      }
+
+      // Use the Auth UID as the document ID
+      const adminDocRef = doc(db, 'admin_users', uidToUse);
+      await setDoc(adminDocRef, {
         ...finalAdmin,
-        id: newAdminRef.id,
+        id: uidToUse,
+        uid: uidToUse, // Redundant but safe
         permissions: finalAdmin.permissions || getPermissionsByRole(finalAdmin.role),
-        createdAt: serverTimestamp()
+        createdAt: serverTimestamp(),
+        isActive: true
       });
-      showToast('تم إضافة المشرف بنجاح');
+
+      showToast('تم إضافة المشرف بنجاح وتفعيل حسابه');
       logActivity('إضافة مشرف', `تم إضافة مشرف جديد: ${finalAdmin.name} (${finalAdmin.email})`);
     } catch (error) {
       handleFirestoreError(error, OperationType.CREATE, 'admin_users');
@@ -1543,13 +1560,24 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       // Handle password synchronization if changed
       if (finalData.password && finalData.email) {
         try {
-          fetch('/api/admin/update-password', {
+          const syncRes = await fetch('/api/admin/update-password', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email: finalData.email, newPassword: finalData.password })
-          }).then(res => res.json()).then(data => {
-            if (!data.success) console.error('Failed to sync password to Auth:', data.error);
           });
+          const syncData = await syncRes.json();
+          if (!syncData.success) {
+            console.error('Failed to sync password to Auth:', syncData.error);
+          } else if (syncData.uid && syncData.uid !== id) {
+             // If UID mismatch (rare), update the record to match UID
+             console.warn('UID mismatch detected during sync, migrating record...');
+             const adminData = (await getDoc(doc(db, 'admin_users', id))).data();
+             if (adminData) {
+                await setDoc(doc(db, 'admin_users', syncData.uid), { ...adminData, ...finalData, id: syncData.uid });
+                await deleteDoc(doc(db, 'admin_users', id));
+                id = syncData.uid;
+             }
+          }
         } catch (pwError) {
           console.error('Password sync attempt failed:', pwError);
         }

@@ -262,6 +262,8 @@ export default function Customers() {
       const totalSpent = userOrders.reduce((sum, o) => sum + o.total, 0);
       return {
         ...user,
+        name: user.name || user.displayName || user.phone || 'عميل',
+        phone: user.phone || '',
         orderCount: userOrders.length,
         totalSpent,
         lastOrder: userOrders.length > 0 ? userOrders[0].date : null
@@ -600,7 +602,7 @@ export default function Customers() {
                         setConfirmModal({
                           isOpen: true,
                           title: 'حذف العميل',
-                          message: `هل أنت متأكد من حذف العميل "${customer.name}"؟ لا يمكن التراجع عن هذا الإجراء وسيتم حذف جميع بياناته.`,
+                          message: `هل أنت متأكد من حذف العميل "${customer.name || customer.displayName}"؟ لا يمكن التراجع عن هذا الإجراء وسيتم حذف جميع بياناته.`,
                           onConfirm: () => deleteCustomer(customer.uid || customer.phone || ''),
                           type: 'danger',
                           confirmText: 'حذف العميل'
@@ -619,12 +621,12 @@ export default function Customers() {
                   <div className="flex items-center gap-4 mb-6 relative z-10">
                     <div className="w-16 h-16 rounded-[24px] bg-bg-general overflow-hidden border-2 border-white shadow-xl group-hover:scale-110 transition-transform duration-500 flex items-center justify-center text-2xl font-black text-slate-400 relative">
                       {customer.avatar ? (
-                        <img src={customer.avatar || undefined} alt={customer.name} className="w-full h-full object-cover absolute inset-0 z-10" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                        <img src={customer.avatar || undefined} alt={customer.name || customer.displayName} className="w-full h-full object-cover absolute inset-0 z-10" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                       ) : null}
-                      <span className="relative z-0">{(customer.name || customer.phone || '?').charAt(0).toUpperCase()}</span>
+                      <span className="relative z-0">{(customer.name || customer.displayName || customer.phone || '?').charAt(0).toUpperCase()}</span>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-lg font-black text-carbon truncate">{customer.name}</h3>
+                      <h3 className="text-lg font-black text-carbon truncate">{customer.name || customer.displayName}</h3>
                       <div className="flex items-center gap-2 mt-1">
                         {(() => {
                           const lastOrderDate = customer.lastOrder ? new Date(customer.lastOrder) : null;
@@ -830,7 +832,7 @@ export default function Customers() {
                                   setConfirmModal({
                                     isOpen: true,
                                     title: customer.isBlocked ? 'إلغاء حظر العميل' : 'حظر العميل',
-                                    message: customer.isBlocked ? `هل أنت متأكد من إلغاء حظر العميل "${customer.name}"؟` : `هل أنت متأكد من حظر العميل "${customer.name}"؟`,
+                                    message: customer.isBlocked ? `هل أنت متأكد من إلغاء حظر العميل "${customer.name || customer.displayName}"؟` : `هل أنت متأكد من حظر العميل "${customer.name || customer.displayName}"؟`,
                                     onConfirm: () => blockCustomer(customer.uid || customer.phone || ''),
                                     type: customer.isBlocked ? 'success' : 'warning',
                                     confirmText: customer.isBlocked ? 'إلغاء الحظر' : 'تأكيد الحظر'
@@ -847,7 +849,7 @@ export default function Customers() {
                                   setConfirmModal({
                                     isOpen: true,
                                     title: 'حذف الحساب',
-                                    message: `هل أنت متأكد من حذف حساب العميل "${customer.name}" بشكل نهائي؟`,
+                                    message: `هل أنت متأكد من حذف حساب العميل "${customer.name || customer.displayName}" بشكل نهائي؟`,
                                     onConfirm: () => {
                                       setIsProfileModalOpen(false);
                                       deleteCustomer(customer.uid || customer.phone || '');
@@ -880,9 +882,9 @@ export default function Customers() {
                         <div className="w-20 h-20 sm:w-28 sm:h-28 rounded-[2.5rem] bg-white p-1 shadow-xl shadow-solar/10">
                           <div className="w-full h-full rounded-[2.2rem] bg-gradient-to-br from-solar to-solar/80 text-white flex items-center justify-center text-3xl font-bold overflow-hidden">
                             {customer.avatar ? (
-                              <img src={customer.avatar || undefined} alt={customer.name} className="w-full h-full object-cover" />
+                              <img src={customer.avatar || undefined} alt={customer.name || customer.displayName} className="w-full h-full object-cover" />
                             ) : (
-                              <span>{(customer.name || customer.phone || '?').charAt(0).toUpperCase()}</span>
+                              <span>{(customer.name || customer.displayName || customer.phone || '?').charAt(0).toUpperCase()}</span>
                             )}
                           </div>
                         </div>

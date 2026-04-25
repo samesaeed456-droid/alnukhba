@@ -177,7 +177,7 @@ export default function AdminLayout() {
       }
     ];
 
-    if (!currentAdmin) return groups;
+    if (!currentAdmin) return [];
 
     const getFallbackPermissions = (role: string): any[] => {
       switch (role) {
@@ -208,23 +208,44 @@ export default function AdminLayout() {
 
   // Check authentication and permissions
   useEffect(() => {
-    const isAuthenticated = localStorage.getItem('admin_auth') === 'true';
-    if (!isAuthenticated) {
-      navigate('/admin/login');
-      return;
-    }
-
-    // Check permissions for current route
-    if (currentAdmin && currentAdmin.role !== 'super_admin' && location.pathname !== '/admin/login' && location.pathname !== '/admin') {
-      const allItems = navGroups.flatMap(g => g.items);
-      const currentItem = allItems.find(i => i.path === location.pathname || (i.path !== '/admin' && location.pathname.startsWith(i.path)));
+    const checkAuth = async () => {
+      const { auth } = await import('@/lib/firebase');
       
-      // If the item is not in navGroups, it means the user doesn't have permission
-      if (!currentItem) {
-        toast.error('ليس لديك صلاحية للوصول لهذه الصفحة');
-        navigate('/admin');
-      }
-    }
+      const unsubscribe = auth.onAuthStateChanged((user) => {
+        if (!user || !user.email) {
+          navigate('/admin/login', { replace: true });
+          return;
+        }
+
+        const storedAdminEmail = localStorage.getItem('admin_email');
+        if (storedAdminEmail !== user.email || localStorage.getItem('admin_auth') !== 'true') {
+          navigate('/admin/login', { replace: true });
+          return;
+        }
+
+        // Check permissions for current route
+        if (location.pathname !== '/admin/login' && location.pathname !== '/admin') {
+          if (!currentAdmin || currentAdmin.email !== user.email) {
+             toast.error('ليس لديك صلاحية للوصول لهذه الصفحة');
+             navigate('/admin', { replace: true });
+             return;
+          }
+          
+          if (currentAdmin.role !== 'super_admin') {
+            const allItems = navGroups.flatMap(g => g.items);
+            const currentItem = allItems.find(i => i.path === location.pathname || location.pathname.startsWith(i.path));
+            
+            if (!currentItem) {
+              toast.error('ليس لديك صلاحية للوصول لهذه الصفحة');
+              navigate('/admin', { replace: true });
+            }
+          }
+        }
+      });
+      return () => unsubscribe();
+    };
+    
+    checkAuth();
   }, [navigate, location.pathname, currentAdmin, navGroups]);
 
   // Quick Stats for Header

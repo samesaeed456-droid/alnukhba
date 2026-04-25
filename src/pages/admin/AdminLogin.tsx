@@ -92,60 +92,30 @@ export default function AdminLogin() {
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
       if (user && user.email) {
-        // Super Admins hardcoded list
-        const superAdmins = [
-          'samesaeed456@gmail.com', 
-          'samisaeed2027@gmail.com'
-        ];
-        
-        let isAuthorized = superAdmins.includes(user.email);
-        let currentAdminRole = isAuthorized ? 'super_admin' : 'editor';
-        let currentAdminName = isAuthorized ? 'المدير العام' : 'مشرف';
+        let isAuthorized = false;
+        let adminData: any = null;
+
+        // Base super admins
+        const superAdmins = ['samesaeed456@gmail.com', 'samisaeed2027@gmail.com'];
+        if (superAdmins.includes(user.email)) {
+           isAuthorized = true;
+           adminData = { role: 'super_admin', name: 'المدير العام', email: user.email, permissions: [] };
+        }
 
         // Check if the user exists in our admin_users collection
         const adminQuery = query(collection(db, 'admin_users'), where('email', '==', user.email));
         const adminSnap = await getDocs(adminQuery);
         
-        if (adminSnap && !adminSnap.empty && adminSnap.docs && adminSnap.docs.length > 0) {
+        if (!adminSnap.empty) {
           isAuthorized = true;
-          const adminData = adminSnap.docs[0].data();
-          currentAdminRole = adminData.role || 'editor';
-          currentAdminName = adminData.name || 'مشرف';
+          adminData = adminSnap.docs[0].data();
         }
         
-        if (isAuthorized) {
-          const userDoc = await getDoc(doc(db, 'users', user.uid));
-          const userData = userDoc.data();
-          
-          // Ensure the user record in 'users' collection has the admin flag and name
-          if (userData?.role !== 'admin' || userData?.adminName !== currentAdminName) {
-            const { updateDoc, setDoc } = await import('../../lib/firebase');
-            await setDoc(doc(db, 'users', user.uid), { 
-              role: 'admin',
-              adminName: currentAdminName,
-              email: user.email,
-              name: currentAdminName, 
-              lastActive: new Date().toISOString()
-            }, { merge: true });
-            
-            // If they are a super admin but don't have a record in admin_users, create one
-            if (superAdmins.includes(user.email) && adminSnap.empty) {
-              await setDoc(doc(db, 'admin_users', user.uid), {
-                id: user.uid,
-                name: currentAdminName,
-                email: user.email,
-                role: 'super_admin',
-                isActive: true,
-                permissions: ['view_dashboard', 'manage_orders', 'manage_products', 'manage_customers', 'manage_marketing', 'manage_coupons', 'manage_settings', 'manage_security', 'view_logs', 'manage_logistics', 'manage_messages'],
-                createdAt: new Date().toISOString()
-              }, { merge: true });
-            }
-          }
-
+        if (isAuthorized && adminData) {
           localStorage.setItem('admin_auth', 'true');
           localStorage.setItem('admin_email', user.email);
-          localStorage.setItem('admin_name', currentAdminName);
-          localStorage.setItem('admin_role', currentAdminRole);
+          localStorage.setItem('admin_name', adminData.name || 'مشرف');
+          localStorage.setItem('admin_role', adminData.role || 'editor');
           navigate('/admin');
         } else {
           if (localStorage.getItem('admin_attempt') === 'true') {
@@ -170,59 +140,8 @@ export default function AdminLogin() {
     localStorage.setItem('admin_attempt', 'true');
 
     try {
-      let result;
-      try {
-        result = await loginWithEmail(email, password);
-      } catch (authError: any) {
-        const isCredentialError = 
-          authError.code === 'auth/user-not-found' || 
-          authError.code === 'auth/invalid-credential' ||
-          authError.code === 'auth/invalid-email';
-
-        if (isCredentialError) {
-          const adminsRef = collection(db, 'admin_users');
-          const allAdmins = await getDocs(adminsRef);
-          const adminDoc = allAdmins.docs.find(d => d.data()?.email?.toLowerCase() === email.toLowerCase())?.data();
-          
-          if (adminDoc) {
-            if (adminDoc.password === password) {
-              toast.info('جاري تفعيل الحساب الإداري لأول مرة...');
-              try {
-                result = await signupWithEmail(email, password);
-              } catch (signUpErr: any) {
-                if (signUpErr.code === 'auth/email-already-in-use') {
-                   // Possible password sync failure, try force sync via server
-                   const syncRes = await fetch('/api/admin/update-password', {
-                     method: 'POST',
-                     headers: { 'Content-Type': 'application/json' },
-                     body: JSON.stringify({ email, newPassword: password })
-                   });
-                   const syncData = await syncRes.json();
-                   if (syncData.success) {
-                      result = await loginWithEmail(email, password);
-                   } else {
-                      throw new Error(syncData.error || 'فشل تحديث البيانات التوثيقية');
-                   }
-                } else {
-                  throw signUpErr;
-                }
-              }
-            } else {
-              toast.error('كلمة المرور غير صحيحة');
-              setIsLoading(false);
-              return;
-            }
-          } else {
-            toast.error('هذا البريد غير مسجل في قائمة المشرفين');
-            setIsLoading(false);
-            return;
-          }
-        } else {
-          throw authError;
-        }
-      }
-
-      // If login successful, the useEffect Auth listener will handle the redirection logic
+      await loginWithEmail(email, password);
+      // If login successful, the useEffect Auth listener handles the redirection logic
     } catch (error: any) {
       console.error('Login error:', error);
       let message = 'حدث خطأ أثناء تسجيل الدخول';

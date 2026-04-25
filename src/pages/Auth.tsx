@@ -250,7 +250,7 @@ export default function Auth() {
   }, [formData, showToast]);
 
   const getDummyEmail = useCallback((countryCode: string, phone: string) => {
-    return `${countryCode.replace('+', '')}${phone}@elite-store.local`;
+    return `${(countryCode || '').replace('+', '')}${phone}@elite-store.local`;
   }, []);
 
   const handleVerify = useCallback(async (e: React.FormEvent) => {

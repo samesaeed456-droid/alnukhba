@@ -33,12 +33,21 @@ service cloud.firestore {
     // ===============================================================
 
     function isValidUser(data) {
-      return data.uid is string && 
-             data.email is string && data.email.size() <= 200 &&
-             data.role in ['user', 'admin'] &&
+      return (data.uid is string || !('uid' in data)) && 
+             (data.email is string || !('email' in data)) &&
+             (data.role in ['user', 'admin'] || !('role' in data)) &&
              (!('walletBalance' in data) || data.walletBalance is number) &&
              (!('currentSessionId' in data) || (data.currentSessionId is string && data.currentSessionId.size() <= 128)) &&
              (!('lastActive' in data) || (data.lastActive is string && data.lastActive.size() <= 128));
+    }
+
+    function isSafeUpdate() {
+      // Allow if admin or if role/balance are unchanged by owner
+      return isAdmin() || (
+        (incoming().get('role', existing().get('role', 'user')) == existing().get('role', 'user')) &&
+        (incoming().get('walletBalance', existing().get('walletBalance', 0)) == existing().get('walletBalance', 0) || 
+         (incoming().get('walletBalance', 0) < existing().get('walletBalance', 0) && incoming().get('walletBalance', 0) >= 0))
+      );
     }
 
     function isValidOrder(data) {
@@ -52,26 +61,14 @@ service cloud.firestore {
     // Collections
     // ===============================================================
 
-    // Pillar 6: PII Isolation & Schema Constraints
     match /users/{userId} {
       allow read: if isOwner(userId) || isAdmin();
       
       allow create: if isOwner(userId) && isValidUser(incoming()) && 
-                    incoming().role == 'user' && 
-                    incoming().walletBalance == 0;
+                    incoming().get('role', 'user') == 'user' && 
+                    incoming().get('walletBalance', 0) == 0;
                     
-      allow update: if (isAdmin() || isOwner(userId)) && (
-        // Action: Session Update (Multi-device protection)
-        (incoming().diff(existing()).affectedKeys().hasOnly(['currentSessionId', 'lastActive'])) ||
-        // Action: General Update
-        (
-          // Prevent role escalation by non-admins
-          (incoming().role == existing().role || isAdmin()) &&
-          // Prevent balance tampering by owner, but allow decrementing for purchases
-          (incoming().walletBalance == existing().walletBalance || isAdmin() || (incoming().walletBalance < existing().walletBalance && incoming().walletBalance >= 0)) &&
-          isValidUser(incoming())
-        )
-      );
+      allow update: if (isAdmin() || isOwner(userId)) && isSafeUpdate() && isValidUser(incoming());
       
       allow delete: if isAdmin();
     }

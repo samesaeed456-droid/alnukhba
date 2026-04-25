@@ -337,11 +337,14 @@ export default function Profile() {
       return;
     }
 
-    // Normal save if phone didn't change
-    updateUser({ ...user, ...formData } as any);
-    window.scrollTo(0, 0);
-    setCurrentView('menu');
-    showToast('تم تحديث الحساب بنجاح');
+    try {
+      await updateUser({ ...user, ...formData } as any);
+      window.scrollTo(0, 0);
+      setCurrentView('menu');
+      showToast('تم تحديث الحساب بنجاح');
+    } catch (err) {
+      showToast('فشل في تحديث الحساب، قد يكون هناك خطأ في الاتصال', 'error');
+    }
   }, [user, formData, updateUser, validatePhone, showToast]);
 
   const verifyPhoneChangeAndSave = useCallback(async () => {
@@ -611,7 +614,7 @@ export default function Profile() {
     }, 800);
   }, [recoveryOtp, user]);
 
-  const handleResetRecoveryPassword = useCallback((e: React.FormEvent) => {
+  const handleResetRecoveryPassword = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
@@ -626,24 +629,20 @@ export default function Profile() {
     }
 
     setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-      const users = JSON.parse(localStorage.getItem('app_users') || '[]');
-      const userIndex = users.findIndex((u: any) => u.phone === user?.phone);
+    try {
+      const response = await fetch('/api/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone: user?.phone,
+          countryCode: user?.countryCode || '+967',
+          newPassword: passwordData.newPassword
+        })
+      });
 
-      if (userIndex !== -1) {
-        users[userIndex].password = passwordData.newPassword;
-        localStorage.setItem('app_users', JSON.stringify(users));
-      } else {
-        const newUser = {
-          name: user?.name || 'مستخدم',
-          phone: user?.phone || '',
-          password: passwordData.newPassword,
-          avatar: user?.avatar || '',
-          countryCode: user?.countryCode || '+967'
-        };
-        users.push(newUser);
-        localStorage.setItem('app_users', JSON.stringify(users));
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'فشل تحديث كلمة المرور');
       }
       
       showToast('تم تحديث كلمة المرور بنجاح');
@@ -651,7 +650,11 @@ export default function Profile() {
       setPasswordModalStep('change');
       setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
       setRecoveryOtp(['', '', '', '']);
-    }, 1000);
+    } catch (err: any) {
+      setError(err.message || 'حدث خطأ غير متوقع');
+    } finally {
+      setIsLoading(false);
+    }
   }, [passwordData, user, showToast]);
 
   if (!user) {

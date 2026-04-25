@@ -401,6 +401,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             
             if (firebaseUser.displayName) defaultData.displayName = firebaseUser.displayName;
             if (firebaseUser.photoURL) defaultData.photoURL = firebaseUser.photoURL;
+            if (firebaseUser.phoneNumber) {
+              const fullNum = firebaseUser.phoneNumber;
+              if (fullNum.startsWith('+967')) {
+                defaultData.countryCode = '+967';
+                defaultData.phone = fullNum.slice(4);
+              } else {
+                defaultData.countryCode = '';
+                defaultData.phone = fullNum;
+              }
+            }
 
             setDoc(doc(db, 'users', firebaseUser.uid), defaultData, { merge: true })
               .catch(error => console.error("Error creating fallback profile:", error));
@@ -1803,148 +1813,152 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setIsPlacingOrder(true);
 
     try {
-      // 1. Re-validate prices and stock from source of truth (products list)
-      const validatedItems = cart.map(item => {
-        const sourceProduct = products.find(p => p.id === item.product.id);
-        if (!sourceProduct) {
-          throw new Error(`المنتج ${item.product.name} لم يعد متوفراً`);
+      // 1. All logic inside a single transaction
+      const orderId = await runTransaction(db, async (transaction) => {
+        // A. Read Order Counter
+        const counterRef = doc(db, 'settings', 'counters');
+        const counterSnap = await transaction.get(counterRef);
+        let nextSeq = 1;
+        if (counterSnap.exists()) {
+          nextSeq = (counterSnap.data().orderCounter || 0) + 1;
         }
-        if (sourceProduct.stockCount !== undefined && sourceProduct.stockCount <= 0) {
-          throw new Error(`عذراً، المنتج ${sourceProduct.name} نفذ من المخزون`);
-        }
-        return {
-          ...item,
-          product: {
-            ...item.product,
-            price: sourceProduct.price
+
+        // B. Gather Product Data and Validate Stock
+        const validatedItems = [];
+        const productUpdates: {ref: any, newStock: number}[] = [];
+        
+        for (const item of cart) {
+          const prodRef = doc(db, 'products', String(item.product.id));
+          const prodSnap = await transaction.get(prodRef);
+          if (!prodSnap.exists()) throw new Error(`المنتج ${item.product.name} غير موجود`);
+          
+          const sourceProduct = prodSnap.data();
+          if (sourceProduct.stockCount !== undefined && sourceProduct.stockCount < item.quantity) {
+             throw new Error(`عذراً، المنتج ${sourceProduct.name} نفذ من المخزون أو الكمية غير كافية`);
           }
+          
+          validatedItems.push({
+            ...item,
+            product: { ...item.product, price: sourceProduct.price }
+          });
+          
+          productUpdates.push({
+            ref: prodRef,
+            newStock: (sourceProduct.stockCount || 0) - item.quantity
+          });
+        }
+
+        // C. Calculate Totals
+        const subtotal = roundMoney(validatedItems.reduce((sum, item) => sum + (item.product.price * item.quantity), 0));
+        
+        let shipping = 0;
+        if (subtotal > 0 && shippingMethod === 'delivery') {
+          const zone = city ? shippingZones.find(z => z.cities.includes(city)) : null;
+          if (zone) {
+            shipping = (zone.freeThreshold && subtotal >= zone.freeThreshold) ? 0 : zone.rate;
+          } else {
+            shipping = (settings.freeShippingThreshold && subtotal >= settings.freeShippingThreshold) ? 0 : settings.shippingFee;
+          }
+        }
+        
+        let discountAmount = 0;
+        let couponRefToUpdate = null;
+        let newUsedCount = 0;
+        
+        if (discount.code) {
+          const coupon = coupons.find(c => c.code.toUpperCase() === discount.code?.toUpperCase());
+          if (coupon) {
+            const cRef = doc(db, 'coupons', coupon.id);
+            const cSnap = await transaction.get(cRef);
+            if (cSnap.exists()) {
+              const cData = cSnap.data();
+              if (cData.isActive && (!cData.usageLimit || cData.usedCount < cData.usageLimit)) {
+                if (discount.type === 'percentage') {
+                  discountAmount = roundMoney(subtotal * (discount.amount / 100));
+                } else {
+                  discountAmount = roundMoney(Math.min(discount.amount, subtotal));
+                }
+                couponRefToUpdate = cRef;
+                newUsedCount = (cData.usedCount || 0) + 1;
+              }
+            }
+          }
+        }
+
+        const total = roundMoney(Math.max(0, subtotal + shipping - discountAmount));
+
+        // D. Validate Wallet Balance
+        let userRef = null;
+        let newUserBalance = 0;
+        if (paymentMethod === 'المحفظة الرقمية' && auth.currentUser) {
+          userRef = doc(db, 'users', auth.currentUser.uid);
+          const userSnap = await transaction.get(userRef);
+          if (!userSnap.exists()) throw new Error('بيانات المستخدم غير موجودة');
+          
+          const userBal = (userSnap.data() as any).walletBalance || 0;
+          if (userBal < total) throw new Error('رصيد المحفظة غير كافٍ');
+          
+          newUserBalance = userBal - total;
+        }
+
+        // E. Generate Order ID
+        const now = new Date();
+        const yy = String(now.getFullYear()).slice(-2);
+        const mm = String(now.getMonth() + 1).padStart(2, '0');
+        const dd = String(now.getDate()).padStart(2, '0');
+        const id = `NKH-${yy}${mm}${dd}-${nextSeq}`;
+
+        // F. PERFORM ALL WRITES
+        // 1. Create Order
+        const newOrderData = {
+          id: id,
+          userId: auth.currentUser?.uid || 'guest',
+          customerName: customerName || user?.displayName || user?.name || 'عميل المتجر',
+          customerPhone: customerPhone || user?.phone || '',
+          shippingAddress: shippingAddress || user?.address || '',
+          city: city || null,
+          date: now.toISOString(),
+          createdAt: serverTimestamp(),
+          items: validatedItems.map(item => ({
+            productId: item.product.id || '',
+            name: item.product.name || '',
+            price: item.product.price || 0,
+            quantity: item.quantity || 1,
+            selectedColor: item.selectedColor || null,
+            selectedSize: item.selectedSize || null
+          })),
+          subtotal, shippingFee: shipping, discountAmount, total,
+          status: paymentMethod === 'المحفظة الرقمية' ? 'processing' : 'pending',
+          paymentMethod, paymentReference: paymentReference || null,
+          paymentProof: paymentProof || null,
+          shippingMethod, deliveryInstructions: deliveryInstructions || null,
+          currency: BASE_CURRENCY_CODE || 'YER'
         };
+
+        transaction.set(doc(db, 'orders', id), JSON.parse(JSON.stringify(newOrderData, (k, v) => v === undefined ? null : v)));
+        
+        // 2. Update Counter
+        transaction.update(counterRef, { orderCounter: nextSeq });
+
+        // 3. Update Stocks
+        productUpdates.forEach(pu => transaction.update(pu.ref, { stockCount: pu.newStock }));
+
+        // 4. Update Wallet
+        if (userRef) {
+          transaction.update(userRef, { walletBalance: newUserBalance });
+        }
+
+        // 5. Update Coupon
+        if (couponRefToUpdate) {
+          transaction.update(couponRefToUpdate, { usedCount: newUsedCount });
+        }
+
+        return id;
       });
 
-      const subtotal = roundMoney(validatedItems.reduce((sum, item) => sum + (item.product.price * item.quantity), 0));
-      
-      let shipping = 0;
-      if (subtotal > 0 && shippingMethod === 'delivery') {
-        const zone = city ? shippingZones.find(z => z.cities.includes(city)) : null;
-        if (zone) {
-          shipping = (zone.freeThreshold && subtotal >= zone.freeThreshold) ? 0 : zone.rate;
-        } else {
-          shipping = (settings.freeShippingThreshold && subtotal >= settings.freeShippingThreshold) ? 0 : settings.shippingFee;
-        }
-      }
-      
-      let discountAmount = 0;
-      if (discount.code) {
-        const coupon = coupons.find(c => c.code.toUpperCase() === discount.code?.toUpperCase());
-        
-        if (!coupon || !coupon.isActive || (coupon.expiryDate && new Date(coupon.expiryDate) < new Date()) || (coupon.usageLimit && coupon.usedCount >= coupon.usageLimit) || (coupon.minOrderValue && subtotal < coupon.minOrderValue)) {
-          showToast('عذراً، كود الخصم لم يعد صالحاً أو لا يستوفي الشروط', 'error');
-          setDiscount({ code: null, amount: 0, type: 'percentage' });
-          setIsPlacingOrder(false);
-          return '';
-        }
-
-        if (discount.type === 'percentage') {
-          discountAmount = roundMoney(subtotal * (discount.amount / 100));
-        } else {
-          discountAmount = roundMoney(Math.min(discount.amount, subtotal));
-        }
-        
-        updateCoupon(coupon.id, { usedCount: coupon.usedCount + 1 }, false);
-      }
-
-      const total = roundMoney(Math.max(0, subtotal + shipping - discountAmount));
-      
-      // Get Sequential Order ID with Transaction to prevent duplicates
-      let orderId = '';
-      try {
-        orderId = await runTransaction(db, async (transaction) => {
-          const counterRef = doc(db, 'settings', 'counters');
-          const counterSnap = await transaction.get(counterRef);
-          
-          let nextSeq = 1;
-          if (counterSnap.exists()) {
-            nextSeq = (counterSnap.data().orderCounter || 0) + 1;
-          }
-          
-          transaction.set(counterRef, { orderCounter: nextSeq }, { merge: true });
-          
-          const now = new Date();
-          const yy = String(now.getFullYear()).slice(-2);
-          const mm = String(now.getMonth() + 1).padStart(2, '0');
-          const dd = String(now.getDate()).padStart(2, '0');
-          
-          return `NKH-${yy}${mm}${dd}-${nextSeq}`;
-        });
-      } catch (error) {
-        console.error('Failed to generate sequential order ID, falling back to random:', error);
-        // Fallback to random ID if transaction fails (e.g. permission issues or network error)
-        orderId = `NKH-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
-      }
-
-      // 2. Prepare Order Data
-      const newOrderData = {
-        id: orderId,
-        userId: auth.currentUser?.uid || 'guest',
-        customerName: customerName || user?.displayName || user?.name || 'عميل المتجر',
-        customerPhone: customerPhone || user?.phone || '',
-        shippingAddress: shippingAddress || user?.address || '',
-        city: city || null,
-        date: new Date().toISOString(),
-        createdAt: serverTimestamp(),
-        items: validatedItems.map(item => ({
-          productId: item.product.id || '',
-          name: item.product.name || '',
-          price: item.product.price || 0,
-          quantity: item.quantity || 1,
-          selectedColor: item.selectedColor || null,
-          selectedSize: item.selectedSize || null
-        })),
-        subtotal: subtotal || 0,
-        shippingFee: shipping || 0,
-        discountAmount: discountAmount || 0,
-        total: total || 0,
-        status: paymentMethod === 'المحفظة الرقمية' ? 'processing' : 'pending',
-        paymentMethod: paymentMethod || 'وسيلة دفع',
-        paymentReference: paymentReference || null,
-        paymentProof: paymentProof || null,
-        shippingMethod: shippingMethod || null,
-        deliveryInstructions: deliveryInstructions || null,
-        currency: BASE_CURRENCY_CODE || 'YER'
-      };
-
-      // 3. Save to Firestore
-      // Ensure no undefined values reach Firestore
-      const finalOrderData = JSON.parse(JSON.stringify(newOrderData, (key, value) => 
-        value === undefined ? null : value
-      ));
-      
-      // serverTimestamp() is lost in JSON.stringify, so we restore it
-      finalOrderData.createdAt = newOrderData.createdAt;
-
-      await setDoc(doc(db, 'orders', orderId), finalOrderData);
-      
-      // 3.1 Mark Abandoned Cart as Recovered
+      // G. Post-Order cleanup (outside transaction)
       if (auth.currentUser) {
-        try {
-          await deleteDoc(doc(db, 'abandonedCarts', auth.currentUser.uid));
-        } catch (err) {
-          // Ignore if doc doesn't exist
-        }
-      }
-
-      // 4. Update Stock
-      for (const item of validatedItems) {
-        await updateDoc(doc(db, 'products', String(item.product.id)), {
-          stockCount: increment(-item.quantity)
-        });
-      }
-
-      // 5. Deduct Wallet Balance 
-      if (paymentMethod === 'المحفظة الرقمية' && auth.currentUser) {
-        await updateDoc(doc(db, 'users', auth.currentUser.uid), {
-          walletBalance: increment(-total)
-        });
+        deleteDoc(doc(db, 'abandonedCarts', auth.currentUser.uid)).catch(() => {});
       }
 
       showToast(`تم إتمام الطلب بنجاح!`);
@@ -1953,9 +1967,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setIsPlacingOrder(false);
       return orderId;
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Order placement failed:', error);
-      showToast(error instanceof Error ? error.message : 'حدث خطأ أثناء إتمام الطلب', 'error');
+      showToast(error.message || 'حدث خطأ أثناء إتمام الطلب', 'error');
       setIsPlacingOrder(false);
       return '';
     }
@@ -2088,10 +2102,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     // Save current user for error reversal if needed
     const prevUser = user;
     
-    // Check if phone number is changing
-    const isPhoneChanging = prevUser && (
-      newUser.phone !== prevUser.phone || 
-      newUser.countryCode !== prevUser.countryCode
+    const prevPhone = prevUser?.phone || '';
+    const newPhone = newUser.phone || '';
+    const prevCode = prevUser?.countryCode || '+967';
+    const newCode = newUser.countryCode || '+967';
+    const isPhoneAuthUser = prevUser?.email?.endsWith('@elite-store.local');
+
+    // Check if phone number is changing and it actually existed before
+    const isPhoneChanging = isPhoneAuthUser && prevPhone && (
+      newPhone !== prevPhone || newCode !== prevCode
     );
 
     setUser(newUser);
@@ -2103,10 +2122,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            oldPhone: prevUser.phone,
-            oldCountryCode: prevUser.countryCode || '+967',
-            newPhone: newUser.phone,
-            newCountryCode: newUser.countryCode || '+967'
+            oldPhone: prevPhone,
+            oldCountryCode: prevCode,
+            newPhone: newPhone,
+            newCountryCode: newCode
           })
         });
         const syncData = await syncResponse.json();
@@ -2133,25 +2152,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       });
       
       showToast('تم تحديث البيانات بنجاح');
-
-      // Sync back to admin_users to keep the Dashboard perfectly synced
-      if (newUser.role === 'admin') {
-        try {
-          const dummyEmail = newUser.email || getAdminDummyEmail(newUser.phone || '', newUser.countryCode || '+967');
-          const adminQuery = query(collection(db, 'admin_users'), where('email', '==', dummyEmail));
-          const adminDocs = await getDocs(adminQuery);
-          if (adminDocs && !adminDocs.empty && adminDocs.docs && adminDocs.docs.length > 0) {
-             const adminDocRef = doc(db, 'admin_users', adminDocs.docs[0].id);
-             await updateDoc(adminDocRef, {
-               phone: newUser.phone,
-               email: newUser.email, // Sync new dummy email if it changed
-               updatedAt: serverTimestamp()
-             });
-          }
-        } catch (adminSyncError) {
-          console.error("Failed to sync profile back to admin_users:", adminSyncError);
-        }
-      }
 
     } catch (error: any) {
       // Revert optimistic update on failure
@@ -2228,16 +2228,22 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         return;
       }
 
+      const oldPhone = userData.phone || '';
+      const newPhone = updates.phone || oldPhone;
+      const oldCode = userData.countryCode || '+967';
+      const newCode = updates.countryCode || oldCode;
+      const isCustomerPhoneAuth = userData.email?.endsWith('@elite-store.local');
+
       // Check if phone is being updated
-      if (updates.phone && (updates.phone !== userData.phone || (updates.countryCode && updates.countryCode !== userData.countryCode))) {
+      if (isCustomerPhoneAuth && oldPhone && (newPhone !== oldPhone || newCode !== oldCode)) {
         const syncResponse = await fetch('/api/update-phone', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            oldPhone: userData.phone,
-            oldCountryCode: userData.countryCode || '+967',
-            newPhone: updates.phone,
-            newCountryCode: updates.countryCode || userData.countryCode || '+967'
+            oldPhone: oldPhone,
+            oldCountryCode: oldCode,
+            newPhone: newPhone,
+            newCountryCode: newCode
           })
         });
         const syncData = await syncResponse.json();

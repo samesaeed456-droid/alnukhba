@@ -5,7 +5,7 @@ import dotenv from "dotenv";
 import { v2 as cloudinary } from 'cloudinary';
 import { initializeApp, cert, getApps } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
-import { getFirestore } from 'firebase-admin/firestore';
+import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { getMessaging } from 'firebase-admin/messaging';
 import { generateRegistrationOptions, verifyRegistrationResponse, generateAuthenticationOptions, verifyAuthenticationResponse } from '@simplewebauthn/server';
 
@@ -459,6 +459,19 @@ app.post("/api/update-phone", async (req, res) => {
       email: newEmail
     });
 
+    // --- NEW: Sync admin_users if this user was an admin ---
+    const adminQuery = await getFirestore().collection("admin_users").where("email", "==", oldEmail).get();
+    if (!adminQuery.empty) {
+      const batch = getFirestore().batch();
+      adminQuery.docs.forEach(doc => {
+        batch.update(doc.ref, {
+          email: newEmail,
+          phone: newPhone
+        });
+      });
+      await batch.commit();
+    }
+
     console.log(`[Firebase Admin] Email updated from ${oldEmail} to ${newEmail}`);
     res.json({ success: true, message: "تم تحديث الرقم في نظام المصادقة بنجاح" });
     
@@ -468,6 +481,51 @@ app.post("/api/update-phone", async (req, res) => {
       return res.status(404).json({ success: false, error: "هذا الحساب غير موجود" });
     }
     res.status(500).json({ success: false, error: "فشل تحديث الرقم", details: error.message });
+  }
+});
+
+// User/Admin Password Reset API
+app.post("/api/reset-password", async (req, res) => {
+  const { phone, countryCode, newPassword } = req.body;
+  if (!phone || !newPassword) {
+    return res.status(400).json({ success: false, error: "بيانات ناقصة" });
+  }
+
+  if (getApps().length === 0) {
+    return res.status(500).json({ success: false, error: "إعدادات Firebase Admin غير متوفرة" });
+  }
+
+  try {
+    const dummyEmail = `${(countryCode || "+967").replace("+", "")}${phone}@elite-store.local`;
+
+    // 1. Find user in Auth
+    let userRecord;
+    try {
+      userRecord = await getAuth().getUserByEmail(dummyEmail);
+    } catch (e: any) {
+      if (e.code === 'auth/user-not-found') {
+        return res.status(404).json({ success: false, error: "المستخدم غير موجود" });
+      }
+      throw e;
+    }
+
+    // 2. Update password
+    await getAuth().updateUser(userRecord.uid, {
+      password: newPassword
+    });
+
+    // 3. Log activity
+    await getFirestore().collection("activity_logs").add({
+      type: "reset_password",
+      userId: userRecord.uid,
+      description: `تم تغيير كلمة المرور للمستخدم ${dummyEmail}`,
+      timestamp: FieldValue.serverTimestamp()
+    });
+
+    res.json({ success: true, message: "تم تحديث كلمة المرور بنجاح" });
+  } catch (error: any) {
+    console.error("Reset Password Error:", error);
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 

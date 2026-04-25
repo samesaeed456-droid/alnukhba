@@ -194,7 +194,7 @@ export default function Orders() {
 
   const handleWhatsApp = (phone: string, orderId: string) => {
     const message = encodeURIComponent(`مرحباً، بخصوص طلبك رقم #${orderId.slice(-6).toUpperCase()}`);
-    window.open(`https://wa.me/${(phone || '').replace(/\D/g, '')}?text=${message}`, '_blank');
+    window.open(`https://wa.me/${phone.replace(/\D/g, '')}?text=${message}`, '_blank');
   };
 
   const handleBulkStatusUpdate = (newStatus: Order['status']) => {

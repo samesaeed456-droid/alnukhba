@@ -364,32 +364,18 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           localStorage.setItem('local_session_id', localSessionId);
         }
 
-        // 1. Try to find in admin_users first (Prioritize administrative identity)
-        const adminDoc = await getDoc(doc(db, 'admin_users', firebaseUser.uid));
-        if (adminDoc.exists()) {
-           const adminData = adminDoc.data();
-           const userData = {
-              uid: firebaseUser.uid,
-              email: firebaseUser.email || adminData.email,
-              name: adminData.name,
-              role: 'admin',
-              adminRole: adminData.role,
-              isActive: adminData.isActive
-           } as UserProfile;
-           
-           setUser(userData);
-           localStorage.setItem('store_user', JSON.stringify(userData));
-           setIsAuthReady(true);
-           refreshNotificationToken();
-           return;
-        }
+        // Update current session in Firestore
+        updateDoc(doc(db, 'users', firebaseUser.uid), {
+          currentSessionId: localSessionId,
+          lastActive: new Date().toISOString()
+        }).catch(err => console.error("Session update failed:", err));
 
-        // 2. Fallback to standard users collection
+        // Set up real-time listener for user document
         unsubUser = onSnapshot(doc(db, 'users', firebaseUser.uid), (docSnap) => {
           if (docSnap.exists()) {
             const userData = { ...docSnap.data(), uid: docSnap.id } as UserProfile;
             
-            // Session protection (only for normal users)
+            // Check for multi-device login
             const currentLocalSession = localStorage.getItem('local_session_id');
             if (userData.currentSessionId && currentLocalSession && userData.currentSessionId !== currentLocalSession) {
               console.log("Session mismatch detected. Logging out...");
@@ -400,22 +386,27 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
             setUser(userData);
             localStorage.setItem('store_user', JSON.stringify(userData));
+            
+            // Try to link notification token to this logged in user
             refreshNotificationToken();
           } else {
-             // 3. User doesn't exist in either collection: Create customer profile
-             const defaultData: any = {
-               uid: firebaseUser.uid,
-               email: firebaseUser.email || '',
-               role: 'user',
-               walletBalance: 0,
-               createdAt: serverTimestamp()
-             };
-             
-             if (firebaseUser.displayName) defaultData.displayName = firebaseUser.displayName;
-             if (firebaseUser.photoURL) defaultData.photoURL = firebaseUser.photoURL;
+            // Gentle creation: only set essential and firebase-provided fields with merge:true
+            // to avoid overwriting fields (like name/phone) being simultaneously saved by Auth.tsx
+            const defaultData: any = {
+              uid: firebaseUser.uid,
+              email: firebaseUser.email || '',
+              role: 'user',
+              createdAt: serverTimestamp()
+            };
+            
+            if (firebaseUser.displayName) defaultData.displayName = firebaseUser.displayName;
+            if (firebaseUser.photoURL) defaultData.photoURL = firebaseUser.photoURL;
 
-             setDoc(doc(db, 'users', firebaseUser.uid), defaultData, { merge: true })
-               .catch(error => console.error("Error creating fallback profile:", error));
+            setDoc(doc(db, 'users', firebaseUser.uid), defaultData, { merge: true })
+              .catch(error => console.error("Error creating fallback profile:", error));
+
+            // Don't set user state here with empty fields, let the snapshot update it naturally
+            // once Auth.tsx finishes its true save, or this setDoc finishes.
           }
           setIsAuthReady(true);
         }, (error) => {
@@ -1514,71 +1505,33 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const addAdminUser = React.useCallback(async (admin: Omit<AdminUser, 'id'>) => {
     try {
+      const newAdminRef = doc(collection(db, 'admin_users'));
       let finalAdmin = { ...admin };
-      let uidToUse: string | null = null;
 
-      // MANDATORY Auth Sync: Create/Get Auth account first
-      if (finalAdmin.email && finalAdmin.password) {
+      // Handle password synchronization for new admin
+      if (finalAdmin.password && finalAdmin.email) {
         try {
-          // Use a secondary Firebase app to create the user client-side without signing out the current admin
-          const { initializeApp } = await import('firebase/app');
-          const { getAuth, createUserWithEmailAndPassword, updatePassword, signInWithEmailAndPassword } = await import('firebase/auth');
-          const firebaseConfig = (await import('../../firebase-applet-config.json')).default;
-          
-          // Generate a unique name for the secondary app to avoid collisions
-          const secondaryAppName = `AdminCreator_${Date.now()}`;
-          const secondaryApp = initializeApp(firebaseConfig, secondaryAppName);
-          const secondaryAuth = getAuth(secondaryApp);
-          
-          try {
-            // Try to create the user
-            const credential = await createUserWithEmailAndPassword(secondaryAuth, finalAdmin.email, finalAdmin.password);
-            uidToUse = credential.user.uid;
-            
-            // Sign out the secondary app immediately so it doesn't linger
-            await secondaryAuth.signOut();
-          } catch (createError: any) {
-            // If user already exists, we must log in to update their password.
-            if (createError.code === 'auth/email-already-in-use') {
-               showToast('الحساب موجود مسبقاً في التوثيق. لا يمكن تغيير كلمة المرور هنا لدواعي الأمان. تمت مزامنة المعرف.', 'info');
-               // But we need the UID! We can't get UID of existing user without Firebase Admin SDK
-               // or without logging them in! Oh wait, if they exist we can't easily get UID unless we use signInWithEmailAndPassword.
-               // Let's try to sign in. If it fails due to wrong password, we can't link it.
-               try {
-                  const loginCred = await signInWithEmailAndPassword(secondaryAuth, finalAdmin.email, finalAdmin.password);
-                  uidToUse = loginCred.user.uid;
-                  await secondaryAuth.signOut();
-               } catch (loginError: any) {
-                  throw new Error('البريد موجود في النظام ولا يمكن مطابقة كلمة المرور.');
-               }
-            } else {
-               throw createError;
-            }
+          const syncRes = await fetch('/api/admin/update-password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: finalAdmin.email, newPassword: finalAdmin.password })
+          });
+          const syncData = await syncRes.json();
+          if (!syncData.success) {
+            console.error('Failed to sync password to Auth:', syncData.error);
           }
-        } catch (pwError: any) {
-          console.error('Auth sync failed:', pwError);
-          showToast('فشل إنشاء حساب التوثيق: ' + pwError.message, 'error');
-          return;
+        } catch (pwError) {
+          console.error('Password sync attempt failed:', pwError);
         }
       }
 
-      if (!uidToUse) {
-        showToast('لا يمكن إضافة مشرف بدون بريد وإعداد توثيق سليم', 'error');
-        return;
-      }
-
-      // Use the Auth UID as the document ID
-      const adminDocRef = doc(db, 'admin_users', uidToUse);
-      await setDoc(adminDocRef, {
+      await setDoc(newAdminRef, {
         ...finalAdmin,
-        id: uidToUse,
-        uid: uidToUse, // Redundant but safe
+        id: newAdminRef.id,
         permissions: finalAdmin.permissions || getPermissionsByRole(finalAdmin.role),
-        createdAt: serverTimestamp(),
-        isActive: true
+        createdAt: serverTimestamp()
       });
-
-      showToast('تم إضافة المشرف بنجاح وتفعيل حسابه');
+      showToast('تم إضافة المشرف بنجاح');
       logActivity('إضافة مشرف', `تم إضافة مشرف جديد: ${finalAdmin.name} (${finalAdmin.email})`);
     } catch (error) {
       handleFirestoreError(error, OperationType.CREATE, 'admin_users');
@@ -1589,10 +1542,21 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     try {
       let finalData = { ...updatedData };
 
-      // Handle password warning
+      // Handle password synchronization if changed
       if (finalData.password && finalData.email) {
-         showToast('لا يمكن تغيير كلمة المرور من هنا لأسباب أمنية. يرجى من المشرف استخدام خيار \"نسيت كلمة المرور\" في صفحة الدخول.', 'info');
-         delete finalData.password; // Don't try to sync password here
+        try {
+          const syncRes = await fetch('/api/admin/update-password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: finalData.email, newPassword: finalData.password })
+          });
+          const syncData = await syncRes.json();
+          if (!syncData.success) {
+            console.error('Failed to sync password to Auth:', syncData.error);
+          }
+        } catch (pwError) {
+          console.error('Password sync attempt failed:', pwError);
+        }
       }
 
       await updateDoc(doc(db, 'admin_users', id), {
@@ -1600,8 +1564,35 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         updatedAt: serverTimestamp()
       });
 
-      showToast('تم تحديث بيانات المشرف بنجاح');
-      logActivity('تعديل مشرف', logDetails || `تم تحديث بيانات المشرف بنجاح: ${id}`);
+      // Synchronize changes to the main `users` collection for better integration
+      try {
+        if (finalData.email) {
+          const usersQuery = query(collection(db, 'users'), where('email', '==', finalData.email));
+          const userDocs = await getDocs(usersQuery);
+          if (userDocs && !userDocs.empty && userDocs.docs && userDocs.docs.length > 0) {
+            const userDocRef = doc(db, 'users', userDocs.docs[0].id);
+            const updatesToUser: any = {};
+            if (finalData.name) {
+              updatesToUser.adminName = finalData.name;
+            }
+            if (finalData.role) {
+              updatesToUser.adminRole = finalData.role;
+              updatesToUser.role = 'admin';
+            }
+            if (finalData.phone) updatesToUser.phone = finalData.phone;
+            if (finalData.countryCode) updatesToUser.countryCode = finalData.countryCode;
+            
+            if (Object.keys(updatesToUser).length > 0) {
+              await updateDoc(userDocRef, updatesToUser);
+            }
+          }
+        }
+      } catch (syncError) {
+        console.error('Failed to sync admin details to users collection:', syncError);
+      }
+
+      showToast('تم تحديث بيانات المشرف');
+      logActivity('تحديث مشرف', logDetails || `تم تحديث بيانات المشرف ID: ${id}`);
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `admin_users/${id}`);
     }

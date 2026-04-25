@@ -14,14 +14,6 @@ import {
 import { getAdminDummyEmail } from '../../lib/adminAuth';
 import Logo from '../../components/Logo';
 
-const SUPER_ADMINS = [
-  'samesaeed456@gmail.com', 
-  'samisaeed2027@gmail.com',
-  'samesaeed@gmail.com',
-  '967776668370@elite-store.local',
-  '776668370@elite-store.local'
-];
-
 export default function AdminLogin() {
   const navigate = useNavigate();
   const { adminUsers, logActivity } = useStore();
@@ -100,54 +92,56 @@ export default function AdminLogin() {
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
       if (user && user.email) {
-        const userEmail = user.email.toLowerCase();
-        let isAuthorized = SUPER_ADMINS.includes(userEmail);
+        // Super Admins hardcoded list
+        const superAdmins = [
+          'samesaeed456@gmail.com', 
+          'samisaeed2027@gmail.com'
+        ];
+        
+        let isAuthorized = superAdmins.includes(user.email);
         let currentAdminRole = isAuthorized ? 'super_admin' : 'editor';
         let currentAdminName = isAuthorized ? 'المدير العام' : 'مشرف';
 
-        // Check if the user is authorized in the admin_users collection
-        // Since we now use UID as document ID in admin_users, we check directly for maximum speed and security
-        const adminDoc = await getDoc(doc(db, 'admin_users', user.uid));
+        // Check if the user exists in our admin_users collection
+        const adminQuery = query(collection(db, 'admin_users'), where('email', '==', user.email));
+        const adminSnap = await getDocs(adminQuery);
         
-        if (adminDoc.exists()) {
-          const adminData = adminDoc.data();
-          if (adminData.isActive === false) {
-             toast.error('هذا الحساب تم تعطيله من قبل المدير العام');
-             await auth.signOut();
-             return;
-          }
+        if (adminSnap && !adminSnap.empty && adminSnap.docs && adminSnap.docs.length > 0) {
           isAuthorized = true;
+          const adminData = adminSnap.docs[0].data();
           currentAdminRole = adminData.role || 'editor';
           currentAdminName = adminData.name || 'مشرف';
-        } else {
-          // Fallback check for emails (to handle the very first login after manual addition)
-          const adminQuery = query(collection(db, 'admin_users'), where('email', '==', user.email));
-          const adminSnap = await getDocs(adminQuery);
-          
-          if (adminSnap && !adminSnap.empty && adminSnap.docs && adminSnap.docs.length > 0) {
-            isAuthorized = true;
-            const legacyDoc = adminSnap.docs[0];
-            const adminData = legacyDoc.data();
-            currentAdminRole = adminData.role || 'editor';
-            currentAdminName = adminData.name || 'مشرف';
-
-            // Radical Sync: Record exists by email but not by UID (document ID mismatch).
-            // We migrate it NOW so future logins are instant and rules work perfectly.
-            const { setDoc, deleteDoc } = await import('../../lib/firebase');
-            await setDoc(doc(db, 'admin_users', user.uid), {
-              ...adminData,
-              id: user.uid,
-              lastLogin: new Date().toISOString()
-            }, { merge: true });
-            
-            // Cleanup the legacy random ID record if it's different
-            if (legacyDoc.id !== user.uid) {
-              await deleteDoc(doc(db, 'admin_users', legacyDoc.id));
-            }
-          }
         }
         
         if (isAuthorized) {
+          const userDoc = await getDoc(doc(db, 'users', user.uid));
+          const userData = userDoc.data();
+          
+          // Ensure the user record in 'users' collection has the admin flag and name
+          if (userData?.role !== 'admin' || userData?.adminName !== currentAdminName) {
+            const { updateDoc, setDoc } = await import('../../lib/firebase');
+            await setDoc(doc(db, 'users', user.uid), { 
+              role: 'admin',
+              adminName: currentAdminName,
+              email: user.email,
+              name: currentAdminName, 
+              lastActive: new Date().toISOString()
+            }, { merge: true });
+            
+            // If they are a super admin but don't have a record in admin_users, create one
+            if (superAdmins.includes(user.email) && adminSnap.empty) {
+              await setDoc(doc(db, 'admin_users', user.uid), {
+                id: user.uid,
+                name: currentAdminName,
+                email: user.email,
+                role: 'super_admin',
+                isActive: true,
+                permissions: ['view_dashboard', 'manage_orders', 'manage_products', 'manage_customers', 'manage_marketing', 'manage_coupons', 'manage_settings', 'manage_security', 'view_logs', 'manage_logistics', 'manage_messages'],
+                createdAt: new Date().toISOString()
+              }, { merge: true });
+            }
+          }
+
           localStorage.setItem('admin_auth', 'true');
           localStorage.setItem('admin_email', user.email);
           localStorage.setItem('admin_name', currentAdminName);
@@ -186,20 +180,40 @@ export default function AdminLogin() {
           authError.code === 'auth/invalid-email';
 
         if (isCredentialError) {
-          if (SUPER_ADMINS.includes(email.toLowerCase()) && (authError.code === 'auth/user-not-found' || authError.code === 'auth/invalid-credential')) {
-            toast.info('جاري تفعيل حساب المدير العام لأول مرة...');
-            try {
-              result = await signupWithEmail(email, password);
-            } catch (signUpErr: any) {
-              if (signUpErr.code === 'auth/email-already-in-use') {
-                 toast.error('أنت مسجل في النظام مسبقاً، لكن يبدو أن كلمة المرور غير صحيحة.');
-                 setIsLoading(false);
-                 return;
+          const adminsRef = collection(db, 'admin_users');
+          const allAdmins = await getDocs(adminsRef);
+          const adminDoc = allAdmins.docs.find(d => d.data()?.email?.toLowerCase() === email.toLowerCase())?.data();
+          
+          if (adminDoc) {
+            if (adminDoc.password === password) {
+              toast.info('جاري تفعيل الحساب الإداري لأول مرة...');
+              try {
+                result = await signupWithEmail(email, password);
+              } catch (signUpErr: any) {
+                if (signUpErr.code === 'auth/email-already-in-use') {
+                   // Possible password sync failure, try force sync via server
+                   const syncRes = await fetch('/api/admin/update-password', {
+                     method: 'POST',
+                     headers: { 'Content-Type': 'application/json' },
+                     body: JSON.stringify({ email, newPassword: password })
+                   });
+                   const syncData = await syncRes.json();
+                   if (syncData.success) {
+                      result = await loginWithEmail(email, password);
+                   } else {
+                      throw new Error(syncData.error || 'فشل تحديث البيانات التوثيقية');
+                   }
+                } else {
+                  throw signUpErr;
+                }
               }
-              throw signUpErr;
+            } else {
+              toast.error('كلمة المرور غير صحيحة');
+              setIsLoading(false);
+              return;
             }
           } else {
-            toast.error('البريد غير مسجل كمشرف، أو كلمة المرور خاطئة.');
+            toast.error('هذا البريد غير مسجل في قائمة المشرفين');
             setIsLoading(false);
             return;
           }
@@ -391,23 +405,6 @@ export default function AdminLogin() {
                   <span className="font-bold text-xs text-slate-500 select-none">تذكر حذائي الإداري</span>
                   <input type="checkbox" className="hidden" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} />
                 </label>
-
-                <button 
-                  type="button"
-                  onClick={async () => {
-                    if (!email) return toast.error('يرجى إدخال البريد أولاً');
-                    try {
-                      const { sendPasswordResetEmail } = await import('firebase/auth');
-                      await sendPasswordResetEmail(auth, email);
-                      toast.success('تم إرسال رابط استعادة كلمة المرور لبريدك');
-                    } catch (e: any) {
-                      toast.error('فشل إرسال الرابط: ' + (e.message || 'خطأ غير معروف'));
-                    }
-                  }}
-                  className="text-xs font-black text-solar hover:text-solar/80 transition-colors"
-                >
-                  نسيت كلمة المرور؟
-                </button>
               </div>
 
               <button 

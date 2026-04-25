@@ -2,126 +2,58 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // 0. Global Safety Net (Default Deny)
+    // 0. حماية عامة: منع الوصول الافتراضي لكل شيء
     match /{document=**} {
       allow read, write: if false;
     }
 
     // ===============================================================
-    // Primitives & Helpers
+    // الدوال المساعدة (Helpers)
     // ===============================================================
     
     function isSignedIn() { return request.auth != null; }
-    function isVerified() { return isSignedIn() && request.auth.token.email_verified == true; }
-    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
     
-    // Privilege Escalation Guard & Identity Verification
+    // التحقق مما إذا كان المستخدم مشرفاً (Admin)
+    // يتم التحقق عبر البريد الإلكتروني أو الحقل الموجود في مجموعة users
     function isAdmin() {
-      let superAdminEmails = [
-        "samesaeed456@gmail.com", 
-        "samisaeed2027@gmail.com", 
-        "samesaeed@gmail.com", 
-        "967776668370@elite-store.local",
-        "776668370@elite-store.local"
-      ];
       return isSignedIn() && (
-        request.auth.token.email.lower() in superAdminEmails ||
-        // Strict Separation: Check ONLY admin_users collection for administrative status
-        (exists(/databases/$(database)/documents/admin_users/$(request.auth.uid)) &&
-         get(/databases/$(database)/documents/admin_users/$(request.auth.uid)).data.isActive == true)
+        request.auth.token.email in ["samesaeed456@gmail.com", "samisaeed2027@gmail.com", "967776668370@elite-store.local"] ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin') ||
+        exists(/databases/$(database)/documents/admin_users/$(request.auth.uid))
       );
     }
     
-    function isSuperAdmin() {
-       return isAdmin() && (
-         request.auth.token.email.lower() in [
-           "samesaeed456@gmail.com", 
-           "samisaeed2027@gmail.com", 
-           "samesaeed@gmail.com"
-         ] ||
-         get(/databases/$(database)/documents/admin_users/$(request.auth.uid)).data.role == 'super_admin'
-       );
-    }
-    
-    function incoming() { return request.resource.data; }
-    function existing() { return resource.data; }
-    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
-
-    // ===============================================================
-    // Entity Validations (Pillar 2)
-    // ===============================================================
-
-    function isValidUser(data) {
-      return data.uid is string && 
-             data.email is string && data.email.size() <= 200 &&
-             data.role in ['user', 'admin'] &&
-             (!('walletBalance' in data) || data.walletBalance is number) &&
-             (!('currentSessionId' in data) || (data.currentSessionId is string && data.currentSessionId.size() <= 128)) &&
-             (!('lastActive' in data) || (data.lastActive is string && data.lastActive.size() <= 128));
-    }
-
-    function isValidOrder(data) {
-      return data.userId is string && 
-             data.items is list && data.items.size() > 0 &&
-             data.total is number && data.total >= 0 &&
-             data.status in ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
+    // التحقق مما إذا كان المستخدم هو صاحب البيانات
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
     }
 
     // ===============================================================
-    // Collections
+    // قواعد المجموعات (Collections Rules)
     // ===============================================================
 
-    // Pillar 6: PII Isolation & Schema Constraints
+    // مجموعة المستخدمين (Users)
     match /users/{userId} {
       allow read: if isOwner(userId) || isAdmin();
-      
-      allow create: if isOwner(userId) && isValidUser(incoming()) && 
-                    (incoming().role == 'user' || (incoming().role == 'admin' && request.auth.token.email.lower() in [
-                      "samesaeed456@gmail.com", "samisaeed2027@gmail.com", "samesaeed@gmail.com", "967776668370@elite-store.local", "776668370@elite-store.local"
-                    ])) && 
-                    incoming().walletBalance == 0;
-                    
-      allow update: if (isAdmin() || isOwner(userId)) && (
-        // Action: Session Update (Multi-device protection)
-        (incoming().diff(existing()).affectedKeys().hasOnly(['currentSessionId', 'lastActive'])) ||
-        // Action: General Update
-        (
-          // Prevent role escalation by non-admins
-          (incoming().role == existing().role || isAdmin()) &&
-          // Prevent balance tampering by owner, but allow decrementing for purchases
-          (incoming().walletBalance == existing().walletBalance || isAdmin() || (incoming().walletBalance < existing().walletBalance && incoming().walletBalance >= 0)) &&
-          isValidUser(incoming())
-        )
-      );
-      
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId) || isAdmin();
       allow delete: if isAdmin();
     }
 
-    match /users/{userId}/notifications/{notificationId} {
-      allow read, list: if isOwner(userId) || isAdmin();
-      allow update: if isOwner(userId) && incoming().diff(existing()).affectedKeys().hasOnly(['isRead']);
-      allow create, delete: if isAdmin();
-    }
-
+    // مجموعة المشرفين (Admin Users)
     match /admin_users/{adminId} {
-      // Pillar 8: Secure List Queries (RADICAL SOLUTION GATE)
-      // Allow public list ONLY with email filter for login logic, OR allow full list if the user is an actual admin
-      allow list: if (isSignedIn() && resource.data.email == request.auth.token.email) || isAdmin(); 
-      
-      allow get: if isSignedIn() && (isOwner(adminId) || isAdmin());
-      allow create, update, delete: if isAdmin();
+      allow read: if isAdmin() || isOwner(adminId) || (isSignedIn() && resource.data.email == request.auth.token.email);
+      allow write: if isAdmin();
+      allow list: if isAdmin();
     }
 
+    // المنتجات والأقسام والمدونة (الوصول عام للقراءة، خاص للمشرفين للكتابة)
     match /products/{productId} {
       allow read: if true;
       allow write: if isAdmin();
-      
-      // Atomic Inventory Guard (Pillar 7)
-      allow update: if (isSignedIn() || !isSignedIn()) && 
-                    incoming().diff(existing()).affectedKeys().hasOnly(['stockCount']) &&
-                    incoming().stockCount <= existing().stockCount;
     }
-
+    
     match /categories/{categoryId} {
       allow read: if true;
       allow write: if isAdmin();
@@ -132,113 +64,57 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    match /static_pages/{pageId} {
-      allow read: if true;
-      allow write: if isAdmin();
+    // الطلبات (Orders)
+    match /orders/{orderId} {
+      allow create: if true; // السماح بإنشاء الطلبات (حتى للضيوف)
+      allow read: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow update, delete: if isAdmin();
     }
 
-    match /shipping_zones/{zoneId} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-
-    match /banners/{bannerId} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-
-      match /orders/{orderId} {
-      // Query Enforcer (Pillar 8)
-      allow list: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
-      allow get: if true; // Allow tracking by anyone who has the ID
-      
-      allow create: if ((isSignedIn() && incoming().userId == request.auth.uid) || (!isSignedIn() && incoming().userId == 'guest')) && 
-                    isValidOrder(incoming()) &&
-                    incoming().status in ['pending', 'processing'];
-                    
-      allow update: if isAdmin();
-      allow delete: if isAdmin();
-    }
-
-    match /coupons/{couponId} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-
-    match /settings/counters {
-      allow read: if true;
-      allow create: if (isSignedIn() || !isSignedIn()) && incoming().orderCounter == 1;
-      allow update: if (isSignedIn() || !isSignedIn()) && (
-        (incoming().orderCounter == existing().orderCounter + 1) ||
-        isAdmin()
-      );
-    }
-
+    // الإعدادات (Settings)
     match /settings/{settingsId} {
       allow read: if true;
       allow write: if isAdmin();
     }
 
-    match /support_tickets/{ticketId} {
-      allow list: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
-      allow get: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
-      allow create: if true; // Guest tickets allowed
-      allow update: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
-      allow delete: if isAdmin();
-    }
-
+    // سجلات النشاط (Activity Logs)
     match /activity_logs/{logId} {
       allow read: if isAdmin();
-      allow create: if true; // Allow logging system events publicly
+      allow create: if true;
       allow update, delete: if isAdmin();
     }
 
-    match /inventory_logs/{logId} {
-      allow read, list: if isAdmin();
-      allow create: if true; // Allow system to log inventory changes
-      allow update, delete: if isAdmin();
+    // التنبيهات (Notifications)
+    match /users/{userId}/notifications/{notificationId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow write: if isAdmin();
     }
 
-    match /visits/{visitId} {
-      allow read: if isAdmin();
-      allow create, update: if true; // Public creates stats, allow update for offline retries
-      allow delete: if isAdmin();
-    }
-
-    match /searchTerms/{termId} {
-      allow read: if isAdmin();
-      allow create, update: if true; // Public updates search stats
-      allow delete: if isAdmin();
-    }
-
-    match /abandonedCarts/{cartId} {
-      allow read: if isAdmin();
-      allow create, update: if true; // Public abandons carts
-      allow delete: if isAdmin();
-    }
-
-    match /marketing_notifications/{notificationId} {
+    // كوبونات الخصم (Coupons)
+    match /coupons/{couponId} {
       allow read: if true;
       allow write: if isAdmin();
     }
 
-    match /passkeys/{passkeyId} {
-      allow get, list: if isSignedIn() && resource.data.uid == request.auth.uid;
-      allow delete: if isSignedIn() && resource.data.uid == request.auth.uid;
+    // التوصيل والمناطق (Shipping Zones)
+    match /shipping_zones/{zoneId} {
+      allow read: if true;
+      allow write: if isAdmin();
     }
 
-    match /notification_tokens/{token} {
-      allow read: if isAdmin();
-      allow get: if true;
-      allow create, update: if true;
-      allow delete: if isAdmin() || (isSignedIn() && resource.data.uid == request.auth.uid);
+    // رسائل الدعم (Support Tickets / Messages)
+    match /support_tickets/{ticketId} {
+      allow create: if true;
+      allow read, update: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow delete: if isAdmin();
     }
 
-    match /system/connection_test {
+    // اختبار الاتصال (Connection Test)
+    match /test/connection {
       allow read: if true;
     }
-
-    match /test/connection {
+    
+    match /system/connection_test {
       allow read: if true;
     }
   }

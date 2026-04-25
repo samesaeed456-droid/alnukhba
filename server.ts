@@ -386,20 +386,52 @@ app.post("/api/sms", async (req, res) => {
   }
 });
 
+// Admin API: Reset Password from server
+app.post("/api/admin/update-password", async (req, res) => {
+  const { email, newPassword } = req.body;
+  if (!email || !newPassword) {
+    return res.status(400).json({ success: false, error: "البريد الإلكتروني وكلمة المرور الجديدة مطلوبان" });
+  }
 
+  if (getApps().length === 0) {
+    return res.status(500).json({ success: false, error: "إعدادات Firebase Admin غير متوفرة في السيرفر" });
+  }
+
+  try {
+    const adminAuth = getAuth();
+    let userRecord;
+    try {
+      userRecord = await adminAuth.getUserByEmail(email);
+    } catch (e: any) {
+      if (e.code === 'auth/user-not-found') {
+        // If user doesn't exist in Auth, we'll just let them sign up later or create them now
+        userRecord = await adminAuth.createUser({
+          email,
+          password: newPassword,
+          emailVerified: true
+        });
+        return res.json({ success: true, message: "تم إنشاء حساب توثيق جديد للمشرف" });
+      }
+      throw e;
+    }
+
+    await adminAuth.updateUser(userRecord.uid, {
+      password: newPassword
+    });
+
+    res.json({ success: true, message: "تم تحديث كلمة المرور بنجاح" });
+  } catch (error: any) {
+    console.error("[Admin Password Reset Error]:", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
 
 // Admin API: Update User Phone/Email from server
 app.post("/api/update-phone", async (req, res) => {
   const { oldPhone, oldCountryCode, newPhone, newCountryCode } = req.body;
   
-  if (!newPhone || !newCountryCode) {
+  if (!oldPhone || !oldCountryCode || !newPhone || !newCountryCode) {
     return res.status(400).json({ success: false, error: "بيانات غير مكتملة" });
-  }
-
-  if (!oldPhone || !oldCountryCode) {
-     // If they didn't have an old phone, we don't need to update the firebase auth email 
-     // because they probably signed up with google. They just want to set their phone in Firestore.
-     return res.json({ success: true, message: "تم تخطي تحديث نظام المصادقة لعدم وجود رقم سابق" });
   }
 
   if (getApps().length === 0) {
@@ -420,16 +452,7 @@ app.post("/api/update-phone", async (req, res) => {
     }
 
     // Fetch the user by old email
-    let userRecord;
-    try {
-      userRecord = await getAuth().getUserByEmail(oldEmail);
-    } catch(e: any) {
-      if (e.code === 'auth/user-not-found') {
-        // If the old email doesn't exist, they probably signed in with google. We can skip syncing.
-        return res.json({ success: true, message: "الحساب ليس مرتبط برقم الهاتف السابق في المصادقة" });
-      }
-      throw e;
-    }
+    const userRecord = await getAuth().getUserByEmail(oldEmail);
     
     // Update the user's email to match the new phone
     await getAuth().updateUser(userRecord.uid, {

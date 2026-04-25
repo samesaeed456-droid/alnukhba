@@ -386,7 +386,7 @@ app.post("/api/sms", async (req, res) => {
   }
 });
 
-// Admin API: Reset or Sync Admin Password and return UID
+// Admin API: Reset Password from server
 app.post("/api/admin/update-password", async (req, res) => {
   const { email, newPassword } = req.body;
   if (!email || !newPassword) {
@@ -402,33 +402,26 @@ app.post("/api/admin/update-password", async (req, res) => {
     let userRecord;
     try {
       userRecord = await adminAuth.getUserByEmail(email);
-      // Update password for existing user
-      await adminAuth.updateUser(userRecord.uid, {
-        password: newPassword
-      });
-      return res.json({ 
-        success: true, 
-        uid: userRecord.uid,
-        message: "تم تحديث كلمة المرور بنجاح" 
-      });
     } catch (e: any) {
       if (e.code === 'auth/user-not-found') {
-        // Create new user if doesn't exist
+        // If user doesn't exist in Auth, we'll just let them sign up later or create them now
         userRecord = await adminAuth.createUser({
           email,
           password: newPassword,
           emailVerified: true
         });
-        return res.json({ 
-          success: true, 
-          uid: userRecord.uid,
-          message: "تم إنشاء حساب توثيق جديد للمشرف" 
-        });
+        return res.json({ success: true, message: "تم إنشاء حساب توثيق جديد للمشرف" });
       }
       throw e;
     }
+
+    await adminAuth.updateUser(userRecord.uid, {
+      password: newPassword
+    });
+
+    res.json({ success: true, message: "تم تحديث كلمة المرور بنجاح" });
   } catch (error: any) {
-    console.error("[Admin Account Sync Error]:", error);
+    console.error("[Admin Password Reset Error]:", error);
     res.status(500).json({ success: false, error: error.message });
   }
 });

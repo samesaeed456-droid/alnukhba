@@ -95,55 +95,22 @@ export default function AdminLogin() {
         // Super Admins hardcoded list
         const superAdmins = [
           'samesaeed456@gmail.com', 
-          'samisaeed2027@gmail.com',
-          'samesaeed@gmail.com'
+          'samisaeed2027@gmail.com'
         ];
         
-        const userEmail = user.email.toLowerCase();
-        let isAuthorized = superAdmins.includes(userEmail);
+        let isAuthorized = superAdmins.includes(user.email);
         let currentAdminRole = isAuthorized ? 'super_admin' : 'editor';
         let currentAdminName = isAuthorized ? 'المدير العام' : 'مشرف';
 
-        // Check if the user is authorized in the admin_users collection
-        // Since we now use UID as document ID in admin_users, we check directly for maximum speed and security
-        const adminDoc = await getDoc(doc(db, 'admin_users', user.uid));
+        // Check if the user exists in our admin_users collection
+        const adminQuery = query(collection(db, 'admin_users'), where('email', '==', user.email));
+        const adminSnap = await getDocs(adminQuery);
         
-        if (adminDoc.exists()) {
-          const adminData = adminDoc.data();
-          if (adminData.isActive === false) {
-             toast.error('هذا الحساب تم تعطيله من قبل المدير العام');
-             await auth.signOut();
-             return;
-          }
+        if (adminSnap && !adminSnap.empty && adminSnap.docs && adminSnap.docs.length > 0) {
           isAuthorized = true;
+          const adminData = adminSnap.docs[0].data();
           currentAdminRole = adminData.role || 'editor';
           currentAdminName = adminData.name || 'مشرف';
-        } else {
-          // Fallback check for emails (to handle the very first login after manual addition)
-          const adminQuery = query(collection(db, 'admin_users'), where('email', '==', user.email));
-          const adminSnap = await getDocs(adminQuery);
-          
-          if (adminSnap && !adminSnap.empty && adminSnap.docs && adminSnap.docs.length > 0) {
-            isAuthorized = true;
-            const legacyDoc = adminSnap.docs[0];
-            const adminData = legacyDoc.data();
-            currentAdminRole = adminData.role || 'editor';
-            currentAdminName = adminData.name || 'مشرف';
-
-            // Radical Sync: Record exists by email but not by UID (document ID mismatch).
-            // We migrate it NOW so future logins are instant and rules work perfectly.
-            const { setDoc, deleteDoc } = await import('../../lib/firebase');
-            await setDoc(doc(db, 'admin_users', user.uid), {
-              ...adminData,
-              id: user.uid,
-              lastLogin: new Date().toISOString()
-            }, { merge: true });
-            
-            // Cleanup the legacy random ID record if it's different
-            if (legacyDoc.id !== user.uid) {
-              await deleteDoc(doc(db, 'admin_users', legacyDoc.id));
-            }
-          }
         }
         
         if (isAuthorized) {
@@ -438,23 +405,6 @@ export default function AdminLogin() {
                   <span className="font-bold text-xs text-slate-500 select-none">تذكر حذائي الإداري</span>
                   <input type="checkbox" className="hidden" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} />
                 </label>
-
-                <button 
-                  type="button"
-                  onClick={async () => {
-                    if (!email) return toast.error('يرجى إدخال البريد أولاً');
-                    try {
-                      const { sendPasswordResetEmail } = await import('firebase/auth');
-                      await sendPasswordResetEmail(auth, email);
-                      toast.success('تم إرسال رابط استعادة كلمة المرور لبريدك');
-                    } catch (e: any) {
-                      toast.error('فشل إرسال الرابط: ' + (e.message || 'خطأ غير معروف'));
-                    }
-                  }}
-                  className="text-xs font-black text-solar hover:text-solar/80 transition-colors"
-                >
-                  نسيت كلمة المرور؟
-                </button>
               </div>
 
               <button 

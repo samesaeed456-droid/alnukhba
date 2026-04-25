@@ -289,7 +289,7 @@ export default function Security() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: '100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className="relative bg-white rounded-t-[2.5rem] sm:rounded-[2.5rem] shadow-2xl w-full max-w-md max-h-[90vh] sm:max-h-none flex flex-col overflow-hidden"
+              className="relative bg-white rounded-t-[2.5rem] sm:rounded-[2.5rem] shadow-2xl w-full max-w-md md:max-w-2xl max-h-[90vh] md:max-h-[85vh] flex flex-col overflow-hidden"
             >
               {/* Mobile Handle */}
               <div className="sm:hidden w-full flex justify-center p-3">
@@ -420,7 +420,7 @@ export default function Security() {
                           exit={{ height: 0, opacity: 0 }}
                           className="overflow-hidden"
                         >
-                          <div className="grid grid-cols-2 gap-2 mt-4">
+                          <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 mt-4">
                             {allPermissions.map((perm) => (
                               <button
                                 key={perm.id}
@@ -485,7 +485,7 @@ export default function Security() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: '100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className="relative bg-white rounded-t-[2.5rem] sm:rounded-[2.5rem] shadow-2xl w-full max-w-md max-h-[90vh] sm:max-h-none flex flex-col overflow-hidden"
+              className="relative bg-white rounded-t-[2.5rem] sm:rounded-[2.5rem] shadow-2xl w-full max-w-md md:max-w-2xl max-h-[90vh] md:max-h-[85vh] flex flex-col overflow-hidden"
             >
               {/* Mobile Handle */}
               <div className="sm:hidden w-full flex justify-center p-3">
@@ -620,7 +620,7 @@ export default function Security() {
                           exit={{ height: 0, opacity: 0 }}
                           className="overflow-hidden"
                         >
-                          <div className="grid grid-cols-2 gap-2 mt-4">
+                          <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 mt-4">
                             {allPermissions.map((perm) => (
                               <button
                                 key={perm.id}

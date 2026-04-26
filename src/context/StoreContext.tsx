@@ -556,20 +556,24 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const unsubCustomers = onSnapshot(collection(db, 'users'), (snapshot) => {
       const customersData = snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() })) as unknown as UserProfile[];
       setCustomers(customersData);
+      localStorage.setItem('app_users', JSON.stringify(customersData));
     }, (error) => handleFirestoreError(error, OperationType.LIST, 'users'));
 
     const unsubLogs = onSnapshot(collection(db, 'activity_logs'), (snapshot) => {
       const logsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as ActivityLog[];
-      setActivityLogs(logsData.sort((a, b) => {
+      const sortedLogs = logsData.sort((a, b) => {
         const dateA = (a.date as any)?.seconds ? (a.date as any).seconds : new Date(a.date).getTime();
         const dateB = (b.date as any)?.seconds ? (b.date as any).seconds : new Date(b.date).getTime();
         return dateB - dateA;
-      }));
+      });
+      setActivityLogs(sortedLogs);
+      localStorage.setItem('store_activity_logs', JSON.stringify(sortedLogs));
     }, (error) => handleFirestoreError(error, OperationType.LIST, 'activity_logs'));
 
     const unsubAdmins = onSnapshot(collection(db, 'admin_users'), (snapshot) => {
       const adminsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as AdminUser[];
       setAdminUsers(adminsData);
+      localStorage.setItem('store_admin_users', JSON.stringify(adminsData));
     }, (error) => handleFirestoreError(error, OperationType.LIST, 'admin_users'));
 
     const unsubTickets = onSnapshot(collection(db, 'support_tickets'), (snapshot) => {

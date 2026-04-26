@@ -579,7 +579,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const allUsersData = snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() })) as unknown as UserProfile[];
       
       // Separate Admins and Customers
-      const adminsList = allUsersData.filter(u => u.role === 'admin' || u.isAdmin === true);
+      const adminsList = allUsersData.filter(u => u.role === 'admin' || u.isAdmin === true).map(u => ({
+        id: u.uid,
+        name: u.displayName || u.name || '',
+        email: u.email || '',
+        phone: u.phone || '',
+        countryCode: u.countryCode || '+967',
+        role: u.adminRole || 'support',
+        isActive: u.isActive ?? true,
+        permissions: u.permissions || [],
+        createdAt: u.createdAt
+      }));
       const customersList = allUsersData.filter(u => u.role !== 'admin' && !u.isAdmin);
       
       setAdminUsers(adminsList as any); // Update admins state
@@ -1576,13 +1586,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         isActive: finalAdmin.isActive ?? true,
         permissions: finalAdmin.permissions || [],
         createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-        password: finalAdmin.password 
+        updatedAt: serverTimestamp()
       });
 
       showToast('تم إضافة المشرف بنجاح');
       logActivity('إضافة مشرف', `تم إضافة مشرف جديد: ${finalAdmin.name} (${finalAdmin.email})`);
-    } catch (error) {
+    } catch (error: any) {
+      console.error('AddAdminUser Error:', error);
+      showToast(`فشل الإضافة: ${error.message || 'خطأ غير معروف'}`, 'error');
       handleFirestoreError(error, OperationType.CREATE, 'users');
     }
   }, [showToast, logActivity]);
@@ -1613,9 +1624,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       }
 
       const updates: any = {
-        ...finalData,
         updatedAt: serverTimestamp()
       };
+
+      Object.keys(finalData).forEach(key => {
+        if ((finalData as any)[key] !== undefined && key !== 'password') {
+          updates[key] = (finalData as any)[key];
+        }
+      });
 
       if (finalData.name) {
           updates.displayName = finalData.name;
@@ -1631,7 +1647,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
       showToast('تم تحديث بيانات المشرف');
       logActivity('تحديث مشرف', logDetails || `تم تحديث بيانات المشرف ID: ${id}`);
-    } catch (error) {
+    } catch (error: any) {
+      console.error('UpdateAdminUser Error:', error);
+      showToast(`فشل التحديث: ${error.message || 'خطأ غير معروف'}`, 'error');
       handleFirestoreError(error, OperationType.UPDATE, `users/${id}`);
     }
   }, [showToast, logActivity]);

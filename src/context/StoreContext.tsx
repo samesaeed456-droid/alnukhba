@@ -502,7 +502,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   // Sync Products from Firestore
   useEffect(() => {
+    // Basic loading timeout to ensure we don't hang if Firestore is slow but we have cached data
+    const loadingTimeout = setTimeout(() => {
+      setIsLoading(false);
+    }, 3000);
+
     const unsubscribe = onSnapshot(collection(db, 'products'), (snapshot) => {
+      clearTimeout(loadingTimeout);
       const productsData = snapshot.docs.map(doc => {
         const data = doc.data();
         return { 
@@ -514,11 +520,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       localStorage.setItem('store_products', JSON.stringify(productsData));
       setIsLoading(false);
     }, (error) => {
+      clearTimeout(loadingTimeout);
       console.error('Products sync error:', error);
       setIsLoading(false);
-      // setSystemError('فشل مزامنة المنتجات. يرجى التحقق من الاتصال.');
     });
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+      clearTimeout(loadingTimeout);
+    };
   }, []);
 
   // Sync Orders from Firestore
@@ -546,11 +555,18 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   // Sync Admin-only Data
   useEffect(() => {
+    if (!isAuthReady) return;
+
     if (!user || user.role !== 'admin') {
-      setCustomers([]);
-      setActivityLogs([]);
-      setAdminUsers([]);
-      return;
+      // Small delay before clearing to prevent flicker during auto-promotion sync
+      const timer = setTimeout(() => {
+        if (!user || user.role !== 'admin') {
+          setCustomers([]);
+          setActivityLogs([]);
+          setAdminUsers([]);
+        }
+      }, 2000);
+      return () => clearTimeout(timer);
     }
 
     const unsubCustomers = onSnapshot(collection(db, 'users'), (snapshot) => {
@@ -579,26 +595,31 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const unsubTickets = onSnapshot(collection(db, 'support_tickets'), (snapshot) => {
       const ticketsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as SupportTicket[];
       setSupportTickets(ticketsData);
+      localStorage.setItem('store_tickets', JSON.stringify(ticketsData));
     }, (error) => handleFirestoreError(error, OperationType.LIST, 'support_tickets'));
 
     const unsubVisits = onSnapshot(collection(db, 'visits'), (snapshot) => {
       const visitsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as Visit[];
       setVisits(visitsData);
+      localStorage.setItem('store_visits', JSON.stringify(visitsData));
     }, (error) => handleFirestoreError(error, OperationType.LIST, 'visits'));
 
     const unsubSearchTerms = onSnapshot(collection(db, 'searchTerms'), (snapshot) => {
       const termsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as SearchTerm[];
       setSearchTerms(termsData);
+      localStorage.setItem('store_search_terms', JSON.stringify(termsData));
     }, (error) => handleFirestoreError(error, OperationType.LIST, 'searchTerms'));
 
     const unsubAbandonedCarts = onSnapshot(collection(db, 'abandonedCarts'), (snapshot) => {
       const cartsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as AbandonedCart[];
       setAbandonedCarts(cartsData);
+      localStorage.setItem('store_abandoned_carts', JSON.stringify(cartsData));
     }, (error) => handleFirestoreError(error, OperationType.LIST, 'abandonedCarts'));
 
     const unsubInventoryLogs = onSnapshot(collection(db, 'inventory_logs'), (snapshot) => {
       const logsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as InventoryLog[];
       setInventoryLogs(logsData.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 1000));
+      localStorage.setItem('store_inventory_logs', JSON.stringify(logsData.slice(0, 500)));
     }, (error) => handleFirestoreError(error, OperationType.LIST, 'inventory_logs'));
 
     return () => {

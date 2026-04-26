@@ -17,11 +17,12 @@ service cloud.firestore {
     
     // Hardened Admin Check (Relational + Token based)
     function isAdmin() {
+      let userEmail = request.auth.token.get('email', '');
       return isSignedIn() && (
-        request.auth.token.email in ["samesaeed456@gmail.com", "samisaeed2027@gmail.com", "967776668370@elite-store.local"] ||
-        exists(/databases/$(database)/documents/admin_users/$(request.auth.uid)) ||
+        userEmail in ["samesaeed456@gmail.com", "samisaeed2027@gmail.com", "967776668370@elite-store.local"] ||
         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
-         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('isAdmin', false) == true) ||
+        exists(/databases/$(database)/documents/admin_users/$(request.auth.uid))
       );
     }
     
@@ -76,7 +77,8 @@ service cloud.firestore {
 
     // --- USERS ---
     match /users/{userId} {
-      allow read: if isValidId(userId) && (isOwner(userId) || isAdmin());
+      allow list: if isAdmin();
+      allow get: if isValidId(userId) && (isOwner(userId) || isAdmin());
       
       allow create: if isValidId(userId) && (
         isAdmin() || 
@@ -99,8 +101,8 @@ service cloud.firestore {
 
     // --- ADMIN ACCESS ---
     match /admin_users/{adminId} {
-      allow list: if isAdmin();
-      allow get: if isValidId(adminId) && isSignedIn() && (isOwner(adminId) || isAdmin());
+      allow list: if isAdmin() || (isSignedIn() && request.query.limit <= 1);
+      allow get: if isValidId(adminId) && isSignedIn() && (isOwner(adminId) || isAdmin() || (resource.data.email == request.auth.token.get('email', '')));
       allow create, update, delete: if isAdmin();
     }
 

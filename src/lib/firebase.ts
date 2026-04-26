@@ -20,7 +20,7 @@ import { initializeFirestore, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, d
 import firebaseConfigJson from '../../firebase-applet-config.json';
 
 // Prioritize environment variables (Vite requires VITE_ prefix for client-side)
-const firebaseConfig = {
+export const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY || firebaseConfigJson.apiKey,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || firebaseConfigJson.authDomain,
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || firebaseConfigJson.projectId,
@@ -93,7 +93,20 @@ export const reauthenticate = (password: string) => {
 };
 export const logout = () => signOut(auth);
 
-// Firestore Error Handler
+// Admin User Creation Helper (Secondary Auth)
+export const createAdminUserClientSide = async (email: string, pass: string) => {
+  const secondaryApp = initializeApp(firebaseConfig, 'SecondaryApp');
+  const secondaryAuth = getAuth(secondaryApp);
+  
+  try {
+    const userCredential = await createUserWithEmailAndPassword(secondaryAuth, email, pass);
+    await secondaryAuth.signOut(); // Ensure we sign out the secondary auth so it doesn't leave lingering sessions
+    return userCredential.user;
+  } finally {
+    // Clean up the secondary app instance
+    import('firebase/app').then(m => m.deleteApp(secondaryApp)).catch(() => {});
+  }
+};
 export enum OperationType {
   CREATE = 'create',
   UPDATE = 'update',

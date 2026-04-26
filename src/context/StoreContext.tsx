@@ -15,7 +15,7 @@ import { smsService } from '../services/smsService';
 
 import { 
   auth, db, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc, collection, query, where, onSnapshot, 
-  onAuthStateChanged, serverTimestamp, increment, OperationType, handleFirestoreError, getDocFromServer, writeBatch, runTransaction 
+  onAuthStateChanged, serverTimestamp, increment, OperationType, handleFirestoreError, getDocFromServer, writeBatch, runTransaction, createAdminUserClientSide 
 } from '../lib/firebase';
 
 interface StoreContextType {
@@ -1507,29 +1507,25 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const addAdminUser = React.useCallback(async (admin: Omit<AdminUser, 'id'>) => {
     try {
-      const newAdminRef = doc(collection(db, 'admin_users'));
       let finalAdmin = { ...admin };
+      let createdUid = doc(collection(db, 'admin_users')).id;
 
-      // Handle password synchronization for new admin
+      // Create user in Auth via secondary app
       if (finalAdmin.password && finalAdmin.email) {
         try {
-          const syncRes = await fetch('/api/admin/update-password', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: finalAdmin.email, newPassword: finalAdmin.password })
-          });
-          const syncData = await syncRes.json();
-          if (!syncData.success) {
-            console.error('Failed to sync password to Auth:', syncData.error);
-          }
-        } catch (pwError) {
-          console.error('Password sync attempt failed:', pwError);
+          const newUser = await createAdminUserClientSide(finalAdmin.email, finalAdmin.password);
+          createdUid = newUser.uid;
+        } catch (pwError: any) {
+          console.error('Auth user creation failed:', pwError);
+          showToast(`فشل إنشاء حساب الدخول: ${pwError.message || 'خطأ مجهول'}`, 'error');
+          return;
         }
       }
 
+      const newAdminRef = doc(db, 'admin_users', createdUid);
       await setDoc(newAdminRef, {
         ...finalAdmin,
-        id: newAdminRef.id,
+        id: createdUid,
         permissions: finalAdmin.permissions || getPermissionsByRole(finalAdmin.role),
         createdAt: serverTimestamp()
       });
@@ -1555,9 +1551,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           const syncData = await syncRes.json();
           if (!syncData.success) {
             console.error('Failed to sync password to Auth:', syncData.error);
+            showToast(`لم يتم تحديث كلمة المرور: ${syncData.error}. (تأكد من إعداد Firebase Admin)`, 'error');
+          } else {
+             showToast('تم تحديث كلمة المرور بنجاح');
           }
-        } catch (pwError) {
+        } catch (pwError: any) {
           console.error('Password sync attempt failed:', pwError);
+          showToast('حدث خطأ في الاتصال لتحديث كلمة المرور', 'error');
         }
       }
 

@@ -67,88 +67,70 @@ export default function NotificationGatingModal() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-carbon/80 backdrop-blur-xl"
+          className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-carbon/60 backdrop-blur-md"
         >
           <motion.div 
-            initial={{ scale: 0.9, y: 20 }}
-            animate={{ scale: 1, y: 0 }}
-            className="w-full max-w-md bg-white rounded-[2.5rem] overflow-hidden shadow-2xl relative"
+            initial={{ scale: 0.9, y: 20, opacity: 0 }}
+            animate={{ scale: 1, y: 0, opacity: 1 }}
+            className="w-full max-w-[360px] bg-white rounded-[2rem] overflow-hidden shadow-2xl relative"
           >
-            {/* Visual Header */}
-            <div className="relative h-48 bg-gradient-to-br from-solar to-gold p-8 flex items-center justify-center overflow-hidden">
+            {/* Visual Header - More Compact */}
+            <div className="relative h-32 bg-gradient-to-br from-solar to-gold flex items-center justify-center overflow-hidden">
               <motion.div 
                 animate={{ 
-                  scale: [1, 1.2, 1],
-                  rotate: [0, 5, -5, 0]
+                  scale: [1, 1.1, 1],
+                  rotate: [0, 3, -3, 0]
                 }}
                 transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
                 className="relative z-10"
               >
-                <Gift className="w-24 h-24 text-carbon opacity-20 absolute -top-4 -right-4 rotate-12" />
-                <Bell className="w-20 h-20 text-carbon" />
-                <div className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full animate-ping" />
+                <div className="bg-white/20 backdrop-blur-sm p-4 rounded-full">
+                  <Bell className="w-10 h-10 text-carbon" />
+                </div>
+                <div className="absolute top-0 right-0 w-4 h-4 bg-red-500 rounded-full border-2 border-solar animate-pulse" />
               </motion.div>
               
-              {/* Floating particles */}
-              {[...Array(6)].map((_, i) => (
-                <motion.div
-                  key={i}
-                  animate={{ 
-                    y: [0, -100], 
-                    x: [0, Math.random() * 40 - 20],
-                    opacity: [0, 1, 0] 
-                  }}
-                  transition={{ 
-                    duration: 2 + Math.random() * 2, 
-                    repeat: Infinity, 
-                    delay: Math.random() * 2 
-                  }}
-                  className="absolute w-2 h-2 bg-white/30 rounded-full"
-                  style={{ 
-                    bottom: -10, 
-                    left: `${15 + (i * 15)}%` 
-                  }}
-                />
-              ))}
+              <Gift className="w-20 h-20 text-carbon/10 absolute -bottom-4 -left-4 -rotate-12" />
+              <Zap className="w-16 h-16 text-carbon/10 absolute -top-4 -right-4 rotate-12" />
             </div>
 
-            <div className="p-8 text-center">
-              <h2 className="text-2xl font-black text-carbon mb-3">لا تفوّت هداياك! 🎁</h2>
-              <p className="text-slate-600 font-bold mb-8 leading-relaxed">
-                قم بتفعيل الإشعارات الآن لتصلك كوبونات الخصم الحصرية وتنبيهات بآخر العروض قبل الجميع.
-                <span className="block mt-2 text-solar">احصل على خصم 10% فوري عند التفعيل!</span>
+            <div className="p-6 text-center">
+              <h2 className="text-xl font-black text-carbon mb-2">لا تفوّت هداياك! 🎁</h2>
+              <p className="text-sm text-slate-600 font-bold mb-6 leading-relaxed">
+                فعّل الإشعارات الآن لتصلك كوبونات الخصم الحصرية وتنبيهات العروض قبل الجميع.
+                <span className="block mt-1 text-solar text-xs">احصل على خصم 10% فوري عند التفعيل!</span>
               </p>
 
-              <div className="space-y-4">
+              <div className="space-y-3">
                 <button
                   onClick={handleRequestPermission}
                   disabled={isPermissionRequested}
-                  className="w-full bg-solar text-carbon py-4 rounded-2xl font-black text-lg shadow-xl shadow-solar/20 flex items-center justify-center gap-3 hover:scale-[1.02] transition-transform active:scale-95 disabled:opacity-50"
+                  className="w-full bg-solar text-carbon py-3.5 rounded-xl font-black text-base shadow-lg shadow-solar/20 flex items-center justify-center gap-2 hover:brightness-105 transition-all active:scale-95 disabled:opacity-50"
                 >
                   {isPermissionRequested ? (
                     <motion.div 
                       animate={{ rotate: 360 }}
                       transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                      className="w-6 h-6 border-2 border-carbon border-t-transparent rounded-full"
+                      className="w-5 h-5 border-2 border-carbon border-t-transparent rounded-full"
                     />
                   ) : (
-                    <Zap className="w-5 h-5 fill-current" />
+                    <Zap className="w-4 h-4 fill-current" />
                   )}
-                  <span>تفعيل واستلام الهدية الفورية</span>
+                  <span>تفعيل واستلام الهدية</span>
                 </button>
                 
-                <div className="p-4 bg-red-50 rounded-xl border border-red-100">
-                  <p className="text-[11px] text-red-600 font-bold">يجب تفعيل الإشعارات للمتابعة في المتجر والحصول على العروض .</p>
+                <div className="p-3 bg-red-50 rounded-xl border border-red-100">
+                  <p className="text-[10px] text-red-600 font-bold leading-tight">يرجى تفعيل الإشعارات للمتابعة والحصول على العروض الجديدة.</p>
                 </div>
               </div>
 
-              <div className="mt-8 flex items-center justify-center gap-4 text-[10px] font-black text-slate-400 uppercase tracking-widest pt-6 border-t border-slate-100">
+              <div className="mt-6 flex items-center justify-center gap-3 text-[9px] font-black text-slate-400 uppercase tracking-wider pt-4 border-t border-slate-100">
                 <div className="flex items-center gap-1">
-                  <ShieldCheck className="w-3 h-3" />
+                  <ShieldCheck className="w-2.5 h-2.5" />
                   <span>آمن 100%</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <Zap className="w-3 h-3" />
+                  <Zap className="w-2.5 h-2.5" />
                   <span>تحديثات فورية</span>
                 </div>
               </div>

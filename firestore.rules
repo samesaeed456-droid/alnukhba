@@ -33,16 +33,26 @@ service cloud.firestore {
     // ===============================================================
 
     function isValidUser(data) {
-      return (data.uid is string || !('uid' in data)) && 
-             (data.email is string || !('email' in data)) &&
-             (data.role in ['user', 'admin'] || !('role' in data)) &&
+      return (data.get('uid', '') is string) && 
+             (data.get('email', '') is string) &&
+             (data.get('role', 'user') in ['user', 'admin']) &&
              (!('walletBalance' in data) || data.walletBalance is number) &&
              (!('currentSessionId' in data) || (data.currentSessionId is string && data.currentSessionId.size() <= 128)) &&
-             (!('lastActive' in data) || (data.lastActive is string && data.lastActive.size() <= 128));
+             (!('lastActive' in data) || (data.lastActive is string && data.lastActive.size() <= 128)) &&
+             (!('name' in data) || (data.name is string && data.name.size() <= 200)) &&
+             (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 200)) &&
+             (!('phone' in data) || (data.phone is string && data.phone.size() <= 30)) &&
+             (!('countryCode' in data) || (data.countryCode is string && data.countryCode.size() <= 10)) &&
+             (!('photoURL' in data) || (data.photoURL is string && data.photoURL.size() <= 1000)) &&
+             (!('fcmTokens' in data) || data.fcmTokens is list) &&
+             (!('notificationsEnabled' in data) || data.notificationsEnabled is bool) &&
+             (!('createdAt' in data) || data.createdAt is timestamp) &&
+             (!('updatedAt' in data) || data.updatedAt is timestamp);
     }
 
     function isSafeUpdate() {
       // Allow if admin or if role/balance are unchanged by owner
+      // We use .get(field, default) to handle missing fields gracefully
       return isAdmin() || (
         (incoming().get('role', existing().get('role', 'user')) == existing().get('role', 'user')) &&
         (incoming().get('walletBalance', existing().get('walletBalance', 0)) == existing().get('walletBalance', 0) || 

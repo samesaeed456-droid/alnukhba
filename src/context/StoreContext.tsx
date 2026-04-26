@@ -413,7 +413,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             }
 
             setDoc(doc(db, 'users', firebaseUser.uid), defaultData, { merge: true })
-              .catch(error => console.error("Error creating fallback profile:", error));
+              .catch(error => handleFirestoreError(error, OperationType.WRITE, `users/${firebaseUser.uid}`));
 
             // Don't set user state here with empty fields, let the snapshot update it naturally
             // once Auth.tsx finishes its true save, or this setDoc finishes.

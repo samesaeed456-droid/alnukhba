@@ -207,7 +207,7 @@ export default function Customers() {
     notes: '',
   });
 
-  const handleAddCustomer = (e: React.FormEvent) => {
+  const handleAddCustomer = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCustomer.name || !newCustomer.phone) {
       showToast('يرجى إدخال الاسم ورقم الهاتف على الأقل', 'error');
@@ -241,18 +241,22 @@ export default function Customers() {
       wishlist: [],
     };
 
-    addCustomer(customerData);
-
-    setNewCustomer({
-      name: '',
-      phone: '',
-      password: '',
-      address: '',
-      city: '',
-      balance: 0,
-      notes: '',
-    });
-    setIsAddModalOpen(false);
+    try {
+      await addCustomer(customerData);
+      
+      setNewCustomer({
+        name: '',
+        phone: '',
+        password: '',
+        address: '',
+        city: '',
+        balance: 0,
+        notes: '',
+      });
+      setIsAddModalOpen(false);
+    } catch (err) {
+      // Error handled in store
+    }
   };
 
   // Calculate customer metrics

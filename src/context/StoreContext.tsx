@@ -2394,11 +2394,41 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         return;
       }
       
-      const newUserRef = doc(collection(db, 'users'));
-      await setDoc(newUserRef, {
+      const countryCode = customer.countryCode || '+967';
+      const dummyEmail = `${countryCode.replace('+', '')}${customer.phone}@elite-store.local`;
+      let authUid = '';
+
+      // Create in Auth if password is provided
+      if (customer.password) {
+        try {
+          const syncRes = await fetch('/api/admin/update-password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: dummyEmail, newPassword: customer.password })
+          });
+          const syncData = await syncRes.json();
+          if (syncData.success && syncData.uid) {
+            authUid = syncData.uid;
+          } else {
+            console.error('Failed to create Auth record:', syncData.error);
+            showToast(`لم يتم إنشاء حساب تسجيل الدخول: ${syncData.error}. (تأكد من إعداد Firebase Admin)`, 'error');
+            return; // Stop if we can't create the auth record
+          }
+        } catch (authErr) {
+          console.error('Auth sync attempt failed:', authErr);
+          showToast('فشل الاتصال لتأكيد حساب تسجيل الدخول', 'error');
+          return;
+        }
+      } else {
+        showToast('يرجى تحديد كلمة مرور ليتمكن العميل من تسجيل الدخول', 'warning');
+        // If no password, we just use a random ID for Firestore, but they can't login
+        authUid = doc(collection(db, 'users')).id;
+      }
+
+      await setDoc(doc(db, 'users', authUid), {
         ...customer,
-        uid: newUserRef.id,
-        email: customer.email || '',
+        uid: authUid,
+        email: dummyEmail,
         role: 'customer',
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()

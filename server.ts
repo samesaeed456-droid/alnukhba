@@ -410,7 +410,7 @@ app.post("/api/admin/update-password", async (req, res) => {
           password: newPassword,
           emailVerified: true
         });
-        return res.json({ success: true, message: "تم إنشاء حساب توثيق جديد للمشرف" });
+        return res.json({ success: true, message: "تم إنشاء حساب توثيق جديد", uid: userRecord.uid });
       }
       throw e;
     }
@@ -419,7 +419,7 @@ app.post("/api/admin/update-password", async (req, res) => {
       password: newPassword
     });
 
-    res.json({ success: true, message: "تم تحديث كلمة المرور بنجاح" });
+    res.json({ success: true, message: "تم تحديث كلمة المرور بنجاح", uid: userRecord.uid });
   } catch (error: any) {
     console.error("[Admin Password Reset Error]:", error);
     res.status(500).json({ success: false, error: error.message });

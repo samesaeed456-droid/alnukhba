@@ -145,7 +145,7 @@ export default function AdminLogin() {
     } catch (error: any) {
       console.error('Login error:', error);
       let message = 'حدث خطأ أثناء تسجيل الدخول';
-      if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') message = 'البيانات غير صحيحة';
+      if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') message = 'البيانات غير صحيحة أو غير متوفرة';
       if (error.code === 'auth/wrong-password') message = 'كلمة المرور خاطئة';
       if (error.code === 'auth/too-many-requests') message = 'تم حظر المحاولات مؤقتاً، حاول لاحقاً';
       if (error.message && !error.code) message = error.message;

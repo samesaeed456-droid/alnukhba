@@ -95,7 +95,9 @@ export const logout = () => signOut(auth);
 
 // Admin User Creation Helper (Secondary Auth)
 export const createAdminUserClientSide = async (email: string, pass: string) => {
-  const secondaryApp = initializeApp(firebaseConfig, 'SecondaryApp');
+  const { initializeApp, deleteApp } = await import('firebase/app');
+  const appName = `SecondaryApp_${Math.random().toString(36).substring(2, 10)}`;
+  const secondaryApp = initializeApp(firebaseConfig, appName);
   const secondaryAuth = getAuth(secondaryApp);
   
   try {
@@ -104,7 +106,11 @@ export const createAdminUserClientSide = async (email: string, pass: string) => 
     return userCredential.user;
   } finally {
     // Clean up the secondary app instance
-    import('firebase/app').then(m => m.deleteApp(secondaryApp)).catch(() => {});
+    try {
+      await deleteApp(secondaryApp);
+    } catch (e) {
+      console.error('Failed to delete secondary app:', e);
+    }
   }
 };
 export enum OperationType {

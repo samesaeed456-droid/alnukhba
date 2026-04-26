@@ -15,14 +15,16 @@ service cloud.firestore {
     function isVerified() { return isSignedIn() && (request.auth.token.email_verified == true || request.auth.token.firebase.sign_in_provider == 'google.com'); }
     function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
     
-    // Hardened Admin Check (Relational + Token based)
+    // Hardened Admin Check (Fast & Relational)
     function isAdmin() {
-      let userEmail = request.auth.token.get('email', '');
+      let email = request.auth.token.get('email', '');
       return isSignedIn() && (
-        userEmail in ["samesaeed456@gmail.com", "samisaeed2027@gmail.com", "967776668370@elite-store.local"] ||
+        email == "samesaeed456@gmail.com" || 
+        email == "samisaeed2027@gmail.com" || 
+        email == "967776668370@elite-store.local" ||
+        exists(/databases/$(database)/documents/admin_users/$(request.auth.uid)) ||
         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
-         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('isAdmin', false) == true) ||
-        exists(/databases/$(database)/documents/admin_users/$(request.auth.uid))
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('isAdmin', false) == true)
       );
     }
     
@@ -78,7 +80,7 @@ service cloud.firestore {
     // --- USERS ---
     match /users/{userId} {
       allow list: if isAdmin();
-      allow get: if isValidId(userId) && (isOwner(userId) || isAdmin());
+      allow get: if isSignedIn() && (request.auth.uid == userId || isAdmin());
       
       allow create: if isValidId(userId) && (
         isAdmin() || 
@@ -101,14 +103,14 @@ service cloud.firestore {
 
     // --- ADMIN ACCESS ---
     match /admin_users/{adminId} {
-      allow list: if isAdmin() || (isSignedIn() && request.query.limit <= 1);
-      allow get: if isValidId(adminId) && isSignedIn() && (isOwner(adminId) || isAdmin() || (resource.data.email == request.auth.token.get('email', '')));
+      allow list: if isAdmin();
+      allow get: if isSignedIn() && (request.auth.uid == adminId || isAdmin());
       allow create, update, delete: if isAdmin();
     }
 
     // --- PRODUCTS & CONTENT ---
     match /products/{productId} {
-      allow read: if isValidId(productId);
+      allow read: if true;
       allow write: if isAdmin();
       
       // Atomic Inventory Guard (Pillar 7)
@@ -118,17 +120,17 @@ service cloud.firestore {
     }
 
     match /categories/{categoryId} {
-      allow read: if isValidId(categoryId);
+      allow read: if true;
       allow write: if isAdmin();
     }
 
     match /blog_posts/{postId} {
-      allow read: if isValidId(postId);
+      allow read: if true;
       allow write: if isAdmin();
     }
 
     match /static_pages/{pageId} {
-      allow read: if isValidId(pageId);
+      allow read: if true;
       allow write: if isAdmin();
     }
 

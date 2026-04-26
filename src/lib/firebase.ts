@@ -16,7 +16,7 @@ import {
   EmailAuthProvider, 
   reauthenticateWithCredential 
 } from 'firebase/auth';
-import { initializeFirestore, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc, collection, query, where, onSnapshot, serverTimestamp, increment, getDocFromServer, enableIndexedDbPersistence, writeBatch, runTransaction } from 'firebase/firestore';
+import { initializeFirestore, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc, collection, query, where, limit, orderBy, onSnapshot, serverTimestamp, increment, getDocFromServer, enableIndexedDbPersistence, writeBatch, runTransaction } from 'firebase/firestore';
 import firebaseConfigJson from '../../firebase-applet-config.json';
 
 // Prioritize environment variables (Vite requires VITE_ prefix for client-side)
@@ -185,6 +185,8 @@ export {
   collection,
   query,
   where,
+  limit,
+  orderBy,
   onSnapshot,
   serverTimestamp,
   increment,

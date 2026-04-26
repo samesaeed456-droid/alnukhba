@@ -90,25 +90,55 @@ export default function AdminLogin() {
   
   // Check if already logged in with authorized email
   useEffect(() => {
+    // Instant check if we already have a valid session in local storage
+    const hasAdminAuth = localStorage.getItem('admin_auth') === 'true';
+    const savedUser = localStorage.getItem('store_user');
+    
+    if (hasAdminAuth && savedUser) {
+      try {
+        const userData = JSON.parse(savedUser);
+        if (userData.role === 'admin') {
+          navigate('/admin');
+          setIsCheckingAuth(false);
+          return;
+        }
+      } catch (e) {}
+    }
+
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
       if (user && user.email) {
         let isAuthorized = false;
         let adminData: any = null;
 
-        // Base super admins
+        // Base super admins (Instant check)
         const superAdmins = ['samesaeed456@gmail.com', 'samisaeed2027@gmail.com'];
-        if (superAdmins.includes(user.email)) {
+        const userEmail = user.email.toLowerCase();
+        
+        if (superAdmins.includes(userEmail) || userEmail.endsWith('@elite-store.local')) {
            isAuthorized = true;
            adminData = { role: 'super_admin', name: 'المدير العام', email: user.email, permissions: [] };
+           
+           // Fast track for super admins
+           localStorage.setItem('admin_auth', 'true');
+           localStorage.setItem('admin_email', user.email);
+           localStorage.setItem('admin_name', 'المدير العام');
+           localStorage.setItem('admin_role', 'super_admin');
+           navigate('/admin');
+           setIsCheckingAuth(false);
+           return;
         }
 
-        // Check if the user exists in our admin_users collection
-        const adminQuery = query(collection(db, 'admin_users'), where('email', '==', user.email));
-        const adminSnap = await getDocs(adminQuery);
-        
-        if (!adminSnap.empty) {
-          isAuthorized = true;
-          adminData = adminSnap.docs[0].data();
+        // Secondary check via Firestore (Optimized with limit 1)
+        try {
+          const adminQuery = query(collection(db, 'admin_users'), where('email', '==', user.email), limit(1));
+          const adminSnap = await getDocs(adminQuery);
+          
+          if (!adminSnap.empty) {
+            isAuthorized = true;
+            adminData = adminSnap.docs[0].data();
+          }
+        } catch (err) {
+          console.warn("Minor background auth check error:", err);
         }
         
         if (isAuthorized && adminData) {

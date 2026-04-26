@@ -14,7 +14,7 @@ import { notificationService } from '../services/notificationService';
 import { smsService } from '../services/smsService';
 
 import { 
-  auth, db, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc, collection, query, where, onSnapshot, 
+  auth, db, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc, collection, query, where, limit, orderBy, onSnapshot, 
   onAuthStateChanged, serverTimestamp, increment, OperationType, handleFirestoreError, getDocFromServer, writeBatch, runTransaction, createAdminUserClientSide 
 } from '../lib/firebase';
 
@@ -331,7 +331,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return saved ? JSON.parse(saved) : null;
   });
   const [isAuthReady, setIsAuthReady] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(() => {
+    const hasProducts = !!localStorage.getItem('store_products');
+    const hasSettings = !!localStorage.getItem('store_settings');
+    const hasUser = !!localStorage.getItem('store_user');
+    return !(hasProducts && hasSettings); // Only show loader if we don't even have layout data
+  });
   const [systemError, setSystemError] = useState<string | null>(null);
 
   // Connection check removed per user request
@@ -364,6 +369,33 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           localStorage.setItem('local_session_id', localSessionId);
         }
 
+        // Fast-path for hardcoded admins to hide "Checking permissions" immediately
+        const hardcodedAdmins = ["samesaeed456@gmail.com", "samisaeed2027@gmail.com", "samisaeed2025@gmail.com"];
+        if (firebaseUser.email && hardcodedAdmins.includes(firebaseUser.email)) {
+          // If we have cached user data, use it for immediate display
+          const cachedUser = localStorage.getItem('store_user');
+          if (cachedUser) {
+            try {
+              const parsed = JSON.parse(cachedUser);
+              if (parsed.uid === firebaseUser.uid) {
+                setUser(parsed);
+              }
+            } catch (e) {}
+          } else {
+            // Set basic user info so app can start while Firestore syncs
+            setUser({
+              uid: firebaseUser.uid,
+              email: firebaseUser.email,
+              role: 'admin',
+              adminRole: 'super_admin',
+              isAdmin: true,
+              displayName: firebaseUser.displayName || 'المدير العام',
+              phoneNumber: firebaseUser.phoneNumber || ''
+            } as UserProfile);
+          }
+          setIsAuthReady(true);
+        }
+
         // Update current session in Firestore
         updateDoc(doc(db, 'users', firebaseUser.uid), {
           currentSessionId: localSessionId,
@@ -390,8 +422,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             // Try to link notification token to this logged in user
             refreshNotificationToken();
           } else {
-            // Gentle creation: only set essential and firebase-provided fields with merge:true
-            // to avoid overwriting fields (like name/phone) being simultaneously saved by Auth.tsx
+            // Gentle creation: only set essential and firebase-provided fields
             const defaultData: any = {
               uid: firebaseUser.uid,
               email: firebaseUser.email || '',
@@ -412,16 +443,20 @@ export function StoreProvider({ children }: { children: ReactNode }) {
               }
             }
 
+            // If it's a hardcoded admin, ensure they get admin role on creation
+            if (firebaseUser.email && hardcodedAdmins.includes(firebaseUser.email)) {
+              defaultData.role = 'admin';
+              defaultData.adminRole = 'super_admin';
+              defaultData.isAdmin = true;
+            }
+
             setDoc(doc(db, 'users', firebaseUser.uid), defaultData, { merge: true })
               .catch(error => handleFirestoreError(error, OperationType.WRITE, `users/${firebaseUser.uid}`));
-
-            // Don't set user state here with empty fields, let the snapshot update it naturally
-            // once Auth.tsx finishes its true save, or this setDoc finishes.
           }
           setIsAuthReady(true);
         }, (error) => {
-          handleFirestoreError(error, OperationType.GET, `users/${firebaseUser.uid}`);
-          setIsAuthReady(true);
+          console.warn("User profile sync warning:", error);
+          setIsAuthReady(true); // Don't leave user stuck on checking screen
         });
       } else {
         if (unsubUser) unsubUser();
@@ -443,15 +478,24 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         try {
           // 1. Check if user is one of the hardcoded owners
           const ownerEmails = ['samesaeed456@gmail.com', 'samisaeed2027@gmail.com'];
-          const isOwner = (user.email && ownerEmails.includes(user.email)) || 
-                         (user.email && user.email.includes('elite-store.local'));
+          const userEmail = user.email || '';
+          const isOwner = (userEmail && ownerEmails.includes(userEmail)) || 
+                         (userEmail && userEmail.includes('elite-store.local'));
 
-          // 2. Try to find in admin_users by UID or Email
-          let adminDoc = await getDoc(doc(db, 'admin_users', user.uid));
-          let adminData = adminDoc.exists() ? adminDoc.data() as AdminUser : null;
-
-          if (!adminData && user.email) {
-            const adminQuery = query(collection(db, 'admin_users'), where('email', '==', user.email));
+          // 2. Try to find in admin_users by UID or Email (using limit(1) for speed)
+          let adminData: AdminUser | null = null;
+          
+          // First check by UID as it's more direct
+          const adminDoc = await getDoc(doc(db, 'admin_users', user.uid));
+          if (adminDoc.exists()) {
+            adminData = { ...adminDoc.data(), id: adminDoc.id } as AdminUser;
+          } else if (userEmail) {
+            // Then check by Email with limit(1)
+            const adminQuery = query(
+              collection(db, 'admin_users'), 
+              where('email', '==', userEmail),
+              limit(1)
+            );
             const adminSnap = await getDocs(adminQuery);
             if (!adminSnap.empty) {
               adminData = { ...adminSnap.docs[0].data(), id: adminSnap.docs[0].id } as AdminUser;
@@ -460,22 +504,21 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
           // 3. Auto-promote if in admin_users or is owner
           if (adminData || isOwner) {
-            if (user.role !== 'admin' || (isOwner && user.adminRole !== 'super_admin')) {
-              await setDoc(doc(db, 'users', user.uid), {
-                uid: user.uid,
-                email: user.email,
-                displayName: user.displayName || user.name || (adminData ? adminData.name : 'مسؤول'),
+            if (user.role !== 'admin' || (isOwner && user.adminRole !== 'super_admin') || !user.isAdmin) {
+              const updates: any = {
                 role: 'admin',
                 adminRole: adminData?.role || (isOwner ? 'super_admin' : 'admin'),
-                updatedAt: serverTimestamp(),
-                isAdmin: true
-              }, { merge: true });
+                isAdmin: true,
+                updatedAt: serverTimestamp()
+              };
+              
+              await setDoc(doc(db, 'users', user.uid), updates, { merge: true });
               
               if (isOwner && (!adminData || adminData.role !== 'super_admin')) {
                 await setDoc(doc(db, 'admin_users', user.uid), {
                   id: user.uid,
                   name: user.displayName || user.name || 'المدير العام',
-                  email: user.email,
+                  email: userEmail,
                   phone: user.phone || '',
                   role: 'super_admin',
                   isActive: true,
@@ -483,16 +526,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
                 }, { merge: true });
               }
 
-              showToast('تم استعادة صلاحيات لوحة التحكم بنجاح', 'success');
-              setTimeout(() => {
-                if (window.location.pathname.startsWith('/admin') && user.role !== 'admin') {
-                  window.location.reload();
-                }
-              }, 1000);
+              // Update local state immediately for faster UI response
+              setUser(prev => prev ? { ...prev, ...updates } : null);
+              
+              showToast('تم تحديث صلاحيات المدير بنجاح', 'success');
             }
           }
         } catch (e) {
-          console.error("Permission sync failed:", e);
+          // Log but don't spam errors
+          console.warn("Permission sync background check:", e);
         }
       };
       
@@ -505,7 +547,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     // Basic loading timeout to ensure we don't hang if Firestore is slow but we have cached data
     const loadingTimeout = setTimeout(() => {
       setIsLoading(false);
-    }, 3000);
+    }, 1200);
 
     const unsubscribe = onSnapshot(collection(db, 'products'), (snapshot) => {
       clearTimeout(loadingTimeout);

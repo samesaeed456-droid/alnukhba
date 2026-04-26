@@ -436,73 +436,65 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  // Super Admin Rescue Logic
+  // Super Admin Rescue & Admin Sync Logic
   useEffect(() => {
-    if (user) {
-      // If the owner's email matches, force super_admin regardless of current role
-      const ownerEmails = ['samesaeed456@gmail.com'];
-      const ownerPhones = ['776668370', '967776668370', '+967776668370'];
-      
-      const isOwner = 
-        (user.email && ownerEmails.includes(user.email)) || 
-        (user.email && user.email.includes('elite-store.local')) ||
-        (user.phone && ownerPhones.some(p => user.phone?.includes(p)));
+    if (user && isAuthReady) {
+      const syncPermissions = async () => {
+        try {
+          // 1. Check if user is one of the hardcoded owners
+          const ownerEmails = ['samesaeed456@gmail.com', 'samisaeed2027@gmail.com'];
+          const isOwner = (user.email && ownerEmails.includes(user.email)) || 
+                         (user.email && user.email.includes('elite-store.local'));
 
-      if (isOwner) {
-         const checkIfShouldBeSuper = async () => {
-           try {
-             const adminQuery = query(collection(db, 'admin_users'), where('email', '==', user.email));
-             const adminSnap = await getDocs(adminQuery);
-             
-             // If we didn't find by email, try falling back to finding by phone
-             let adminDocId = user.uid;
-             let currentRole = null;
+          // 2. Try to find in admin_users by UID or Email
+          let adminDoc = await getDoc(doc(db, 'admin_users', user.uid));
+          let adminData = adminDoc.exists() ? adminDoc.data() as AdminUser : null;
 
-             if (adminSnap && !adminSnap.empty && adminSnap.docs && adminSnap.docs.length > 0) {
-               adminDocId = adminSnap.docs[0].id;
-               currentRole = adminSnap.docs[0].data().role;
-             } else {
-                // Not found by email, try phone
-                const dummyEmail = getAdminDummyEmail(user.phone || '', '+967');
-                const adminPhoneQuery = query(collection(db, 'admin_users'), where('email', '==', dummyEmail));
-                const adminPhoneSnap = await getDocs(adminPhoneQuery);
-                if (adminPhoneSnap && !adminPhoneSnap.empty && adminPhoneSnap.docs && adminPhoneSnap.docs.length > 0) {
-                  adminDocId = adminPhoneSnap.docs[0].id;
-                  currentRole = adminPhoneSnap.docs[0].data().role;
+          if (!adminData && user.email) {
+            const adminQuery = query(collection(db, 'admin_users'), where('email', '==', user.email));
+            const adminSnap = await getDocs(adminQuery);
+            if (!adminSnap.empty) {
+              adminData = { ...adminSnap.docs[0].data(), id: adminSnap.docs[0].id } as AdminUser;
+            }
+          }
+
+          // 3. Auto-promote if in admin_users or is owner
+          if (adminData || isOwner) {
+            if (user.role !== 'admin' || (isOwner && user.adminRole !== 'super_admin')) {
+              await updateDoc(doc(db, 'users', user.uid), {
+                role: 'admin',
+                adminRole: adminData?.role || (isOwner ? 'super_admin' : 'admin'),
+                updatedAt: serverTimestamp()
+              });
+              
+              if (isOwner && (!adminData || adminData.role !== 'super_admin')) {
+                await setDoc(doc(db, 'admin_users', user.uid), {
+                  id: user.uid,
+                  name: user.displayName || user.name || 'المدير العام',
+                  email: user.email,
+                  phone: user.phone || '',
+                  role: 'super_admin',
+                  isActive: true,
+                  permissions: ['view_dashboard', 'manage_orders', 'manage_products', 'manage_customers', 'manage_marketing', 'manage_coupons', 'manage_settings', 'manage_security', 'view_logs', 'manage_logistics', 'manage_messages']
+                }, { merge: true });
+              }
+
+              showToast('تم استعادة صلاحيات لوحة التحكم بنجاح', 'success');
+              setTimeout(() => {
+                if (window.location.pathname.startsWith('/admin') && user.role !== 'admin') {
+                  window.location.reload();
                 }
-             }
-             
-             // If they don't even exist in admin_users or are downgraded
-             if (currentRole !== 'super_admin') {
-               console.log("Owner detected by phone/email! Forcing permissions...");
-               
-               await setDoc(doc(db, 'admin_users', adminDocId), {
-                 id: user.uid,
-                 name: user.displayName || user.name || 'المدير العام',
-                 email: user.email,
-                 phone: user.phone || '776668370',
-                 role: 'super_admin',
-                 isActive: true,
-                 permissions: ['view_dashboard', 'manage_orders', 'manage_products', 'manage_customers', 'manage_marketing', 'manage_coupons', 'manage_settings', 'manage_security', 'view_logs', 'manage_logistics', 'manage_messages']
-               }, { merge: true });
-
-               await updateDoc(doc(db, 'users', user.uid), {
-                 role: 'admin',
-                 adminRole: 'super_admin'
-               });
-               
-               showToast('تمت استعادة صلاحيات المدير العام بنجاح', 'success');
-               // Force a real reload
-               window.location.reload();
-             }
-           } catch (e) {
-             console.error("Rescue failed:", e);
-           }
-         };
-         checkIfShouldBeSuper();
-      }
+              }, 1000);
+            }
+          }
+        } catch (e) {
+          console.error("Permission sync failed:", e);
+        }
+      };
+      
+      syncPermissions();
     }
-  }, [user]);
+  }, [user, isAuthReady]);
 
   // Sync Products from Firestore
   useEffect(() => {

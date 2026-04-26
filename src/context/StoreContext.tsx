@@ -612,10 +612,20 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }
 
     const unsubCustomers = onSnapshot(collection(db, 'users'), (snapshot) => {
-      const customersData = snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() })) as unknown as UserProfile[];
+      const allUsers = snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() })) as unknown as UserProfile[];
+      // Strict separation: Filter out anyone who is an admin or in the hardcoded list
+      const hardcodedAdminsList = ["samesaeed456@gmail.com", "samisaeed2027@gmail.com", "samisaeed2025@gmail.com", "967776668370@elite-store.local"];
+      const customersData = allUsers.filter(u => {
+        const email = (u.email || '').toLowerCase();
+        return u.role !== 'admin' && !u.isAdmin && !hardcodedAdminsList.includes(email);
+      });
       setCustomers(customersData);
       localStorage.setItem('app_users', JSON.stringify(customersData));
-    }, (error) => handleFirestoreError(error, OperationType.LIST, 'users'));
+    }, (error) => {
+      const hardcodedAdmins = ["samesaeed456@gmail.com", "samisaeed2027@gmail.com", "samisaeed2025@gmail.com"];
+      const isHardcodedAdmin = user?.email && hardcodedAdmins.includes(user.email);
+      if (!isHardcodedAdmin) handleFirestoreError(error, OperationType.LIST, 'users');
+    });
 
     const unsubLogs = onSnapshot(collection(db, 'activity_logs'), (snapshot) => {
       const logsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as ActivityLog[];

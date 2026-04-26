@@ -9,7 +9,7 @@ import { startAuthentication } from '@simplewebauthn/browser';
 import { signInWithCustomToken } from 'firebase/auth';
 import { 
   auth, db, doc, getDoc, loginWithEmail, signupWithEmail,
-  query, collection, where, getDocs
+  query, collection, where, getDocs, limit
 } from '../../lib/firebase';
 import { getAdminDummyEmail } from '../../lib/adminAuth';
 import Logo from '../../components/Logo';

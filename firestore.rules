@@ -45,6 +45,10 @@ service cloud.firestore {
              (!('photoURL' in data) || (data.photoURL is string && data.photoURL.size() <= 1000)) &&
              (!('fcmTokens' in data) || (data.fcmTokens is list && data.fcmTokens.size() <= 10)) &&
              (!('notificationsEnabled' in data) || data.notificationsEnabled is bool) &&
+             (!('isAdmin' in data) || data.isAdmin is bool) &&
+             (!('adminRole' in data) || data.adminRole is string) &&
+             (!('adminName' in data) || data.adminName is string) &&
+             (!('status' in data) || data.status is string) &&
              (!('createdAt' in data) || data.createdAt is timestamp) &&
              (!('updatedAt' in data) || data.updatedAt is timestamp);
     }
@@ -54,7 +58,7 @@ service cloud.firestore {
       let affected = incoming().diff(existing()).affectedKeys();
       return isAdmin() || (
         isOwner(request.auth.uid) && 
-        !affected.hasAny(['role', 'walletBalance', 'uid', 'email', 'createdAt']) &&
+        !affected.hasAny(['role', 'walletBalance', 'uid', 'email', 'createdAt', 'isAdmin', 'adminRole']) &&
         incoming().get('updatedAt', request.time) == request.time
       );
     }
@@ -74,9 +78,12 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if isValidId(userId) && (isOwner(userId) || isAdmin());
       
-      allow create: if isValidId(userId) && isOwner(userId) && isValidUser(incoming()) && 
-                    incoming().get('role', 'user') == 'user' && 
-                    incoming().get('walletBalance', 0) == 0;
+      allow create: if isValidId(userId) && (
+        isAdmin() || 
+        (isOwner(userId) && isValidUser(incoming()) && 
+         incoming().get('role', 'user') == 'user' && 
+         incoming().get('walletBalance', 0) == 0)
+      );
                     
       allow update: if isValidId(userId) && (isAdmin() || isOwner(userId)) && 
                     isValidUser(incoming()) && isSafeUserUpdate();

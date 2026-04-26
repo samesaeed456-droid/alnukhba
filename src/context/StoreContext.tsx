@@ -461,11 +461,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           // 3. Auto-promote if in admin_users or is owner
           if (adminData || isOwner) {
             if (user.role !== 'admin' || (isOwner && user.adminRole !== 'super_admin')) {
-              await updateDoc(doc(db, 'users', user.uid), {
+              await setDoc(doc(db, 'users', user.uid), {
+                uid: user.uid,
+                email: user.email,
+                displayName: user.displayName || user.name || (adminData ? adminData.name : 'مسؤول'),
                 role: 'admin',
                 adminRole: adminData?.role || (isOwner ? 'super_admin' : 'admin'),
-                updatedAt: serverTimestamp()
-              });
+                updatedAt: serverTimestamp(),
+                isAdmin: true
+              }, { merge: true });
               
               if (isOwner && (!adminData || adminData.role !== 'super_admin')) {
                 await setDoc(doc(db, 'admin_users', user.uid), {
@@ -1529,6 +1533,24 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         permissions: finalAdmin.permissions || getPermissionsByRole(finalAdmin.role),
         createdAt: serverTimestamp()
       });
+
+      // Synchronize with users collection to ensure immediate access
+      try {
+        await setDoc(doc(db, 'users', createdUid), {
+          uid: createdUid,
+          email: finalAdmin.email,
+          displayName: finalAdmin.name,
+          role: 'admin',
+          adminRole: finalAdmin.role,
+          isAdmin: true,
+          status: 'active',
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        }, { merge: true });
+      } catch (syncErr) {
+        console.error('Failed to sync admin to users collection:', syncErr);
+      }
+
       showToast('تم إضافة المشرف بنجاح');
       logActivity('إضافة مشرف', `تم إضافة مشرف جديد: ${finalAdmin.name} (${finalAdmin.email})`);
     } catch (error) {

@@ -1336,7 +1336,7 @@ export default function Profile() {
                       setIsProcessingTopUp(true);
                       setTimeout(() => {
                         const newTransaction = {
-                          id: crypto.randomUUID(),
+                          id: (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15)),
                           amount: amountInBaseCurrency,
                           type: 'deposit' as const,
                           date: new Date().toISOString(),
@@ -1528,7 +1528,7 @@ export default function Profile() {
                           return;
                         }
                         const addr: Address = {
-                          id: crypto.randomUUID(),
+                          id: (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15)),
                           firstName: newAddress.firstName!,
                           lastName: newAddress.lastName!,
                           address: newAddress.address!,

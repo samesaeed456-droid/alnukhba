@@ -1770,7 +1770,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const newBalance = (userData.walletBalance || 0) + amount;
       
       const transaction: Transaction = {
-        id: crypto.randomUUID(),
+        id: (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15)),
         amount: Math.abs(amount),
         type: amount >= 0 ? 'deposit' : 'withdrawal',
         date: new Date().toISOString(),
@@ -1824,7 +1824,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       }
       
       const note: UserNote = {
-        id: crypto.randomUUID(),
+        id: (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15)),
         text,
         date: new Date().toISOString(),
         author: 'مدير النظام'
@@ -2398,13 +2398,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       await setDoc(newUserRef, {
         ...customer,
         uid: newUserRef.id,
+        email: customer.email || '',
+        role: 'customer',
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       });
       
       showToast('تم إضافة العميل بنجاح');
       logActivity('إضافة عميل', `تم إضافة عميل جديد: ${customer.displayName || customer.name}`);
-    } catch (error) {
+    } catch (error: any) {
+      console.error('StoreContext addCustomer Error:', error);
+      showToast(`فشل الإضافة: ${error.message || 'مشكلة في الصلاحيات او البيانات المدخلة'}`, 'error');
       handleFirestoreError(error, OperationType.CREATE, 'users');
     }
   }, [showToast, logActivity]);
@@ -2450,7 +2454,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     try {
       const newCoupon: Coupon = {
         ...coupon,
-        id: crypto.randomUUID(),
+        id: (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15)),
         usedCount: 0
       };
       await setDoc(doc(db, 'coupons', newCoupon.id), newCoupon);

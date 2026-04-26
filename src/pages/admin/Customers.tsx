@@ -225,7 +225,7 @@ export default function Customers() {
       orderCount: 0,
       totalSpent: 0,
       transactions: newCustomer.balance > 0 ? [{
-        id: crypto.randomUUID(),
+        id: (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15)),
         amount: Number(newCustomer.balance),
         type: 'deposit',
         date: new Date().toISOString(),
@@ -233,7 +233,7 @@ export default function Customers() {
         description: 'رصيد افتتاحي عند إنشاء الحساب'
       }] : [],
       notes: newCustomer.notes ? [{
-        id: crypto.randomUUID(),
+        id: (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15)),
         text: newCustomer.notes,
         date: new Date().toISOString(),
         author: 'مدير النظام'

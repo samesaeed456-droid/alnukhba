@@ -232,7 +232,7 @@ export default function Checkout() {
       if (currentStep === 1 && selectedAddressId === 'new' && saveAddress && user) {
         const nameParts = formData.firstName.trim().split(/\s+/);
         const newAddress: Address = {
-          id: crypto.randomUUID(),
+          id: (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15)),
           firstName: nameParts[0] || '',
           lastName: nameParts.slice(1).join(' '),
           address: formData.address,

@@ -95,6 +95,8 @@ export interface UserProfile {
   lastActive?: string;
   joinDate?: string;
   isBlocked?: boolean;
+  isAdmin?: boolean;
+  permissions?: AdminPermission[];
   adminRole?: string;
   adminName?: string;
   tags?: string[];
@@ -235,7 +237,8 @@ export type AdminPermission =
   | 'manage_security'
   | 'view_logs'
   | 'manage_logistics'
-  | 'manage_messages';
+  | 'manage_messages'
+  | 'all';
 
 export type AdminRole = 'super_admin' | 'manager' | 'editor' | 'support';
 

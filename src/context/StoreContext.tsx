@@ -426,7 +426,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             const defaultData: any = {
               uid: firebaseUser.uid,
               email: firebaseUser.email || '',
-              role: 'user',
+              role: 'customer',
               createdAt: serverTimestamp()
             };
             
@@ -476,60 +476,24 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (user && isAuthReady) {
       const syncPermissions = async () => {
         try {
-          // 1. Check if user is one of the hardcoded owners
-          const ownerEmails = ['samesaeed456@gmail.com', 'samisaeed2027@gmail.com'];
-          const userEmail = user.email || '';
-          const isOwner = (userEmail && ownerEmails.includes(userEmail)) || 
-                         (userEmail && userEmail.includes('elite-store.local'));
+          // 1. Simple Role/Permissions Check (Single Collection 'users')
+          const hardcodedAdmins = ["samesaeed456@gmail.com", "samisaeed2027@gmail.com", "samisaeed2025@gmail.com", "967776668370@elite-store.local"];
+          const userEmail = (user.email || '').toLowerCase();
+          const isHardcoded = hardcodedAdmins.includes(userEmail);
 
-          // 2. Try to find in admin_users by UID or Email (using limit(1) for speed)
-          let adminData: AdminUser | null = null;
-          
-          // First check by UID as it's more direct
-          const adminDoc = await getDoc(doc(db, 'admin_users', user.uid));
-          if (adminDoc.exists()) {
-            adminData = { ...adminDoc.data(), id: adminDoc.id } as AdminUser;
-          } else if (userEmail) {
-            // Then check by Email with limit(1)
-            const adminQuery = query(
-              collection(db, 'admin_users'), 
-              where('email', '==', userEmail),
-              limit(1)
-            );
-            const adminSnap = await getDocs(adminQuery);
-            if (!adminSnap.empty) {
-              adminData = { ...adminSnap.docs[0].data(), id: adminSnap.docs[0].id } as AdminUser;
-            }
-          }
-
-          // 3. Auto-promote if in admin_users or is owner
-          if (adminData || isOwner) {
-            if (user.role !== 'admin' || (isOwner && user.adminRole !== 'super_admin') || !user.isAdmin) {
+          if (isHardcoded) {
+            // Super Admin Enforcement
+            if (user.role !== 'admin' || user.adminRole !== 'super_admin' || !user.permissions?.includes('all')) {
               const updates: any = {
                 role: 'admin',
-                adminRole: adminData?.role || (isOwner ? 'super_admin' : 'admin'),
+                adminRole: 'super_admin',
                 isAdmin: true,
+                permissions: ['all'],
                 updatedAt: serverTimestamp()
               };
-              
               await setDoc(doc(db, 'users', user.uid), updates, { merge: true });
-              
-              if (isOwner && (!adminData || adminData.role !== 'super_admin')) {
-                await setDoc(doc(db, 'admin_users', user.uid), {
-                  id: user.uid,
-                  name: user.displayName || user.name || 'المدير العام',
-                  email: userEmail,
-                  phone: user.phone || '',
-                  role: 'super_admin',
-                  isActive: true,
-                  permissions: ['view_dashboard', 'manage_orders', 'manage_products', 'manage_customers', 'manage_marketing', 'manage_coupons', 'manage_settings', 'manage_security', 'view_logs', 'manage_logistics', 'manage_messages']
-                }, { merge: true });
-              }
-
-              // Update local state immediately for faster UI response
               setUser(prev => prev ? { ...prev, ...updates } : null);
-              
-              showToast('تم تحديث صلاحيات المدير بنجاح', 'success');
+              showToast('تم تحديث صلاحيات المدير العام', 'success');
             }
           }
         } catch (e) {
@@ -611,18 +575,20 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       return () => clearTimeout(timer);
     }
 
-    const unsubCustomers = onSnapshot(collection(db, 'users'), (snapshot) => {
-      const allUsers = snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() })) as unknown as UserProfile[];
-      // Strict separation: Filter out anyone who is an admin or in the hardcoded list
-      const hardcodedAdminsList = ["samesaeed456@gmail.com", "samisaeed2027@gmail.com", "samisaeed2025@gmail.com", "967776668370@elite-store.local"];
-      const customersData = allUsers.filter(u => {
-        const email = (u.email || '').toLowerCase();
-        return u.role !== 'admin' && !u.isAdmin && !hardcodedAdminsList.includes(email);
-      });
-      setCustomers(customersData);
-      localStorage.setItem('app_users', JSON.stringify(customersData));
+    const unsubUsers = onSnapshot(collection(db, 'users'), (snapshot) => {
+      const allUsersData = snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() })) as unknown as UserProfile[];
+      
+      // Separate Admins and Customers
+      const adminsList = allUsersData.filter(u => u.role === 'admin' || u.isAdmin === true);
+      const customersList = allUsersData.filter(u => u.role !== 'admin' && !u.isAdmin);
+      
+      setAdminUsers(adminsList as any); // Update admins state
+      setCustomers(customersList); // Update customers state
+      
+      localStorage.setItem('app_users', JSON.stringify(customersList));
+      localStorage.setItem('admin_users_list', JSON.stringify(adminsList));
     }, (error) => {
-      const hardcodedAdmins = ["samesaeed456@gmail.com", "samisaeed2027@gmail.com", "samisaeed2025@gmail.com"];
+      const hardcodedAdmins = ["samesaeed456@gmail.com", "samisaeed2027@gmail.com", "samisaeed2025@gmail.com", "967776668370@elite-store.local"];
       const isHardcodedAdmin = user?.email && hardcodedAdmins.includes(user.email);
       if (!isHardcodedAdmin) handleFirestoreError(error, OperationType.LIST, 'users');
     });
@@ -637,12 +603,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setActivityLogs(sortedLogs);
       localStorage.setItem('store_activity_logs', JSON.stringify(sortedLogs));
     }, (error) => handleFirestoreError(error, OperationType.LIST, 'activity_logs'));
-
-    const unsubAdmins = onSnapshot(collection(db, 'admin_users'), (snapshot) => {
-      const adminsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as AdminUser[];
-      setAdminUsers(adminsData);
-      localStorage.setItem('store_admin_users', JSON.stringify(adminsData));
-    }, (error) => handleFirestoreError(error, OperationType.LIST, 'admin_users'));
 
     const unsubTickets = onSnapshot(collection(db, 'support_tickets'), (snapshot) => {
       const ticketsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as SupportTicket[];
@@ -675,9 +635,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }, (error) => handleFirestoreError(error, OperationType.LIST, 'inventory_logs'));
 
     return () => {
-      unsubCustomers();
+      unsubUsers();
       unsubLogs();
-      unsubAdmins();
       unsubTickets();
       unsubVisits();
       unsubSearchTerms();
@@ -1589,9 +1548,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const addAdminUser = React.useCallback(async (admin: Omit<AdminUser, 'id'>) => {
     try {
       let finalAdmin = { ...admin };
-      let createdUid = doc(collection(db, 'admin_users')).id;
+      let createdUid = doc(collection(db, 'users')).id;
 
-      // Create user in Auth via secondary app
+      // Create user in Auth if password provided
       if (finalAdmin.password && finalAdmin.email) {
         try {
           const newUser = await createAdminUserClientSide(finalAdmin.email, finalAdmin.password);
@@ -1603,35 +1562,28 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      const newAdminRef = doc(db, 'admin_users', createdUid);
-      await setDoc(newAdminRef, {
-        ...finalAdmin,
-        id: createdUid,
-        permissions: finalAdmin.permissions || getPermissionsByRole(finalAdmin.role),
-        createdAt: serverTimestamp()
+      const newUserRef = doc(db, 'users', createdUid);
+      await setDoc(newUserRef, {
+        uid: createdUid,
+        email: finalAdmin.email,
+        displayName: finalAdmin.name,
+        name: finalAdmin.name,
+        phone: finalAdmin.phone || '',
+        countryCode: finalAdmin.countryCode || '+967',
+        role: 'admin',
+        adminRole: finalAdmin.role,
+        isAdmin: true,
+        isActive: finalAdmin.isActive ?? true,
+        permissions: finalAdmin.permissions || [],
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        password: finalAdmin.password 
       });
-
-      // Synchronize with users collection to ensure immediate access
-      try {
-        await setDoc(doc(db, 'users', createdUid), {
-          uid: createdUid,
-          email: finalAdmin.email,
-          displayName: finalAdmin.name,
-          role: 'admin',
-          adminRole: finalAdmin.role,
-          isAdmin: true,
-          status: 'active',
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp()
-        }, { merge: true });
-      } catch (syncErr) {
-        console.error('Failed to sync admin to users collection:', syncErr);
-      }
 
       showToast('تم إضافة المشرف بنجاح');
       logActivity('إضافة مشرف', `تم إضافة مشرف جديد: ${finalAdmin.name} (${finalAdmin.email})`);
     } catch (error) {
-      handleFirestoreError(error, OperationType.CREATE, 'admin_users');
+      handleFirestoreError(error, OperationType.CREATE, 'users');
     }
   }, [showToast, logActivity]);
 
@@ -1660,52 +1612,37 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      await updateDoc(doc(db, 'admin_users', id), {
+      const updates: any = {
         ...finalData,
         updatedAt: serverTimestamp()
-      });
+      };
 
-      // Synchronize changes to the main `users` collection for better integration
-      try {
-        if (finalData.email) {
-          const usersQuery = query(collection(db, 'users'), where('email', '==', finalData.email));
-          const userDocs = await getDocs(usersQuery);
-          if (userDocs && !userDocs.empty && userDocs.docs && userDocs.docs.length > 0) {
-            const userDocRef = doc(db, 'users', userDocs.docs[0].id);
-            const updatesToUser: any = {};
-            if (finalData.name) {
-              updatesToUser.adminName = finalData.name;
-            }
-            if (finalData.role) {
-              updatesToUser.adminRole = finalData.role;
-              updatesToUser.role = 'admin';
-            }
-            if (finalData.phone) updatesToUser.phone = finalData.phone;
-            if (finalData.countryCode) updatesToUser.countryCode = finalData.countryCode;
-            
-            if (Object.keys(updatesToUser).length > 0) {
-              await updateDoc(userDocRef, updatesToUser);
-            }
-          }
-        }
-      } catch (syncError) {
-        console.error('Failed to sync admin details to users collection:', syncError);
+      if (finalData.name) {
+          updates.displayName = finalData.name;
+          updates.name = finalData.name;
       }
+      if (finalData.role) {
+          updates.adminRole = finalData.role;
+          updates.role = 'admin';
+          updates.isAdmin = true;
+      }
+
+      await updateDoc(doc(db, 'users', id), updates);
 
       showToast('تم تحديث بيانات المشرف');
       logActivity('تحديث مشرف', logDetails || `تم تحديث بيانات المشرف ID: ${id}`);
     } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, `admin_users/${id}`);
+      handleFirestoreError(error, OperationType.UPDATE, `users/${id}`);
     }
   }, [showToast, logActivity]);
 
   const deleteAdminUser = React.useCallback(async (id: string) => {
     try {
-      await deleteDoc(doc(db, 'admin_users', id));
+      await deleteDoc(doc(db, 'users', id));
       showToast('تم حذف المشرف');
       logActivity('حذف مشرف', `تم حذف المشرف ID: ${id}`);
     } catch (error) {
-      handleFirestoreError(error, OperationType.DELETE, `admin_users/${id}`);
+      handleFirestoreError(error, OperationType.DELETE, `users/${id}`);
     }
   }, [showToast, logActivity]);
 

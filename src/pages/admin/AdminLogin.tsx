@@ -130,12 +130,30 @@ export default function AdminLogin() {
 
         // Secondary check via Firestore (Optimized with limit 1)
         try {
-          const adminQuery = query(collection(db, 'admin_users'), where('email', '==', user.email), limit(1));
+          const adminQuery = query(
+            collection(db, 'users'), 
+            where('email', '==', user.email), 
+            where('role', '==', 'admin'),
+            limit(1)
+          );
           const adminSnap = await getDocs(adminQuery);
           
           if (!adminSnap.empty) {
             isAuthorized = true;
             adminData = adminSnap.docs[0].data();
+          } else {
+            // Fallback: check if isAdmin flag exists even if role is different (for safety/migration)
+            const backupQuery = query(
+              collection(db, 'users'), 
+              where('email', '==', user.email), 
+              where('isAdmin', '==', true),
+              limit(1)
+            );
+            const backupSnap = await getDocs(backupQuery);
+            if (!backupSnap.empty) {
+              isAuthorized = true;
+              adminData = backupSnap.docs[0].data();
+            }
           }
         } catch (err) {
           console.warn("Minor background auth check error:", err);

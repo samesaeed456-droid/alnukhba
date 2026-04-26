@@ -2,19 +2,24 @@
   "entities": {
     "User": {
       "title": "User",
-      "description": "User profile with role-based access control",
+      "description": "Unified user profile for customers and administrators",
       "type": "object",
       "properties": {
         "uid": { "type": "string" },
         "email": { "type": "string", "format": "email" },
         "name": { "type": "string" },
+        "displayName": { "type": "string" },
         "phone": { "type": "string" },
-        "role": { "type": "string", "enum": ["admin", "user"] },
-        "adminRole": { "type": "string" },
-        "adminName": { "type": "string" },
+        "countryCode": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "customer"] },
+        "adminRole": { "type": "string", "description": "Specific admin role if role is admin" },
+        "isAdmin": { "type": "boolean" },
+        "permissions": { "type": "array", "items": { "type": "string" } },
+        "isActive": { "type": "boolean" },
+        "isBlocked": { "type": "boolean" },
         "walletBalance": { "type": "number" },
-        "currentSessionId": { "type": "string" },
-        "lastActive": { "type": "string", "format": "date-time" },
+        "notes": { "type": "array" },
+        "lastLogin": { "type": "string", "format": "date-time" },
         "createdAt": { "type": "string", "format": "date-time" },
         "updatedAt": { "type": "string", "format": "date-time" }
       },
@@ -22,21 +27,11 @@
     },
     "AdminUser": {
       "title": "AdminUser",
-      "description": "Internal administration staff account",
+      "description": "[DEPRECATED] Use User entity with role='admin' instead",
       "type": "object",
       "properties": {
-        "id": { "type": "string" },
-        "name": { "type": "string" },
-        "email": { "type": "string", "format": "email" },
-        "phone": { "type": "string" },
-        "countryCode": { "type": "string" },
-        "password": { "type": "string" },
-        "role": { "type": "string" },
-        "isActive": { "type": "boolean" },
-        "permissions": { "type": "array" },
-        "createdAt": { "type": "string", "format": "date-time" }
-      },
-      "required": ["id", "name", "email", "role"]
+        "id": { "type": "string" }
+      }
     },
     "Product": {
       "title": "Product",

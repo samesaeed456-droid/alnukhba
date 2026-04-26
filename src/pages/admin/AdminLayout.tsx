@@ -194,14 +194,13 @@ export default function AdminLayout() {
       }
     };
 
-    const adminPermissions = currentAdmin.permissions?.length > 0 
-      ? currentAdmin.permissions 
-      : getFallbackPermissions(currentAdmin.role);
+    const adminPermissions = currentAdmin.permissions || [];
+    const isSuperAdmin = currentAdmin.role === 'super_admin' || adminPermissions.includes('all');
 
     return groups.map(group => ({
       ...group,
       items: group.items.filter(item => 
-        currentAdmin.role === 'super_admin' || !item.permission || adminPermissions.includes(item.permission as any)
+        isSuperAdmin || !item.permission || adminPermissions.includes(item.permission as any)
       )
     })).filter(group => group.items.length > 0);
   }, [currentAdmin]);
@@ -226,16 +225,18 @@ export default function AdminLayout() {
         // Check permissions for current route
         if (location.pathname !== '/admin/login' && location.pathname !== '/admin') {
           if (!currentAdmin || currentAdmin.email !== user.email) {
-             toast.error('ليس لديك صلاحية للوصول لهذه الصفحة');
-             navigate('/admin', { replace: true });
+             // Still loading or sync in progress, allow a small window
              return;
           }
           
-          if (currentAdmin.role !== 'super_admin') {
+          const isSuperAdmin = currentAdmin.role === 'super_admin' || (currentAdmin.permissions || []).includes('all');
+          
+          if (!isSuperAdmin) {
             const allItems = navGroups.flatMap(g => g.items);
             const currentItem = allItems.find(i => i.path === location.pathname || location.pathname.startsWith(i.path));
             
-            if (!currentItem) {
+            // If the item exists but user doesn't have its required permission
+            if (currentItem && currentItem.permission && !(currentAdmin.permissions || []).includes(currentItem.permission as any)) {
               toast.error('ليس لديك صلاحية للوصول لهذه الصفحة');
               navigate('/admin', { replace: true });
             }

@@ -174,7 +174,8 @@ export default function Security() {
       manage_security: 'الأمان',
       view_logs: 'السجلات',
       manage_logistics: 'الشحن',
-      manage_messages: 'الرسائل'
+      manage_messages: 'الرسائل',
+      all: 'كامل الصلاحيات'
     };
     return labels[permission] || permission;
   };

@@ -17,14 +17,13 @@ service cloud.firestore {
     
     // Hardened Admin Check (Fast & Relational)
     function isAdmin() {
-      let email = request.auth.token.get('email', '');
       return isSignedIn() && (
-        email == "samesaeed456@gmail.com" || 
-        email == "samisaeed2027@gmail.com" || 
-        email == "967776668370@elite-store.local" ||
-        exists(/databases/$(database)/documents/admin_users/$(request.auth.uid)) ||
+        request.auth.token.get('email', '') == "samesaeed456@gmail.com" || 
+        request.auth.token.get('email', '') == "samisaeed2027@gmail.com" || 
+        request.auth.token.get('email', '') == "967776668370@elite-store.local" ||
         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
-         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('isAdmin', false) == true)
+         (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('isAdmin', false) == true ||
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', 'customer') == 'admin'))
       );
     }
     
@@ -38,30 +37,16 @@ service cloud.firestore {
     // ===============================================================
 
     function isValidUser(data) {
-      return (data.get('uid', '') is string && data.get('uid', '').size() <= 128) && 
-             (data.get('email', '') is string && data.get('email', '').size() <= 200) &&
-             (data.get('role', 'user') in ['user', 'admin']) &&
-             (!('walletBalance' in data) || (data.walletBalance is number && data.walletBalance >= 0)) &&
-             (!('name' in data) || (data.name is string && data.name.size() <= 200)) &&
-             (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 200)) &&
-             (!('phone' in data) || (data.phone is string && data.phone.size() <= 30)) &&
-             (!('photoURL' in data) || (data.photoURL is string && data.photoURL.size() <= 1000)) &&
-             (!('fcmTokens' in data) || (data.fcmTokens is list && data.fcmTokens.size() <= 10)) &&
-             (!('notificationsEnabled' in data) || data.notificationsEnabled is bool) &&
-             (!('isAdmin' in data) || data.isAdmin is bool) &&
-             (!('adminRole' in data) || data.adminRole is string) &&
-             (!('adminName' in data) || data.adminName is string) &&
-             (!('status' in data) || data.status is string) &&
-             (!('createdAt' in data) || data.createdAt is timestamp) &&
-             (!('updatedAt' in data) || data.updatedAt is timestamp);
+      return (data.get('uid', '') is string) && 
+             (data.get('email', '') is string) &&
+             (data.get('role', 'customer') in ['customer', 'admin']);
     }
 
     function isSafeUserUpdate() {
-      // Logic: Allow admins to change everything. Allow users to change only non-critical fields.
-      let affected = incoming().diff(existing()).affectedKeys();
+      // Admins can update anyone
       return isAdmin() || (
         isOwner(request.auth.uid) && 
-        !affected.hasAny(['role', 'walletBalance', 'uid', 'email', 'createdAt', 'isAdmin', 'adminRole']) &&
+        !incoming().diff(existing()).affectedKeys().hasAny(['role', 'walletBalance', 'uid', 'email', 'createdAt', 'isAdmin', 'adminRole', 'permissions', 'isBlocked']) &&
         incoming().get('updatedAt', request.time) == request.time
       );
     }
@@ -85,8 +70,9 @@ service cloud.firestore {
       allow create: if isValidId(userId) && (
         isAdmin() || 
         (isOwner(userId) && isValidUser(incoming()) && 
-         incoming().get('role', 'user') == 'user' && 
-         incoming().get('walletBalance', 0) == 0)
+         incoming().get('role', 'customer') == 'customer' && 
+         incoming().get('walletBalance', 0) == 0 &&
+         incoming().get('isAdmin', false) == false)
       );
                     
       allow update: if isValidId(userId) && (isAdmin() || isOwner(userId)) && 
@@ -101,11 +87,9 @@ service cloud.firestore {
       allow create, delete: if isAdmin();
     }
 
-    // --- ADMIN ACCESS ---
+    // --- DEPRECATED ADMIN ACCESS (FOR MIGRATION) ---
     match /admin_users/{adminId} {
-      allow list: if isAdmin();
-      allow get: if isSignedIn() && (request.auth.uid == adminId || isAdmin());
-      allow create, update, delete: if isAdmin();
+      allow read, write: if isAdmin();
     }
 
     // --- PRODUCTS & CONTENT ---

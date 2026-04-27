@@ -27,8 +27,8 @@ export default function CloudPage() {
     setLoading(true);
     try {
       const [imgRes, usageRes] = await Promise.all([
-        fetch('/api/cloudinary/images'),
-        fetch('/api/cloudinary/usage')
+        fetch('/api/cloudinary?action=images'),
+        fetch('/api/cloudinary?action=usage')
       ]);
       if (!imgRes.ok || !usageRes.ok) throw new Error('فشل جلب البيانات');
       const contentType = imgRes.headers.get('content-type');
@@ -56,7 +56,7 @@ export default function CloudPage() {
     if (!confirm(`هل أنت متأكد من حذف ${selectedIds.length} صورة؟`)) return;
     setDeleting(true);
     try {
-      const response = await fetch('/api/cloudinary/bulk-delete', {
+      const response = await fetch('/api/cloudinary?action=bulk-delete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ public_ids: selectedIds })

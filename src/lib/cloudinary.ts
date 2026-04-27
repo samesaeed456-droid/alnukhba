@@ -72,31 +72,3 @@ export const uploadToCloudinary = async (file: File): Promise<string> => {
   const data = await response.json();
   return data.secure_url;
 };
-
-// Deletes image using the Express backend
-export const deleteFromCloudinary = async (url: string | null | undefined): Promise<boolean> => {
-  if (!url || !url.includes('cloudinary.com')) return false;
-  
-  try {
-    // Extract public_id from Cloudinary URL
-    // Format: https://res.cloudinary.com/<cloud_name>/image/upload/<version>/<public_id>.<ext>
-    const matches = url.match(/\/upload\/(?:v\d+\/)?(.+?)\.[a-zA-Z0-9]+$/);
-    if (!matches || !matches[1]) return false;
-    
-    const publicId = matches[1];
-    
-    const response = await fetch('/api/cloudinary/bulk-delete', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ public_ids: [publicId] })
-    });
-    
-    return response.ok;
-  } catch (err) {
-    console.error('Failed to delete image from Cloudinary:', err);
-    return false;
-  }
-};
-

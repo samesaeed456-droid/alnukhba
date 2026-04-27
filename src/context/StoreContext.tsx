@@ -9,7 +9,7 @@ import {
 import { products as initialProducts } from '../data';
 import { getAIRecommendations, getRuleBasedRecommendations } from '../services/recommendationService';
 import { roundMoney, formatMoney, BASE_CURRENCY_CODE } from '../lib/finance';
-import { deleteFromCloudinary } from '../lib/cloudinary';
+
 import { notificationService } from '../services/notificationService';
 import { smsService } from '../services/smsService';
 
@@ -1364,24 +1364,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         updatedAt: serverTimestamp()
       }, { merge: true });
       
-      // Check for image deletions
-      if (settings?.storeLogo && newSettings.storeLogo !== undefined && newSettings.storeLogo !== settings.storeLogo) {
-        if (settings.storeLogo.includes('cloudinary.com')) deleteFromCloudinary(settings.storeLogo);
-      }
-      
-      if (settings?.seo?.favicon && newSettings.seo?.favicon !== undefined && newSettings.seo?.favicon !== settings.seo.favicon) {
-        if (settings.seo.favicon.includes('cloudinary.com')) deleteFromCloudinary(settings.seo.favicon);
-      }
-      
-      if (settings?.seo?.ogImage && newSettings.seo?.ogImage !== undefined && newSettings.seo?.ogImage !== settings.seo.ogImage) {
-        if (settings.seo.ogImage.includes('cloudinary.com')) deleteFromCloudinary(settings.seo.ogImage);
-      }
-      
-      if (newSettings.language && newSettings.language !== settings?.language) {
+      if (newSettings.language && newSettings.language !== settings.language) {
         setLanguageState(newSettings.language);
       }
       
-      setSettings(updated as StoreSettings);
+      setSettings(updated);
       showToast('تم تحديث إعدادات المتجر بنجاح', 'success');
       logActivity('تحديث الإعدادات', 'قام المدير بتحديث إعدادات المتجر');
     } catch (error) {
@@ -1470,40 +1457,24 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const updateBlogPost = React.useCallback(async (id: string, post: Partial<BlogPost>) => {
     try {
-      const oldPost = blogPosts.find(p => p.id === id);
-      
       await updateDoc(doc(db, 'blog_posts', id), {
         ...post,
         updatedAt: serverTimestamp()
       });
-      
-      if (oldPost && oldPost.image && post.image !== undefined && post.image !== oldPost.image) {
-        if (oldPost.image.includes('cloudinary.com')) {
-          deleteFromCloudinary(oldPost.image);
-        }
-      }
-      
       logActivity('تحديث مقال', `تم تحديث المقال ${id}`);
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `blog_posts/${id}`);
     }
-  }, [blogPosts, logActivity]);
+  }, [logActivity]);
 
   const deleteBlogPost = React.useCallback(async (id: string) => {
     try {
-      const oldPost = blogPosts.find(p => p.id === id);
-      
       await deleteDoc(doc(db, 'blog_posts', id));
-      
-      if (oldPost && oldPost.image) {
-        deleteFromCloudinary(oldPost.image);
-      }
-      
       logActivity('حذف مقال', `تم حذف المقال ${id}`);
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, `blog_posts/${id}`);
     }
-  }, [blogPosts, logActivity]);
+  }, [logActivity]);
 
   const updateStaticPage = React.useCallback(async (id: string, content: string) => {
     try {
@@ -1708,49 +1679,27 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const updateBanner = React.useCallback(async (id: string, updatedData: Partial<Banner>) => {
     try {
       const activeDb = adminAuth.currentUser ? adminDb : db;
-      const oldBanner = banners.find(b => b.id === id);
-      
       await updateDoc(doc(activeDb, 'banners', id), {
         ...updatedData,
         updatedAt: serverTimestamp()
       });
-      
-      if (oldBanner) {
-        const newImages = [...(updatedData.images || oldBanner.images || []), updatedData.image || oldBanner.image];
-        const oldImages = [...(oldBanner.images || []), oldBanner.image];
-        
-        oldImages.forEach(img => {
-          if (img && !newImages.includes(img) && img.includes('cloudinary.com')) {
-            deleteFromCloudinary(img);
-          }
-        });
-      }
-      
       showToast('تم تحديث البانر بنجاح');
       logActivity('تحديث بنر', `تم تحديث بيانات البانر ID: ${id}`);
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `banners/${id}`);
     }
-  }, [banners, showToast, logActivity]);
+  }, [showToast, logActivity]);
 
   const deleteBanner = React.useCallback(async (id: string) => {
     try {
       const activeDb = adminAuth.currentUser ? adminDb : db;
-      const oldBanner = banners.find(b => b.id === id);
-      
       await deleteDoc(doc(activeDb, 'banners', id));
-      
-      if (oldBanner) {
-        if (oldBanner.image) deleteFromCloudinary(oldBanner.image);
-        if (oldBanner.images) oldBanner.images.forEach(img => deleteFromCloudinary(img));
-      }
-      
       showToast('تم حذف البانر');
       logActivity('حذف بنر', `تم حذف البانر ID: ${id}`);
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, `banners/${id}`);
     }
-  }, [banners, showToast, logActivity]);
+  }, [showToast, logActivity]);
 
   const sendMarketingNotification = React.useCallback(async (notification: Omit<MarketingNotification, 'id' | 'date' | 'sentCount' | 'openedCount' | 'clickedCount' | 'status'>) => {
     try {
@@ -2472,13 +2421,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         updatedAt: serverTimestamp()
       });
       
-      // Delete old avatar from Cloudinary
-      if (prevUser && prevUser.avatar && newUser.avatar !== undefined && newUser.avatar !== prevUser.avatar) {
-        if (prevUser.avatar.includes('cloudinary.com')) {
-          deleteFromCloudinary(prevUser.avatar);
-        }
-      }
-      
       showToast('تم تحديث البيانات بنجاح');
 
     } catch (error: any) {
@@ -2497,14 +2439,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
     try {
       const uid = auth.currentUser.uid;
-      const prevAvatar = user?.avatar;
-      
       // 1. Delete user data from Firestore
       await deleteDoc(doc(db, 'users', uid));
-      
-      if (prevAvatar && prevAvatar.includes('cloudinary.com')) {
-        deleteFromCloudinary(prevAvatar);
-      }
       
       // 2. Delete auth account
       await auth.currentUser.delete();
@@ -3091,51 +3027,27 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const updateProduct = React.useCallback(async (id: string, updatedData: Partial<Product>) => {
     try {
       const activeDb = adminAuth.currentUser ? adminDb : db;
-      const oldProduct = products.find(p => String(p.id) === String(id));
-      
       await updateDoc(doc(activeDb, 'products', String(id)), {
         ...updatedData,
         updatedAt: serverTimestamp()
       });
-      
-      if (oldProduct) {
-        const newImages = [...(updatedData.images || oldProduct.images || []), updatedData.image || oldProduct.image];
-        const oldImages = [...(oldProduct.images || []), oldProduct.image];
-        
-        // Find removed images and delete them from Cloudinary automatically
-        oldImages.forEach(img => {
-          if (img && !newImages.includes(img) && img.includes('cloudinary.com')) {
-            deleteFromCloudinary(img);
-          }
-        });
-      }
-
       showToast('تم تحديث المنتج بنجاح');
       logActivity('تحديث منتج', `تم تحديث بيانات المنتج ID: ${id}`);
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `products/${id}`);
     }
-  }, [products, showToast, logActivity]);
+  }, [showToast, logActivity]);
 
   const deleteProduct = React.useCallback(async (id: string) => {
     try {
       const activeDb = adminAuth.currentUser ? adminDb : db;
-      const oldProduct = products.find(p => String(p.id) === String(id));
-      
       await deleteDoc(doc(activeDb, 'products', String(id)));
-      
-      // Delete images from Cloudinary automatically
-      if (oldProduct) {
-        if (oldProduct.image) deleteFromCloudinary(oldProduct.image);
-        if (oldProduct.images) oldProduct.images.forEach(img => deleteFromCloudinary(img));
-      }
-      
       showToast('تم حذف المنتج بنجاح');
       logActivity('حذف منتج', `تم حذف المنتج ID: ${id}`);
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, `products/${id}`);
     }
-  }, [products, showToast, logActivity]);
+  }, [showToast, logActivity]);
 
   const addCategory = React.useCallback(async (category: Omit<Category, 'id'>) => {
     try {
@@ -3155,40 +3067,24 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const updateCategory = React.useCallback(async (id: string, updatedData: Partial<Category>) => {
     try {
       const activeDb = adminAuth.currentUser ? adminDb : db;
-      const oldCategory = categories.find(c => c.id === id);
-      
       await updateDoc(doc(activeDb, 'categories', id), updatedData);
-      
-      if (oldCategory && oldCategory.image && updatedData.image !== undefined && updatedData.image !== oldCategory.image) {
-        if (oldCategory.image.includes('cloudinary.com')) {
-          deleteFromCloudinary(oldCategory.image);
-        }
-      }
-      
       logActivity('تحديث قسم', `تم تحديث بيانات القسم`);
       showToast('تم تحديث الفئة بنجاح', 'success');
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, 'categories');
     }
-  }, [categories, showToast, logActivity]);
+  }, [showToast, logActivity]);
 
   const deleteCategory = React.useCallback(async (id: string) => {
     try {
       const activeDb = adminAuth.currentUser ? adminDb : db;
-      const oldCategory = categories.find(c => c.id === id);
-      
       await deleteDoc(doc(activeDb, 'categories', id));
-      
-      if (oldCategory && oldCategory.image) {
-        deleteFromCloudinary(oldCategory.image);
-      }
-      
       logActivity('حذف قسم', `تم حذف القسم بنجاح`);
       showToast(`تم حذف الفئة بنجاح`);
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, 'categories');
     }
-  }, [categories, showToast, logActivity]);
+  }, [showToast, logActivity]);
 
   const getRecommendations = React.useCallback(async (currentProduct?: Product) => {
     // If we have a Gemini API key, use AI, otherwise rule-based

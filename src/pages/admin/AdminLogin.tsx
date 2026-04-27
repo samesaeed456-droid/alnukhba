@@ -162,8 +162,8 @@ export default function AdminLogin() {
         if (isAuthorized && adminData) {
           localStorage.setItem('admin_auth', 'true');
           localStorage.setItem('admin_email', user.email);
-          localStorage.setItem('admin_name', adminData.name || 'مشرف');
-          localStorage.setItem('admin_role', adminData.role || 'editor');
+          localStorage.setItem('admin_name', adminData.displayName || adminData.name || 'مشرف');
+          localStorage.setItem('admin_role', adminData.adminRole || adminData.role || 'editor');
           navigate('/admin');
         } else {
           if (localStorage.getItem('admin_attempt') === 'true') {

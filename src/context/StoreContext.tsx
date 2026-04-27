@@ -14,7 +14,7 @@ import { notificationService } from '../services/notificationService';
 import { smsService } from '../services/smsService';
 
 import { 
-  auth, adminAuth, db, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc, collection, query, where, limit, orderBy, onSnapshot, 
+  auth, adminAuth, db, adminDb, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc, collection, query, where, limit, orderBy, onSnapshot, 
   onAuthStateChanged, serverTimestamp, increment, OperationType, handleFirestoreError, getDocFromServer, writeBatch, runTransaction, createAdminUserClientSide 
 } from '../lib/firebase';
 
@@ -550,6 +550,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   // Sync Admin-only Data
   useEffect(() => {
     const activeAdmin = (adminUser?.role === 'admin' || adminUser?.isAdmin) ? adminUser : (user?.role === 'admin' ? user : null);
+    const activeDb = adminAuth.currentUser ? adminDb : db;
     
     if (!isAuthReady) return;
 
@@ -565,7 +566,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       return () => clearTimeout(timer);
     }
 
-    const unsubUsers = onSnapshot(collection(db, 'users'), (snapshot) => {
+    const unsubUsers = onSnapshot(collection(activeDb, 'users'), (snapshot) => {
       // Re-check role before processing
       const currentUid = auth.currentUser?.uid || adminAuth.currentUser?.uid;
       if (currentUid !== activeAdmin.uid || activeAdmin.role !== 'admin') return;
@@ -579,7 +580,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         email: u.email || '',
         phone: u.phone || '',
         countryCode: u.countryCode || '+967',
-        role: u.adminRole || 'support',
+        role: u.adminRole || u.role || 'support',
         isActive: (u as any).isActive ?? true,
         permissions: u.permissions || [],
         createdAt: u.createdAt
@@ -601,7 +602,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       if (!isHardcodedAdmin) handleFirestoreError(error, OperationType.LIST, 'users');
     });
 
-    const unsubLogs = onSnapshot(collection(db, 'activity_logs'), (snapshot) => {
+    const unsubLogs = onSnapshot(collection(activeDb, 'activity_logs'), (snapshot) => {
       const currentUid = auth.currentUser?.uid || adminAuth.currentUser?.uid;
       if (currentUid !== activeAdmin.uid || activeAdmin.role !== 'admin') return;
       const logsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as ActivityLog[];
@@ -617,7 +618,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       handleFirestoreError(error, OperationType.LIST, 'activity_logs');
     });
 
-    const unsubTickets = onSnapshot(collection(db, 'support_tickets'), (snapshot) => {
+    const unsubTickets = onSnapshot(collection(activeDb, 'support_tickets'), (snapshot) => {
       const currentUid = auth.currentUser?.uid || adminAuth.currentUser?.uid;
       if (currentUid !== activeAdmin.uid || activeAdmin.role !== 'admin') return;
       const ticketsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as SupportTicket[];
@@ -628,7 +629,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       handleFirestoreError(error, OperationType.LIST, 'support_tickets');
     });
 
-    const unsubVisits = onSnapshot(collection(db, 'visits'), (snapshot) => {
+    const unsubVisits = onSnapshot(collection(activeDb, 'visits'), (snapshot) => {
       const currentUid = auth.currentUser?.uid || adminAuth.currentUser?.uid;
       if (currentUid !== activeAdmin.uid || activeAdmin.role !== 'admin') return;
       const visitsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as Visit[];
@@ -639,7 +640,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       handleFirestoreError(error, OperationType.LIST, 'visits');
     });
 
-    const unsubSearchTerms = onSnapshot(collection(db, 'searchTerms'), (snapshot) => {
+    const unsubSearchTerms = onSnapshot(collection(activeDb, 'searchTerms'), (snapshot) => {
       const currentUid = auth.currentUser?.uid || adminAuth.currentUser?.uid;
       if (currentUid !== activeAdmin.uid || activeAdmin.role !== 'admin') return;
       const termsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as SearchTerm[];
@@ -650,7 +651,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       handleFirestoreError(error, OperationType.LIST, 'searchTerms');
     });
 
-    const unsubAbandonedCarts = onSnapshot(collection(db, 'abandonedCarts'), (snapshot) => {
+    const unsubAbandonedCarts = onSnapshot(collection(activeDb, 'abandonedCarts'), (snapshot) => {
       const currentUid = auth.currentUser?.uid || adminAuth.currentUser?.uid;
       if (currentUid !== activeAdmin.uid || activeAdmin.role !== 'admin') return;
       const cartsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as AbandonedCart[];
@@ -661,7 +662,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       handleFirestoreError(error, OperationType.LIST, 'abandonedCarts');
     });
 
-    const unsubInventoryLogs = onSnapshot(collection(db, 'inventory_logs'), (snapshot) => {
+    const unsubInventoryLogs = onSnapshot(collection(activeDb, 'inventory_logs'), (snapshot) => {
       const currentUid = auth.currentUser?.uid || adminAuth.currentUser?.uid;
       if (currentUid !== activeAdmin.uid || activeAdmin.role !== 'admin') return;
       const logsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as InventoryLog[];

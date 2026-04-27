@@ -484,7 +484,22 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       } else {
         if (unsubUser) unsubUser();
         setUser(null);
-        localStorage.removeItem('store_user');
+        // Thoroughly clear all session-related local storage
+        const keysToRemove = [
+          'store_user', 
+          'admin_auth', 
+          'admin_email', 
+          'admin_name', 
+          'admin_role', 
+          'admin_auth_token',
+          'admin_attempt',
+          'admin_users_list',
+          'admin_read_notifications',
+          'app_users',
+          'local_session_id',
+          'has_migrated_to_firebase'
+        ];
+        keysToRemove.forEach(key => localStorage.removeItem(key));
         setIsAuthReady(true);
       }
     });
@@ -2286,7 +2301,23 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const logout = React.useCallback(async () => {
     try {
-      localStorage.removeItem('local_session_id');
+      // Clear ALL session flags immediately
+      const keysToRemove = [
+        'local_session_id',
+        'admin_auth',
+        'admin_email',
+        'admin_name',
+        'admin_role',
+        'admin_auth_token',
+        'admin_attempt',
+        'admin_users_list',
+        'admin_read_notifications',
+        'app_users',
+        'store_user',
+        'has_migrated_to_firebase'
+      ];
+      keysToRemove.forEach(key => localStorage.removeItem(key));
+      
       await auth.signOut();
       setUser(null);
       setWishlist([]);

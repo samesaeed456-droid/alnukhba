@@ -16,7 +16,7 @@ import { FloatingInput } from '@/components/FloatingInput';
 export default function AdminLayout() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { orders, products, formatPrice, adminUsers, logActivity, supportTickets } = useStore();
+  const { orders, products, formatPrice, adminUsers, logActivity, supportTickets, logout } = useStore();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -265,20 +265,7 @@ export default function AdminLayout() {
 
   const handleLogout = async () => {
     logActivity('تسجيل خروج', `تم تسجيل خروج المشرف: ${adminName}`);
-    localStorage.removeItem('admin_auth');
-    localStorage.removeItem('admin_email');
-    localStorage.removeItem('admin_role');
-    localStorage.removeItem('admin_name');
-    
-    // Sign out from Firebase Auth
-    try {
-      const { signOut } = await import('firebase/auth');
-      const { auth } = await import('../../lib/firebase');
-      await signOut(auth);
-    } catch (e) {
-      console.error('Logout error:', e);
-    }
-    
+    await logout();
     navigate('/admin/login');
   };
 

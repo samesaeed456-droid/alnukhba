@@ -48,13 +48,11 @@ const adminApp = initializeApp(firebaseConfig, 'admin-app');
 export const auth = getAuth(app);
 export const adminAuth = getAuth(adminApp);
 
-export const db = initializeFirestore(app, {
-  experimentalForceLongPolling: true,
-}, firebaseConfig.firestoreDatabaseId);
+// Standard DB Initialization (Standard protocol is faster than long polling)
+export const db = initializeFirestore(app, {}, firebaseConfig.firestoreDatabaseId);
 
-export const adminDb = initializeFirestore(adminApp, {
-  experimentalForceLongPolling: true,
-}, firebaseConfig.firestoreDatabaseId);
+// Admin DB Initialization
+export const adminDb = initializeFirestore(adminApp, {}, firebaseConfig.firestoreDatabaseId);
 
 export let messaging: Messaging | null = null;
 

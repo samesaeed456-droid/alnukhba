@@ -494,14 +494,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   // Sync Products from Firestore
   useEffect(() => {
-    // Basic loading timeout to ensure we don't hang if Firestore is slow but we have cached data
-    const loadingTimeout = setTimeout(() => {
-      setIsLoading(false);
-    }, 1200);
-
     const activeDb = adminAuth.currentUser ? adminDb : db;
     const unsubscribe = onSnapshot(collection(activeDb, 'products'), (snapshot) => {
-      clearTimeout(loadingTimeout);
       const productsData = snapshot.docs.map(doc => {
         const data = doc.data();
         return { 
@@ -513,7 +507,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       localStorage.setItem('store_products', JSON.stringify(productsData));
       setIsLoading(false);
     }, (error) => {
-      clearTimeout(loadingTimeout);
       console.error('Products sync error:', error);
       setIsLoading(false);
     });
@@ -604,17 +597,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       if (!isHardcodedAdmin) handleFirestoreError(error, OperationType.LIST, 'users');
     });
 
-    const unsubLogs = onSnapshot(collection(activeDb, 'activity_logs'), (snapshot) => {
+    const unsubLogs = onSnapshot(query(collection(activeDb, 'activity_logs'), orderBy('date', 'desc'), limit(100)), (snapshot) => {
       const currentUid = auth.currentUser?.uid || adminAuth.currentUser?.uid;
       if (currentUid !== activeAdmin.uid || activeAdmin.role !== 'admin') return;
       const logsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as ActivityLog[];
-      const sortedLogs = logsData.sort((a, b) => {
-        const dateA = (a.date as any)?.seconds ? (a.date as any).seconds : new Date(a.date).getTime();
-        const dateB = (b.date as any)?.seconds ? (b.date as any).seconds : new Date(b.date).getTime();
-        return dateB - dateA;
-      });
-      setActivityLogs(sortedLogs);
-      localStorage.setItem('store_activity_logs', JSON.stringify(sortedLogs));
+      setActivityLogs(logsData);
+      localStorage.setItem('store_activity_logs', JSON.stringify(logsData));
     }, (error) => {
       if (error.code === 'permission-denied') return;
       handleFirestoreError(error, OperationType.LIST, 'activity_logs');
@@ -631,7 +619,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       handleFirestoreError(error, OperationType.LIST, 'support_tickets');
     });
 
-    const unsubVisits = onSnapshot(collection(activeDb, 'visits'), (snapshot) => {
+    const unsubVisits = onSnapshot(query(collection(activeDb, 'visits'), limit(200)), (snapshot) => {
       const currentUid = auth.currentUser?.uid || adminAuth.currentUser?.uid;
       if (currentUid !== activeAdmin.uid || activeAdmin.role !== 'admin') return;
       const visitsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as Visit[];
@@ -664,7 +652,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       handleFirestoreError(error, OperationType.LIST, 'abandonedCarts');
     });
 
-    const unsubInventoryLogs = onSnapshot(collection(activeDb, 'inventory_logs'), (snapshot) => {
+    const unsubInventoryLogs = onSnapshot(query(collection(activeDb, 'inventory_logs'), limit(100)), (snapshot) => {
       const currentUid = auth.currentUser?.uid || adminAuth.currentUser?.uid;
       if (currentUid !== activeAdmin.uid || activeAdmin.role !== 'admin') return;
       const logsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as InventoryLog[];
@@ -690,6 +678,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const activeDb = adminAuth.currentUser ? adminDb : db;
     const unsubCategories = onSnapshot(collection(activeDb, 'categories'), (snapshot) => {
+      setIsLoading(false);
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as Category[];
       setCategories(data);
       localStorage.setItem('store_categories', JSON.stringify(data));

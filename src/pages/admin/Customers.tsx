@@ -209,12 +209,26 @@ export default function Customers() {
 
   const handleAddCustomer = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newCustomer.name || !newCustomer.phone) {
-      showToast('يرجى إدخال الاسم ورقم الهاتف على الأقل', 'error');
+    
+    // Validation
+    const nameParts = (newCustomer.name || '').trim().split(/\s+/);
+    if (nameParts.length < 4) {
+      showToast('يرجى إدخال الاسم الرباعي كاملاً (مثال: حسين عبد الكريم هزاع)', 'error');
       return;
     }
 
     const cleanPhone = (newCustomer.phone || '').trim().replace(/^0+/, '');
+    const yemenPhoneRegex = /^7\d{8}$/;
+    if (!yemenPhoneRegex.test(cleanPhone)) {
+      showToast('رقم الجوال غير صحيح. يجب أن يبدأ بـ 7 ويتكون من 9 أرقام', 'error');
+      return;
+    }
+
+    if (!newCustomer.password || newCustomer.password.length < 6) {
+      showToast('كلمة المرور يجب أن تكون 6 أحرف على الأقل', 'error');
+      return;
+    }
+
     const customerData: UserType = {
       displayName: newCustomer.name,
       phone: cleanPhone,
@@ -1462,29 +1476,36 @@ export default function Customers() {
                     </div>
                     
                     <div className="space-y-4 sm:space-y-5">
-                      <FloatingInput 
-                        label="الاسم الكامل للعميل"
-                        required
-                        value={newCustomer.name}
-                        onChange={(e) => setNewCustomer({...newCustomer, name: e.target.value})}
-                        placeholder="مثال: محمد أحمد علي"
-                      />
+                      <div>
+                        <FloatingInput 
+                          label="الاسم الرباعي كاملاً"
+                          required
+                          value={newCustomer.name}
+                          onChange={(e) => setNewCustomer({...newCustomer, name: e.target.value})}
+                          placeholder="مثال: حسين عبد الكريم هزاع"
+                        />
+                        <p className="text-[10px] text-slate-400 mt-1 font-bold px-2">يجب إدخال 4 أسماء على الأقل</p>
+                      </div>
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <FloatingInput 
-                          label="رقم الهاتف (الواتساب)"
-                          type="tel"
-                          required
-                          value={newCustomer.phone}
-                          onChange={(e) => setNewCustomer({...newCustomer, phone: e.target.value})}
-                          placeholder="777..."
-                          dir="ltr"
-                        />
+                        <div>
+                          <FloatingInput 
+                            label="رقم الهاتف (يبدأ بـ 7)"
+                            type="tel"
+                            required
+                            value={newCustomer.phone}
+                            onChange={(e) => setNewCustomer({...newCustomer, phone: e.target.value})}
+                            placeholder="777..."
+                            dir="ltr"
+                          />
+                          <p className="text-[10px] text-slate-400 mt-1 font-bold px-2">9 أرقام، يبدأ بـ 7</p>
+                        </div>
                         <div className="relative">
                           <FloatingInput 
                             label="كلمة المرور"
                             type={showPassword ? "text" : "password"}
                             required
+                            minLength={6}
                             value={newCustomer.password}
                             onChange={(e) => setNewCustomer({...newCustomer, password: e.target.value})}
                             placeholder="••••••••"
@@ -1497,6 +1518,7 @@ export default function Customers() {
                           >
                             {showPassword ? <EyeOff className="w-4 h-4 sm:w-5 sm:h-5" /> : <Eye className="w-4 h-4 sm:w-5 sm:h-5" />}
                           </button>
+                          <p className="text-[10px] text-slate-400 mt-1 font-bold px-2">6 أحرف على الأقل</p>
                         </div>
                       </div>
                     </div>

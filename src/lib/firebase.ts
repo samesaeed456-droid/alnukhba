@@ -106,13 +106,14 @@ export const logout = () => signOut(auth);
 
 // Admin User Creation Helper (Secondary Auth)
 export const createAdminUserClientSide = async (email: string, pass: string) => {
+  const trimmedEmail = (email || '').trim();
   const { initializeApp, deleteApp } = await import('firebase/app');
   const appName = `SecondaryApp_${Math.random().toString(36).substring(2, 10)}`;
   const secondaryApp = initializeApp(firebaseConfig, appName);
   const secondaryAuth = getAuth(secondaryApp);
   
   try {
-    const userCredential = await createUserWithEmailAndPassword(secondaryAuth, email, pass);
+    const userCredential = await createUserWithEmailAndPassword(secondaryAuth, trimmedEmail, pass);
     await secondaryAuth.signOut(); // Ensure we sign out the secondary auth so it doesn't leave lingering sessions
     return userCredential.user;
   } finally {

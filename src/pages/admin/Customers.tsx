@@ -217,10 +217,10 @@ export default function Customers() {
       return;
     }
 
-    const cleanPhone = (newCustomer.phone || '').trim().replace(/^0+/, '');
+    const cleanPhone = (newCustomer.phone || '').trim().replace(/\D/g, '').replace(/^0+/, '');
     const yemenPhoneRegex = /^7\d{8}$/;
     if (!yemenPhoneRegex.test(cleanPhone)) {
-      showToast('رقم الجوال غير صحيح. يجب أن يبدأ بـ 7 ويتكون من 9 أرقام', 'error');
+      showToast('رقم الجوال غير صحيح. يجب أن يتكون من 9 أرقام تبدأ بـ 7 (مثال: 777123456)', 'error');
       return;
     }
 

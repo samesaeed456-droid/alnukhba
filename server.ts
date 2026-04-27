@@ -389,7 +389,10 @@ app.post("/api/sms", async (req, res) => {
 // Admin API: Reset Password from server
 app.post("/api/admin/update-password", async (req, res) => {
   const { email, newPassword } = req.body;
-  if (!email || !newPassword) {
+  const trimmedEmail = (email || '').toString().trim().toLowerCase();
+  const trimmedPass = (newPassword || '').toString().trim();
+
+  if (!trimmedEmail || !trimmedPass) {
     return res.status(400).json({ success: false, error: "البريد الإلكتروني وكلمة المرور الجديدة مطلوبان" });
   }
 
@@ -401,13 +404,13 @@ app.post("/api/admin/update-password", async (req, res) => {
     const adminAuth = getAuth();
     let userRecord;
     try {
-      userRecord = await adminAuth.getUserByEmail(email);
+      userRecord = await adminAuth.getUserByEmail(trimmedEmail);
     } catch (e: any) {
       if (e.code === 'auth/user-not-found') {
         // If user doesn't exist in Auth, we'll just let them sign up later or create them now
         userRecord = await adminAuth.createUser({
-          email,
-          password: newPassword,
+          email: trimmedEmail,
+          password: trimmedPass,
           emailVerified: true
         });
         return res.json({ success: true, message: "تم إنشاء حساب توثيق جديد", uid: userRecord.uid });
@@ -416,7 +419,7 @@ app.post("/api/admin/update-password", async (req, res) => {
     }
 
     await adminAuth.updateUser(userRecord.uid, {
-      password: newPassword
+      password: trimmedPass
     });
 
     res.json({ success: true, message: "تم تحديث كلمة المرور بنجاح", uid: userRecord.uid });
@@ -439,8 +442,13 @@ app.post("/api/update-phone", async (req, res) => {
   }
 
   try {
-    const oldEmail = `${oldCountryCode.replace('+', '')}${oldPhone}@elite-store.local`;
-    const newEmail = `${newCountryCode.replace('+', '')}${newPhone}@elite-store.local`;
+    const cleanOldPhone = (oldPhone || '').toString().trim().replace(/\D/g, '').replace(/^0+/, '');
+    const cleanNewPhone = (newPhone || '').toString().trim().replace(/\D/g, '').replace(/^0+/, '');
+    const cleanOldCC = (oldCountryCode || '').toString().trim().replace(/\D/g, '');
+    const cleanNewCC = (newCountryCode || '').toString().trim().replace(/\D/g, '');
+
+    const oldEmail = `${cleanOldCC}${cleanOldPhone}@elite-store.local`.toLowerCase();
+    const newEmail = `${cleanNewCC}${cleanNewPhone}@elite-store.local`.toLowerCase();
     
     // Check if new email already exists (to prevent duplicates)
     try {

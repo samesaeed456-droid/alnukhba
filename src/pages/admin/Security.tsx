@@ -72,9 +72,27 @@ export default function Security() {
   const handleAddAdmin = (e: React.FormEvent) => {
     e.preventDefault();
 
+    const trimmedAdminForm = {
+      ...adminForm,
+      name: adminForm.name.trim(),
+      email: adminForm.email.trim()
+    };
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(trimmedAdminForm.email)) {
+      showToast('يرجى إدخال بريد إلكتروني صحيح', 'error');
+      return;
+    }
+
+    if (trimmedAdminForm.password && trimmedAdminForm.password.length < 6) {
+      showToast('كلمة المرور يجب أن لا تقل عن 6 أحرف', 'error');
+      return;
+    }
+
     // Prevent duplicate emails
     const emailExists = adminUsers.some(a => 
-      a.email.toLowerCase() === adminForm.email.toLowerCase()
+      a.email.toLowerCase() === trimmedAdminForm.email.toLowerCase()
     );
 
     if (emailExists) {
@@ -82,7 +100,7 @@ export default function Security() {
       return;
     }
 
-    addAdminUser(adminForm);
+    addAdminUser(trimmedAdminForm);
     setIsAddModalOpen(false);
     setAdminForm({ 
       name: '', 
@@ -99,19 +117,32 @@ export default function Security() {
   const handleEditAdmin = (e: React.FormEvent) => {
     e.preventDefault();
     if (editingAdminId) {
+      const trimmedAdminForm = {
+        ...adminForm,
+        name: adminForm.name.trim(),
+        email: adminForm.email.trim()
+      };
+
+      // Basic email validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(trimmedAdminForm.email)) {
+        showToast('يرجى إدخال بريد إلكتروني صحيح', 'error');
+        return;
+      }
+
       const originalAdmin = adminUsers.find(a => a.id === editingAdminId);
-      let logDetails = `تم تحديث بيانات المشرف ${adminForm.name}`;
+      let logDetails = `تم تحديث بيانات المشرف ${trimmedAdminForm.name}`;
       
       if (originalAdmin) {
-        if (originalAdmin.role !== adminForm.role) {
-          logDetails += ` - تم تغيير الصلاحية من ${getRoleLabel(originalAdmin.role)} إلى ${getRoleLabel(adminForm.role)}`;
+        if (originalAdmin.role !== trimmedAdminForm.role) {
+          logDetails += ` - تم تغيير الصلاحية من ${getRoleLabel(originalAdmin.role)} إلى ${getRoleLabel(trimmedAdminForm.role)}`;
         }
-        if (originalAdmin.password !== adminForm.password) {
+        if (trimmedAdminForm.password && originalAdmin.password !== trimmedAdminForm.password) {
           logDetails += ` - تم تغيير كلمة المرور`;
         }
       }
 
-      updateAdminUser(editingAdminId, adminForm, logDetails);
+      updateAdminUser(editingAdminId, trimmedAdminForm, logDetails);
       setIsEditModalOpen(false);
       setEditingAdminId(null);
       setAdminForm({ 

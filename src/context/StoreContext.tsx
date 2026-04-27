@@ -1665,7 +1665,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const addAdminUser = React.useCallback(async (admin: Omit<AdminUser, 'id'>) => {
     try {
-      let finalAdmin = { ...admin };
+      const trimmedEmail = (admin.email || '').trim();
+      
+      // Basic email validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(trimmedEmail)) {
+        showToast('يرجى إدخال بريد إلكتروني صحيح', 'error');
+        return;
+      }
+
+      let finalAdmin = { ...admin, email: trimmedEmail };
       const activeDb = adminAuth.currentUser ? adminDb : db;
       let createdUid = doc(collection(activeDb, 'users')).id;
 
@@ -1676,7 +1685,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           createdUid = newUser.uid;
         } catch (pwError: any) {
           console.error('Auth user creation failed:', pwError);
-          showToast(`فشل إنشاء حساب الدخول: ${pwError.message || 'خطأ مجهول'}`, 'error');
+          let errorMsg = 'فشل إنشاء حساب الدخول';
+          if (pwError.code === 'auth/invalid-email') errorMsg = 'البريد الإلكتروني غير صالح';
+          if (pwError.code === 'auth/email-already-in-use') errorMsg = 'هذا البريد مستخدم بالفعل';
+          if (pwError.code === 'auth/weak-password') errorMsg = 'كلمة المرور ضعيفة جداً';
+          
+          showToast(`${errorMsg}: ${pwError.message || ''}`, 'error');
           return;
         }
       }
@@ -2521,16 +2535,22 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const addCustomer = React.useCallback(async (customer: UserProfile) => {
     try {
       const activeDb = adminAuth.currentUser ? adminDb : db;
-      const q = query(collection(activeDb, 'users'), where('phone', '==', customer.phone));
+      const cleanPhone = (customer.phone || '').trim().replace(/\D/g, '').replace(/^0+/, '');
+      const countryCode = (customer.countryCode || '+967').trim().replace(/\D/g, '');
+      
+      if (!cleanPhone) {
+        showToast('يرجى إدخال رقم الهاتف', 'error');
+        return;
+      }
+
+      const q = query(collection(activeDb, 'users'), where('phone', '==', cleanPhone));
       const snapshot = await getDocs(q);
-      if (!snapshot.empty) {
+      if (snapshot && !snapshot.empty) {
         showToast('هذا الرقم مسجل مسبقاً لعميل آخر', 'error');
         return;
       }
       
-      const countryCode = customer.countryCode || '+967';
-      const cleanPhone = (customer.phone || '').trim().replace(/^0+/, '');
-      const dummyEmail = `${countryCode.replace('+', '')}${cleanPhone}@elite-store.local`;
+      const dummyEmail = `${countryCode}${cleanPhone}@elite-store.local`.toLowerCase();
       let authUid = '';
 
       // Create in Auth if password is provided
@@ -2541,6 +2561,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email: dummyEmail, newPassword: customer.password })
           });
+          
+          if (!syncRes.ok) {
+            const errorData = await syncRes.json().catch(() => ({}));
+            console.error('Server error during auth sync:', errorData);
+            showToast(`فشل في توثيق الحساب: ${errorData.error || 'خطأ في السيرفر'}`, 'error');
+            return;
+          }
+
           const syncData = await syncRes.json();
           if (syncData.success && syncData.uid) {
             authUid = syncData.uid;
@@ -2554,7 +2582,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           }
         } catch (authErr) {
           console.error('Auth sync attempt failed:', authErr);
-          showToast('فشل الاتصال لتأكيد حساب تسجيل الدخول', 'error');
+          showToast('فشل الاتصال بخادم التوثيق. تأكد من جودة الإنترنت.', 'error');
           return;
         }
       } else {

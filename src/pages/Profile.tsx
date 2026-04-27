@@ -32,10 +32,26 @@ export default function Profile() {
     if (user && user.uid) {
       const checkPasskey = async () => {
         try {
-          const { db, collection, query, where, getDocs } = await import('../lib/firebase');
+          const { db, collection, query, where, getDocs, auth } = await import('../lib/firebase');
           const q = query(collection(db, 'passkeys'), where('uid', '==', user.uid));
-          const snapshot = await getDocs(q);
-          setHasPasskey(!snapshot.empty);
+          try {
+            const snapshot = await getDocs(q);
+            setHasPasskey(!snapshot.empty);
+          } catch (err: any) {
+             // Standard handleFirestoreError logic as per instructions
+             const errInfo = {
+                error: err instanceof Error ? err.message : String(err),
+                authInfo: {
+                  userId: auth.currentUser?.uid,
+                  email: auth.currentUser?.email,
+                  emailVerified: auth.currentUser?.emailVerified,
+                },
+                operationType: 'list',
+                path: 'passkeys'
+             };
+             console.error('Firestore Error: ', JSON.stringify(errInfo));
+             throw new Error(JSON.stringify(errInfo));
+          }
         } catch (error) {
           console.error("Error checking passkey status:", error);
         }

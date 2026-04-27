@@ -137,6 +137,12 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // --- PASSKEYS ---
+    match /passkeys/{passkeyId} {
+      allow list, get: if isSignedIn() && resource.data.uid == request.auth.uid;
+      allow write: if isAdmin(); // Managed via server-side API
+    }
+
     // --- ORDERS ---
     match /orders/{orderId} {
       // Pillar 8: Query Enforcer

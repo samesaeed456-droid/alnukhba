@@ -199,6 +199,48 @@ app.post("/api/admin/notifications/send", async (req, res) => {
   }
 });
 
+app.get("/api/cloudinary", async (req, res) => {
+  const action = req.query.action;
+  
+  if (action === "usage") {
+    console.log("[API] Hit /api/cloudinary?action=usage fallback");
+    try {
+      const cloudName = (process.env.CLOUDINARY_CLOUD_NAME || "").trim();
+      const apiKey = (process.env.CLOUDINARY_API_KEY || "").trim();
+      const apiSecret = (process.env.CLOUDINARY_API_SECRET || "").trim();
+
+      if (!cloudName || !apiKey || !apiSecret) {
+        return res.status(500).json({ error: "Cloudinary credentials missing" });
+      }
+
+      cloudinary.config({ cloud_name: cloudName, api_key: apiKey, api_secret: apiSecret });
+      const usage = await cloudinary.api.usage();
+      res.json(usage);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Failed to fetch usage" });
+    }
+  } else {
+    console.log("[API] Hit /api/cloudinary?action=images fallback");
+    try {
+      const cloudName = (process.env.CLOUDINARY_CLOUD_NAME || "").trim();
+      const apiKey = (process.env.CLOUDINARY_API_KEY || "").trim();
+      const apiSecret = (process.env.CLOUDINARY_API_SECRET || "").trim();
+
+      if (!cloudName || !apiKey || !apiSecret) {
+        return res.status(500).json({ error: "Cloudinary credentials missing" });
+      }
+
+      cloudinary.config({ cloud_name: cloudName, api_key: apiKey, api_secret: apiSecret });
+      const result = await cloudinary.api.resources({ type: 'upload', max_results: 50 });
+      res.json({ images: result.resources });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Failed to fetch images" });
+    }
+  }
+});
+
 app.get("/api/cloudinary/usage", async (req, res) => {
   console.log("[API] Hit /api/cloudinary/usage");
   try {

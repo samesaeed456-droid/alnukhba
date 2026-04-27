@@ -139,7 +139,7 @@ service cloud.firestore {
 
     // --- PASSKEYS ---
     match /passkeys/{passkeyId} {
-      allow list, get: if isSignedIn() && resource.data.uid == request.auth.uid;
+      allow list, get: if isSignedIn() && (resource == null || resource.data.uid == request.auth.uid);
       allow write: if isAdmin(); // Managed via server-side API
     }
 

@@ -288,10 +288,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        return parsed.map((item: any) => ({
-          ...item,
-          id: item.id || `${item.product?.id || Date.now()}-${item.selectedColor || 'default'}-${item.selectedSize || 'default'}`
-        }));
+        // Deduplicate cart items by id to prevent React key errors
+        const uniqueItemsMap = new Map();
+        parsed.forEach((item: any) => {
+          const id = item.id || `${item.product?.id || Date.now()}-${item.selectedColor || 'default'}-${item.selectedSize || 'default'}`;
+          if (!uniqueItemsMap.has(id)) {
+            uniqueItemsMap.set(id, { ...item, id });
+          }
+        });
+        return Array.from(uniqueItemsMap.values());
       } catch (e) {
         return [];
       }
@@ -373,27 +378,65 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
         const hardcodedAdmins = ["samesaeed456@gmail.com", "samisaeed2027@gmail.com", "samisaeed2025@gmail.com"];
         
-        // Update current session in Firestore (using setDoc with merge to ensure it doesn't fail if doc doesn't exist yet)
-        setDoc(doc(db, 'users', firebaseUser.uid), {
-          currentSessionId: localSessionId,
-          lastActive: new Date().toISOString()
-        }, { merge: true }).catch(err => console.error("Session update failed:", err));
-
         // Set up real-time listener for user document
         unsubUser = onSnapshot(doc(db, 'users', firebaseUser.uid), (docSnap) => {
           if (docSnap.exists()) {
             const userData = { ...docSnap.data(), uid: docSnap.id } as UserProfile;
+             
+            // Deduplicate addresses and transactions if they exist
+            if (userData.addresses && Array.isArray(userData.addresses)) {
+              const seenIds = new Set();
+              userData.addresses = userData.addresses.filter(addr => {
+                if (!addr || typeof addr !== 'object') return false;
+                const id = (addr as any).id;
+                if (!id || seenIds.has(id)) return false;
+                seenIds.add(id);
+                return true;
+              });
+            }
+            
+            if (userData.transactions && Array.isArray(userData.transactions)) {
+              const seenTxIds = new Set();
+              userData.transactions = userData.transactions.filter(tx => {
+                if (!tx || typeof tx !== 'object') return false;
+                const id = (tx as any).id;
+                if (!id || seenTxIds.has(id)) return false;
+                seenTxIds.add(id);
+                return true;
+              });
+            }
+
+            // Periodically update session metadata (once per session/load)
             const currentLocalSession = localStorage.getItem('local_session_id');
+            const lastPing = localStorage.getItem('last_session_ping');
+            const now = Date.now();
+            
+            if (!lastPing || (now - parseInt(lastPing)) > 300000) { // 5 mins
+              updateDoc(doc(db, 'users', firebaseUser.uid), {
+                currentSessionId: currentLocalSession,
+                lastActive: new Date().toISOString(),
+                updatedAt: serverTimestamp()
+              }).catch(() => {});
+              localStorage.setItem('last_session_ping', now.toString());
+            }
+
             if (userData.currentSessionId && currentLocalSession && userData.currentSessionId !== currentLocalSession) {
               auth.signOut();
               showToast('تم تسجيل الدخول من جهاز آخر، تم تسجيل خروجك لحماية حسابك', 'error');
               return;
             }
+
+            // Ensure name is not empty
+            if (!userData.name && !userData.displayName) {
+              userData.name = 'عميل النخبة';
+            }
+
             setUser(userData);
             localStorage.setItem('store_user', JSON.stringify(userData));
             refreshNotificationToken();
           } else {
-            // New user registration or ghost session handling
+            // Document doesn't exist yet (e.g. during signup before Auth.tsx completes setDoc)
+            // Or if the user was deleted but Auth is still active
             if (firebaseUser.email && hardcodedAdmins.includes(firebaseUser.email)) {
               const adminData: any = { 
                 uid: firebaseUser.uid, 
@@ -406,63 +449,31 @@ export function StoreProvider({ children }: { children: ReactNode }) {
               setDoc(doc(db, 'users', firebaseUser.uid), adminData, { merge: true });
               setUser(adminData);
             } else {
-              // Account Recovery/Linking logic:
-              // If this doc doesn't exist, check if an account exists with the same email/phone
-              const recoverUser = async () => {
-                if (firebaseUser.email) {
-                  try {
-                    const q = query(collection(db, 'users'), where('email', '==', firebaseUser.email.toLowerCase()));
-                    const snap = await getDocs(q);
-                    
-                    if (!snap.empty) {
-                      // Found a previous account (likely manually created by admin or from old system)
-                      const oldData = snap.docs[0].data();
-                      const updates = {
-                        ...oldData,
-                        uid: firebaseUser.uid,
-                        lastLogin: serverTimestamp(),
-                        updatedAt: serverTimestamp()
-                      };
-                      await setDoc(doc(db, 'users', firebaseUser.uid), updates, { merge: true });
-                      // Listener will re-fire and set the user state
-                      return;
-                    }
-                  } catch (e) {
-                    console.warn("Account recovery lookup failed:", e);
-                  }
-                }
-
-                // If not found or recovery failed, create default profile
-                const isDummyEmail = firebaseUser.email?.endsWith('@elite-store.local');
-                let extractedPhone = '';
-                let extractedCC = '+967';
-                
-                if (isDummyEmail) {
-                  const prefix = firebaseUser.email!.split('@')[0];
-                  if (prefix.startsWith('967')) {
-                    extractedPhone = prefix.substring(3);
-                    extractedCC = '+967';
-                  } else {
-                    extractedPhone = prefix;
-                  }
-                }
-
-                const defaultData: any = {
-                  uid: firebaseUser.uid,
-                  email: firebaseUser.email || '',
-                  phone: extractedPhone,
-                  countryCode: extractedCC,
-                  role: 'customer',
-                  createdAt: serverTimestamp(),
-                  displayName: 'عميل جديد',
-                  name: isDummyEmail ? `عميل ${extractedPhone}` : 'عميل جديد'
-                };
-                
-                setDoc(doc(db, 'users', firebaseUser.uid), defaultData, { merge: true })
-                  .catch(error => handleFirestoreError(error, OperationType.WRITE, `users/${firebaseUser.uid}`));
+              // For normal users, if document is missing, let's try to initialize it from Auth info
+              // This is a safety net for "New Customer" issues where data is missing
+              const nameFromAuth = firebaseUser.displayName || 'عميل النخبة';
+              const emailFromAuth = firebaseUser.email || '';
+              const phoneFromAuth = firebaseUser.phoneNumber || '';
+              
+              const newProfile: any = {
+                uid: firebaseUser.uid,
+                name: nameFromAuth,
+                displayName: nameFromAuth,
+                email: emailFromAuth,
+                phone: phoneFromAuth,
+                role: 'customer',
+                walletBalance: 0,
+                addresses: [],
+                transactions: [],
+                wishlistIds: [],
+                createdAt: new Date().toISOString(),
+                updatedAt: serverTimestamp()
               };
-
-              recoverUser();
+              
+              // Only create it once, and don't overwrite if it's currently being written by Auth.tsx
+              // We'll use merge: true just in case a background process is writing it
+              setDoc(doc(db, 'users', firebaseUser.uid), newProfile, { merge: true }).catch(() => {});
+              setUser(newProfile);
             }
           }
           setIsAuthReady(true);

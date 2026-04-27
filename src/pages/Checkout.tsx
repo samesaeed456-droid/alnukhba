@@ -546,8 +546,8 @@ export default function Checkout() {
             >
               <div className="bg-white/50 backdrop-blur-sm border-x border-b border-slate-100 rounded-b-2xl p-4 space-y-4">
                 <div className="space-y-3 max-h-[200px] overflow-y-auto pr-2 custom-scrollbar">
-                  {cart.map((item) => (
-                    <div key={item.id} className="flex gap-3">
+                  {cart.map((item, idx) => (
+                    <div key={item.id || `cart-${idx}`} className="flex gap-3">
                       <img src={item.product?.image || undefined} alt={item.product?.name || 'محذوف'} className="w-12 h-12 rounded-lg object-cover border border-slate-100" />
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-bold text-carbon truncate">{item.product?.name || 'منتج محذوف'}</p>
@@ -705,9 +705,9 @@ export default function Checkout() {
                     <div className="space-y-4">
                       <h3 className="text-sm font-bold text-carbon">العناوين المحفوظة</h3>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                        {user.addresses.map(addr => (
+                        {user.addresses.map((addr, idx) => (
                           <div 
-                            key={addr.id}
+                            key={addr.id || `addr-${idx}`}
                             onClick={() => handleAddressSelect(addr)}
                             className={`p-3 sm:p-4 rounded-2xl border-2 cursor-pointer transition-all relative group/addr ${selectedAddressId === addr.id ? 'border-slate-900 bg-slate-900/5' : 'border-slate-100 hover:border-slate-200 bg-slate-50'}`}
                           >

@@ -1397,8 +1397,8 @@ export default function Profile() {
                 
                 <div className="space-y-3 sm:space-y-4">
                   {user.transactions && user.transactions.length > 0 ? (
-                    [...user.transactions].reverse().map(tx => (
-                      <div key={tx.id} className="flex items-start sm:items-center justify-between p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-slate-100 bg-slate-50/50 gap-2 sm:gap-4">
+                    [...user.transactions].reverse().map((tx, idx) => (
+                      <div key={tx.id || `tx-${idx}`} className="flex items-start sm:items-center justify-between p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-slate-100 bg-slate-50/50 gap-2 sm:gap-4">
                         <div className="flex items-start sm:items-center gap-2.5 sm:gap-4 flex-1 min-w-0">
                           <div className={`w-8 h-8 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl flex items-center justify-center shrink-0 mt-0.5 sm:mt-0 ${
                             tx.type === 'deposit' ? 'bg-emerald-50 text-emerald-500' : 'bg-red-50 text-red-500'
@@ -1581,8 +1581,8 @@ export default function Profile() {
                   className="space-y-4"
                 >
                   {user?.addresses && user.addresses.length > 0 ? (
-                    user.addresses.map(addr => (
-                      <div key={addr.id} className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-100 shadow-sm flex gap-4 justify-between items-start">
+                    user.addresses.map((addr, idx) => (
+                      <div key={addr.id || `addr-${idx}`} className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-100 shadow-sm flex gap-4 justify-between items-start">
                         <div className="flex-1 min-w-0">
                           <h3 className="font-bold text-carbon mb-1 truncate">{addr.firstName} {addr.lastName}</h3>
                           <p className="text-xs sm:text-sm text-titanium/80 mb-1 truncate">{addr.address}, {addr.city}</p>

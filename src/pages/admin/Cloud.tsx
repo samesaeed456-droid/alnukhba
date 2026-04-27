@@ -104,11 +104,25 @@ export default function CloudPage() {
         banners: store.banners,
         settings: store.settings,
         blogPosts: store.blogPosts,
-        marketing: store.marketingNotifications
+        marketing: store.marketingNotifications,
+        orders: store.orders,
+        users: store.customers,
+        tickets: store.supportTickets,
+        pages: store.staticPages,
+        carts: store.abandonedCarts
       });
 
       const unusedIds = images.filter(img => {
-        return !everything.includes(img.public_id);
+        const parts = img.public_id.split('/');
+        const shortId = parts[parts.length - 1]; // Just the file name part without the folder
+        
+        // Exact URL match
+        const hasUrl = everything.includes(img.secure_url);
+        
+        // ID match (prevent false positives if the ID is just a 1 or 2 letter word, but Cloudinary random strings are 20 chars long)
+        const hasId = shortId.length > 5 ? everything.includes(shortId) : everything.includes(img.public_id);
+        
+        return !hasUrl && !hasId;
       }).map(img => img.public_id);
 
       setSelectedIds(unusedIds);
@@ -116,7 +130,7 @@ export default function CloudPage() {
       if (unusedIds.length > 0) {
         toast.success(`تم تحديد ${unusedIds.length} صورة غير مستخدمة`);
       } else {
-        toast.info('جميع الصور مستخدمة حالياً في التطبيق');
+        toast.info('جميع الصور مستخدمة حالياً في التطبيق أو الطلبات');
       }
     } catch(err) {
       toast.error("حدث خطأ أثناء فحص الصور");

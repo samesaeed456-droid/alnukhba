@@ -499,7 +499,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setIsLoading(false);
     }, 1200);
 
-    const unsubscribe = onSnapshot(collection(db, 'products'), (snapshot) => {
+    const activeDb = adminAuth.currentUser ? adminDb : db;
+    const unsubscribe = onSnapshot(collection(activeDb, 'products'), (snapshot) => {
       clearTimeout(loadingTimeout);
       const productsData = snapshot.docs.map(doc => {
         const data = doc.data();
@@ -532,7 +533,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }
 
     // If admin, sync ALL orders. If user, sync only THEIR orders.
-    const ordersRef = collection(db, 'orders');
+    const activeDb = adminAuth.currentUser ? adminDb : db;
+    const ordersRef = collection(activeDb, 'orders');
     const q = activeAdmin 
       ? query(ordersRef) 
       : query(ordersRef, where('userId', '==', auth.currentUser?.uid || 'guest'));
@@ -686,37 +688,38 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   // Sync Public Data
   useEffect(() => {
-    const unsubCategories = onSnapshot(collection(db, 'categories'), (snapshot) => {
+    const activeDb = adminAuth.currentUser ? adminDb : db;
+    const unsubCategories = onSnapshot(collection(activeDb, 'categories'), (snapshot) => {
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as Category[];
       setCategories(data);
       localStorage.setItem('store_categories', JSON.stringify(data));
     });
-    const unsubCoupons = onSnapshot(collection(db, 'coupons'), (snapshot) => {
+    const unsubCoupons = onSnapshot(collection(activeDb, 'coupons'), (snapshot) => {
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as Coupon[];
       setCoupons(data);
       localStorage.setItem('store_coupons', JSON.stringify(data));
     });
-    const unsubPosts = onSnapshot(collection(db, 'blog_posts'), (snapshot) => {
+    const unsubPosts = onSnapshot(collection(activeDb, 'blog_posts'), (snapshot) => {
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as BlogPost[];
       setBlogPosts(data);
       localStorage.setItem('store_blog', JSON.stringify(data));
     });
-    const unsubPages = onSnapshot(collection(db, 'static_pages'), (snapshot) => {
+    const unsubPages = onSnapshot(collection(activeDb, 'static_pages'), (snapshot) => {
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as StaticPage[];
       setStaticPages(data);
       localStorage.setItem('store_pages', JSON.stringify(data));
     });
-    const unsubZones = onSnapshot(collection(db, 'shipping_zones'), (snapshot) => {
+    const unsubZones = onSnapshot(collection(activeDb, 'shipping_zones'), (snapshot) => {
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as ShippingZone[];
       setShippingZones(data);
       localStorage.setItem('store_shipping_zones', JSON.stringify(data));
     });
-    const unsubBanners = onSnapshot(collection(db, 'banners'), (snapshot) => {
+    const unsubBanners = onSnapshot(collection(activeDb, 'banners'), (snapshot) => {
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as Banner[];
       setBanners(data);
       localStorage.setItem('store_banners', JSON.stringify(data));
     });
-    const unsubSettings = onSnapshot(doc(db, 'settings', 'store'), (docSnap) => {
+    const unsubSettings = onSnapshot(doc(activeDb, 'settings', 'store'), (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data() as StoreSettings;
         setSettings(data);
@@ -725,7 +728,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     });
     
     let isInitialMarketingSync = true;
-    const unsubMarketingNotifs = onSnapshot(collection(db, 'marketing_notifications'), (snapshot) => {
+    const unsubMarketingNotifs = onSnapshot(collection(activeDb, 'marketing_notifications'), (snapshot) => {
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as MarketingNotification[];
       setMarketingNotifications(data);
       localStorage.setItem('store_marketing_notifications', JSON.stringify(data));
@@ -1177,6 +1180,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     try {
       const adminEmail = localStorage.getItem('admin_email');
       const adminName = localStorage.getItem('admin_name');
+      const activeDb = adminAuth.currentUser ? adminDb : db;
       
       const ip = '127.0.0.1';
 
@@ -1189,7 +1193,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         ip
       };
 
-      await addDoc(collection(db, 'activity_logs'), logData);
+      await addDoc(collection(activeDb, 'activity_logs'), logData);
     } catch (error) {
       console.error('Failed to log activity:', error);
     }
@@ -1198,7 +1202,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const updateSettings = React.useCallback(async (newSettings: Partial<StoreSettings>) => {
     try {
       const updated = { ...settings, ...newSettings };
-      await setDoc(doc(db, 'settings', 'store'), {
+      const activeDb = adminAuth.currentUser ? adminDb : db;
+
+      await setDoc(doc(activeDb, 'settings', 'store'), {
         ...updated,
         updatedAt: serverTimestamp()
       }, { merge: true });
@@ -1461,13 +1467,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const bulkUpdatePrices = React.useCallback(async (category: string, percentage: number) => {
     try {
-      const batch = writeBatch(db);
+      const activeDb = adminAuth.currentUser ? adminDb : db;
+      const batch = writeBatch(activeDb);
       let count = 0;
 
       products.forEach(p => {
         if (category === 'الكل' || p.category === category) {
           const newPrice = Math.round(p.price * (1 + percentage / 100));
-          const pRef = doc(db, 'products', p.id);
+          const pRef = doc(activeDb, 'products', p.id);
           batch.update(pRef, {
             price: newPrice,
             originalPrice: p.price,
@@ -1492,7 +1499,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const addBanner = React.useCallback(async (banner: Omit<Banner, 'id'>) => {
     try {
-      const newBannerRef = doc(collection(db, 'banners'));
+      const activeDb = adminAuth.currentUser ? adminDb : db;
+      const newBannerRef = doc(collection(activeDb, 'banners'));
       await setDoc(newBannerRef, {
         ...banner,
         id: newBannerRef.id,
@@ -1507,7 +1515,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const updateBanner = React.useCallback(async (id: string, updatedData: Partial<Banner>) => {
     try {
-      await updateDoc(doc(db, 'banners', id), {
+      const activeDb = adminAuth.currentUser ? adminDb : db;
+      await updateDoc(doc(activeDb, 'banners', id), {
         ...updatedData,
         updatedAt: serverTimestamp()
       });
@@ -1520,7 +1529,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const deleteBanner = React.useCallback(async (id: string) => {
     try {
-      await deleteDoc(doc(db, 'banners', id));
+      const activeDb = adminAuth.currentUser ? adminDb : db;
+      await deleteDoc(doc(activeDb, 'banners', id));
       showToast('تم حذف البانر');
       logActivity('حذف بنر', `تم حذف البانر ID: ${id}`);
     } catch (error) {
@@ -1530,7 +1540,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const sendMarketingNotification = React.useCallback(async (notification: Omit<MarketingNotification, 'id' | 'date' | 'sentCount' | 'openedCount' | 'clickedCount' | 'status'>) => {
     try {
-      const newNotifRef = doc(collection(db, 'marketing_notifications'));
+      const activeDb = adminAuth.currentUser ? adminDb : db;
+      const newNotifRef = doc(collection(activeDb, 'marketing_notifications'));
       const newNotification: MarketingNotification = {
         ...notification,
         id: newNotifRef.id,
@@ -1587,7 +1598,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const addAdminUser = React.useCallback(async (admin: Omit<AdminUser, 'id'>) => {
     try {
       let finalAdmin = { ...admin };
-      let createdUid = doc(collection(db, 'users')).id;
+      const activeDb = adminAuth.currentUser ? adminDb : db;
+      let createdUid = doc(collection(activeDb, 'users')).id;
 
       // Create user in Auth if password provided
       if (finalAdmin.password && finalAdmin.email) {
@@ -1601,7 +1613,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      const newUserRef = doc(db, 'users', createdUid);
+      const newUserRef = doc(activeDb, 'users', createdUid);
       await setDoc(newUserRef, {
         uid: createdUid,
         email: finalAdmin.email,
@@ -1630,6 +1642,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const updateAdminUser = React.useCallback(async (id: string, updatedData: Partial<AdminUser>, logDetails?: string) => {
     try {
       let finalData = { ...updatedData };
+      const activeDb = adminAuth.currentUser ? adminDb : db;
 
       // Handle password synchronization if changed
       if (finalData.password && finalData.email) {
@@ -1672,7 +1685,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           updates.isAdmin = true;
       }
 
-      await updateDoc(doc(db, 'users', id), updates);
+      await updateDoc(doc(activeDb, 'users', id), updates);
 
       showToast('تم تحديث بيانات المشرف');
       logActivity('تحديث مشرف', logDetails || `تم تحديث بيانات المشرف ID: ${id}`);
@@ -1685,7 +1698,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const deleteAdminUser = React.useCallback(async (id: string) => {
     try {
-      await deleteDoc(doc(db, 'users', id));
+      const activeDb = adminAuth.currentUser ? adminDb : db;
+      await deleteDoc(doc(activeDb, 'users', id));
       showToast('تم حذف المشرف');
       logActivity('حذف مشرف', `تم حذف المشرف ID: ${id}`);
     } catch (error) {
@@ -1771,11 +1785,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         return;
       }
 
+      const activeDb = adminAuth.currentUser ? adminDb : db;
       let docRef = null;
       let userData = null;
 
       // Try by UID first
-      const uidRef = doc(db, 'users', identifier);
+      const uidRef = doc(activeDb, 'users', identifier);
       const uidSnap = await getDoc(uidRef);
 
       if (uidSnap.exists()) {
@@ -1783,7 +1798,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         userData = uidSnap.data() as UserProfile;
       } else {
         // Fallback to phone search
-        const q = query(collection(db, 'users'), where('phone', '==', identifier));
+        const q = query(collection(activeDb, 'users'), where('phone', '==', identifier));
         const snapshot = await getDocs(q);
         if (snapshot && !snapshot.empty && snapshot.docs && snapshot.docs.length > 0) {
           docRef = snapshot.docs[0].ref;
@@ -1827,11 +1842,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         return;
       }
 
+      const activeDb = adminAuth.currentUser ? adminDb : db;
       let docRef = null;
       let userData = null;
 
       // Try by UID first
-      const uidRef = doc(db, 'users', identifier);
+      const uidRef = doc(activeDb, 'users', identifier);
       const uidSnap = await getDoc(uidRef);
 
       if (uidSnap.exists()) {
@@ -1839,7 +1855,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         userData = uidSnap.data() as UserProfile;
       } else {
         // Fallback to phone search
-        const q = query(collection(db, 'users'), where('phone', '==', identifier));
+        const q = query(collection(activeDb, 'users'), where('phone', '==', identifier));
         const snapshot = await getDocs(q);
         if (snapshot && !snapshot.empty && snapshot.docs && snapshot.docs.length > 0) {
           docRef = snapshot.docs[0].ref;
@@ -2052,7 +2068,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const updateOrderStatus = React.useCallback(async (orderId: string, status: Order['status']) => {
     try {
-      const orderRef = doc(db, 'orders', orderId);
+      const activeDb = adminAuth.currentUser ? adminDb : db;
+      const orderRef = doc(activeDb, 'orders', orderId);
       const orderSnap = await getDoc(orderRef);
       
       if (!orderSnap.exists()) {
@@ -2130,7 +2147,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const deleteOrder = React.useCallback(async (id: string) => {
     try {
-      await deleteDoc(doc(db, 'orders', id));
+      const activeDb = adminAuth.currentUser ? adminDb : db;
+      await deleteDoc(doc(activeDb, 'orders', id));
       showToast('تم حذف الطلب بنجاح', 'success');
       logActivity('حذف طلب', `تم حذف الطلب رقم: ${id}`);
     } catch (error) {
@@ -2294,11 +2312,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         return;
       }
 
+      const activeDb = adminAuth.currentUser ? adminDb : db;
       let docRef = null;
       let userData: UserProfile | null = null;
 
       // Try by UID first
-      const uidRef = doc(db, 'users', identifier);
+      const uidRef = doc(activeDb, 'users', identifier);
       const uidSnap = await getDoc(uidRef);
 
       if (uidSnap.exists()) {
@@ -2306,7 +2325,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         userData = { uid: uidSnap.id, ...uidSnap.data() } as UserProfile;
       } else {
         // Fallback to phone search
-        const q = query(collection(db, 'users'), where('phone', '==', identifier));
+        const q = query(collection(activeDb, 'users'), where('phone', '==', identifier));
         const snapshot = await getDocs(q);
         if (snapshot && !snapshot.empty && snapshot.docs && snapshot.docs.length > 0) {
           docRef = snapshot.docs[0].ref;
@@ -2394,11 +2413,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         return;
       }
 
+      const activeDb = adminAuth.currentUser ? adminDb : db;
       let docRef = null;
       let userData = null;
 
       // Try by UID first
-      const uidRef = doc(db, 'users', identifier);
+      const uidRef = doc(activeDb, 'users', identifier);
       const uidSnap = await getDoc(uidRef);
 
       if (uidSnap.exists()) {
@@ -2406,7 +2426,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         userData = uidSnap.data() as UserProfile;
       } else {
         // Fallback to phone search
-        const q = query(collection(db, 'users'), where('phone', '==', identifier));
+        const q = query(collection(activeDb, 'users'), where('phone', '==', identifier));
         const snapshot = await getDocs(q);
         if (snapshot && !snapshot.empty && snapshot.docs && snapshot.docs.length > 0) {
           docRef = snapshot.docs[0].ref;
@@ -2432,7 +2452,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const addCustomer = React.useCallback(async (customer: UserProfile) => {
     try {
-      const q = query(collection(db, 'users'), where('phone', '==', customer.phone));
+      const activeDb = adminAuth.currentUser ? adminDb : db;
+      const q = query(collection(activeDb, 'users'), where('phone', '==', customer.phone));
       const snapshot = await getDocs(q);
       if (!snapshot.empty) {
         showToast('هذا الرقم مسجل مسبقاً لعميل آخر', 'error');
@@ -2455,10 +2476,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           const syncData = await syncRes.json();
           if (syncData.success && syncData.uid) {
             authUid = syncData.uid;
+          } else if (syncData.error && syncData.error.includes('email-already-in-use')) {
+             showToast('هذا البريد مسجل مسبقاً. يرجى "تحديث" العميل بدلاً من إضافته.', 'error');
+             return;
           } else {
             console.error('Failed to create Auth record:', syncData.error);
             showToast(`لم يتم إنشاء حساب تسجيل الدخول: ${syncData.error}. (تأكد من إعداد Firebase Admin)`, 'error');
-            return; // Stop if we can't create the auth record
+            return;
           }
         } catch (authErr) {
           console.error('Auth sync attempt failed:', authErr);
@@ -2468,10 +2492,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       } else {
         showToast('يرجى تحديد كلمة مرور ليتمكن العميل من تسجيل الدخول', 'info');
         // If no password, we just use a random ID for Firestore, but they can't login
-        authUid = doc(collection(db, 'users')).id;
+        authUid = doc(collection(activeDb, 'users')).id;
       }
 
-      await setDoc(doc(db, 'users', authUid), {
+      await setDoc(doc(activeDb, 'users', authUid), {
         ...customer,
         uid: authUid,
         email: dummyEmail,
@@ -2497,17 +2521,18 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         return;
       }
 
+      const activeDb = adminAuth.currentUser ? adminDb : db;
       let docRef = null;
       
       // Try to get by UID first
-      const uidRef = doc(db, 'users', identifier);
+      const uidRef = doc(activeDb, 'users', identifier);
       const uidSnap = await getDoc(uidRef);
       
       if (uidSnap.exists()) {
         docRef = uidRef;
       } else {
         // Fallback to phone search
-        const q = query(collection(db, 'users'), where('phone', '==', identifier));
+        const q = query(collection(activeDb, 'users'), where('phone', '==', identifier));
         const snapshot = await getDocs(q);
         if (snapshot && !snapshot.empty && snapshot.docs && snapshot.docs.length > 0) {
           docRef = snapshot.docs[0].ref;
@@ -2529,12 +2554,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const addCoupon = React.useCallback(async (coupon: Omit<Coupon, 'id' | 'usedCount'>) => {
     try {
+      const activeDb = adminAuth.currentUser ? adminDb : db;
       const newCoupon: Coupon = {
         ...coupon,
         id: (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15)),
         usedCount: 0
       };
-      await setDoc(doc(db, 'coupons', newCoupon.id), newCoupon);
+      await setDoc(doc(activeDb, 'coupons', newCoupon.id), newCoupon);
       showToast('تمت إضافة الكوبون بنجاح');
       logActivity('إضافة كوبون', `تم إضافة كود خصم جديد: ${coupon.code}`);
     } catch (error) {
@@ -2544,7 +2570,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const deleteCoupon = React.useCallback(async (id: string) => {
     try {
-      await deleteDoc(doc(db, 'coupons', id));
+      const activeDb = adminAuth.currentUser ? adminDb : db;
+      await deleteDoc(doc(activeDb, 'coupons', id));
       showToast('تم حذف الكوبون بنجاح');
       logActivity('حذف كوبون', `تم حذف كود الخصم بمعرف: ${id}`);
     } catch (error) {
@@ -2554,9 +2581,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const toggleCouponStatus = React.useCallback(async (id: string) => {
     try {
+      const activeDb = adminAuth.currentUser ? adminDb : db;
       const coupon = coupons.find(c => c.id === id);
       if (coupon) {
-        await updateDoc(doc(db, 'coupons', id), { isActive: !coupon.isActive });
+        await updateDoc(doc(activeDb, 'coupons', id), { isActive: !coupon.isActive });
         showToast('تم تغيير حالة الكوبون');
         logActivity('تحديث كوبون', `تم إيقاف/تفعيل كود الخصم: ${coupon.code}`);
       }
@@ -2697,6 +2725,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const updateStock = React.useCallback(async (productId: string, newStock: number, reason: string = 'تحديث يدوي') => {
     try {
+      const activeDb = adminAuth.currentUser ? adminDb : db;
       const product = products.find(p => p.id === productId);
       if (!product) return;
 
@@ -2705,10 +2734,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
       if (change === 0) return;
 
-      const batch = writeBatch(db);
+      const batch = writeBatch(activeDb);
 
       // Update product
-      const pRef = doc(db, 'products', productId);
+      const pRef = doc(activeDb, 'products', productId);
       batch.update(pRef, {
         stockCount: newStock,
         inStock: newStock > 0,
@@ -2716,7 +2745,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       });
 
       // Create inventory log
-      const logRef = doc(collection(db, 'inventory_logs'));
+      const logRef = doc(collection(activeDb, 'inventory_logs'));
       batch.set(logRef, {
         productId,
         productName: product.name,
@@ -2739,7 +2768,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const bulkUpdateStock = React.useCallback(async (updates: { productId: string, newStock: number }[], reason: string = 'تحديث جماعي') => {
     try {
-      const batch = writeBatch(db);
+      const activeDb = adminAuth.currentUser ? adminDb : db;
+      const batch = writeBatch(activeDb);
       let logCount = 0;
 
       updates.forEach(update => {
@@ -2752,7 +2782,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         if (change === 0) return;
 
         // Update product ref
-        const pRef = doc(db, 'products', update.productId);
+        const pRef = doc(activeDb, 'products', update.productId);
         batch.update(pRef, {
           stockCount: update.newStock,
           inStock: update.newStock > 0,
@@ -2760,7 +2790,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         });
 
         // Create inventory log doc
-        const logRef = doc(collection(db, 'inventory_logs'));
+        const logRef = doc(collection(activeDb, 'inventory_logs'));
         batch.set(logRef, {
           productId: update.productId,
           productName: product.name,
@@ -2789,8 +2819,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const addProduct = React.useCallback(async (product: Omit<Product, 'id'>) => {
     try {
+      const activeDb = adminAuth.currentUser ? adminDb : db;
       const newId = String(Date.now()); 
-      await setDoc(doc(db, 'products', newId), {
+      await setDoc(doc(activeDb, 'products', newId), {
         ...product,
         id: newId,
         createdAt: serverTimestamp()
@@ -2804,7 +2835,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const updateProduct = React.useCallback(async (id: string, updatedData: Partial<Product>) => {
     try {
-      await updateDoc(doc(db, 'products', String(id)), {
+      const activeDb = adminAuth.currentUser ? adminDb : db;
+      await updateDoc(doc(activeDb, 'products', String(id)), {
         ...updatedData,
         updatedAt: serverTimestamp()
       });
@@ -2817,7 +2849,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const deleteProduct = React.useCallback(async (id: string) => {
     try {
-      await deleteDoc(doc(db, 'products', String(id)));
+      const activeDb = adminAuth.currentUser ? adminDb : db;
+      await deleteDoc(doc(activeDb, 'products', String(id)));
       showToast('تم حذف المنتج بنجاح');
       logActivity('حذف منتج', `تم حذف المنتج ID: ${id}`);
     } catch (error) {
@@ -2827,11 +2860,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const addCategory = React.useCallback(async (category: Omit<Category, 'id'>) => {
     try {
+      const activeDb = adminAuth.currentUser ? adminDb : db;
       const newCategory: Category = {
         ...category,
         id: Date.now().toString()
       };
-      await setDoc(doc(db, 'categories', newCategory.id), newCategory);
+      await setDoc(doc(activeDb, 'categories', newCategory.id), newCategory);
       logActivity('إضافة قسم', `تم إضافة قسم جديد: ${category.name}`);
       showToast('تم إضافة الفئة بنجاح', 'success');
     } catch (error) {
@@ -2841,7 +2875,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const updateCategory = React.useCallback(async (id: string, updatedData: Partial<Category>) => {
     try {
-      await updateDoc(doc(db, 'categories', id), updatedData);
+      const activeDb = adminAuth.currentUser ? adminDb : db;
+      await updateDoc(doc(activeDb, 'categories', id), updatedData);
       logActivity('تحديث قسم', `تم تحديث بيانات القسم`);
       showToast('تم تحديث الفئة بنجاح', 'success');
     } catch (error) {
@@ -2851,7 +2886,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const deleteCategory = React.useCallback(async (id: string) => {
     try {
-      await deleteDoc(doc(db, 'categories', id));
+      const activeDb = adminAuth.currentUser ? adminDb : db;
+      await deleteDoc(doc(activeDb, 'categories', id));
       logActivity('حذف قسم', `تم حذف القسم بنجاح`);
       showToast(`تم حذف الفئة بنجاح`);
     } catch (error) {

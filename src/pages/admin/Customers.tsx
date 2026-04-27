@@ -648,20 +648,21 @@ export default function Customers() {
                       <h3 className="text-lg font-black text-carbon truncate">{customer.name || customer.displayName}</h3>
                       <div className="flex items-center gap-2 mt-1">
                         {(() => {
-                          const lastOrderDate = customer.lastOrder ? new Date(customer.lastOrder) : null;
-                          const thirtyDaysAgo = new Date();
-                          thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-                          const isActive = lastOrderDate ? lastOrderDate >= thirtyDaysAgo : false;
+                          const lastActive = customer.lastActive ? new Date(customer.lastActive) : null;
+                          const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+                          const isOnline = lastActive ? lastActive >= fiveMinutesAgo : false;
                           
-                          return isActive ? (
+                          return isOnline ? (
                             <div className="flex items-center gap-1">
                               <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                              <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">نشط الآن</span>
+                              <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">متصل الآن</span>
                             </div>
                           ) : (
                             <div className="flex items-center gap-1">
                               <div className="w-2 h-2 rounded-full bg-slate-300" />
-                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">غير نشط</span>
+                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                {lastActive ? `آخر ظهور: ${new Date(lastActive).toLocaleDateString('ar-SY', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}` : 'غير متصل'}
+                              </span>
                             </div>
                           );
                         })()}
@@ -934,7 +935,13 @@ export default function Customers() {
                         </span>
                         <span className="text-[10px] font-bold px-3 py-1 rounded-full bg-slate-50 text-slate-500 shadow-sm flex items-center gap-1">
                           <History className="w-3 h-3" />
-                          {customer.lastActive ? `آخر ظهور: ${new Date(customer.lastActive).toLocaleDateString('ar-u-nu-latn', { day: 'numeric', month: 'short' })}` : 'آخر ظهور: غير متوفر'}
+                           {(() => {
+                            const lastVisible = customer.lastActive ? new Date(customer.lastActive) : null;
+                            const currentlyOnline = lastVisible ? lastVisible >= new Date(Date.now() - 5 * 60 * 1000) : false;
+                            if (currentlyOnline) return <span className="text-emerald-500 font-bold">متصل الآن</span>;
+                            if (lastVisible) return `آخر ظهور: ${lastVisible.toLocaleDateString('ar-SY', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}`;
+                            return 'آخر ظهور: غير متوفر';
+                          })()}
                         </span>
                       </div>
                     </div>

@@ -411,7 +411,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             const lastPing = localStorage.getItem('last_session_ping');
             const now = Date.now();
             
-            if (!lastPing || (now - parseInt(lastPing)) > 300000) { // 5 mins
+            if (!lastPing || (now - parseInt(lastPing)) > 120000) { // 2 mins
               updateDoc(doc(db, 'users', firebaseUser.uid), {
                 currentSessionId: currentLocalSession,
                 lastActive: new Date().toISOString(),

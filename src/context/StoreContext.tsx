@@ -576,6 +576,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }
 
     const unsubUsers = onSnapshot(collection(db, 'users'), (snapshot) => {
+      // Re-check role before processing
+      if (auth.currentUser?.uid !== user.uid || user.role !== 'admin') return;
+
       const allUsersData = snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() })) as unknown as UserProfile[];
       
       // Separate Admins and Customers
@@ -586,7 +589,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         phone: u.phone || '',
         countryCode: u.countryCode || '+967',
         role: u.adminRole || 'support',
-        isActive: u.isActive ?? true,
+        isActive: (u as any).isActive ?? true,
         permissions: u.permissions || [],
         createdAt: u.createdAt
       }));
@@ -598,12 +601,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       localStorage.setItem('app_users', JSON.stringify(customersList));
       localStorage.setItem('admin_users_list', JSON.stringify(adminsList));
     }, (error) => {
+      if (error.code === 'permission-denied') {
+        console.warn('Users sync permission denied - potentially role sync in progress');
+        return;
+      }
       const hardcodedAdmins = ["samesaeed456@gmail.com", "samisaeed2027@gmail.com", "samisaeed2025@gmail.com", "967776668370@elite-store.local"];
       const isHardcodedAdmin = user?.email && hardcodedAdmins.includes(user.email);
       if (!isHardcodedAdmin) handleFirestoreError(error, OperationType.LIST, 'users');
     });
 
     const unsubLogs = onSnapshot(collection(db, 'activity_logs'), (snapshot) => {
+      if (auth.currentUser?.uid !== user.uid || user.role !== 'admin') return;
       const logsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as ActivityLog[];
       const sortedLogs = logsData.sort((a, b) => {
         const dateA = (a.date as any)?.seconds ? (a.date as any).seconds : new Date(a.date).getTime();
@@ -612,37 +620,60 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       });
       setActivityLogs(sortedLogs);
       localStorage.setItem('store_activity_logs', JSON.stringify(sortedLogs));
-    }, (error) => handleFirestoreError(error, OperationType.LIST, 'activity_logs'));
+    }, (error) => {
+      if (error.code === 'permission-denied') return;
+      handleFirestoreError(error, OperationType.LIST, 'activity_logs');
+    });
 
     const unsubTickets = onSnapshot(collection(db, 'support_tickets'), (snapshot) => {
+      if (auth.currentUser?.uid !== user.uid || user.role !== 'admin') return;
       const ticketsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as SupportTicket[];
       setSupportTickets(ticketsData);
       localStorage.setItem('store_tickets', JSON.stringify(ticketsData));
-    }, (error) => handleFirestoreError(error, OperationType.LIST, 'support_tickets'));
+    }, (error) => {
+      if (error.code === 'permission-denied') return;
+      handleFirestoreError(error, OperationType.LIST, 'support_tickets');
+    });
 
     const unsubVisits = onSnapshot(collection(db, 'visits'), (snapshot) => {
+      if (auth.currentUser?.uid !== user.uid || user.role !== 'admin') return;
       const visitsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as Visit[];
       setVisits(visitsData);
       localStorage.setItem('store_visits', JSON.stringify(visitsData));
-    }, (error) => handleFirestoreError(error, OperationType.LIST, 'visits'));
+    }, (error) => {
+      if (error.code === 'permission-denied') return;
+      handleFirestoreError(error, OperationType.LIST, 'visits');
+    });
 
     const unsubSearchTerms = onSnapshot(collection(db, 'searchTerms'), (snapshot) => {
+      if (auth.currentUser?.uid !== user.uid || user.role !== 'admin') return;
       const termsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as SearchTerm[];
       setSearchTerms(termsData);
       localStorage.setItem('store_search_terms', JSON.stringify(termsData));
-    }, (error) => handleFirestoreError(error, OperationType.LIST, 'searchTerms'));
+    }, (error) => {
+      if (error.code === 'permission-denied') return;
+      handleFirestoreError(error, OperationType.LIST, 'searchTerms');
+    });
 
     const unsubAbandonedCarts = onSnapshot(collection(db, 'abandonedCarts'), (snapshot) => {
+      if (auth.currentUser?.uid !== user.uid || user.role !== 'admin') return;
       const cartsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as AbandonedCart[];
       setAbandonedCarts(cartsData);
       localStorage.setItem('store_abandoned_carts', JSON.stringify(cartsData));
-    }, (error) => handleFirestoreError(error, OperationType.LIST, 'abandonedCarts'));
+    }, (error) => {
+      if (error.code === 'permission-denied') return;
+      handleFirestoreError(error, OperationType.LIST, 'abandonedCarts');
+    });
 
     const unsubInventoryLogs = onSnapshot(collection(db, 'inventory_logs'), (snapshot) => {
+      if (auth.currentUser?.uid !== user.uid || user.role !== 'admin') return;
       const logsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as InventoryLog[];
       setInventoryLogs(logsData.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 1000));
       localStorage.setItem('store_inventory_logs', JSON.stringify(logsData.slice(0, 500)));
-    }, (error) => handleFirestoreError(error, OperationType.LIST, 'inventory_logs'));
+    }, (error) => {
+      if (error.code === 'permission-denied') return;
+      handleFirestoreError(error, OperationType.LIST, 'inventory_logs');
+    });
 
     return () => {
       unsubUsers();
@@ -2395,7 +2426,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       }
       
       const countryCode = customer.countryCode || '+967';
-      const dummyEmail = `${countryCode.replace('+', '')}${customer.phone}@elite-store.local`;
+      const cleanPhone = (customer.phone || '').trim().replace(/^0+/, '');
+      const dummyEmail = `${countryCode.replace('+', '')}${cleanPhone}@elite-store.local`;
       let authUid = '';
 
       // Create in Auth if password is provided
@@ -2420,7 +2452,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           return;
         }
       } else {
-        showToast('يرجى تحديد كلمة مرور ليتمكن العميل من تسجيل الدخول', 'warning');
+        showToast('يرجى تحديد كلمة مرور ليتمكن العميل من تسجيل الدخول', 'info');
         // If no password, we just use a random ID for Firestore, but they can't login
         authUid = doc(collection(db, 'users')).id;
       }
@@ -2429,6 +2461,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         ...customer,
         uid: authUid,
         email: dummyEmail,
+        phone: cleanPhone,
         role: 'customer',
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()

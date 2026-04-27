@@ -222,7 +222,8 @@ export default function Auth() {
     setError('');
     
     try {
-      const fullPhone = formData.countryCode + formData.phone;
+      const cleanPhone = (formData.phone || '').trim().replace(/^0+/, '');
+      const fullPhone = formData.countryCode + cleanPhone;
       
       const response = await fetch('/api/send-otp', {
         method: 'POST',
@@ -257,7 +258,7 @@ export default function Auth() {
     e.preventDefault();
     const code = otp.join('');
     if (code.length < 4) {
-      setError('يرجى إدخال كود التحقق كاملاً');
+      setError('يرجى إدخال كود التحقق كاملًا');
       return;
     }
 
@@ -265,7 +266,8 @@ export default function Auth() {
     setError('');
 
     try {
-      const fullPhone = formData.countryCode + formData.phone;
+      const cleanPhone = (formData.phone || '').trim().replace(/^0+/, '');
+      const fullPhone = formData.countryCode + cleanPhone;
       
       const response = await fetch('/api/verify-otp', {
         method: 'POST',
@@ -290,7 +292,7 @@ export default function Auth() {
         }
 
         if (prevStep === 'login') {
-          const email = getDummyEmail(formData.countryCode, formData.phone);
+          const email = getDummyEmail(formData.countryCode, cleanPhone);
           await loginWithEmail(email, formData.password);
           delete (window as any)._authPrevStep;
           showToast('تم تسجيل الدخول بنجاح');
@@ -299,7 +301,7 @@ export default function Auth() {
         }
 
         // Proceed with Signup
-        const email = getDummyEmail(formData.countryCode, formData.phone);
+        const email = getDummyEmail(formData.countryCode, cleanPhone);
         let userCred;
         try {
            userCred = await signupWithEmail(email, formData.password);
@@ -330,7 +332,7 @@ export default function Auth() {
           uid: userCred.user.uid,
           email: email,
           name: formData.name,
-          phone: formData.phone,
+          phone: cleanPhone,
           countryCode: formData.countryCode,
           role: 'user',
           walletBalance: 0,
@@ -416,9 +418,10 @@ export default function Auth() {
     setIsLoading(true);
 
     try {
+      const cleanPhone = (formData.phone || '').trim().replace(/^0+/, '');
       if (isLogin) {
         // Enforce SMS verification for login too
-        const email = getDummyEmail(formData.countryCode, formData.phone);
+        const email = getDummyEmail(formData.countryCode, cleanPhone);
         
         try {
           // First, verify credentials without fully logging in
@@ -427,7 +430,7 @@ export default function Auth() {
           await auth.signOut();
           
           // Now send OTP for multi-factor verification
-          const fullPhone = formData.countryCode + formData.phone;
+          const fullPhone = formData.countryCode + cleanPhone;
           const response = await fetch('/api/send-otp', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -450,11 +453,11 @@ export default function Auth() {
         }
       } else {
         // Pre-check if phone already exists before sending OTP on signup
-        const email = getDummyEmail(formData.countryCode, formData.phone);
+        const email = getDummyEmail(formData.countryCode, cleanPhone);
         
         try {
           const { collection, query, where, getDocs, db } = await import('../lib/firebase');
-          const q = query(collection(db, 'users'), where('phone', '==', formData.phone), where('countryCode', '==', formData.countryCode));
+          const q = query(collection(db, 'users'), where('phone', '==', cleanPhone), where('countryCode', '==', formData.countryCode));
           const snapshot = await getDocs(q);
           
           if (!snapshot.empty) {
@@ -475,7 +478,7 @@ export default function Auth() {
           }
         }
 
-        const fullPhone = formData.countryCode + formData.phone;
+        const fullPhone = formData.countryCode + cleanPhone;
 
         try {
           const response = await fetch('/api/send-otp', {
@@ -533,7 +536,8 @@ export default function Auth() {
     setIsLoading(true);
 
     try {
-      const fullPhone = formData.countryCode + formData.phone;
+      const cleanPhone = (formData.phone || '').trim().replace(/^0+/, '');
+      const fullPhone = formData.countryCode + cleanPhone;
       
       const response = await fetch('/api/send-otp', {
         method: 'POST',
@@ -576,12 +580,13 @@ export default function Auth() {
     setIsLoading(true);
     
     try {
+      const cleanPhone = (formData.phone || '').trim().replace(/^0+/, '');
       const response = await fetch('/api/reset-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           countryCode: formData.countryCode,
-          phone: formData.phone,
+          phone: cleanPhone,
           newPassword: newPassword 
         })
       });

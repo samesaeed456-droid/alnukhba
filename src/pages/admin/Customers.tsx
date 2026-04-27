@@ -214,9 +214,10 @@ export default function Customers() {
       return;
     }
 
+    const cleanPhone = (newCustomer.phone || '').trim().replace(/^0+/, '');
     const customerData: UserType = {
       displayName: newCustomer.name,
-      phone: newCustomer.phone,
+      phone: cleanPhone,
       password: newCustomer.password,
       address: `${newCustomer.city}, ${newCustomer.address}`,
       photoURL: `https://ui-avatars.com/api/?name=${encodeURIComponent(newCustomer.name)}&background=random`,

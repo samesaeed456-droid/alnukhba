@@ -118,6 +118,21 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    match /banners/{bannerId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /coupons/{couponId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /shipping_zones/{zoneId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
     // --- ORDERS ---
     match /orders/{orderId} {
       // Pillar 8: Query Enforcer

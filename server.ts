@@ -386,16 +386,6 @@ app.post("/api/sms", async (req, res) => {
   }
 });
 
-app.get("/api/admin/status", (req, res) => {
-  res.json({
-    initialized: getApps().length > 0,
-    hasProjectId: !!process.env.FIREBASE_PROJECT_ID,
-    hasClientEmail: !!process.env.FIREBASE_CLIENT_EMAIL,
-    hasPrivateKey: !!process.env.FIREBASE_PRIVATE_KEY,
-    nodeEnv: process.env.NODE_ENV
-  });
-});
-
 // Admin API: Reset Password from server
 app.post("/api/admin/update-password", async (req, res) => {
   const { email, newPassword } = req.body;
@@ -409,21 +399,17 @@ app.post("/api/admin/update-password", async (req, res) => {
 
   try {
     const adminAuth = getAuth();
-    console.log(`[Admin Auth] Attempting to find/update user: ${email}`);
     let userRecord;
     try {
       userRecord = await adminAuth.getUserByEmail(email);
-      console.log(`[Admin Auth] Found existing user: ${userRecord.uid}`);
     } catch (e: any) {
       if (e.code === 'auth/user-not-found') {
-        console.log(`[Admin Auth] User not found, creating new one for: ${email}`);
         // If user doesn't exist in Auth, we'll just let them sign up later or create them now
         userRecord = await adminAuth.createUser({
           email,
           password: newPassword,
           emailVerified: true
         });
-        console.log(`[Admin Auth] Created new user: ${userRecord.uid}`);
         return res.json({ success: true, message: "تم إنشاء حساب توثيق جديد", uid: userRecord.uid });
       }
       throw e;
@@ -432,7 +418,6 @@ app.post("/api/admin/update-password", async (req, res) => {
     await adminAuth.updateUser(userRecord.uid, {
       password: newPassword
     });
-    console.log(`[Admin Auth] Successfully updated password for: ${userRecord.uid}`);
 
     res.json({ success: true, message: "تم تحديث كلمة المرور بنجاح", uid: userRecord.uid });
   } catch (error: any) {

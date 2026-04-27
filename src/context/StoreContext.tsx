@@ -494,8 +494,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   // Sync Products from Firestore
   useEffect(() => {
+    // Basic loading timeout to ensure we don't hang if Firestore is slow but we have cached data
+    const loadingTimeout = setTimeout(() => {
+      setIsLoading(false);
+    }, 1200);
+
     const activeDb = adminAuth.currentUser ? adminDb : db;
     const unsubscribe = onSnapshot(collection(activeDb, 'products'), (snapshot) => {
+      clearTimeout(loadingTimeout);
       const productsData = snapshot.docs.map(doc => {
         const data = doc.data();
         return { 
@@ -507,6 +513,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       localStorage.setItem('store_products', JSON.stringify(productsData));
       setIsLoading(false);
     }, (error) => {
+      clearTimeout(loadingTimeout);
       console.error('Products sync error:', error);
       setIsLoading(false);
     });
@@ -597,12 +604,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       if (!isHardcodedAdmin) handleFirestoreError(error, OperationType.LIST, 'users');
     });
 
-    const unsubLogs = onSnapshot(query(collection(activeDb, 'activity_logs'), orderBy('date', 'desc'), limit(100)), (snapshot) => {
+    const unsubLogs = onSnapshot(collection(activeDb, 'activity_logs'), (snapshot) => {
       const currentUid = auth.currentUser?.uid || adminAuth.currentUser?.uid;
       if (currentUid !== activeAdmin.uid || activeAdmin.role !== 'admin') return;
       const logsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as ActivityLog[];
-      setActivityLogs(logsData);
-      localStorage.setItem('store_activity_logs', JSON.stringify(logsData));
+      const sortedLogs = logsData.sort((a, b) => {
+        const dateA = (a.date as any)?.seconds ? (a.date as any).seconds : new Date(a.date).getTime();
+        const dateB = (b.date as any)?.seconds ? (b.date as any).seconds : new Date(b.date).getTime();
+        return dateB - dateA;
+      });
+      setActivityLogs(sortedLogs);
+      localStorage.setItem('store_activity_logs', JSON.stringify(sortedLogs));
     }, (error) => {
       if (error.code === 'permission-denied') return;
       handleFirestoreError(error, OperationType.LIST, 'activity_logs');
@@ -619,7 +631,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       handleFirestoreError(error, OperationType.LIST, 'support_tickets');
     });
 
-    const unsubVisits = onSnapshot(query(collection(activeDb, 'visits'), limit(200)), (snapshot) => {
+    const unsubVisits = onSnapshot(collection(activeDb, 'visits'), (snapshot) => {
       const currentUid = auth.currentUser?.uid || adminAuth.currentUser?.uid;
       if (currentUid !== activeAdmin.uid || activeAdmin.role !== 'admin') return;
       const visitsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as Visit[];
@@ -652,7 +664,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       handleFirestoreError(error, OperationType.LIST, 'abandonedCarts');
     });
 
-    const unsubInventoryLogs = onSnapshot(query(collection(activeDb, 'inventory_logs'), limit(100)), (snapshot) => {
+    const unsubInventoryLogs = onSnapshot(collection(activeDb, 'inventory_logs'), (snapshot) => {
       const currentUid = auth.currentUser?.uid || adminAuth.currentUser?.uid;
       if (currentUid !== activeAdmin.uid || activeAdmin.role !== 'admin') return;
       const logsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as InventoryLog[];
@@ -678,7 +690,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const activeDb = adminAuth.currentUser ? adminDb : db;
     const unsubCategories = onSnapshot(collection(activeDb, 'categories'), (snapshot) => {
-      setIsLoading(false);
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as Category[];
       setCategories(data);
       localStorage.setItem('store_categories', JSON.stringify(data));
@@ -2462,17 +2473,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email: dummyEmail, newPassword: customer.password })
           });
-          
-          let syncData: any;
-          const text = await syncRes.text();
-          
-          try {
-            syncData = text ? JSON.parse(text) : { success: false, error: 'Empty response from server' };
-          } catch (jsonErr) {
-            console.error('Failed to parse server response as JSON:', text);
-            throw new Error(`Invalid server response: ${text.substring(0, 100)}`);
-          }
-
+          const syncData = await syncRes.json();
           if (syncData.success && syncData.uid) {
             authUid = syncData.uid;
           } else if (syncData.error && syncData.error.includes('email-already-in-use')) {
@@ -2480,12 +2481,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
              return;
           } else {
             console.error('Failed to create Auth record:', syncData.error);
-            showToast(`لم يتم إنشاء حساب تسجيل الدخول: ${syncData.error || 'خطأ غير معروف'}. (تأكد من إعداد Firebase Admin)`, 'error');
+            showToast(`لم يتم إنشاء حساب تسجيل الدخول: ${syncData.error}. (تأكد من إعداد Firebase Admin)`, 'error');
             return;
           }
-        } catch (authErr: any) {
+        } catch (authErr) {
           console.error('Auth sync attempt failed:', authErr);
-          showToast(`فشل الاتصال لتأكيد حساب تسجيل الدخول: ${authErr.message}`, 'error');
+          showToast('فشل الاتصال لتأكيد حساب تسجيل الدخول', 'error');
           return;
         }
       } else {

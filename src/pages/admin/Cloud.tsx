@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { Cloud, Loader2, RefreshCw, Trash2, Eye, CheckSquare, Square } from 'lucide-react';
+import { Cloud, Loader2, RefreshCw, Trash2, Eye, CheckSquare, Square, Wand2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useStore } from '@/context/StoreContext';
 
 interface CloudinaryImage {
   public_id: string;
@@ -17,6 +18,7 @@ interface UsageStats {
 }
 
 export default function CloudPage() {
+  const store = useStore();
   const [images, setImages] = useState<CloudinaryImage[]>([]);
   const [usage, setUsage] = useState<UsageStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -52,6 +54,27 @@ export default function CloudPage() {
     setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
   };
 
+  const deleteImage = async (id: string) => {
+    if (!confirm(`هل أنت متأكد من حذف هذه الصورة؟`)) return;
+    setDeleting(true);
+    try {
+      const response = await fetch('/api/cloudinary?action=bulk-delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ public_ids: [id] })
+      });
+      if (!response.ok) throw new Error('فشل الحذف');
+      toast.success('تم حذف الصورة');
+      setSelectedIds(prev => prev.filter(i => i !== id));
+      fetchData();
+    } catch (error) {
+      toast.error('حدث خطأ أثناء الحذف');
+      console.error(error);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const bulkDelete = async () => {
     if (!confirm(`هل أنت متأكد من حذف ${selectedIds.length} صورة؟`)) return;
     setDeleting(true);
@@ -73,6 +96,33 @@ export default function CloudPage() {
     }
   };
 
+  const selectUnusedImages = () => {
+    try {
+      const everything = JSON.stringify({
+        products: store.products,
+        categories: store.categories,
+        banners: store.banners,
+        settings: store.settings,
+        blogPosts: store.blogPosts,
+        marketing: store.marketingNotifications
+      });
+
+      const unusedIds = images.filter(img => {
+        return !everything.includes(img.public_id);
+      }).map(img => img.public_id);
+
+      setSelectedIds(unusedIds);
+      
+      if (unusedIds.length > 0) {
+        toast.success(`تم تحديد ${unusedIds.length} صورة غير مستخدمة`);
+      } else {
+        toast.info('جميع الصور مستخدمة حالياً في التطبيق');
+      }
+    } catch(err) {
+      toast.error("حدث خطأ أثناء فحص الصور");
+    }
+  };
+
   useEffect(() => {
     fetchData();
   }, []);
@@ -85,6 +135,15 @@ export default function CloudPage() {
           السحابة (Cloudinary)
         </h2>
         <div className="flex gap-2">
+          <button 
+            onClick={selectUnusedImages}
+            disabled={images.length === 0}
+            className="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-indigo-100 transition-colors disabled:opacity-50"
+            title="تحديد الصور التي لا تظهر في أي منتج أو إعلان في المتجر"
+          >
+            <Wand2 className="w-4 h-4" />
+            تحديد غير المستخدم
+          </button>
           {selectedIds.length > 0 && (
             <button 
               onClick={bulkDelete}
@@ -122,22 +181,23 @@ export default function CloudPage() {
               <div key={img.public_id} className={`bg-white p-2 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-all group ${selectedIds.includes(img.public_id) ? 'ring-2 ring-solar' : ''}`}>
                 <div className="relative">
                   <img src={img.secure_url} alt={img.public_id} className="w-full h-40 object-cover rounded-xl" referrerPolicy="no-referrer" />
-                  <button onClick={() => toggleSelect(img.public_id)} className="absolute top-2 left-2 p-1.5 bg-black/50 rounded-lg text-white">
-                    {selectedIds.includes(img.public_id) ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
+                  <button onClick={() => toggleSelect(img.public_id)} className="absolute top-2 left-2 p-1.5 bg-black/50 rounded-lg text-white z-10 transition-colors hover:bg-black/70">
+                    {selectedIds.includes(img.public_id) ? <CheckSquare className="w-4 h-4 text-solar" /> : <Square className="w-4 h-4" />}
+                  </button>
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deleteImage(img.public_id);
+                    }} 
+                    className="absolute top-2 right-2 p-1.5 bg-rose-500 rounded-lg text-white z-10 hover:bg-rose-600 transition-colors shadow-sm"
+                    title="حذف"
+                  >
+                    <Trash2 className="w-4 h-4" />
                   </button>
                   <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-2 transition-opacity rounded-xl">
                     <a href={img.secure_url} target="_blank" rel="noopener noreferrer" className="p-2 bg-white rounded-full text-slate-900">
                       <Eye className="w-4 h-4" />
                     </a>
-                    <button 
-                      onClick={() => {
-                        setSelectedIds([img.public_id]);
-                        bulkDelete();
-                      }}
-                      className="p-2 bg-rose-500 rounded-full text-white"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
                   </div>
                 </div>
                 <div className="p-2 text-[10px] text-slate-400 font-medium truncate">{img.public_id}</div>

@@ -373,11 +373,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
         const hardcodedAdmins = ["samesaeed456@gmail.com", "samisaeed2027@gmail.com", "samisaeed2025@gmail.com"];
         
-        // Update current session in Firestore
-        updateDoc(doc(db, 'users', firebaseUser.uid), {
+        // Update current session in Firestore (using setDoc with merge to ensure it doesn't fail if doc doesn't exist yet)
+        setDoc(doc(db, 'users', firebaseUser.uid), {
           currentSessionId: localSessionId,
           lastActive: new Date().toISOString()
-        }).catch(err => console.error("Session update failed:", err));
+        }, { merge: true }).catch(err => console.error("Session update failed:", err));
 
         // Set up real-time listener for user document
         unsubUser = onSnapshot(doc(db, 'users', firebaseUser.uid), (docSnap) => {
@@ -395,17 +395,74 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           } else {
             // New user registration or ghost session handling
             if (firebaseUser.email && hardcodedAdmins.includes(firebaseUser.email)) {
-              setUser({ uid: firebaseUser.uid, email: firebaseUser.email, role: 'admin', isAdmin: true, displayName: 'مدير النظام' } as UserProfile);
-            } else {
-              const defaultData: any = {
-                uid: firebaseUser.uid,
-                email: firebaseUser.email || '',
-                role: 'customer',
-                createdAt: serverTimestamp(),
-                displayName: 'عميل جديد'
+              const adminData: any = { 
+                uid: firebaseUser.uid, 
+                email: firebaseUser.email, 
+                role: 'admin', 
+                isAdmin: true, 
+                displayName: 'مدير النظام',
+                updatedAt: serverTimestamp()
               };
-              setDoc(doc(db, 'users', firebaseUser.uid), defaultData, { merge: true })
-                .catch(error => handleFirestoreError(error, OperationType.WRITE, `users/${firebaseUser.uid}`));
+              setDoc(doc(db, 'users', firebaseUser.uid), adminData, { merge: true });
+              setUser(adminData);
+            } else {
+              // Account Recovery/Linking logic:
+              // If this doc doesn't exist, check if an account exists with the same email/phone
+              const recoverUser = async () => {
+                if (firebaseUser.email) {
+                  try {
+                    const q = query(collection(db, 'users'), where('email', '==', firebaseUser.email.toLowerCase()));
+                    const snap = await getDocs(q);
+                    
+                    if (!snap.empty) {
+                      // Found a previous account (likely manually created by admin or from old system)
+                      const oldData = snap.docs[0].data();
+                      const updates = {
+                        ...oldData,
+                        uid: firebaseUser.uid,
+                        lastLogin: serverTimestamp(),
+                        updatedAt: serverTimestamp()
+                      };
+                      await setDoc(doc(db, 'users', firebaseUser.uid), updates, { merge: true });
+                      // Listener will re-fire and set the user state
+                      return;
+                    }
+                  } catch (e) {
+                    console.warn("Account recovery lookup failed:", e);
+                  }
+                }
+
+                // If not found or recovery failed, create default profile
+                const isDummyEmail = firebaseUser.email?.endsWith('@elite-store.local');
+                let extractedPhone = '';
+                let extractedCC = '+967';
+                
+                if (isDummyEmail) {
+                  const prefix = firebaseUser.email!.split('@')[0];
+                  if (prefix.startsWith('967')) {
+                    extractedPhone = prefix.substring(3);
+                    extractedCC = '+967';
+                  } else {
+                    extractedPhone = prefix;
+                  }
+                }
+
+                const defaultData: any = {
+                  uid: firebaseUser.uid,
+                  email: firebaseUser.email || '',
+                  phone: extractedPhone,
+                  countryCode: extractedCC,
+                  role: 'customer',
+                  createdAt: serverTimestamp(),
+                  displayName: 'عميل جديد',
+                  name: isDummyEmail ? `عميل ${extractedPhone}` : 'عميل جديد'
+                };
+                
+                setDoc(doc(db, 'users', firebaseUser.uid), defaultData, { merge: true })
+                  .catch(error => handleFirestoreError(error, OperationType.WRITE, `users/${firebaseUser.uid}`));
+              };
+
+              recoverUser();
             }
           }
           setIsAuthReady(true);

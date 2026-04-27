@@ -334,7 +334,7 @@ export default function Auth() {
           name: formData.name,
           phone: cleanPhone,
           countryCode: formData.countryCode,
-          role: 'user',
+          role: 'customer',
           walletBalance: 0,
           createdAt: serverTimestamp()
         }, { merge: true });

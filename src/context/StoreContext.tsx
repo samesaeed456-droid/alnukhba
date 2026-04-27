@@ -2462,7 +2462,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email: dummyEmail, newPassword: customer.password })
           });
-          const syncData = await syncRes.json();
+          
+          let syncData: any;
+          const text = await syncRes.text();
+          
+          try {
+            syncData = text ? JSON.parse(text) : { success: false, error: 'Empty response from server' };
+          } catch (jsonErr) {
+            console.error('Failed to parse server response as JSON:', text);
+            throw new Error(`Invalid server response: ${text.substring(0, 100)}`);
+          }
+
           if (syncData.success && syncData.uid) {
             authUid = syncData.uid;
           } else if (syncData.error && syncData.error.includes('email-already-in-use')) {
@@ -2470,12 +2480,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
              return;
           } else {
             console.error('Failed to create Auth record:', syncData.error);
-            showToast(`لم يتم إنشاء حساب تسجيل الدخول: ${syncData.error}. (تأكد من إعداد Firebase Admin)`, 'error');
+            showToast(`لم يتم إنشاء حساب تسجيل الدخول: ${syncData.error || 'خطأ غير معروف'}. (تأكد من إعداد Firebase Admin)`, 'error');
             return;
           }
-        } catch (authErr) {
+        } catch (authErr: any) {
           console.error('Auth sync attempt failed:', authErr);
-          showToast('فشل الاتصال لتأكيد حساب تسجيل الدخول', 'error');
+          showToast(`فشل الاتصال لتأكيد حساب تسجيل الدخول: ${authErr.message}`, 'error');
           return;
         }
       } else {

@@ -422,12 +422,35 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             // Try to link notification token to this logged in user
             refreshNotificationToken();
           } else {
-            // Gentle creation: only set essential and firebase-provided fields
+            // IF NO USER BIOGRAPHY EXISTS:
+            // Check if this is actually an admin login from the other tab (shared session)
+            const isAdminAuth = typeof window !== 'undefined' && (
+              localStorage.getItem('admin_auth') === 'true' || 
+              (firebaseUser.email && hardcodedAdmins.includes(firebaseUser.email))
+            );
+
+            if (isAdminAuth) {
+              // It's an admin, don't create a "ghost" customer profile in the store
+              // Just set a minimal temporary user state without persisting to DB
+              const adminTemp: UserProfile = {
+                uid: firebaseUser.uid,
+                email: firebaseUser.email || '',
+                role: 'admin',
+                isAdmin: true,
+                displayName: firebaseUser.displayName || 'مدير النظام'
+              } as UserProfile;
+              setUser(adminTemp);
+              setIsAuthReady(true);
+              return;
+            }
+
+            // Otherwise, it's a new real customer, proceed with creation
             const defaultData: any = {
               uid: firebaseUser.uid,
               email: firebaseUser.email || '',
               role: 'customer',
-              createdAt: serverTimestamp()
+              createdAt: serverTimestamp(),
+              displayName: firebaseUser.displayName || 'عميل جديد'
             };
             
             if (firebaseUser.displayName) defaultData.displayName = firebaseUser.displayName;

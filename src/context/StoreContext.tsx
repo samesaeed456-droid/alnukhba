@@ -9,7 +9,7 @@ import {
 import { products as initialProducts } from '../data';
 import { getAIRecommendations, getRuleBasedRecommendations } from '../services/recommendationService';
 import { roundMoney, formatMoney, BASE_CURRENCY_CODE } from '../lib/finance';
-
+import { deleteFromCloudinary } from '../lib/cloudinary';
 import { notificationService } from '../services/notificationService';
 import { smsService } from '../services/smsService';
 
@@ -411,7 +411,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             const lastPing = localStorage.getItem('last_session_ping');
             const now = Date.now();
             
-            if (!lastPing || (now - parseInt(lastPing)) > 120000) { // 2 mins
+            if (!lastPing || (now - parseInt(lastPing)) > 600000) { // 10 mins
               updateDoc(doc(db, 'users', firebaseUser.uid), {
                 currentSessionId: currentLocalSession,
                 lastActive: new Date().toISOString(),
@@ -567,29 +567,67 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setIsLoading(false);
     }, 1200);
 
+    const isAdmin = !!adminAuth.currentUser || user?.role === 'admin';
     const activeDb = adminAuth.currentUser ? adminDb : db;
-    const unsubscribe = onSnapshot(collection(activeDb, 'products'), (snapshot) => {
-      clearTimeout(loadingTimeout);
-      const productsData = snapshot.docs.map(doc => {
-        const data = doc.data();
-        return { 
-          ...data, 
-          id: String(doc.id) 
-        };
-      }) as unknown as Product[];
-      setProducts(productsData);
-      localStorage.setItem('store_products', JSON.stringify(productsData));
-      setIsLoading(false);
-    }, (error) => {
-      clearTimeout(loadingTimeout);
-      console.error('Products sync error:', error);
-      setIsLoading(false);
-    });
-    return () => {
-      unsubscribe();
-      clearTimeout(loadingTimeout);
-    };
-  }, []);
+    
+    if (isAdmin) {
+      const unsubscribe = onSnapshot(collection(activeDb, 'products'), (snapshot) => {
+        clearTimeout(loadingTimeout);
+        const productsData = snapshot.docs.map(doc => ({ ...doc.data(), id: String(doc.id) })) as unknown as Product[];
+        setProducts(productsData);
+        localStorage.setItem('store_products', JSON.stringify(productsData));
+        setIsLoading(false);
+      }, (error) => {
+        clearTimeout(loadingTimeout);
+        console.error('Products sync error:', error);
+        setIsLoading(false);
+      });
+      return () => {
+        unsubscribe();
+        clearTimeout(loadingTimeout);
+      };
+    } else {
+      // For regular users, check cache first (valid for 15 minutes)
+      const cached = localStorage.getItem('store_products');
+      const cacheTime = localStorage.getItem('store_products_time');
+      const now = Date.now();
+      
+      if (cached && cacheTime && (now - parseInt(cacheTime)) < 15 * 60 * 1000) {
+        // Use cached data
+        try {
+          setProducts(JSON.parse(cached));
+        } catch (e) {
+          console.error("Failed to parse cached products");
+        }
+        setIsLoading(false);
+        clearTimeout(loadingTimeout);
+        return; // No cleanup needed
+      } 
+      
+      // Fetch fresh data
+      getDocs(collection(activeDb, 'products'))
+        .then((snapshot) => {
+          clearTimeout(loadingTimeout);
+          const productsData = snapshot.docs.map(doc => ({ ...doc.data(), id: String(doc.id) })) as unknown as Product[];
+          setProducts(productsData);
+          localStorage.setItem('store_products', JSON.stringify(productsData));
+          localStorage.setItem('store_products_time', now.toString());
+          setIsLoading(false);
+        })
+        .catch((error) => {
+          clearTimeout(loadingTimeout);
+          console.error('Products fetch error:', error);
+          if (cached) {
+            try { setProducts(JSON.parse(cached)); } catch(e){}
+          }
+          setIsLoading(false);
+        });
+        
+      return () => {
+        clearTimeout(loadingTimeout);
+      };
+    }
+  }, [user]);
 
   // Sync Orders from Firestore
   useEffect(() => {
@@ -672,7 +710,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       if (!isHardcodedAdmin) handleFirestoreError(error, OperationType.LIST, 'users');
     });
 
-    const unsubLogs = onSnapshot(collection(activeDb, 'activity_logs'), (snapshot) => {
+    const unsubLogs = onSnapshot(query(collection(activeDb, 'activity_logs'), orderBy('date', 'desc'), limit(100)), (snapshot) => {
       const currentUid = auth.currentUser?.uid || adminAuth.currentUser?.uid;
       if (currentUid !== activeAdmin.uid || activeAdmin.role !== 'admin') return;
       const logsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as ActivityLog[];
@@ -688,7 +726,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       handleFirestoreError(error, OperationType.LIST, 'activity_logs');
     });
 
-    const unsubTickets = onSnapshot(collection(activeDb, 'support_tickets'), (snapshot) => {
+    const unsubTickets = onSnapshot(query(collection(activeDb, 'support_tickets'), orderBy('createdAt', 'desc'), limit(100)), (snapshot) => {
       const currentUid = auth.currentUser?.uid || adminAuth.currentUser?.uid;
       if (currentUid !== activeAdmin.uid || activeAdmin.role !== 'admin') return;
       const ticketsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as SupportTicket[];
@@ -699,7 +737,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       handleFirestoreError(error, OperationType.LIST, 'support_tickets');
     });
 
-    const unsubVisits = onSnapshot(collection(activeDb, 'visits'), (snapshot) => {
+    const unsubVisits = onSnapshot(query(collection(activeDb, 'visits'), orderBy('timestamp', 'desc'), limit(200)), (snapshot) => {
       const currentUid = auth.currentUser?.uid || adminAuth.currentUser?.uid;
       if (currentUid !== activeAdmin.uid || activeAdmin.role !== 'admin') return;
       const visitsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as Visit[];
@@ -710,7 +748,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       handleFirestoreError(error, OperationType.LIST, 'visits');
     });
 
-    const unsubSearchTerms = onSnapshot(collection(activeDb, 'searchTerms'), (snapshot) => {
+    const unsubSearchTerms = onSnapshot(query(collection(activeDb, 'searchTerms'), orderBy('timestamp', 'desc'), limit(200)), (snapshot) => {
       const currentUid = auth.currentUser?.uid || adminAuth.currentUser?.uid;
       if (currentUid !== activeAdmin.uid || activeAdmin.role !== 'admin') return;
       const termsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as SearchTerm[];
@@ -721,7 +759,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       handleFirestoreError(error, OperationType.LIST, 'searchTerms');
     });
 
-    const unsubAbandonedCarts = onSnapshot(collection(activeDb, 'abandonedCarts'), (snapshot) => {
+    const unsubAbandonedCarts = onSnapshot(query(collection(activeDb, 'abandonedCarts'), orderBy('lastActive', 'desc'), limit(100)), (snapshot) => {
       const currentUid = auth.currentUser?.uid || adminAuth.currentUser?.uid;
       if (currentUid !== activeAdmin.uid || activeAdmin.role !== 'admin') return;
       const cartsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as AbandonedCart[];
@@ -732,7 +770,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       handleFirestoreError(error, OperationType.LIST, 'abandonedCarts');
     });
 
-    const unsubInventoryLogs = onSnapshot(collection(activeDb, 'inventory_logs'), (snapshot) => {
+    const unsubInventoryLogs = onSnapshot(query(collection(activeDb, 'inventory_logs'), orderBy('date', 'desc'), limit(100)), (snapshot) => {
       const currentUid = auth.currentUser?.uid || adminAuth.currentUser?.uid;
       if (currentUid !== activeAdmin.uid || activeAdmin.role !== 'admin') return;
       const logsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as InventoryLog[];
@@ -757,46 +795,95 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   // Sync Public Data
   useEffect(() => {
     const activeDb = adminAuth.currentUser ? adminDb : db;
-    const unsubCategories = onSnapshot(collection(activeDb, 'categories'), (snapshot) => {
-      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as Category[];
-      setCategories(data);
-      localStorage.setItem('store_categories', JSON.stringify(data));
-    });
-    const unsubCoupons = onSnapshot(collection(activeDb, 'coupons'), (snapshot) => {
-      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as Coupon[];
-      setCoupons(data);
-      localStorage.setItem('store_coupons', JSON.stringify(data));
-    });
-    const unsubPosts = onSnapshot(collection(activeDb, 'blog_posts'), (snapshot) => {
-      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as BlogPost[];
-      setBlogPosts(data);
-      localStorage.setItem('store_blog', JSON.stringify(data));
-    });
-    const unsubPages = onSnapshot(collection(activeDb, 'static_pages'), (snapshot) => {
-      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as StaticPage[];
-      setStaticPages(data);
-      localStorage.setItem('store_pages', JSON.stringify(data));
-    });
-    const unsubZones = onSnapshot(collection(activeDb, 'shipping_zones'), (snapshot) => {
-      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as ShippingZone[];
-      setShippingZones(data);
-      localStorage.setItem('store_shipping_zones', JSON.stringify(data));
-    });
-    const unsubBanners = onSnapshot(collection(activeDb, 'banners'), (snapshot) => {
-      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as Banner[];
-      setBanners(data);
-      localStorage.setItem('store_banners', JSON.stringify(data));
-    });
-    const unsubSettings = onSnapshot(doc(activeDb, 'settings', 'store'), (docSnap) => {
-      if (docSnap.exists()) {
-        const data = docSnap.data() as StoreSettings;
-        setSettings(data);
-        localStorage.setItem('store_settings', JSON.stringify(data));
+    const isAdmin = !!adminAuth.currentUser || user?.role === 'admin';
+    const now = Date.now();
+
+    const fetchCollection = async (
+      colName: string, 
+      setter: (data: any) => void, 
+      storageKey: string,
+      cacheMinutes: number = 30
+    ) => {
+      if (isAdmin) {
+        return onSnapshot(collection(activeDb, colName), (snapshot) => {
+          const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          setter(data);
+          localStorage.setItem(storageKey, JSON.stringify(data));
+        });
+      } else {
+        const cached = localStorage.getItem(storageKey);
+        const cacheTime = localStorage.getItem(`${storageKey}_time`);
+        
+        if (cached && cacheTime && (now - parseInt(cacheTime)) < cacheMinutes * 60 * 1000) {
+          try { setter(JSON.parse(cached)); } catch(e) {}
+          return () => {};
+        }
+        
+        try {
+          const snapshot = await getDocs(collection(activeDb, colName));
+          const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          setter(data);
+          localStorage.setItem(storageKey, JSON.stringify(data));
+          localStorage.setItem(`${storageKey}_time`, now.toString());
+        } catch (error) {
+          console.error(`Error fetching ${colName}:`, error);
+          if (cached) { try { setter(JSON.parse(cached)); } catch(e) {} }
+        }
+        return () => {};
       }
-    });
+    };
+
+    let unsubCategories = () => {};
+    let unsubCoupons = () => {};
+    let unsubPosts = () => {};
+    let unsubPages = () => {};
+    let unsubZones = () => {};
+    let unsubBanners = () => {};
+    let unsubSettings = () => {};
+    
+    // Wrapper to handle async results and extract unsubscribe functions
+    const setupSubscriptions = async () => {
+      unsubCategories = await fetchCollection('categories', setCategories, 'store_categories');
+      unsubCoupons = await fetchCollection('coupons', setCoupons, 'store_coupons');
+      unsubPosts = await fetchCollection('blog_posts', setBlogPosts, 'store_blog');
+      unsubPages = await fetchCollection('static_pages', setStaticPages, 'store_pages');
+      unsubZones = await fetchCollection('shipping_zones', setShippingZones, 'store_shipping_zones', 60);
+      unsubBanners = await fetchCollection('banners', setBanners, 'store_banners');
+      
+      // Settings is a single document, not a collection
+      if (isAdmin) {
+        unsubSettings = onSnapshot(doc(activeDb, 'settings', 'store'), (docSnap) => {
+          if (docSnap.exists()) {
+            const data = docSnap.data() as StoreSettings;
+            setSettings(data);
+            localStorage.setItem('store_settings', JSON.stringify(data));
+          }
+        });
+      } else {
+        const cached = localStorage.getItem('store_settings');
+        const cacheTime = localStorage.getItem('store_settings_time');
+        
+        if (cached && cacheTime && (now - parseInt(cacheTime)) < 60 * 60 * 1000) {
+          try { setSettings(JSON.parse(cached)); } catch(e) {}
+        } else {
+          getDoc(doc(activeDb, 'settings', 'store')).then(docSnap => {
+            if (docSnap.exists()) {
+              const data = docSnap.data() as StoreSettings;
+              setSettings(data);
+              localStorage.setItem('store_settings', JSON.stringify(data));
+              localStorage.setItem('store_settings_time', now.toString());
+            }
+          }).catch(err => {
+            if (cached) try { setSettings(JSON.parse(cached)); } catch(e){}
+          });
+        }
+      }
+    };
+    
+    setupSubscriptions();
     
     let isInitialMarketingSync = true;
-    const unsubMarketingNotifs = onSnapshot(collection(activeDb, 'marketing_notifications'), (snapshot) => {
+    const unsubMarketingNotifs = onSnapshot(query(collection(activeDb, 'marketing_notifications'), orderBy('date', 'desc'), limit(50)), (snapshot) => {
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as MarketingNotification[];
       setMarketingNotifications(data);
       localStorage.setItem('store_marketing_notifications', JSON.stringify(data));
@@ -1277,11 +1364,24 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         updatedAt: serverTimestamp()
       }, { merge: true });
       
-      if (newSettings.language && newSettings.language !== settings.language) {
+      // Check for image deletions
+      if (settings?.storeLogo && newSettings.storeLogo !== undefined && newSettings.storeLogo !== settings.storeLogo) {
+        if (settings.storeLogo.includes('cloudinary.com')) deleteFromCloudinary(settings.storeLogo);
+      }
+      
+      if (settings?.seo?.favicon && newSettings.seo?.favicon !== undefined && newSettings.seo?.favicon !== settings.seo.favicon) {
+        if (settings.seo.favicon.includes('cloudinary.com')) deleteFromCloudinary(settings.seo.favicon);
+      }
+      
+      if (settings?.seo?.ogImage && newSettings.seo?.ogImage !== undefined && newSettings.seo?.ogImage !== settings.seo.ogImage) {
+        if (settings.seo.ogImage.includes('cloudinary.com')) deleteFromCloudinary(settings.seo.ogImage);
+      }
+      
+      if (newSettings.language && newSettings.language !== settings?.language) {
         setLanguageState(newSettings.language);
       }
       
-      setSettings(updated);
+      setSettings(updated as StoreSettings);
       showToast('تم تحديث إعدادات المتجر بنجاح', 'success');
       logActivity('تحديث الإعدادات', 'قام المدير بتحديث إعدادات المتجر');
     } catch (error) {
@@ -1370,24 +1470,40 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const updateBlogPost = React.useCallback(async (id: string, post: Partial<BlogPost>) => {
     try {
+      const oldPost = blogPosts.find(p => p.id === id);
+      
       await updateDoc(doc(db, 'blog_posts', id), {
         ...post,
         updatedAt: serverTimestamp()
       });
+      
+      if (oldPost && oldPost.image && post.image !== undefined && post.image !== oldPost.image) {
+        if (oldPost.image.includes('cloudinary.com')) {
+          deleteFromCloudinary(oldPost.image);
+        }
+      }
+      
       logActivity('تحديث مقال', `تم تحديث المقال ${id}`);
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `blog_posts/${id}`);
     }
-  }, [logActivity]);
+  }, [blogPosts, logActivity]);
 
   const deleteBlogPost = React.useCallback(async (id: string) => {
     try {
+      const oldPost = blogPosts.find(p => p.id === id);
+      
       await deleteDoc(doc(db, 'blog_posts', id));
+      
+      if (oldPost && oldPost.image) {
+        deleteFromCloudinary(oldPost.image);
+      }
+      
       logActivity('حذف مقال', `تم حذف المقال ${id}`);
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, `blog_posts/${id}`);
     }
-  }, [logActivity]);
+  }, [blogPosts, logActivity]);
 
   const updateStaticPage = React.useCallback(async (id: string, content: string) => {
     try {
@@ -1485,10 +1601,18 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const trackVisit = React.useCallback(async (page: string) => {
     try {
-      const sessionId = sessionStorage.getItem('store_session_id') || Math.random().toString(36).substr(2, 9);
+      // Throttle visits to maximum once per 5 minutes per user session to save Firebase costs
+      const lastVisitTime = sessionStorage.getItem('last_visit_tracked_time');
+      const now = Date.now();
+      if (lastVisitTime && now - parseInt(lastVisitTime) < 300000) {
+        return; // Skip writing to limit database usage
+      }
+      
+      const sessionId = sessionStorage.getItem('store_session_id') || Math.random().toString(36).substring(2, 11);
       if (!sessionStorage.getItem('store_session_id')) {
         sessionStorage.setItem('store_session_id', sessionId);
       }
+      sessionStorage.setItem('last_visit_tracked_time', now.toString());
 
       const isUnique = !localStorage.getItem('store_visited_before');
       if (isUnique) {
@@ -1584,27 +1708,49 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const updateBanner = React.useCallback(async (id: string, updatedData: Partial<Banner>) => {
     try {
       const activeDb = adminAuth.currentUser ? adminDb : db;
+      const oldBanner = banners.find(b => b.id === id);
+      
       await updateDoc(doc(activeDb, 'banners', id), {
         ...updatedData,
         updatedAt: serverTimestamp()
       });
+      
+      if (oldBanner) {
+        const newImages = [...(updatedData.images || oldBanner.images || []), updatedData.image || oldBanner.image];
+        const oldImages = [...(oldBanner.images || []), oldBanner.image];
+        
+        oldImages.forEach(img => {
+          if (img && !newImages.includes(img) && img.includes('cloudinary.com')) {
+            deleteFromCloudinary(img);
+          }
+        });
+      }
+      
       showToast('تم تحديث البانر بنجاح');
       logActivity('تحديث بنر', `تم تحديث بيانات البانر ID: ${id}`);
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `banners/${id}`);
     }
-  }, [showToast, logActivity]);
+  }, [banners, showToast, logActivity]);
 
   const deleteBanner = React.useCallback(async (id: string) => {
     try {
       const activeDb = adminAuth.currentUser ? adminDb : db;
+      const oldBanner = banners.find(b => b.id === id);
+      
       await deleteDoc(doc(activeDb, 'banners', id));
+      
+      if (oldBanner) {
+        if (oldBanner.image) deleteFromCloudinary(oldBanner.image);
+        if (oldBanner.images) oldBanner.images.forEach(img => deleteFromCloudinary(img));
+      }
+      
       showToast('تم حذف البانر');
       logActivity('حذف بنر', `تم حذف البانر ID: ${id}`);
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, `banners/${id}`);
     }
-  }, [showToast, logActivity]);
+  }, [banners, showToast, logActivity]);
 
   const sendMarketingNotification = React.useCallback(async (notification: Omit<MarketingNotification, 'id' | 'date' | 'sentCount' | 'openedCount' | 'clickedCount' | 'status'>) => {
     try {
@@ -2326,6 +2472,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         updatedAt: serverTimestamp()
       });
       
+      // Delete old avatar from Cloudinary
+      if (prevUser && prevUser.avatar && newUser.avatar !== undefined && newUser.avatar !== prevUser.avatar) {
+        if (prevUser.avatar.includes('cloudinary.com')) {
+          deleteFromCloudinary(prevUser.avatar);
+        }
+      }
+      
       showToast('تم تحديث البيانات بنجاح');
 
     } catch (error: any) {
@@ -2344,8 +2497,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
     try {
       const uid = auth.currentUser.uid;
+      const prevAvatar = user?.avatar;
+      
       // 1. Delete user data from Firestore
       await deleteDoc(doc(db, 'users', uid));
+      
+      if (prevAvatar && prevAvatar.includes('cloudinary.com')) {
+        deleteFromCloudinary(prevAvatar);
+      }
       
       // 2. Delete auth account
       await auth.currentUser.delete();
@@ -2932,27 +3091,51 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const updateProduct = React.useCallback(async (id: string, updatedData: Partial<Product>) => {
     try {
       const activeDb = adminAuth.currentUser ? adminDb : db;
+      const oldProduct = products.find(p => String(p.id) === String(id));
+      
       await updateDoc(doc(activeDb, 'products', String(id)), {
         ...updatedData,
         updatedAt: serverTimestamp()
       });
+      
+      if (oldProduct) {
+        const newImages = [...(updatedData.images || oldProduct.images || []), updatedData.image || oldProduct.image];
+        const oldImages = [...(oldProduct.images || []), oldProduct.image];
+        
+        // Find removed images and delete them from Cloudinary automatically
+        oldImages.forEach(img => {
+          if (img && !newImages.includes(img) && img.includes('cloudinary.com')) {
+            deleteFromCloudinary(img);
+          }
+        });
+      }
+
       showToast('تم تحديث المنتج بنجاح');
       logActivity('تحديث منتج', `تم تحديث بيانات المنتج ID: ${id}`);
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `products/${id}`);
     }
-  }, [showToast, logActivity]);
+  }, [products, showToast, logActivity]);
 
   const deleteProduct = React.useCallback(async (id: string) => {
     try {
       const activeDb = adminAuth.currentUser ? adminDb : db;
+      const oldProduct = products.find(p => String(p.id) === String(id));
+      
       await deleteDoc(doc(activeDb, 'products', String(id)));
+      
+      // Delete images from Cloudinary automatically
+      if (oldProduct) {
+        if (oldProduct.image) deleteFromCloudinary(oldProduct.image);
+        if (oldProduct.images) oldProduct.images.forEach(img => deleteFromCloudinary(img));
+      }
+      
       showToast('تم حذف المنتج بنجاح');
       logActivity('حذف منتج', `تم حذف المنتج ID: ${id}`);
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, `products/${id}`);
     }
-  }, [showToast, logActivity]);
+  }, [products, showToast, logActivity]);
 
   const addCategory = React.useCallback(async (category: Omit<Category, 'id'>) => {
     try {
@@ -2972,24 +3155,40 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const updateCategory = React.useCallback(async (id: string, updatedData: Partial<Category>) => {
     try {
       const activeDb = adminAuth.currentUser ? adminDb : db;
+      const oldCategory = categories.find(c => c.id === id);
+      
       await updateDoc(doc(activeDb, 'categories', id), updatedData);
+      
+      if (oldCategory && oldCategory.image && updatedData.image !== undefined && updatedData.image !== oldCategory.image) {
+        if (oldCategory.image.includes('cloudinary.com')) {
+          deleteFromCloudinary(oldCategory.image);
+        }
+      }
+      
       logActivity('تحديث قسم', `تم تحديث بيانات القسم`);
       showToast('تم تحديث الفئة بنجاح', 'success');
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, 'categories');
     }
-  }, [showToast, logActivity]);
+  }, [categories, showToast, logActivity]);
 
   const deleteCategory = React.useCallback(async (id: string) => {
     try {
       const activeDb = adminAuth.currentUser ? adminDb : db;
+      const oldCategory = categories.find(c => c.id === id);
+      
       await deleteDoc(doc(activeDb, 'categories', id));
+      
+      if (oldCategory && oldCategory.image) {
+        deleteFromCloudinary(oldCategory.image);
+      }
+      
       logActivity('حذف قسم', `تم حذف القسم بنجاح`);
       showToast(`تم حذف الفئة بنجاح`);
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, 'categories');
     }
-  }, [showToast, logActivity]);
+  }, [categories, showToast, logActivity]);
 
   const getRecommendations = React.useCallback(async (currentProduct?: Product) => {
     // If we have a Gemini API key, use AI, otherwise rule-based

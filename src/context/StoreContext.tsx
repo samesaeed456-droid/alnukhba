@@ -427,7 +427,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const unsubscribeAdmin = onAuthStateChanged(adminAuth, async (firebaseAdmin) => {
       if (firebaseAdmin) {
         try {
-          const adminDoc = await getDoc(doc(db, 'users', firebaseAdmin.uid));
+          const adminDoc = await getDoc(doc(adminDb, 'users', firebaseAdmin.uid));
           if (adminDoc.exists()) {
             setAdminUser({ ...adminDoc.data(), uid: adminDoc.id } as UserProfile);
           } else {

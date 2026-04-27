@@ -7,7 +7,7 @@ import { Toaster, toast } from 'sonner';
 import { useStore } from '@/context/StoreContext';
 import { startAuthentication } from '@simplewebauthn/browser';
 import { 
-  auth, adminAuth, db, doc, getDoc, 
+  auth, adminAuth, db, adminDb, doc, getDoc, 
   query, collection, where, getDocs, limit
 } from '../../lib/firebase';
 import { signInWithEmailAndPassword, signInWithCustomToken } from 'firebase/auth';
@@ -131,7 +131,7 @@ export default function AdminLogin() {
         // Secondary check via Firestore (Optimized with limit 1)
         try {
           const adminQuery = query(
-            collection(db, 'users'), 
+            collection(adminDb, 'users'), 
             where('email', '==', user.email), 
             where('role', '==', 'admin'),
             limit(1)
@@ -144,7 +144,7 @@ export default function AdminLogin() {
           } else {
             // Fallback: check if isAdmin flag exists even if role is different (for safety/migration)
             const backupQuery = query(
-              collection(db, 'users'), 
+              collection(adminDb, 'users'), 
               where('email', '==', user.email), 
               where('isAdmin', '==', true),
               limit(1)

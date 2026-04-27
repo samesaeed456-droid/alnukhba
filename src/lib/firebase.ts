@@ -16,7 +16,7 @@ import {
   EmailAuthProvider, 
   reauthenticateWithCredential 
 } from 'firebase/auth';
-import { initializeFirestore, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc, collection, query, where, limit, orderBy, onSnapshot, serverTimestamp, increment, getDocFromServer, enableIndexedDbPersistence, writeBatch, runTransaction } from 'firebase/firestore';
+import { initializeFirestore, getFirestore, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc, collection, query, where, limit, orderBy, onSnapshot, serverTimestamp, increment, getDocFromServer, enableIndexedDbPersistence, writeBatch, runTransaction } from 'firebase/firestore';
 import firebaseConfigJson from '../../firebase-applet-config.json';
 
 // Prioritize environment variables (Vite requires VITE_ prefix for client-side)
@@ -47,6 +47,15 @@ const adminApp = initializeApp(firebaseConfig, 'admin-app');
 // Initialize Services
 export const auth = getAuth(app);
 export const adminAuth = getAuth(adminApp);
+
+export const db = initializeFirestore(app, {
+  experimentalForceLongPolling: true,
+}, firebaseConfig.firestoreDatabaseId);
+
+export const adminDb = initializeFirestore(adminApp, {
+  experimentalForceLongPolling: true,
+}, firebaseConfig.firestoreDatabaseId);
+
 export let messaging: Messaging | null = null;
 
 // Initialize messaging only in browser
@@ -57,10 +66,6 @@ if (typeof window !== 'undefined') {
     console.warn('Firebase Messaging not supported or failed to initialize:', err);
   }
 }
-
-export const db = initializeFirestore(app, {
-  experimentalForceLongPolling: true,
-}, firebaseConfig.firestoreDatabaseId);
 
 // Enable offline persistence
 if (typeof window !== 'undefined') {

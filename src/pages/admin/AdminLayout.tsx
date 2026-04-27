@@ -208,9 +208,9 @@ export default function AdminLayout() {
   // Check authentication and permissions
   useEffect(() => {
     const checkAuth = async () => {
-      const { auth } = await import('@/lib/firebase');
+      const { adminAuth } = await import('@/lib/firebase');
       
-      const unsubscribe = auth.onAuthStateChanged((user) => {
+      const unsubscribe = adminAuth.onAuthStateChanged((user) => {
         if (!user || !user.email) {
           navigate('/admin/login', { replace: true });
           return;
@@ -265,7 +265,19 @@ export default function AdminLayout() {
 
   const handleLogout = async () => {
     logActivity('تسجيل خروج', `تم تسجيل خروج المشرف: ${adminName}`);
-    await logout();
+    
+    try {
+      const { adminAuth } = await import('@/lib/firebase');
+      await adminAuth.signOut();
+    } catch (e) {
+      console.error('Admin Logout error:', e);
+    }
+
+    localStorage.removeItem('admin_auth');
+    localStorage.removeItem('admin_email');
+    localStorage.removeItem('admin_role');
+    localStorage.removeItem('admin_name');
+    
     navigate('/admin/login');
   };
 

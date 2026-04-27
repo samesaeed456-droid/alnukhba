@@ -6,11 +6,11 @@ import { FloatingInput } from '../../components/FloatingInput';
 import { Toaster, toast } from 'sonner';
 import { useStore } from '@/context/StoreContext';
 import { startAuthentication } from '@simplewebauthn/browser';
-import { signInWithCustomToken } from 'firebase/auth';
 import { 
-  auth, db, doc, getDoc, loginWithEmail, signupWithEmail,
+  auth, adminAuth, db, doc, getDoc, 
   query, collection, where, getDocs, limit
 } from '../../lib/firebase';
+import { signInWithEmailAndPassword, signInWithCustomToken } from 'firebase/auth';
 import { getAdminDummyEmail } from '../../lib/adminAuth';
 import Logo from '../../components/Logo';
 
@@ -68,7 +68,7 @@ export default function AdminLogin() {
       const verifyData = JSON.parse(verifyText);
       
       if (verifyData.success) {
-        await signInWithCustomToken(auth, verifyData.customToken);
+        await signInWithCustomToken(adminAuth, verifyData.customToken);
         toast.success('تم تسجيل الدخول بالبصمة بنجاح!');
         // Navigation will be handled by useEffect auth listener
       } else {
@@ -105,7 +105,7 @@ export default function AdminLogin() {
       } catch (e) {}
     }
 
-    const unsubscribe = auth.onAuthStateChanged(async (user) => {
+    const unsubscribe = adminAuth.onAuthStateChanged(async (user) => {
       if (user && user.email) {
         let isAuthorized = false;
         let adminData: any = null;
@@ -169,7 +169,7 @@ export default function AdminLogin() {
           if (localStorage.getItem('admin_attempt') === 'true') {
             toast.error('هذا الحساب ليس لديه صلاحيات إدارية');
             localStorage.removeItem('admin_attempt');
-            await auth.signOut();
+            await adminAuth.signOut();
           }
         }
       }
@@ -188,7 +188,7 @@ export default function AdminLogin() {
     localStorage.setItem('admin_attempt', 'true');
 
     try {
-      await loginWithEmail(email, password);
+      await signInWithEmailAndPassword(adminAuth, email, password);
       // If login successful, the useEffect Auth listener handles the redirection logic
     } catch (error: any) {
       console.error('Login error:', error);

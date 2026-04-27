@@ -42,9 +42,11 @@ if (process.env.NODE_ENV === 'production') {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
+const adminApp = initializeApp(firebaseConfig, 'admin-app');
 
 // Initialize Services
 export const auth = getAuth(app);
+export const adminAuth = getAuth(adminApp);
 export let messaging: Messaging | null = null;
 
 // Initialize messaging only in browser

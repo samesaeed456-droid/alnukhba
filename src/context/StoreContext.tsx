@@ -14,7 +14,7 @@ import { notificationService } from '../services/notificationService';
 import { smsService } from '../services/smsService';
 
 import { 
-  auth, db, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc, collection, query, where, limit, orderBy, onSnapshot, 
+  auth, adminAuth, db, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc, collection, query, where, limit, orderBy, onSnapshot, 
   onAuthStateChanged, serverTimestamp, increment, OperationType, handleFirestoreError, getDocFromServer, writeBatch, runTransaction, createAdminUserClientSide 
 } from '../lib/firebase';
 
@@ -330,6 +330,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const saved = localStorage.getItem('store_user');
     return saved ? JSON.parse(saved) : null;
   });
+  const [adminUser, setAdminUser] = useState<UserProfile | null>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [isLoading, setIsLoading] = useState(() => {
     const hasProducts = !!localStorage.getItem('store_products');
@@ -356,10 +357,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }
   }, [isAuthReady, user]);
 
-  // Firebase Auth Listener
+  // Firebase Auth Listeners
   useEffect(() => {
     let unsubUser: (() => void) | undefined;
 
+    // 1. Customer Auth Listener (Standard Instance)
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         // Enforce single session policy
@@ -369,33 +371,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           localStorage.setItem('local_session_id', localSessionId);
         }
 
-        // Fast-path for hardcoded admins to hide "Checking permissions" immediately
         const hardcodedAdmins = ["samesaeed456@gmail.com", "samisaeed2027@gmail.com", "samisaeed2025@gmail.com"];
-        if (firebaseUser.email && hardcodedAdmins.includes(firebaseUser.email)) {
-          // If we have cached user data, use it for immediate display
-          const cachedUser = localStorage.getItem('store_user');
-          if (cachedUser) {
-            try {
-              const parsed = JSON.parse(cachedUser);
-              if (parsed.uid === firebaseUser.uid) {
-                setUser(parsed);
-              }
-            } catch (e) {}
-          } else {
-            // Set basic user info so app can start while Firestore syncs
-            setUser({
-              uid: firebaseUser.uid,
-              email: firebaseUser.email,
-              role: 'admin',
-              adminRole: 'super_admin',
-              isAdmin: true,
-              displayName: firebaseUser.displayName || 'المدير العام',
-              phoneNumber: firebaseUser.phoneNumber || ''
-            } as UserProfile);
-          }
-          setIsAuthReady(true);
-        }
-
+        
         // Update current session in Firestore
         updateDoc(doc(db, 'users', firebaseUser.uid), {
           currentSessionId: localSessionId,
@@ -406,105 +383,76 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         unsubUser = onSnapshot(doc(db, 'users', firebaseUser.uid), (docSnap) => {
           if (docSnap.exists()) {
             const userData = { ...docSnap.data(), uid: docSnap.id } as UserProfile;
-            
-            // Check for multi-device login
             const currentLocalSession = localStorage.getItem('local_session_id');
             if (userData.currentSessionId && currentLocalSession && userData.currentSessionId !== currentLocalSession) {
-              console.log("Session mismatch detected. Logging out...");
               auth.signOut();
               showToast('تم تسجيل الدخول من جهاز آخر، تم تسجيل خروجك لحماية حسابك', 'error');
               return;
             }
-
             setUser(userData);
             localStorage.setItem('store_user', JSON.stringify(userData));
-            
-            // Try to link notification token to this logged in user
             refreshNotificationToken();
           } else {
-            // IF NO USER BIOGRAPHY EXISTS:
-            // Check if this is actually an admin login from the other tab (shared session)
-            const isAdminAuth = typeof window !== 'undefined' && (
-              localStorage.getItem('admin_auth') === 'true' || 
-              (firebaseUser.email && hardcodedAdmins.includes(firebaseUser.email))
-            );
-
-            if (isAdminAuth) {
-              // It's an admin, don't create a "ghost" customer profile in the store
-              // Just set a minimal temporary user state without persisting to DB
-              const adminTemp: UserProfile = {
+            // New user registration or ghost session handling
+            if (firebaseUser.email && hardcodedAdmins.includes(firebaseUser.email)) {
+              setUser({ uid: firebaseUser.uid, email: firebaseUser.email, role: 'admin', isAdmin: true, displayName: 'مدير النظام' } as UserProfile);
+            } else {
+              const defaultData: any = {
                 uid: firebaseUser.uid,
                 email: firebaseUser.email || '',
-                role: 'admin',
-                isAdmin: true,
-                displayName: firebaseUser.displayName || 'مدير النظام'
-              } as UserProfile;
-              setUser(adminTemp);
-              setIsAuthReady(true);
-              return;
+                role: 'customer',
+                createdAt: serverTimestamp(),
+                displayName: 'عميل جديد'
+              };
+              setDoc(doc(db, 'users', firebaseUser.uid), defaultData, { merge: true })
+                .catch(error => handleFirestoreError(error, OperationType.WRITE, `users/${firebaseUser.uid}`));
             }
-
-            // Otherwise, it's a new real customer, proceed with creation
-            const defaultData: any = {
-              uid: firebaseUser.uid,
-              email: firebaseUser.email || '',
-              role: 'customer',
-              createdAt: serverTimestamp(),
-              displayName: firebaseUser.displayName || 'عميل جديد'
-            };
-            
-            if (firebaseUser.displayName) defaultData.displayName = firebaseUser.displayName;
-            if (firebaseUser.photoURL) defaultData.photoURL = firebaseUser.photoURL;
-            if (firebaseUser.phoneNumber) {
-              const fullNum = firebaseUser.phoneNumber;
-              if (fullNum.startsWith('+967')) {
-                defaultData.countryCode = '+967';
-                defaultData.phone = fullNum.slice(4);
-              } else {
-                defaultData.countryCode = '';
-                defaultData.phone = fullNum;
-              }
-            }
-
-            // If it's a hardcoded admin, ensure they get admin role on creation
-            if (firebaseUser.email && hardcodedAdmins.includes(firebaseUser.email)) {
-              defaultData.role = 'admin';
-              defaultData.adminRole = 'super_admin';
-              defaultData.isAdmin = true;
-            }
-
-            setDoc(doc(db, 'users', firebaseUser.uid), defaultData, { merge: true })
-              .catch(error => handleFirestoreError(error, OperationType.WRITE, `users/${firebaseUser.uid}`));
           }
           setIsAuthReady(true);
         }, (error) => {
           console.warn("User profile sync warning:", error);
-          setIsAuthReady(true); // Don't leave user stuck on checking screen
+          setIsAuthReady(true);
         });
       } else {
         if (unsubUser) unsubUser();
         setUser(null);
-        // Thoroughly clear all session-related local storage
-        const keysToRemove = [
-          'store_user', 
-          'admin_auth', 
-          'admin_email', 
-          'admin_name', 
-          'admin_role', 
-          'admin_auth_token',
-          'admin_attempt',
-          'admin_users_list',
-          'admin_read_notifications',
-          'app_users',
-          'local_session_id',
-          'has_migrated_to_firebase'
-        ];
+        // Clear customer specific storage
+        const keysToRemove = ['store_user', 'local_session_id'];
         keysToRemove.forEach(key => localStorage.removeItem(key));
         setIsAuthReady(true);
       }
     });
+
+    // 2. Admin Auth Listener (Dedicated Instance)
+    const unsubscribeAdmin = onAuthStateChanged(adminAuth, async (firebaseAdmin) => {
+      if (firebaseAdmin) {
+        try {
+          const adminDoc = await getDoc(doc(db, 'users', firebaseAdmin.uid));
+          if (adminDoc.exists()) {
+            setAdminUser({ ...adminDoc.data(), uid: adminDoc.id } as UserProfile);
+          } else {
+            const hardcoded = ["samesaeed456@gmail.com", "samisaeed2027@gmail.com", "samisaeed2025@gmail.com"];
+            if (firebaseAdmin.email && hardcoded.includes(firebaseAdmin.email.toLowerCase())) {
+              setAdminUser({
+                uid: firebaseAdmin.uid,
+                email: firebaseAdmin.email,
+                role: 'admin',
+                isAdmin: true,
+                displayName: 'المدير العام'
+              } as UserProfile);
+            }
+          }
+        } catch (e) {
+          console.warn("Admin profile background sync:", e);
+        }
+      } else {
+        setAdminUser(null);
+      }
+    });
+
     return () => {
       unsubscribe();
+      unsubscribeAdmin();
       if (unsubUser) unsubUser();
     };
   }, []);
@@ -576,16 +524,18 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   // Sync Orders from Firestore
   useEffect(() => {
-    if (!auth.currentUser || !user) {
+    const activeAdmin = (adminUser?.role === 'admin' || adminUser?.isAdmin) ? adminUser : (user?.role === 'admin' ? user : null);
+    
+    if (!auth.currentUser && !adminAuth.currentUser && !activeAdmin) {
       setOrders([]);
       return;
     }
 
     // If admin, sync ALL orders. If user, sync only THEIR orders.
     const ordersRef = collection(db, 'orders');
-    const q = user.role === 'admin' 
+    const q = activeAdmin 
       ? query(ordersRef) 
-      : query(ordersRef, where('userId', '==', auth.currentUser.uid));
+      : query(ordersRef, where('userId', '==', auth.currentUser?.uid || 'guest'));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const ordersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as Order[];
@@ -595,16 +545,18 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       // Don't set global system error for orders to avoid blocking the whole app
     });
     return () => unsubscribe();
-  }, [user]);
+  }, [user, adminUser]);
 
   // Sync Admin-only Data
   useEffect(() => {
+    const activeAdmin = (adminUser?.role === 'admin' || adminUser?.isAdmin) ? adminUser : (user?.role === 'admin' ? user : null);
+    
     if (!isAuthReady) return;
 
-    if (!user || user.role !== 'admin') {
+    if (!activeAdmin) {
       // Small delay before clearing to prevent flicker during auto-promotion sync
       const timer = setTimeout(() => {
-        if (!user || user.role !== 'admin') {
+        if (!activeAdmin) {
           setCustomers([]);
           setActivityLogs([]);
           setAdminUsers([]);
@@ -615,7 +567,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
     const unsubUsers = onSnapshot(collection(db, 'users'), (snapshot) => {
       // Re-check role before processing
-      if (auth.currentUser?.uid !== user.uid || user.role !== 'admin') return;
+      const currentUid = auth.currentUser?.uid || adminAuth.currentUser?.uid;
+      if (currentUid !== activeAdmin.uid || activeAdmin.role !== 'admin') return;
 
       const allUsersData = snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() })) as unknown as UserProfile[];
       
@@ -644,12 +597,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         return;
       }
       const hardcodedAdmins = ["samesaeed456@gmail.com", "samisaeed2027@gmail.com", "samisaeed2025@gmail.com", "967776668370@elite-store.local"];
-      const isHardcodedAdmin = user?.email && hardcodedAdmins.includes(user.email);
+      const isHardcodedAdmin = activeAdmin?.email && hardcodedAdmins.includes(activeAdmin.email);
       if (!isHardcodedAdmin) handleFirestoreError(error, OperationType.LIST, 'users');
     });
 
     const unsubLogs = onSnapshot(collection(db, 'activity_logs'), (snapshot) => {
-      if (auth.currentUser?.uid !== user.uid || user.role !== 'admin') return;
+      const currentUid = auth.currentUser?.uid || adminAuth.currentUser?.uid;
+      if (currentUid !== activeAdmin.uid || activeAdmin.role !== 'admin') return;
       const logsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as ActivityLog[];
       const sortedLogs = logsData.sort((a, b) => {
         const dateA = (a.date as any)?.seconds ? (a.date as any).seconds : new Date(a.date).getTime();
@@ -664,7 +618,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     });
 
     const unsubTickets = onSnapshot(collection(db, 'support_tickets'), (snapshot) => {
-      if (auth.currentUser?.uid !== user.uid || user.role !== 'admin') return;
+      const currentUid = auth.currentUser?.uid || adminAuth.currentUser?.uid;
+      if (currentUid !== activeAdmin.uid || activeAdmin.role !== 'admin') return;
       const ticketsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as SupportTicket[];
       setSupportTickets(ticketsData);
       localStorage.setItem('store_tickets', JSON.stringify(ticketsData));
@@ -674,7 +629,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     });
 
     const unsubVisits = onSnapshot(collection(db, 'visits'), (snapshot) => {
-      if (auth.currentUser?.uid !== user.uid || user.role !== 'admin') return;
+      const currentUid = auth.currentUser?.uid || adminAuth.currentUser?.uid;
+      if (currentUid !== activeAdmin.uid || activeAdmin.role !== 'admin') return;
       const visitsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as Visit[];
       setVisits(visitsData);
       localStorage.setItem('store_visits', JSON.stringify(visitsData));
@@ -684,7 +640,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     });
 
     const unsubSearchTerms = onSnapshot(collection(db, 'searchTerms'), (snapshot) => {
-      if (auth.currentUser?.uid !== user.uid || user.role !== 'admin') return;
+      const currentUid = auth.currentUser?.uid || adminAuth.currentUser?.uid;
+      if (currentUid !== activeAdmin.uid || activeAdmin.role !== 'admin') return;
       const termsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as SearchTerm[];
       setSearchTerms(termsData);
       localStorage.setItem('store_search_terms', JSON.stringify(termsData));
@@ -694,7 +651,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     });
 
     const unsubAbandonedCarts = onSnapshot(collection(db, 'abandonedCarts'), (snapshot) => {
-      if (auth.currentUser?.uid !== user.uid || user.role !== 'admin') return;
+      const currentUid = auth.currentUser?.uid || adminAuth.currentUser?.uid;
+      if (currentUid !== activeAdmin.uid || activeAdmin.role !== 'admin') return;
       const cartsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as AbandonedCart[];
       setAbandonedCarts(cartsData);
       localStorage.setItem('store_abandoned_carts', JSON.stringify(cartsData));
@@ -704,7 +662,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     });
 
     const unsubInventoryLogs = onSnapshot(collection(db, 'inventory_logs'), (snapshot) => {
-      if (auth.currentUser?.uid !== user.uid || user.role !== 'admin') return;
+      const currentUid = auth.currentUser?.uid || adminAuth.currentUser?.uid;
+      if (currentUid !== activeAdmin.uid || activeAdmin.role !== 'admin') return;
       const logsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as InventoryLog[];
       setInventoryLogs(logsData.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 1000));
       localStorage.setItem('store_inventory_logs', JSON.stringify(logsData.slice(0, 500)));
@@ -722,7 +681,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       unsubAbandonedCarts();
       unsubInventoryLogs();
     };
-  }, [user]);
+  }, [user, adminUser, isAuthReady]);
 
   // Sync Public Data
   useEffect(() => {

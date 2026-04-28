@@ -469,7 +469,7 @@ export default function Orders() {
                   <div className="flex items-center gap-4 mb-8 relative z-10">
                     <div className="w-16 h-16 rounded-[24px] bg-bg-general overflow-hidden border-2 border-white shadow-xl group-hover:scale-110 transition-transform duration-500">
                       <img 
-                        src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${order.customerName || order.id}`} 
+                        src={order.customerImage || `https://api.dicebear.com/7.x/avataaars/svg?seed=${order.customerName || order.id}`} 
                         alt="Customer" 
                         className="w-full h-full object-cover"
                       />

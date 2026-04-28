@@ -74,29 +74,36 @@ export default function OrderDetailsModal({ order, isOpen, onClose }: OrderDetai
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
-                    {order.items?.map((item, idx) => (
-                      <tr key={idx} className="text-sm">
-                        <td className="px-4 py-4">
-                          <div className="flex items-center gap-3">
-                            <img 
-                              src={item.product?.image || undefined} 
-                              alt={item.product?.name || 'محذوف'}
-                              className="w-12 h-12 rounded-lg object-cover border border-gray-100"
-                            />
-                            <div>
-                              <p className="font-bold text-carbon line-clamp-1">{item.product?.name || 'منتج محذوف'}</p>
-                              <p className="text-xs text-gray-500">{item.product?.brand || ''}</p>
+                    {order.items?.map((item, idx) => {
+                      const itemName = item.name || item.product?.name || 'منتج محذوف';
+                      const itemImage = item.image || item.product?.image || undefined;
+                      const itemPrice = item.price || item.product?.price || 0;
+                      const itemBrand = item.brand || item.product?.brand || '';
+
+                      return (
+                        <tr key={idx} className="text-sm">
+                          <td className="px-4 py-4">
+                            <div className="flex items-center gap-3">
+                              <img 
+                                src={itemImage} 
+                                alt={itemName}
+                                className="w-12 h-12 rounded-lg object-cover border border-gray-100"
+                              />
+                              <div>
+                                <p className="font-bold text-carbon line-clamp-1">{itemName}</p>
+                                <p className="text-xs text-gray-500">{itemBrand}</p>
+                              </div>
                             </div>
-                          </div>
-                        </td>
-                        <td className="px-4 py-4 text-center font-bold text-gray-600">
-                          {item.quantity}
-                        </td>
-                        <td className="px-4 py-4 text-left font-bold text-solar">
-                          {formatPrice((item.product?.price || 0) * item.quantity)}
-                        </td>
-                      </tr>
-                    ))}
+                          </td>
+                          <td className="px-4 py-4 text-center font-bold text-gray-600">
+                            {item.quantity}
+                          </td>
+                          <td className="px-4 py-4 text-left font-bold text-solar">
+                            {formatPrice(itemPrice * item.quantity)}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -152,25 +159,20 @@ export default function OrderDetailsModal({ order, isOpen, onClose }: OrderDetai
             {/* Customer Info */}
             <div className="bg-white border border-gray-100 rounded-2xl p-6 space-y-4 shadow-sm">
               <h3 className="font-bold text-carbon mb-2">معلومات العميل</h3>
+              <div className="flex items-center gap-4 mb-4 pb-4 border-b border-gray-50">
+                <div className="w-12 h-12 rounded-xl bg-gray-100 overflow-hidden">
+                  <img 
+                    src={order.customerImage || `https://api.dicebear.com/7.x/avataaars/svg?seed=${order.customerName || order.id}`} 
+                    alt="Customer" 
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div>
+                  <p className="font-bold text-carbon">{order.customerName || 'عميل المتجر'}</p>
+                  <p className="text-xs text-gray-500">{order.customerPhone || 'بدون هاتف'}</p>
+                </div>
+              </div>
               <div className="space-y-4">
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 shrink-0">
-                    <User className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500">الاسم</p>
-                    <p className="text-sm font-bold text-carbon">{order.customerName || order.userId}</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-green-50 flex items-center justify-center text-green-600 shrink-0">
-                    <Phone className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500">رقم الهاتف</p>
-                    <p className="text-sm font-bold text-carbon" dir="ltr">{order.customerPhone || order.userId}</p>
-                  </div>
-                </div>
                 <div className="flex items-start gap-3">
                   <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center text-amber-600 shrink-0">
                     <MapPin className="w-4 h-4" />

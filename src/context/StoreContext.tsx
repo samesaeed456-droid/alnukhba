@@ -2291,6 +2291,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           userId: auth.currentUser?.uid || 'guest',
           customerName: customerName || user?.displayName || user?.name || 'عميل المتجر',
           customerPhone: customerPhone || user?.phone || '',
+          customerImage: user?.photoURL || user?.image || null,
           shippingAddress: shippingAddress || user?.address || '',
           city: city || null,
           date: now.toISOString(),
@@ -2299,6 +2300,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             productId: item.product.id || '',
             name: item.product.name || '',
             price: item.product.price || 0,
+            image: item.product.image || item.product.images?.[0] || null,
             quantity: item.quantity || 1,
             selectedColor: item.selectedColor || null,
             selectedSize: item.selectedSize || null

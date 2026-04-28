@@ -118,11 +118,15 @@ export default function Orders() {
 
               <div className="p-5 flex-1">
                 <div className="flex -space-x-3 space-x-reverse mb-4">
-                  {order.items?.slice(0, 5).map((item, idx) => (
-                    <div key={idx} className="w-12 h-12 rounded-xl border-2 border-white bg-white overflow-hidden relative z-[5] shadow-lg">
-                      <img src={item.product?.image || undefined} alt={item.product?.name || 'محذوف'} className="w-full h-full object-cover" />
-                    </div>
-                  ))}
+                  {order.items?.slice(0, 5).map((item, idx) => {
+                    const itemName = item.name || item.product?.name || 'محذوف';
+                    const itemImage = item.image || item.product?.image || undefined;
+                    return (
+                      <div key={idx} className="w-12 h-12 rounded-xl border-2 border-white bg-white overflow-hidden relative z-[5] shadow-lg">
+                        <img src={itemImage} alt={itemName} className="w-full h-full object-cover" />
+                      </div>
+                    );
+                  })}
                   {(order.items?.length || 0) > 5 && (
                     <div className="w-12 h-12 rounded-xl border-2 border-white bg-slate-50 flex items-center justify-center text-xs font-black text-slate-500 relative z-0 shadow-lg">
                       +{(order.items?.length || 0) - 5}
@@ -130,7 +134,7 @@ export default function Orders() {
                   )}
                 </div>
                 <div className="text-xs text-slate-500 font-bold line-clamp-1 leading-relaxed">
-                  {order.items?.map(i => i.product?.name || 'منتج محذوف').join('، ')}
+                  {order.items?.map(i => i.name || i.product?.name || 'منتج محذوف').join('، ')}
                 </div>
               </div>
 

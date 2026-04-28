@@ -379,44 +379,56 @@ export default function TrackOrder() {
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-bg-hover">
-                              {trackedOrder.items?.map((item, idx) => (
-                                <tr key={idx} className="group hover:bg-bg-section transition-colors">
-                                  <td className="py-4 px-2">
-                                    <div className="flex items-center gap-3">
-                                      <div className="w-12 h-12 bg-white rounded-lg border border-bg-hover overflow-hidden shrink-0">
-                                        <img src={item.product?.image || undefined} alt={item.product?.name || 'محذوف'} className="w-full h-full object-cover" crossOrigin="anonymous" />
+                              {trackedOrder.items?.map((item, idx) => {
+                                const itemName = item.name || item.product?.name || 'منتج محذوف';
+                                const itemImage = item.image || item.product?.image || undefined;
+                                const itemPrice = item.price || item.product?.price || 0;
+                                return (
+                                  <tr key={idx} className="group hover:bg-bg-section transition-colors">
+                                    <td className="py-4 px-2">
+                                      <div className="flex items-center gap-3">
+                                        <div className="w-12 h-12 bg-white rounded-lg border border-bg-hover overflow-hidden shrink-0">
+                                          <img src={itemImage} alt={itemName} className="w-full h-full object-cover" crossOrigin="anonymous" />
+                                        </div>
+                                        <div>
+                                          <p className="font-bold text-carbon text-sm">{itemName}</p>
+                                          {(item.selectedColor || item.color) && (
+                                            <p className="text-xs text-slate-400 mt-0.5">اللون: {item.selectedColor || item.color}</p>
+                                          )}
+                                        </div>
                                       </div>
-                                      <div>
-                                        <p className="font-bold text-carbon text-sm">{item.product?.name || 'منتج محذوف غير متوفر'}</p>
-                                        {item.selectedColor && <p className="text-xs text-slate-400 mt-0.5">اللون: {item.selectedColor}</p>}
-                                      </div>
-                                    </div>
-                                  </td>
-                                  <td className="py-4 px-2 text-center font-medium text-carbon">{item.quantity}</td>
-                                  <td className="py-4 px-2 text-center font-medium text-carbon">{formatPrice(item.product?.price || 0)}</td>
-                                  <td className="py-4 px-2 text-left font-bold text-carbon">{formatPrice((item.product?.price || 0) * item.quantity)}</td>
-                                </tr>
-                              ))}
+                                    </td>
+                                    <td className="py-4 px-2 text-center font-medium text-carbon">{item.quantity}</td>
+                                    <td className="py-4 px-2 text-center font-medium text-carbon">{formatPrice(itemPrice)}</td>
+                                    <td className="py-4 px-2 text-left font-bold text-carbon">{formatPrice(itemPrice * item.quantity)}</td>
+                                  </tr>
+                                );
+                              })}
                             </tbody>
                           </table>
                         </div>
 
                         {/* Mobile Item Cards */}
                         <div className="sm:hidden space-y-3">
-                          {trackedOrder.items?.map((item, idx) => (
-                            <div key={idx} className="bg-bg-section rounded-xl p-3 border border-bg-hover flex gap-3">
-                              <div className="w-14 h-14 bg-white rounded-lg border border-bg-hover overflow-hidden shrink-0">
-                                <img src={item.product?.image || undefined} alt={item.product?.name} className="w-full h-full object-cover" />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-xs font-bold text-carbon truncate">{item.product?.name || 'منتج محذوف'}</p>
-                                <div className="flex justify-between items-center mt-1">
-                                  <p className="text-[10px] text-slate-500">{item.quantity} × {formatPrice(item.product?.price || 0)}</p>
-                                  <p className="text-xs font-black text-carbon">{formatPrice((item.product?.price || 0) * item.quantity)}</p>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
+                          {trackedOrder.items?.map((item, idx) => {
+                             const itemName = item.name || item.product?.name || 'منتج محذوف';
+                             const itemImage = item.image || item.product?.image || undefined;
+                             const itemPrice = item.price || item.product?.price || 0;
+                             return (
+                               <div key={idx} className="bg-bg-section rounded-xl p-3 border border-bg-hover flex gap-3">
+                                 <div className="w-14 h-14 bg-white rounded-lg border border-bg-hover overflow-hidden shrink-0">
+                                   <img src={itemImage} alt={itemName} className="w-full h-full object-cover" />
+                                 </div>
+                                 <div className="flex-1 min-w-0">
+                                   <p className="text-xs font-bold text-carbon truncate">{itemName}</p>
+                                   <div className="flex justify-between items-center mt-1">
+                                     <p className="text-[10px] text-slate-500">{item.quantity} × {formatPrice(itemPrice)}</p>
+                                     <p className="text-xs font-black text-carbon">{formatPrice(itemPrice * item.quantity)}</p>
+                                   </div>
+                                 </div>
+                               </div>
+                             );
+                          })}
                         </div>
 
                         {/* Totals */}

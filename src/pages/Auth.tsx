@@ -345,7 +345,8 @@ export default function Auth() {
         setError(data.error || 'كود التحقق غير صحيح');
       }
     } catch (err: any) {
-      console.error('Verification Error:', err);
+      console.error('Verification Error [verifyOTP final catch]:', err);
+      console.error('Error Code:', err.code, 'Message:', err.message, 'Stack:', err.stack);
       const smartError = parseSmartError(err);
       setError(smartError.message);
     } finally {
@@ -420,47 +421,85 @@ export default function Auth() {
     try {
       const cleanPhone = (formData.phone || '').trim().replace(/^0+/, '');
       if (isLogin) {
+        // Enforce SMS verification for login too
         const email = getDummyEmail(formData.countryCode, cleanPhone);
+        
         try {
-          await loginWithEmail(email, formData.password);
-          showToast('تم تسجيل الدخول بنجاح');
-          navigate(redirectPath);
+          // First, verify credentials without fully logging in
+          // We'll sign in and then immediately out to confirm password is correct
+          const userCred = await loginWithEmail(email, formData.password);
+          await auth.signOut();
+          
+          // Now send OTP for multi-factor verification
+          const fullPhone = formData.countryCode + cleanPhone;
+          const response = await fetch('/api/send-otp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ phone: fullPhone }),
+          });
+
+          const data = await response.json();
+
+          if (response.ok && data.success) {
+            setVerificationToken(data.token);
+            (window as any)._authPrevStep = 'login';
+            setStep('verification');
+            showToast('تم التحقق من كلمة المرور، يرجى إدخال كود التحقق المرسل لهاتفك');
+          } else {
+            setError(data.error || 'تعذر إرسال كود التحقق');
+          }
         } catch (authErr: any) {
           const smartError = parseSmartError(authErr);
           setError(smartError.message);
         }
       } else {
+        // Pre-check if phone already exists before sending OTP on signup
         const email = getDummyEmail(formData.countryCode, cleanPhone);
         
         try {
-          const userCred = await signupWithEmail(email, formData.password);
+          const { collection, query, where, getDocs, db } = await import('../lib/firebase');
+          const q = query(collection(db, 'users'), where('phone', '==', cleanPhone), where('countryCode', '==', formData.countryCode));
+          const snapshot = await getDocs(q);
           
-          try {
-            await import('firebase/auth').then(({ updateProfile }) => {
-              updateProfile(userCred.user, { displayName: formData.name }).catch(console.error);
-            });
-          } catch (e) {}
-
-          await setDoc(doc(db, 'users', userCred.user.uid), {
-            uid: userCred.user.uid,
-            email: email,
-            name: formData.name,
-            phone: cleanPhone,
-            countryCode: formData.countryCode,
-            role: 'customer',
-            walletBalance: 0,
-            createdAt: serverTimestamp()
-          }, { merge: true });
-
-          showToast('تم إنشاء الحساب بنجاح');
-          navigate(redirectPath);
-        } catch (signupError: any) {
-          if (signupError.code === 'auth/email-already-in-use') {
-             setError('هذا الرقم مسجل مسبقاً في حساب آخر. يرجى تسجيل الدخول.');
-          } else {
-             const smartError = parseSmartError(signupError);
-             setError(smartError.message);
+          if (!snapshot.empty) {
+             setError('هذا الرقم مسجل مسبقاً في حساب آخر، يمنع إنشاء حسابين بنفس الرقم. يرجى تسجيل الدخول.');
+             setIsLoading(false);
+             return;
           }
+        } catch (dbErr) {
+          console.warn("Could not check Firestore, falling back to Auth pre-check", dbErr);
+          try {
+            await loginWithEmail(email, "a_very_fake_password_12345");
+          } catch (checkErr: any) {
+            if (checkErr.code === 'auth/wrong-password' || checkErr.code === 'auth/too-many-requests') {
+               setError('هذا الرقم مسجل مسبقاً في حساب آخر، يرجى تسجيل الدخول.');
+               setIsLoading(false);
+               return;
+            }
+          }
+        }
+
+        const fullPhone = formData.countryCode + cleanPhone;
+
+        try {
+          const response = await fetch('/api/send-otp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ phone: fullPhone }),
+          });
+
+          const data = await response.json();
+
+          if (response.ok && data.success) {
+            setVerificationToken(data.token);
+            setStep('verification');
+            showToast('تم إرسال كود التحقق إلى هاتفك');
+          } else {
+            setError(data.error || 'تعذر إرسال كود التحقق');
+          }
+        } catch (smsError) {
+          console.error("SMS API not available:", smsError);
+          setError('حدث خطأ أثناء الاتصال بخادم الرسائل');
         }
       }
     } catch (err: any) {

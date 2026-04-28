@@ -14,7 +14,10 @@ import {
   updatePassword,
   updateEmail,
   EmailAuthProvider, 
-  reauthenticateWithCredential 
+  reauthenticateWithCredential,
+  setPersistence,
+  inMemoryPersistence,
+  browserSessionPersistence
 } from 'firebase/auth';
 import { initializeFirestore, getFirestore, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc, collection, query, where, limit, orderBy, onSnapshot, serverTimestamp, increment, getDocFromServer, enableIndexedDbPersistence, writeBatch, runTransaction } from 'firebase/firestore';
 import firebaseConfigJson from '../../firebase-applet-config.json';
@@ -47,6 +50,13 @@ const adminApp = initializeApp(firebaseConfig, 'admin-app');
 // Initialize Services
 export const auth = getAuth(app);
 export const adminAuth = getAuth(adminApp);
+
+// Avoid IndexedDB race conditions by setting adminAuth to session persistence
+if (typeof window !== 'undefined') {
+  setPersistence(adminAuth, browserSessionPersistence).catch((err) => {
+    console.warn('Failed to set adminAuth persistence:', err);
+  });
+}
 
 export const db = initializeFirestore(app, {
   experimentalForceLongPolling: true,
@@ -90,18 +100,35 @@ export const googleProvider = new GoogleAuthProvider();
 export const signInWithGoogle = () => signInWithPopup(auth, googleProvider);
 export const signInWithGoogleRedirect = () => signInWithRedirect(auth, googleProvider);
 export const getGoogleRedirectResult = () => getRedirectResult(auth);
-export const loginWithEmail = (email: string, pass: string) => signInWithEmailAndPassword(auth, email, pass);
-export const signupWithEmail = (email: string, pass: string) => createUserWithEmailAndPassword(auth, email, pass);
-export const resetPassword = (email: string) => sendPasswordResetEmail(auth, email);
-export const changePassword = (newPass: string) => {
+
+// Retry wrapper for auth functions to handle transient network errors
+const withRetry = <T extends (...args: any[]) => Promise<any>>(fn: T): T => {
+  return (async (...args: Parameters<T>) => {
+    try {
+      return await fn(...args);
+    } catch (error: any) {
+      if (error.code === 'auth/network-request-failed') {
+        console.warn('Network request failed in Auth. Retrying...');
+        await new Promise(r => setTimeout(r, 1000));
+        return await fn(...args);
+      }
+      throw error;
+    }
+  }) as T;
+};
+
+export const loginWithEmail = withRetry((email: string, pass: string) => signInWithEmailAndPassword(auth, email, pass));
+export const signupWithEmail = withRetry((email: string, pass: string) => createUserWithEmailAndPassword(auth, email, pass));
+export const resetPassword = withRetry((email: string) => sendPasswordResetEmail(auth, email));
+export const changePassword = withRetry((newPass: string) => {
   if (!auth.currentUser) throw new Error('No user logged in');
   return updatePassword(auth.currentUser, newPass);
-};
-export const reauthenticate = (password: string) => {
+});
+export const reauthenticate = withRetry((password: string) => {
   if (!auth.currentUser || !auth.currentUser.email) throw new Error('No user logged in');
   const credential = EmailAuthProvider.credential(auth.currentUser.email, password);
   return reauthenticateWithCredential(auth.currentUser, credential);
-};
+});
 export const logout = () => signOut(auth);
 
 // Admin User Creation Helper (Secondary Auth)

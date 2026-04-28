@@ -382,14 +382,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
     if (isHardcodedAdmin) {
       // Instant promotion to admin state for hardcoded admins
-      setActiveAdmin({
+      setUser({
         uid: firebaseUser.uid,
         email: firebaseUser.email || '',
         name: firebaseUser.displayName || 'Admin',
         role: 'admin',
         createdAt: new Date().toISOString()
       });
-      setIsAdmin(true);
       
       // Mark as pre-authorized to bypass some security initial checks in UI
       localStorage.setItem('admin_auth', 'true');
@@ -427,6 +426,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             const currentLocalSession = localStorage.getItem('local_session_id');
             const lastPing = localStorage.getItem('last_session_ping');
             const now = Date.now();
+            let justPinged = false;
             
             if (!lastPing || (now - parseInt(lastPing)) > 600000) { // 10 mins
               updateDoc(doc(db, 'users', firebaseUser.uid), {
@@ -435,9 +435,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
                 updatedAt: serverTimestamp()
               }).catch(() => {});
               localStorage.setItem('last_session_ping', now.toString());
+              justPinged = true;
             }
 
-            if (userData.currentSessionId && currentLocalSession && userData.currentSessionId !== currentLocalSession) {
+            if (!justPinged && userData.currentSessionId && currentLocalSession && userData.currentSessionId !== currentLocalSession) {
               auth.signOut();
               showToast('تم تسجيل الدخول من جهاز آخر، تم تسجيل خروجك لحماية حسابك', 'error');
               return;
@@ -502,7 +503,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         if (unsubUser) unsubUser();
         setUser(null);
         // Clear customer specific storage
-        const keysToRemove = ['store_user', 'local_session_id'];
+        const keysToRemove = ['store_user', 'local_session_id', 'last_session_ping'];
         keysToRemove.forEach(key => localStorage.removeItem(key));
         setIsAuthReady(true);
       }
@@ -2536,6 +2537,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       // Clear ALL session flags immediately
       const keysToRemove = [
         'local_session_id',
+        'last_session_ping',
         'admin_auth',
         'admin_email',
         'admin_name',

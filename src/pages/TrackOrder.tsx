@@ -15,6 +15,7 @@ export default function TrackOrder() {
   const [orderStatus, setOrderStatus] = useState<null | 'not_found' | 'tracking'>(null);
   const [trackedOrder, setTrackedOrder] = useState<Order | null>(null);
   const [showItems, setShowItems] = useState(false);
+  const [isZoomed, setIsZoomed] = useState(false);
 
   useEffect(() => {
     const id = searchParams.get('id');
@@ -359,6 +360,18 @@ export default function TrackOrder() {
                           <div className="sm:text-left">
                             <h3 className="text-[9px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 sm:mb-3">تفاصيل الدفع والتوصيل</h3>
                             <p className="text-xs sm:text-sm text-slate-500 mb-1"><span className="font-bold text-carbon">طريقة الدفع:</span> {trackedOrder.paymentMethod}</p>
+                            {trackedOrder.paymentProof && (
+                              <div className="my-3 flex sm:justify-end">
+                                <button 
+                                  type="button"
+                                  onClick={() => setIsZoomed(true)}
+                                  className="flex items-center gap-2 px-3 py-2 bg-white border border-bg-hover rounded-xl hover:bg-bg-hover transition-all text-[10px] sm:text-xs font-bold text-carbon shadow-sm"
+                                >
+                                  <ExternalLink className="w-3 h-3 sm:w-4 sm:h-4 text-solar" />
+                                  مشاهدة سند الدفع
+                                </button>
+                              </div>
+                            )}
                             <p className="text-xs sm:text-sm text-slate-500 mb-1"><span className="font-bold text-carbon">حالة الطلب:</span> {trackedOrder.status === 'delivered' ? 'مكتمل' : 'قيد المعالجة'}</p>
                             <p className="text-xs sm:text-sm text-slate-500 mb-1"><span className="font-bold text-carbon">طريقة التوصيل:</span> {trackedOrder.shippingMethod === 'pickup' ? 'استلام من الفرع' : 'توصيل الى العنوان'}</p>
                             {trackedOrder.deliveryInstructions && (
@@ -514,6 +527,49 @@ export default function TrackOrder() {
               >
                 إعادة المحاولة
               </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Zoomed Image Modal */}
+        <AnimatePresence>
+          {isZoomed && trackedOrder?.paymentProof && (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md"
+              onClick={() => setIsZoomed(false)}
+            >
+              <div className="relative max-w-5xl w-full h-full flex items-center justify-center py-10">
+                <div className="absolute top-0 right-0 flex gap-2 z-[110]">
+                  <a 
+                    href={trackedOrder.paymentProof} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="p-3 text-white hover:bg-white/10 rounded-full transition-colors flex items-center gap-2 font-bold text-sm"
+                    title="فتح في نافذة جديدة"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <ExternalLink className="w-6 h-6" />
+                  </a>
+                  <button 
+                    onClick={() => setIsZoomed(false)}
+                    className="p-3 text-white hover:bg-white/10 rounded-full transition-colors"
+                  >
+                    <X className="w-8 h-8" />
+                  </button>
+                </div>
+                <motion.img 
+                  initial={{ scale: 0.9, y: 20 }}
+                  animate={{ scale: 1, y: 0 }}
+                  exit={{ scale: 0.9, y: 20 }}
+                  src={trackedOrder.paymentProof} 
+                  alt="سند التحويل مكبر" 
+                  className="max-w-full max-h-full object-contain shadow-2xl rounded-lg"
+                  onClick={(e) => e.stopPropagation()}
+                />
+              </div>
             </motion.div>
           )}
         </AnimatePresence>

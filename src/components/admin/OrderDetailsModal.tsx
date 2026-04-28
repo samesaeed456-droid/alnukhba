@@ -215,7 +215,7 @@ export default function OrderDetailsModal({ order, isOpen, onClose }: OrderDetai
               {order.paymentProof && (
                 <div className="mt-4 space-y-2">
                   <div className="flex justify-between items-center mb-1">
-                    <label className="text-xs font-bold text-gray-500 uppercase">سند التحويل</label>
+                    <label className="text-xs font-bold text-gray-500 uppercase">سند الدفع</label>
                     <a 
                       href={order.paymentProof} 
                       target="_blank" 
@@ -226,20 +226,20 @@ export default function OrderDetailsModal({ order, isOpen, onClose }: OrderDetai
                       فتح في نافذة جديدة
                     </a>
                   </div>
-                  <div className="relative group rounded-xl overflow-hidden border border-gray-200 aspect-video bg-gray-100">
+                  <div className="relative group rounded-xl overflow-hidden border border-gray-200 aspect-video bg-gray-100 shadow-sm hover:border-solar/30 transition-colors">
                     <img 
                       src={order.paymentProof} 
-                      alt="سند التحويل" 
+                      alt="سند الدفع" 
                       className="w-full h-full object-contain cursor-pointer transition-transform group-hover:scale-105"
                       onClick={() => setIsZoomed(true)}
                     />
                     <div 
-                      className="absolute inset-0 bg-black/0 group-hover:bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all cursor-pointer"
+                      className="absolute inset-0 bg-black/0 group-hover:bg-black/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all cursor-pointer"
                       onClick={() => setIsZoomed(true)}
                     >
-                      <div className="bg-white/90 p-2 rounded-lg text-carbon flex items-center gap-2 text-xs font-bold">
-                        <Maximize2 className="w-4 h-4" />
-                        تكبير السند
+                      <div className="bg-white/90 p-2.5 rounded-xl text-carbon flex items-center gap-2 text-xs font-bold shadow-xl border border-gray-100">
+                        <Maximize2 className="w-4 h-4 text-solar" />
+                        مشاهدة السند
                       </div>
                     </div>
                   </div>

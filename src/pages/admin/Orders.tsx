@@ -1212,11 +1212,11 @@ export default function Orders() {
                                 <ShieldCheck className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
                               </div>
                               <div className="flex-1">
-                                <div className="text-[8px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 sm:mb-2">إثبات الدفع</div>
-                                <div className="relative group cursor-zoom-in rounded-xl sm:rounded-2xl overflow-hidden border border-bg-hover">
+                                <div className="text-[8px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 sm:mb-2">سند الدفع</div>
+                                <div className="relative group cursor-zoom-in rounded-xl sm:rounded-2xl overflow-hidden border border-bg-hover shadow-sm">
                                   <img 
                                     src={selectedOrder.paymentProof || undefined} 
-                                    alt="إثبات الدفع" 
+                                    alt="سند الدفع" 
                                     className="w-full h-auto max-h-32 sm:max-h-48 object-cover transition-transform group-hover:scale-110" 
                                     referrerPolicy="no-referrer"
                                     onClick={() => {
@@ -1225,7 +1225,7 @@ export default function Orders() {
                                     }}
                                   />
                                   <div className="absolute inset-0 bg-carbon/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                    <span className="text-white text-[9px] sm:text-[10px] font-black">اضغط للتكبير</span>
+                                    <span className="text-white text-[9px] sm:text-[10px] font-black">اضغط لمشاهدة السند</span>
                                   </div>
                                 </div>
                               </div>

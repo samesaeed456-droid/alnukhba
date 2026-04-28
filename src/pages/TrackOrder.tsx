@@ -8,7 +8,7 @@ import { FloatingInput } from '../components/FloatingInput';
 
 export default function TrackOrder() {
   const [searchParams] = useSearchParams();
-  const { orders, formatPrice, user, trackOrderById } = useStore();
+  const { orders, products, formatPrice, user, trackOrderById } = useStore();
   
   const [orderId, setOrderId] = useState(searchParams.get('id') || '');
   const [isTracking, setIsTracking] = useState(false);
@@ -380,9 +380,10 @@ export default function TrackOrder() {
                             </thead>
                             <tbody className="divide-y divide-bg-hover">
                               {trackedOrder.items?.map((item, idx) => {
-                                const itemName = item.name || item.product?.name || 'منتج محذوف';
-                                const itemImage = item.image || item.product?.image || undefined;
-                                const itemPrice = item.price || item.product?.price || 0;
+                                const product = products.find(p => p.id === item.productId);
+                                const itemName = item.name || product?.name || 'منتج محذوف';
+                                const itemImage = item.image || product?.image || product?.images?.[0] || undefined;
+                                const itemPrice = item.price || product?.price || 0;
                                 return (
                                   <tr key={idx} className="group hover:bg-bg-section transition-colors">
                                     <td className="py-4 px-2">
@@ -411,15 +412,16 @@ export default function TrackOrder() {
                         {/* Mobile Item Cards */}
                         <div className="sm:hidden space-y-3">
                           {trackedOrder.items?.map((item, idx) => {
-                             const itemName = item.name || item.product?.name || 'منتج محذوف';
-                             const itemImage = item.image || item.product?.image || undefined;
-                             const itemPrice = item.price || item.product?.price || 0;
+                             const product = products.find(p => p.id === item.productId);
+                             const itemName = item.name || product?.name || 'منتج محذوف';
+                             const itemImage = item.image || product?.image || product?.images?.[0] || undefined;
+                             const itemPrice = item.price || product?.price || 0;
                              return (
                                <div key={idx} className="bg-bg-section rounded-xl p-3 border border-bg-hover flex gap-3">
                                  <div className="w-14 h-14 bg-white rounded-lg border border-bg-hover overflow-hidden shrink-0">
                                    <img src={itemImage} alt={itemName} className="w-full h-full object-cover" />
                                  </div>
-                                 <div className="flex-1 min-w-0">
+                                 <div className="flex-1 min-w-0 text-right">
                                    <p className="text-xs font-bold text-carbon truncate">{itemName}</p>
                                    <div className="flex justify-between items-center mt-1">
                                      <p className="text-[10px] text-slate-500">{item.quantity} × {formatPrice(itemPrice)}</p>

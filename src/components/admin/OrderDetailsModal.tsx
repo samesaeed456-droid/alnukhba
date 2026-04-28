@@ -11,7 +11,7 @@ interface OrderDetailsModalProps {
 }
 
 export default function OrderDetailsModal({ order, isOpen, onClose }: OrderDetailsModalProps) {
-  const { formatPrice, updateOrderStatus, deleteOrder } = useStore();
+  const { formatPrice, updateOrderStatus, deleteOrder, products } = useStore();
   const [isZoomed, setIsZoomed] = React.useState(false);
 
   if (!isOpen) return null;
@@ -74,36 +74,37 @@ export default function OrderDetailsModal({ order, isOpen, onClose }: OrderDetai
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
-                    {order.items?.map((item, idx) => {
-                      const itemName = item.name || item.product?.name || 'منتج محذوف';
-                      const itemImage = item.image || item.product?.image || undefined;
-                      const itemPrice = item.price || item.product?.price || 0;
-                      const itemBrand = item.brand || item.product?.brand || '';
+                      {order.items?.map((item, idx) => {
+                        const product = products.find(p => p.id === item.productId);
+                        const itemName = item.name || product?.name || 'منتج محذوف';
+                        const itemImage = item.image || product?.image || product?.images?.[0] || undefined;
+                        const itemPrice = item.price || product?.price || 0;
+                        const itemBrand = item.brand || product?.brand || '';
 
-                      return (
-                        <tr key={idx} className="text-sm">
-                          <td className="px-4 py-4">
-                            <div className="flex items-center gap-3">
-                              <img 
-                                src={itemImage} 
-                                alt={itemName}
-                                className="w-12 h-12 rounded-lg object-cover border border-gray-100"
-                              />
-                              <div>
-                                <p className="font-bold text-carbon line-clamp-1">{itemName}</p>
-                                <p className="text-xs text-gray-500">{itemBrand}</p>
+                        return (
+                          <tr key={idx} className="text-sm">
+                            <td className="px-4 py-4">
+                              <div className="flex items-center gap-3">
+                                <img 
+                                  src={itemImage} 
+                                  alt={itemName}
+                                  className="w-12 h-12 rounded-lg object-cover border border-gray-100"
+                                />
+                                <div>
+                                  <p className="font-bold text-carbon line-clamp-1">{itemName}</p>
+                                  <p className="text-xs text-gray-500">{itemBrand}</p>
+                                </div>
                               </div>
-                            </div>
-                          </td>
-                          <td className="px-4 py-4 text-center font-bold text-gray-600">
-                            {item.quantity}
-                          </td>
-                          <td className="px-4 py-4 text-left font-bold text-solar">
-                            {formatPrice(itemPrice * item.quantity)}
-                          </td>
-                        </tr>
-                      );
-                    })}
+                            </td>
+                            <td className="px-4 py-4 text-center font-bold text-gray-600">
+                              {item.quantity}
+                            </td>
+                            <td className="px-4 py-4 text-left font-bold text-solar">
+                              {formatPrice(itemPrice * item.quantity)}
+                            </td>
+                          </tr>
+                        );
+                      })}
                   </tbody>
                 </table>
               </div>

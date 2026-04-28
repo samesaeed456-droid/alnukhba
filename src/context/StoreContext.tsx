@@ -673,8 +673,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const ordersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as Order[];
-      setOrders(ordersData);
-      localStorage.setItem('store_orders', JSON.stringify(ordersData));
+      const sortedOrders = ordersData.sort((a, b) => {
+        const dateA = new Date(a.date).getTime();
+        const dateB = new Date(b.date).getTime();
+        return dateB - dateA;
+      });
+      setOrders(sortedOrders);
+      localStorage.setItem('store_orders', JSON.stringify(sortedOrders));
     }, (error) => {
       console.error('Orders sync error:', error);
       // Don't set global system error for orders to avoid blocking the whole app
@@ -2216,7 +2221,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           
           validatedItems.push({
             ...item,
-            product: { ...item.product, price: sourceProduct.price }
+            product: { 
+              ...item.product, 
+              name: sourceProduct.name || item.product.name,
+              price: sourceProduct.price,
+              image: sourceProduct.image || (sourceProduct.images && sourceProduct.images[0]) || item.product.image,
+              brand: sourceProduct.brand || item.product.brand
+            }
           });
           
           productUpdates.push({
@@ -2289,9 +2300,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         const newOrderData = cleanData({
           id: id,
           userId: auth.currentUser?.uid || 'guest',
-          customerName: customerName || user?.displayName || user?.name || 'عميل المتجر',
+          customerName: customerName || user?.displayName || user?.name || auth.currentUser?.displayName || 'عميل المتجر',
           customerPhone: customerPhone || user?.phone || '',
-          customerImage: user?.photoURL || user?.image || null,
+          customerImage: user?.photoURL || user?.avatar || auth.currentUser?.photoURL || null,
           shippingAddress: shippingAddress || user?.address || '',
           city: city || null,
           date: now.toISOString(),

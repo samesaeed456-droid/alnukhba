@@ -106,15 +106,29 @@ export interface UserProfile {
   currentSessionId?: string;
 }
 
+export interface OrderItem {
+  productId: string;
+  name?: string;
+  price?: number;
+  image?: string;
+  brand?: string;
+  quantity: number;
+  selectedColor?: string;
+  selectedSize?: string;
+  color?: string;
+  product?: Product; // Fallback for some components
+}
+
 export interface Order {
   id: string;
   userId?: string;
   customerName?: string;
   customerPhone?: string;
+  customerImage?: string;
   shippingAddress?: string;
   city?: string;
   date: string;
-  items: CartItem[];
+  items: OrderItem[];
   subtotal: number;
   shippingFee: number;
   discountAmount: number;

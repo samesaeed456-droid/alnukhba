@@ -17,7 +17,7 @@ import { notificationService } from '../../services/notificationService';
 import { FloatingInput } from '../../components/FloatingInput';
 
 export default function Orders() {
-  const { orders, updateOrderStatus, deleteOrder, formatPrice, showToast, logActivity } = useStore();
+  const { orders, products, updateOrderStatus, deleteOrder, formatPrice, showToast, logActivity } = useStore();
   
   const renderPrice = (price: number, className?: string) => {
     const formatted = formatPrice(price);
@@ -1089,36 +1089,43 @@ export default function Orders() {
                             </h3>
                           </div>
                           <div className="space-y-3 sm:space-y-4">
-                            {selectedOrder.items.map((item, idx) => (
-                              <motion.div 
-                                key={idx}
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: idx * 0.05 }}
-                                className="flex items-center gap-3 sm:gap-5 p-3 sm:p-5 bg-white rounded-[16px] sm:rounded-[32px] border border-bg-hover shadow-sm hover:shadow-md transition-all group"
-                              >
-                                <div className="w-12 h-12 sm:w-20 sm:h-20 rounded-[12px] sm:rounded-[20px] overflow-hidden border border-bg-hover shrink-0 group-hover:scale-105 transition-transform">
-                                  <img 
-                                    src={item.image || item.product?.image || undefined} 
-                                    alt={item.name || item.product?.name || 'محذوف'} 
-                                    className="w-full h-full object-cover" 
-                                  />
-                                </div>
-                                <div className="flex-1 min-w-0 text-right">
-                                  <div className="text-xs sm:text-base font-black text-carbon truncate leading-tight mb-1">
-                                    {item.name || item.product?.name || 'منتج محذوف غير متوفر'}
+                            {selectedOrder.items.map((item, idx) => {
+                              const product = products.find(p => p.id === item.productId);
+                              const itemName = item.name || product?.name || 'منتج محذوف';
+                              const itemImage = item.image || product?.image || product?.images?.[0] || undefined;
+                              const itemPrice = item.price || product?.price || 0;
+
+                              return (
+                                <motion.div 
+                                  key={idx}
+                                  initial={{ opacity: 0, y: 10 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  transition={{ delay: idx * 0.05 }}
+                                  className="flex items-center gap-3 sm:gap-5 p-3 sm:p-5 bg-white rounded-[16px] sm:rounded-[32px] border border-bg-hover shadow-sm hover:shadow-md transition-all group"
+                                >
+                                  <div className="w-12 h-12 sm:w-20 sm:h-20 rounded-[12px] sm:rounded-[20px] overflow-hidden border border-bg-hover shrink-0 group-hover:scale-105 transition-transform">
+                                    <img 
+                                      src={itemImage} 
+                                      alt={itemName} 
+                                      className="w-full h-full object-cover" 
+                                    />
                                   </div>
-                                  <div className="flex items-center gap-2 sm:gap-3">
-                                    <span className="text-[9px] sm:text-xs font-bold text-slate-400">{item.quantity} قطعة</span>
-                                    <span className="w-1 h-1 rounded-full bg-slate-200" />
-                                    {renderPrice(item.price || item.product?.price || 0, "text-[9px] sm:text-xs font-black text-solar")}
+                                  <div className="flex-1 min-w-0 text-right">
+                                    <div className="text-xs sm:text-base font-black text-carbon truncate leading-tight mb-1">
+                                      {itemName}
+                                    </div>
+                                    <div className="flex items-center gap-2 sm:gap-3">
+                                      <span className="text-[9px] sm:text-xs font-bold text-slate-400">{item.quantity} قطعة</span>
+                                      <span className="w-1 h-1 rounded-full bg-slate-200" />
+                                      {renderPrice(itemPrice, "text-[9px] sm:text-xs font-black text-solar")}
+                                    </div>
                                   </div>
-                                </div>
-                                <div className="text-xs sm:text-base font-black text-carbon">
-                                  {renderPrice((item.price || item.product?.price || 0) * item.quantity)}
-                                </div>
-                              </motion.div>
-                            ))}
+                                  <div className="text-xs sm:text-base font-black text-carbon">
+                                    {renderPrice(itemPrice * item.quantity)}
+                                  </div>
+                                </motion.div>
+                              );
+                            })}
                           </div>
                         </div>
 

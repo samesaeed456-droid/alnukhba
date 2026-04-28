@@ -6,7 +6,7 @@ import { useStore } from '../context/StoreContext';
 import PriceDisplay from '../components/PriceDisplay';
 
 export default function Orders() {
-  const { orders, user } = useStore();
+  const { orders, user, products } = useStore();
 
   const userOrders = useMemo(() => {
     if (user?.role === 'admin') {
@@ -119,8 +119,9 @@ export default function Orders() {
               <div className="p-5 flex-1">
                 <div className="flex -space-x-3 space-x-reverse mb-4">
                   {order.items?.slice(0, 5).map((item, idx) => {
-                    const itemName = item.name || item.product?.name || 'محذوف';
-                    const itemImage = item.image || item.product?.image || undefined;
+                    const product = products.find(p => p.id === item.productId);
+                    const itemName = item.name || product?.name || 'محذوف';
+                    const itemImage = item.image || product?.image || product?.images?.[0] || undefined;
                     return (
                       <div key={idx} className="w-12 h-12 rounded-xl border-2 border-white bg-white overflow-hidden relative z-[5] shadow-lg">
                         <img src={itemImage} alt={itemName} className="w-full h-full object-cover" />
@@ -134,7 +135,10 @@ export default function Orders() {
                   )}
                 </div>
                 <div className="text-xs text-slate-500 font-bold line-clamp-1 leading-relaxed">
-                  {order.items?.map(i => i.name || i.product?.name || 'منتج محذوف').join('، ')}
+                  {order.items?.map(i => {
+                    const product = products.find(p => p.id === i.productId);
+                    return i.name || product?.name || 'منتج محذوف';
+                  }).join('، ')}
                 </div>
               </div>
 

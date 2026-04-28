@@ -367,10 +367,11 @@ export default function TrackOrder() {
                           </div>
                         </div>
 
-                        {/* Items Table - Desktop view */}
-                        <div className="hidden sm:block overflow-x-auto">
+                      <div className="max-h-[450px] overflow-y-auto pr-2 custom-scrollbar border border-bg-hover rounded-xl mb-6">
+                        {/* Desktop Table View */}
+                        <div className="hidden sm:block">
                           <table className="w-full text-right border-collapse">
-                            <thead>
+                            <thead className="sticky top-0 bg-white z-10 shadow-sm">
                               <tr className="border-b-2 border-bg-hover">
                                 <th className="py-4 px-2 text-sm font-bold text-slate-400 w-1/2">المنتج</th>
                                 <th className="py-4 px-2 text-sm font-bold text-slate-400 text-center">الكمية</th>
@@ -378,7 +379,7 @@ export default function TrackOrder() {
                                 <th className="py-4 px-2 text-sm font-bold text-slate-400 text-left">الإجمالي</th>
                               </tr>
                             </thead>
-                            <tbody className="divide-y divide-bg-hover">
+                            <tbody className="divide-y divide-bg-hover bg-white mb-6">
                               {trackedOrder.items?.map((item, idx) => {
                                 const product = products.find(p => p.id === item.productId);
                                 const itemName = item.name || product?.name || 'منتج محذوف';
@@ -410,7 +411,7 @@ export default function TrackOrder() {
                         </div>
 
                         {/* Mobile Item Cards */}
-                        <div className="sm:hidden space-y-3">
+                        <div className="sm:hidden p-3 space-y-3">
                           {trackedOrder.items?.map((item, idx) => {
                              const product = products.find(p => p.id === item.productId);
                              const itemName = item.name || product?.name || 'منتج محذوف';
@@ -432,6 +433,7 @@ export default function TrackOrder() {
                              );
                           })}
                         </div>
+                      </div>
 
                         {/* Totals */}
                         <div className="flex flex-col sm:flex-row justify-between items-start gap-6 sm:gap-8 pt-6 border-t border-bg-hover">

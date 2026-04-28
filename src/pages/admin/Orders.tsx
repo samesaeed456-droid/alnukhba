@@ -1088,7 +1088,7 @@ export default function Orders() {
                               المنتجات ({selectedOrder.items.length})
                             </h3>
                           </div>
-                          <div className="space-y-3 sm:space-y-4">
+                          <div className="max-h-[400px] overflow-y-auto pr-2 custom-scrollbar space-y-3 sm:space-y-4">
                             {selectedOrder.items.map((item, idx) => {
                               const product = products.find(p => p.id === item.productId);
                               const itemName = item.name || product?.name || 'منتج محذوف';

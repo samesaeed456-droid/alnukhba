@@ -64,17 +64,18 @@ export default function OrderDetailsModal({ order, isOpen, onClose }: OrderDetai
                 <Package className="w-5 h-5 text-solar" />
                 المنتجات ({order.items.length})
               </h3>
-              <div className="border border-gray-100 rounded-2xl overflow-hidden">
-                <table className="w-full text-right">
-                  <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
-                    <tr>
-                      <th className="px-4 py-3 font-bold">المنتج</th>
-                      <th className="px-4 py-3 font-bold text-center">الكمية</th>
-                      <th className="px-4 py-3 font-bold text-left">السعر</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                      {order.items?.map((item, idx) => {
+              <div className="border border-gray-100 rounded-2xl overflow-hidden bg-white">
+                <div className="max-h-[400px] overflow-y-auto custom-scrollbar">
+                  <table className="w-full text-right border-collapse">
+                    <thead className="sticky top-0 bg-gray-50 text-gray-500 text-xs uppercase z-10 shadow-sm">
+                      <tr>
+                        <th className="px-4 py-3 font-bold">المنتج</th>
+                        <th className="px-4 py-3 font-bold text-center">الكمية</th>
+                        <th className="px-4 py-3 font-bold text-left">السعر</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                        {order.items?.map((item, idx) => {
                         const product = products.find(p => p.id === item.productId);
                         const itemName = item.name || product?.name || 'منتج محذوف';
                         const itemImage = item.image || product?.image || product?.images?.[0] || undefined;
@@ -105,8 +106,9 @@ export default function OrderDetailsModal({ order, isOpen, onClose }: OrderDetai
                           </tr>
                         );
                       })}
-                  </tbody>
-                </table>
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
 

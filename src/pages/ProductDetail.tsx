@@ -373,16 +373,17 @@ export default function ProductDetail() {
                 )}
               </div>
 
-              <div className="mb-8">
-                <p className={`text-titanium/60 leading-relaxed text-sm font-medium ${!isDescExpanded ? 'line-clamp-2 sm:line-clamp-none' : ''}`}>
+              <div className="mb-8 overflow-hidden w-full">
+                <div className={`text-titanium/60 leading-relaxed text-sm font-medium break-words whitespace-pre-wrap ${!isDescExpanded ? 'line-clamp-3 sm:line-clamp-none' : ''}`}>
                   {product.description}
-                </p>
-                {product.description && product.description.length > 100 && (
+                </div>
+                {product.description && product.description.length > 120 && (
                   <button 
                     onClick={() => setIsDescExpanded(!isDescExpanded)} 
-                    className="sm:hidden text-solar text-xs font-bold mt-2 hover:underline"
+                    className="sm:hidden text-solar text-xs font-bold mt-3 hover:underline flex items-center gap-1"
                   >
-                    {isDescExpanded ? 'عرض أقل' : 'قراءة المزيد...'}
+                    {isDescExpanded ? 'عرض محتوى أقل' : 'عرض الوصف الكامل...'}
+                    {isDescExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
                   </button>
                 )}
               </div>

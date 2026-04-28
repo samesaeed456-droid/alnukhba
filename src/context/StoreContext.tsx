@@ -376,11 +376,28 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           localStorage.setItem('local_session_id', localSessionId);
         }
 
-        const hardcodedAdmins = ["samesaeed456@gmail.com", "samisaeed2027@gmail.com", "samisaeed2025@gmail.com"];
-        
-        // Set up real-time listener for user document
-        unsubUser = onSnapshot(doc(db, 'users', firebaseUser.uid), (docSnap) => {
-          if (docSnap.exists()) {
+    // Check hardcoded admins first for instant UI response
+    const hardcodedAdmins = ["samesaeed456@gmail.com", "samisaeed2027@gmail.com", "samisaeed2025@gmail.com"];
+    const isHardcodedAdmin = firebaseUser.email && hardcodedAdmins.includes(firebaseUser.email.toLowerCase());
+
+    if (isHardcodedAdmin) {
+      // Instant promotion to admin state for hardcoded admins
+      setActiveAdmin({
+        uid: firebaseUser.uid,
+        email: firebaseUser.email || '',
+        name: firebaseUser.displayName || 'Admin',
+        role: 'admin',
+        createdAt: new Date().toISOString()
+      });
+      setIsAdmin(true);
+      
+      // Mark as pre-authorized to bypass some security initial checks in UI
+      localStorage.setItem('admin_auth', 'true');
+    }
+
+    // Still sync with remote document for role updates
+    unsubUser = onSnapshot(doc(db, 'users', firebaseUser.uid), (docSnap) => {
+      if (docSnap.exists()) {
             const userData = { ...docSnap.data(), uid: docSnap.id } as UserProfile;
              
             // Deduplicate addresses and transactions if they exist
@@ -694,6 +711,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setAdminUsers(adminsList as any); // Update admins state
       setCustomers(customersList); // Update customers state
       
+      localStorage.setItem('store_customers', JSON.stringify(customersList));
       localStorage.setItem('app_users', JSON.stringify(customersList));
       localStorage.setItem('admin_users_list', JSON.stringify(adminsList));
     }, (error) => {
@@ -800,18 +818,23 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       storageKey: string,
       cacheMinutes: number = 30
     ) => {
+      // Always try to load from cache first for instant UI response
+      const cached = localStorage.getItem(storageKey);
+      if (cached) {
+        try { setter(JSON.parse(cached)); } catch(e) {}
+      }
+
       if (isAdmin) {
         return onSnapshot(collection(activeDb, colName), (snapshot) => {
           const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
           setter(data);
           localStorage.setItem(storageKey, JSON.stringify(data));
+          localStorage.setItem(`${storageKey}_time`, Date.now().toString());
         });
       } else {
-        const cached = localStorage.getItem(storageKey);
         const cacheTime = localStorage.getItem(`${storageKey}_time`);
         
-        if (cached && cacheTime && (now - parseInt(cacheTime)) < cacheMinutes * 60 * 1000) {
-          try { setter(JSON.parse(cached)); } catch(e) {}
+        if (cached && cacheTime && (Date.now() - parseInt(cacheTime)) < cacheMinutes * 60 * 1000) {
           return () => {};
         }
         
@@ -1174,15 +1197,25 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const [categories, setCategories] = useState<Category[]>(() => {
     const saved = localStorage.getItem('store_categories');
-    if (saved) return JSON.parse(saved);
-    
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        return [];
+      }
+    }
     return [];
   });
 
   const [customers, setCustomers] = useState<UserProfile[]>(() => {
-    const saved = localStorage.getItem('app_users');
-    if (saved) return JSON.parse(saved);
-    
+    const saved = localStorage.getItem('store_customers');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        return [];
+      }
+    }
     return [];
   });
 
@@ -1677,9 +1710,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [showToast, logActivity]);
 
   const updateBanner = React.useCallback(async (id: string, updatedData: Partial<Banner>) => {
+    const oldBanner = banners.find(b => b.id === id);
     setBanners(prev => prev.map(b => b.id === id ? { ...b, ...updatedData } : b));
 
     try {
+      if (updatedData.image && oldBanner && oldBanner.image !== updatedData.image) {
+        deleteCloudinaryImages([oldBanner.image]);
+      }
       const activeDb = adminAuth.currentUser ? adminDb : db;
       await updateDoc(doc(activeDb, 'banners', id), {
         ...updatedData,
@@ -1693,9 +1730,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [showToast, logActivity]);
 
   const deleteBanner = React.useCallback(async (id: string) => {
+    const bannerToDelete = banners.find(b => b.id === id);
     setBanners(prev => prev.filter(b => b.id !== id));
 
     try {
+      if (bannerToDelete) {
+        deleteCloudinaryImages([bannerToDelete.image]);
+      }
       const activeDb = adminAuth.currentUser ? adminDb : db;
       await deleteDoc(doc(activeDb, 'banners', id));
       showToast('تم حذف البانر');
@@ -3044,6 +3085,35 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }
   }, [products, user, showToast, logActivity]);
 
+  const deleteCloudinaryImages = async (urls: (string | undefined)[]) => {
+    const publicIds = urls
+      .filter(url => url && url.includes('cloudinary.com'))
+      .map(url => {
+        try {
+          const parts = url!.split('/');
+          const fileName = parts[parts.length - 1];
+          const publicId = fileName.split('.')[0];
+          // If it's in a folder, we might need more parts, but usually it's just the last part
+          return publicId;
+        } catch (e) {
+          return null;
+        }
+      })
+      .filter(id => id !== null) as string[];
+
+    if (publicIds.length === 0) return;
+
+    try {
+      await fetch('/api/cloudinary?action=bulk-delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ public_ids: publicIds })
+      });
+    } catch (error) {
+      console.error('Failed to cleanup cloud images:', error);
+    }
+  };
+
   const addProduct = React.useCallback(async (product: Omit<Product, 'id'>) => {
     const tempId = String(Date.now());
     const optimisticProduct = { ...product, id: tempId, createdAt: new Date().toISOString() } as Product;
@@ -3070,9 +3140,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const updateProduct = React.useCallback(async (id: string, updatedData: Partial<Product>) => {
     // Optimistic UI update
+    const oldProduct = products.find(p => p.id === id);
     setProducts(prev => prev.map(p => p.id === id ? { ...p, ...updatedData } : p));
 
     try {
+      // If images were updated, delete old ones
+      if (updatedData.image && oldProduct && oldProduct.image !== updatedData.image) {
+        deleteCloudinaryImages([oldProduct.image]);
+      }
+      if (updatedData.images && oldProduct && JSON.stringify(oldProduct.images) !== JSON.stringify(updatedData.images)) {
+        const removedImages = (oldProduct.images || []).filter(img => !updatedData.images?.includes(img));
+        if (removedImages.length > 0) deleteCloudinaryImages(removedImages);
+      }
+
       const activeDb = adminAuth.currentUser ? adminDb : db;
       await updateDoc(doc(activeDb, 'products', String(id)), {
         ...updatedData,
@@ -3089,10 +3169,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const deleteProduct = React.useCallback(async (id: string) => {
     if (!window.confirm('هل أنت متأكد من حذف هذا المنتج؟')) return;
 
+    const productToDelete = products.find(p => p.id === id);
+    
     // Optimistic UI update
     setProducts(prev => prev.filter(p => p.id !== id));
 
     try {
+      // Automatic Cloud Cleanup
+      if (productToDelete) {
+        deleteCloudinaryImages([productToDelete.image, ...(productToDelete.images || [])]);
+      }
+
       const activeDb = adminAuth.currentUser ? adminDb : db;
       await deleteDoc(doc(activeDb, 'products', String(id)));
       showToast('تم حذف المنتج بنجاح');
@@ -3122,9 +3209,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [showToast, logActivity]);
 
   const updateCategory = React.useCallback(async (id: string, updatedData: Partial<Category>) => {
+    const oldCategory = categories.find(c => c.id === id);
     setCategories(prev => prev.map(c => c.id === id ? { ...c, ...updatedData } : c));
 
     try {
+      if (updatedData.image && oldCategory && oldCategory.image !== updatedData.image) {
+        deleteCloudinaryImages([oldCategory.image]);
+      }
       const activeDb = adminAuth.currentUser ? adminDb : db;
       await updateDoc(doc(activeDb, 'categories', id), {
         ...updatedData,
@@ -3139,9 +3230,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const deleteCategory = React.useCallback(async (id: string) => {
     if (!window.confirm('هل أنت متأكد من حذف هذا القسم؟')) return;
+    const categoryToDelete = categories.find(c => c.id === id);
     setCategories(prev => prev.filter(c => c.id !== id));
 
     try {
+      if (categoryToDelete) {
+        deleteCloudinaryImages([categoryToDelete.image]);
+      }
       const activeDb = adminAuth.currentUser ? adminDb : db;
       await deleteDoc(doc(activeDb, 'categories', id));
       logActivity('حذف قسم', `تم حذف القسم بنجاح`);

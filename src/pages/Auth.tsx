@@ -29,7 +29,7 @@ export default function Auth() {
   const [verificationToken, setVerificationToken] = useState('');
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, updateUser, showToast } = useStore();
+  const { user, updateUser, forceSetUser, showToast } = useStore();
 
   const handlePasskeyLogin = async () => {
     setIsLoading(true);
@@ -293,7 +293,16 @@ export default function Auth() {
 
         if (prevStep === 'login') {
           const email = getDummyEmail(formData.countryCode, cleanPhone);
-          await loginWithEmail(email, formData.password);
+          const userCred = await loginWithEmail(email, formData.password);
+          
+          try {
+            // Fetch profile data immediately to make the transition perfectly instant
+            const userDoc = await getDoc(doc(db, 'users', userCred.user.uid));
+            if (userDoc.exists()) {
+              forceSetUser({ id: userDoc.id, ...userDoc.data() } as any);
+            }
+          } catch(e) {}
+          
           delete (window as any)._authPrevStep;
           showToast('تم تسجيل الدخول بنجاح');
           navigate(redirectPath);
@@ -327,8 +336,8 @@ export default function Auth() {
           });
         } catch (e) {}
         
-        // Save to Firestore (must include uid and email to quickly satisfy firestore.rules)
-        await setDoc(doc(db, 'users', userCred.user.uid), {
+        const currentSessionId = localStorage.getItem('local_session_id');
+        const newUserObj: any = {
           uid: userCred.user.uid,
           email: email,
           name: formData.name,
@@ -336,8 +345,15 @@ export default function Auth() {
           countryCode: formData.countryCode,
           role: 'customer',
           walletBalance: 0,
+          currentSessionId: currentSessionId,
           createdAt: serverTimestamp()
-        }, { merge: true });
+        };
+
+        // Save to Firestore (must include uid and email to quickly satisfy firestore.rules)
+        await setDoc(doc(db, 'users', userCred.user.uid), newUserObj, { merge: true });
+
+        // Optimistically update local store so Profile feels instantaneous
+        forceSetUser({ ...newUserObj, createdAt: new Date().toISOString() });
 
         showToast('تم إنشاء الحساب بنجاح');
         navigate(redirectPath);

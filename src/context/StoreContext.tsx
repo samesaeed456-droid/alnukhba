@@ -158,6 +158,7 @@ interface StoreState {
   visits: Visit[];
   systemError: string | null;
   isLoading: boolean;
+  isAuthReady: boolean;
 }
 
 interface StoreActions {
@@ -217,6 +218,7 @@ interface StoreActions {
   toggleWishlist: (product: Product) => void;
   isInWishlist: (productId: string) => boolean;
   updateUser: (user: UserProfile) => void;
+  forceSetUser: (user: UserProfile | null) => void;
   logout: () => void;
   updateCustomer: (phone: string, updates: Partial<UserProfile>) => void;
   blockCustomer: (phone: string) => void;
@@ -436,6 +438,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
               }).catch(() => {});
               localStorage.setItem('last_session_ping', now.toString());
               justPinged = true;
+            } else if ((now - parseInt(lastPing)) < 5000) {
+              // Grace period of 5 seconds to ignore old snapshots arriving from server
+              // before our local updateDoc is fully processed.
+              justPinged = true;
             }
 
             if (!justPinged && userData.currentSessionId && currentLocalSession && userData.currentSessionId !== currentLocalSession) {
@@ -462,6 +468,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
                 role: 'admin', 
                 isAdmin: true, 
                 displayName: 'مدير النظام',
+                currentSessionId: localStorage.getItem('local_session_id'),
                 updatedAt: serverTimestamp()
               };
               setDoc(doc(db, 'users', firebaseUser.uid), adminData, { merge: true });
@@ -484,6 +491,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
                 addresses: [],
                 transactions: [],
                 wishlistIds: [],
+                currentSessionId: localStorage.getItem('local_session_id'),
                 createdAt: new Date().toISOString(),
                 updatedAt: serverTimestamp()
               };
@@ -2161,21 +2169,44 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     try {
       // 1. All logic inside a single transaction
       const orderId = await runTransaction(db, async (transaction) => {
-        // A. Read Order Counter
+        // A. Setup references for all required reads
         const counterRef = doc(db, 'settings', 'counters');
-        const counterSnap = await transaction.get(counterRef);
+        const prodRefs = cart.map(item => doc(db, 'products', String(item.product.id)));
+        
+        let couponRefToUpdate = null;
+        let couponData = null;
+        if (discount.code) {
+          const coupon = coupons.find(c => c.code.toUpperCase() === discount.code?.toUpperCase());
+          if (coupon) couponRefToUpdate = doc(db, 'coupons', coupon.id);
+        }
+        
+        let userRef = null;
+        if (paymentMethod === 'المحفظة الرقمية' && auth.currentUser) {
+          userRef = doc(db, 'users', auth.currentUser.uid);
+        }
+
+        // B. Execute ALL reads simultaneously
+        const [counterSnap, couponSnap, userSnap, ...prodSnaps] = await Promise.all([
+          transaction.get(counterRef),
+          couponRefToUpdate ? transaction.get(couponRefToUpdate) : Promise.resolve(null),
+          userRef ? transaction.get(userRef) : Promise.resolve(null),
+          ...prodRefs.map(ref => transaction.get(ref))
+        ]);
+
         let nextSeq = 1;
         if (counterSnap.exists()) {
           nextSeq = (counterSnap.data().orderCounter || 0) + 1;
         }
 
-        // B. Gather Product Data and Validate Stock
+        // C. Gather Product Data and Validate Stock
         const validatedItems = [];
         const productUpdates: {ref: any, newStock: number}[] = [];
         
-        for (const item of cart) {
-          const prodRef = doc(db, 'products', String(item.product.id));
-          const prodSnap = await transaction.get(prodRef);
+        for (let i = 0; i < cart.length; i++) {
+          const item = cart[i];
+          const prodRef = prodRefs[i];
+          const prodSnap = prodSnaps[i];
+          
           if (!prodSnap.exists()) throw new Error(`المنتج ${item.product.name} غير موجود`);
           
           const sourceProduct = prodSnap.data();
@@ -2194,7 +2225,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           });
         }
 
-        // C. Calculate Totals
+        // D. Calculate Totals
         const subtotal = roundMoney(validatedItems.reduce((sum, item) => sum + (item.product.price * item.quantity), 0));
         
         let shipping = 0;
@@ -2208,38 +2239,28 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         }
         
         let discountAmount = 0;
-        let couponRefToUpdate = null;
         let newUsedCount = 0;
         
-        if (discount.code) {
-          const coupon = coupons.find(c => c.code.toUpperCase() === discount.code?.toUpperCase());
-          if (coupon) {
-            const cRef = doc(db, 'coupons', coupon.id);
-            const cSnap = await transaction.get(cRef);
-            if (cSnap.exists()) {
-              const cData = cSnap.data();
-              if (cData.isActive && (!cData.usageLimit || cData.usedCount < cData.usageLimit)) {
-                if (discount.type === 'percentage') {
-                  discountAmount = roundMoney(subtotal * (discount.amount / 100));
-                } else {
-                  discountAmount = roundMoney(Math.min(discount.amount, subtotal));
-                }
-                couponRefToUpdate = cRef;
-                newUsedCount = (cData.usedCount || 0) + 1;
-              }
+        if (couponSnap && couponSnap.exists()) {
+          const cData = couponSnap.data();
+          if (cData.isActive && (!cData.usageLimit || cData.usedCount < cData.usageLimit)) {
+            if (discount.type === 'percentage') {
+              discountAmount = roundMoney(subtotal * (discount.amount / 100));
+            } else {
+              discountAmount = roundMoney(Math.min(discount.amount, subtotal));
             }
+            newUsedCount = (cData.usedCount || 0) + 1;
+          } else {
+             couponRefToUpdate = null; // Don't update if invalid
           }
         }
 
         const total = roundMoney(Math.max(0, subtotal + shipping - discountAmount));
 
-        // D. Validate Wallet Balance
-        let userRef = null;
+        // E. Validate Wallet Balance
         let newUserBalance = 0;
-        if (paymentMethod === 'المحفظة الرقمية' && auth.currentUser) {
-          userRef = doc(db, 'users', auth.currentUser.uid);
-          const userSnap = await transaction.get(userRef);
-          if (!userSnap.exists()) throw new Error('بيانات المستخدم غير موجودة');
+        if (userRef) {
+          if (!userSnap || !userSnap.exists()) throw new Error('بيانات المستخدم غير موجودة');
           
           const userBal = (userSnap.data() as any).walletBalance || 0;
           if (userBal < total) throw new Error('رصيد المحفظة غير كافٍ');
@@ -2254,9 +2275,18 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         const dd = String(now.getDate()).padStart(2, '0');
         const id = `NKH-${yy}${mm}${dd}-${nextSeq}`;
 
-        // F. PERFORM ALL WRITES
+        // G. PERFORM ALL WRITES
+        // Helper to remove undefined for Firestore
+        const cleanData = (obj: any) => {
+          const newObj: any = {};
+          Object.keys(obj).forEach(key => {
+            if (obj[key] !== undefined) newObj[key] = obj[key];
+          });
+          return newObj;
+        };
+
         // 1. Create Order
-        const newOrderData = {
+        const newOrderData = cleanData({
           id: id,
           userId: auth.currentUser?.uid || 'guest',
           customerName: customerName || user?.displayName || user?.name || 'عميل المتجر',
@@ -2279,19 +2309,22 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           paymentProof: paymentProof || null,
           shippingMethod, deliveryInstructions: deliveryInstructions || null,
           currency: BASE_CURRENCY_CODE || 'YER'
-        };
+        });
 
-        transaction.set(doc(db, 'orders', id), JSON.parse(JSON.stringify(newOrderData, (k, v) => v === undefined ? null : v)));
+        transaction.set(doc(db, 'orders', id), newOrderData);
         
         // 2. Update Counter
-        transaction.update(counterRef, { orderCounter: nextSeq });
+        transaction.set(counterRef, { orderCounter: nextSeq }, { merge: true });
 
         // 3. Update Stocks
         productUpdates.forEach(pu => transaction.update(pu.ref, { stockCount: pu.newStock }));
 
         // 4. Update Wallet
         if (userRef) {
-          transaction.update(userRef, { walletBalance: newUserBalance });
+          transaction.update(userRef, { 
+            walletBalance: newUserBalance,
+            updatedAt: serverTimestamp() 
+          });
         }
 
         // 5. Update Coupon
@@ -2511,6 +2544,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       }
     }
   }, [showToast, user]);
+
+  const forceSetUserWrapper = React.useCallback((newUser: UserProfile | null) => {
+    setUser(newUser);
+    setIsAuthReady(true);
+  }, []);
 
   const deleteAccount = React.useCallback(async () => {
     if (!auth.currentUser) return;
@@ -3264,8 +3302,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     products, cart, wishlist, orders, user,
     notifications, notificationSettings, subscriptions, recentlyViewed, language, settings, categories, inventoryLogs, customers, discount, coupons,
     banners, marketingNotifications, adminUsers, activityLogs,
-    supportTickets, blogPosts, staticPages, shippingZones, abandonedCarts, searchTerms, visits, systemError, isLoading
-  }), [products, cart, wishlist, orders, user, notifications, notificationSettings, subscriptions, recentlyViewed, language, settings, categories, inventoryLogs, customers, discount, coupons, banners, marketingNotifications, adminUsers, activityLogs, supportTickets, blogPosts, staticPages, shippingZones, abandonedCarts, searchTerms, visits, systemError, isLoading]);
+    supportTickets, blogPosts, staticPages, shippingZones, abandonedCarts, searchTerms, visits, systemError, isLoading, isAuthReady
+  }), [products, cart, wishlist, orders, user, notifications, notificationSettings, subscriptions, recentlyViewed, language, settings, categories, inventoryLogs, customers, discount, coupons, banners, marketingNotifications, adminUsers, activityLogs, supportTickets, blogPosts, staticPages, shippingZones, abandonedCarts, searchTerms, visits, systemError, isLoading, isAuthReady]);
 
   const actionsValue = useMemo(() => ({
     addProduct, updateProduct, deleteProduct,
@@ -3289,7 +3327,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     addCustomer, deleteCustomer,
     addToCart, updateCartQuantity, removeFromCart, clearCart, placeOrder, updateOrderStatus,
     deleteOrder,
-    toggleWishlist, isInWishlist, updateUser, deleteAccount, logout,
+    toggleWishlist, isInWishlist, updateUser, forceSetUser: forceSetUserWrapper, deleteAccount, logout,
     applyDiscountCode, removeDiscount,
     addCoupon, updateCoupon, deleteCoupon, toggleCouponStatus,
     subscribeToProduct, markNotificationAsRead, deleteNotification, clearAllNotifications, updateNotificationSettings,
@@ -3317,7 +3355,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     addCustomer, deleteCustomer,
     addToCart, updateCartQuantity, removeFromCart, clearCart, placeOrder, updateOrderStatus,
     deleteOrder,
-    toggleWishlist, isInWishlist, updateUser, deleteAccount, logout,
+    toggleWishlist, isInWishlist, updateUser, forceSetUserWrapper, deleteAccount, logout,
     applyDiscountCode, removeDiscount,
     addCoupon, updateCoupon, deleteCoupon, toggleCouponStatus,
     subscribeToProduct, markNotificationAsRead, deleteNotification, clearAllNotifications, updateNotificationSettings,

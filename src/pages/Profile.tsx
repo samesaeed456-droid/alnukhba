@@ -16,7 +16,7 @@ import PriceDisplay from '../components/PriceDisplay';
 import FloatingInput from '../components/FloatingInput';
 
 export default function Profile() {
-  const { user, updateUser, logout, showToast, language, setLanguage, formatPrice, shippingZones } = useStore();
+  const { user, isAuthReady, updateUser, logout, showToast, language, setLanguage, formatPrice, shippingZones } = useStore();
   const navigate = useNavigate();
   const location = useLocation();
   const [currentView, setCurrentView] = useState<'menu' | 'edit' | 'addresses' | 'wallet' | 'transactions' | 'delete-account'>('menu');
@@ -672,6 +672,15 @@ export default function Profile() {
       setIsLoading(false);
     }
   }, [passwordData, user, showToast]);
+
+  if (!isAuthReady && !user) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center px-4">
+        <div className="w-16 h-16 border-4 border-slate-200 border-t-carbon rounded-full animate-spin mb-4"></div>
+        <p className="text-titanium/60 font-medium animate-pulse">جاري تحميل بيانات الحساب...</p>
+      </div>
+    );
+  }
 
   if (!user) {
     return (

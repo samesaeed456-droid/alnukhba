@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { CheckCircle, CreditCard, Truck, MapPin, ArrowRight, ShieldCheck, Tag, Plus, Copy, Zap, ChevronDown, Trash2, Clock, HelpCircle, X, Wallet } from 'lucide-react';
+import { CheckCircle, CreditCard, ShoppingBag, Truck, MapPin, ArrowRight, ShieldCheck, Tag, Plus, Copy, Zap, ChevronDown, Trash2, Clock, HelpCircle, X, Wallet } from 'lucide-react';
 import { useStore } from '../context/StoreContext';
 import { motion, AnimatePresence } from 'motion/react';
 import { QRCodeSVG } from 'qrcode.react';
@@ -281,40 +281,46 @@ export default function Checkout() {
 
     setIsProcessing(true);
     
-    // Process order instantly
-    setIsProcessing(false);
-    
     let methodLabel = selectedPaymentMethod?.name || (paymentMethod === 'wallet' ? 'المحفظة الرقمية' : 'وسيلة دفع');
 
     const paymentRef = selectedPaymentMethod ? formData.paymentReference : undefined;
     const paymentProof = selectedPaymentMethod?.requiresProof ? formData.paymentProof : undefined;
     
-    const newOrderId = await placeOrder(
-      methodLabel, 
-      shippingMethod, 
-      paymentRef,
-      formData.firstName.trim(),
-      `${formData.countryCode}${formData.phone}`,
-      `${formData.address}, ${formData.city}`,
-      formData.city,
-      formData.deliveryInstructions,
-      paymentProof
-    );
-    
-    if (!newOrderId) return;
+    try {
+      const newOrderId = await placeOrder(
+        methodLabel, 
+        shippingMethod, 
+        paymentRef,
+        formData.firstName.trim(),
+        `${formData.countryCode}${formData.phone}`,
+        `${formData.address}, ${formData.city}`,
+        formData.city,
+        formData.deliveryInstructions,
+        paymentProof
+      );
+      
+      if (!newOrderId) {
+        setIsProcessing(false);
+        return;
+      }
 
-    setLastOrderId(newOrderId);
-    setOrderComplete(true);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    
-    // Trigger confetti
-    confetti({
-      particleCount: 100,
-      spread: 70,
-      origin: { y: 0.6 },
-      zIndex: 1000
-    });
-  }, [validateStep, paymentMethod, formData, placeOrder, shippingMethod, showToast, navigate]);
+      setLastOrderId(newOrderId);
+      setOrderComplete(true);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      
+      // Trigger confetti
+      confetti({
+        particleCount: 100,
+        spread: 70,
+        origin: { y: 0.6 },
+        zIndex: 1000
+      });
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [validateStep, paymentMethod, formData, placeOrder, shippingMethod, showToast, navigate, selectedPaymentMethod, total, user]);
 
   const handleApplyCoupon = useCallback(() => {
     if (!couponInput.trim()) {
@@ -511,6 +517,32 @@ export default function Checkout() {
       animate="visible"
       className="min-h-screen bg-[#F8F9FB] max-w-7xl mx-auto px-2 sm:px-6 py-4 sm:py-12 pb-32 lg:pb-12"
     >
+      {/* Processing Overlay */}
+      <AnimatePresence>
+        {isProcessing && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-white/80 backdrop-blur-md"
+          >
+            <div className="flex flex-col items-center gap-6 p-10 bg-white rounded-3xl shadow-2xl border border-slate-100">
+              <div className="relative w-20 h-20">
+                <div className="absolute inset-0 border-4 border-slate-100 rounded-full"></div>
+                <div className="absolute inset-0 border-4 border-solar border-t-transparent rounded-full animate-spin"></div>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <ShoppingBag className="w-8 h-8 text-solar animate-pulse" />
+                </div>
+              </div>
+              <div className="text-center px-4">
+                <h3 className="text-xl font-black text-carbon mb-2">جاري تأكيد طلبك</h3>
+                <p className="text-sm font-bold text-titanium/40 italic">لحظات وننتهي من معالجة بياناتك...</p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Mobile Collapsible Summary */}
       <div className="lg:hidden mb-6">
         <button 

@@ -50,7 +50,8 @@ service cloud.firestore {
       // Admins can update anyone
       return isAdmin() || (
         isOwner(request.auth.uid) && 
-        !incoming().diff(existing()).affectedKeys().hasAny(['role', 'walletBalance', 'uid', 'email', 'createdAt', 'isAdmin', 'adminRole', 'permissions', 'isBlocked']) &&
+        !incoming().diff(existing()).affectedKeys().hasAny(['role', 'uid', 'email', 'createdAt', 'isAdmin', 'adminRole', 'permissions', 'isBlocked']) &&
+        (incoming().get('walletBalance', existing().walletBalance) <= existing().walletBalance) &&
         incoming().get('updatedAt', request.time) == request.time
       );
     }
@@ -130,6 +131,9 @@ service cloud.firestore {
     match /coupons/{couponId} {
       allow read: if true;
       allow write: if isAdmin();
+      allow update: if (isSignedIn() || !isSignedIn()) &&
+                    incoming().diff(existing()).affectedKeys().hasOnly(['usedCount']) &&
+                    incoming().usedCount >= existing().usedCount;
     }
 
     match /shipping_zones/{zoneId} {

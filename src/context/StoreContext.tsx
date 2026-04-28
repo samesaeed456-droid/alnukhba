@@ -648,6 +648,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const ordersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as Order[];
       setOrders(ordersData);
+      localStorage.setItem('store_orders', JSON.stringify(ordersData));
     }, (error) => {
       console.error('Orders sync error:', error);
       // Don't set global system error for orders to avoid blocking the whole app
@@ -663,21 +664,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (!isAuthReady) return;
 
     if (!activeAdmin) {
-      // Small delay before clearing to prevent flicker during auto-promotion sync
-      const timer = setTimeout(() => {
-        if (!activeAdmin) {
-          setCustomers([]);
-          setActivityLogs([]);
-          setAdminUsers([]);
-        }
-      }, 2000);
-      return () => clearTimeout(timer);
+      setCustomers([]);
+      setActivityLogs([]);
+      setAdminUsers([]);
+      return;
     }
 
     const unsubUsers = onSnapshot(collection(activeDb, 'users'), (snapshot) => {
-      // Re-check role before processing
-      const currentUid = auth.currentUser?.uid || adminAuth.currentUser?.uid;
-      if (currentUid !== activeAdmin.uid || activeAdmin.role !== 'admin') return;
+      // Just ensure we are still authenticated as an admin in general
+      const isAdmin = adminAuth.currentUser || (auth.currentUser && user?.role === 'admin');
+      if (!isAdmin) return;
 
       const allUsersData = snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() })) as unknown as UserProfile[];
       
@@ -895,12 +891,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           const isRecent = new Date(docData.date || new Date().toISOString()).getTime() > Date.now() - (7 * 24 * 3600000);
           
           if (isRecent) {
-            // Only process notifications if the user is authenticated
+            // Only process notifications if the user is authenticated OR is a guest looking at the store
             const currentUser = auth.currentUser;
             const hasLocalUser = localStorage.getItem('store_user');
             
-            if (!currentUser && !hasLocalUser) return; // Do not push to guests
-            
+            // Allow notifications for everyone (including guests) unless specifically targeted
             // Do not show marketing notifications to admins to avoid cluttering their dashboard
             const isAdminPath = typeof window !== 'undefined' && window.location.pathname.startsWith('/admin');
             const isAdminAuth = typeof window !== 'undefined' && window.localStorage.getItem('admin_auth') === 'true';
@@ -916,8 +911,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             
             // If the notification targets a specific user, strictly ensure the current user matches
             if (docData.target === 'specific_user') {
-              if (!currentUser) return; // Ignore if not logged in
-              if (docData.targetUserId !== currentUser.uid && docData.targetUserId !== currentUser.phoneNumber) {
+              const currentUid = currentUser?.uid || (hasLocalUser ? JSON.parse(hasLocalUser).uid : null);
+              if (!currentUid) return; 
+              if (docData.targetUserId !== currentUid && docData.targetUserId !== currentUser?.phoneNumber) {
                 return; // Exclude, this is not meant for them
               }
             }
@@ -1661,22 +1657,28 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [products, logActivity, showToast]);
 
   const addBanner = React.useCallback(async (banner: Omit<Banner, 'id'>) => {
+    const tempId = doc(collection(db, 'banners')).id;
+    const optimisticBanner = { ...banner, id: tempId } as Banner;
+    setBanners(prev => [optimisticBanner, ...prev]);
+
     try {
       const activeDb = adminAuth.currentUser ? adminDb : db;
-      const newBannerRef = doc(collection(activeDb, 'banners'));
-      await setDoc(newBannerRef, {
+      await setDoc(doc(activeDb, 'banners', tempId), {
         ...banner,
-        id: newBannerRef.id,
+        id: tempId,
         createdAt: serverTimestamp()
       });
       showToast('تم إضافة البنر بنجاح');
       logActivity('إضافة بنر', `تم إضافة بنر جديد: ${banner.title}`);
     } catch (error) {
+      setBanners(prev => prev.filter(b => b.id !== tempId));
       handleFirestoreError(error, OperationType.CREATE, 'banners');
     }
   }, [showToast, logActivity]);
 
   const updateBanner = React.useCallback(async (id: string, updatedData: Partial<Banner>) => {
+    setBanners(prev => prev.map(b => b.id === id ? { ...b, ...updatedData } : b));
+
     try {
       const activeDb = adminAuth.currentUser ? adminDb : db;
       await updateDoc(doc(activeDb, 'banners', id), {
@@ -1691,6 +1693,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [showToast, logActivity]);
 
   const deleteBanner = React.useCallback(async (id: string) => {
+    setBanners(prev => prev.filter(b => b.id !== id));
+
     try {
       const activeDb = adminAuth.currentUser ? adminDb : db;
       await deleteDoc(doc(activeDb, 'banners', id));
@@ -1956,6 +1960,26 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [showToast, logActivity]);
 
   const updateCustomerBalance = React.useCallback(async (identifier: string, amount: number, description: string) => {
+    // 1. Optimistic Update - Update local state immediately for "blink of an eye" performance
+    setCustomers(prev => prev.map(c => {
+      if (c.uid === identifier || c.phone === identifier) {
+        const transaction: Transaction = {
+          id: 'temp-' + Date.now(),
+          amount: Math.abs(amount),
+          type: amount >= 0 ? 'deposit' : 'withdrawal',
+          date: new Date().toISOString(),
+          status: 'completed',
+          description
+        };
+        return {
+          ...c,
+          walletBalance: (c.walletBalance || 0) + amount,
+          transactions: [transaction, ...(c.transactions || [])]
+        };
+      }
+      return c;
+    }));
+
     try {
       if (!identifier) {
         showToast('معرف العميل غير صالح', 'error');
@@ -1966,24 +1990,32 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       let docRef = null;
       let userData = null;
 
-      // Try by UID first
-      const uidRef = doc(activeDb, 'users', identifier);
-      const uidSnap = await getDoc(uidRef);
-
-      if (uidSnap.exists()) {
-        docRef = uidRef;
-        userData = uidSnap.data() as UserProfile;
+      // Try by UID first from local state cache first to avoid extra getDoc
+      const localUser = customers.find(c => c.uid === identifier || c.phone === identifier);
+      
+      if (localUser && localUser.uid) {
+        docRef = doc(activeDb, 'users', localUser.uid);
+        userData = localUser;
       } else {
-        // Fallback to phone search
-        const q = query(collection(activeDb, 'users'), where('phone', '==', identifier));
-        const snapshot = await getDocs(q);
-        if (snapshot && !snapshot.empty && snapshot.docs && snapshot.docs.length > 0) {
-          docRef = snapshot.docs[0].ref;
-          userData = snapshot.docs[0].data() as UserProfile;
+        const uidRef = doc(activeDb, 'users', identifier);
+        const uidSnap = await getDoc(uidRef);
+        if (uidSnap.exists()) {
+          docRef = uidRef;
+          userData = uidSnap.data() as UserProfile;
+        } else {
+          const q = query(collection(activeDb, 'users'), where('phone', '==', identifier));
+          const snapshot = await getDocs(q);
+          if (snapshot && !snapshot.empty && snapshot.docs && snapshot.docs.length > 0) {
+            docRef = snapshot.docs[0].ref;
+            userData = snapshot.docs[0].data() as UserProfile;
+          }
         }
       }
 
       if (!docRef || !userData) {
+        // Rollback optimistic update if user not found by reloading from storage
+        const saved = localStorage.getItem('app_users');
+        if (saved) setCustomers(JSON.parse(saved));
         showToast('العميل غير موجود', 'error');
         return;
       }
@@ -1999,6 +2031,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         description
       };
 
+      // Perform the actual update
       await updateDoc(docRef, {
         walletBalance: newBalance,
         transactions: [transaction, ...(userData.transactions || [])],
@@ -2008,9 +2041,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       logActivity('تحديث رصيد', `تم ${amount >= 0 ? 'إضافة' : 'خصم'} ${Math.abs(amount)} لرصيد العميل: ${identifier} - ${description}`);
       showToast(amount >= 0 ? 'تم إضافة الرصيد بنجاح' : 'تم خصم الرصيد بنجاح');
     } catch (error) {
+      // Rollback optimistic update on error by reloading from storage
+      const saved = localStorage.getItem('app_users');
+      if (saved) setCustomers(JSON.parse(saved));
       handleFirestoreError(error, OperationType.UPDATE, `users (balance): ${identifier}`);
     }
-  }, [showToast, logActivity]);
+  }, [showToast, logActivity, customers]);
 
   const addCustomerNote = React.useCallback(async (identifier: string, text: string) => {
     try {
@@ -3009,22 +3045,33 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [products, user, showToast, logActivity]);
 
   const addProduct = React.useCallback(async (product: Omit<Product, 'id'>) => {
+    const tempId = String(Date.now());
+    const optimisticProduct = { ...product, id: tempId, createdAt: new Date().toISOString() } as Product;
+    
+    // Optimistic UI update
+    setProducts(prev => [optimisticProduct, ...prev]);
+
     try {
       const activeDb = adminAuth.currentUser ? adminDb : db;
-      const newId = String(Date.now()); 
-      await setDoc(doc(activeDb, 'products', newId), {
+      await setDoc(doc(activeDb, 'products', tempId), {
         ...product,
-        id: newId,
-        createdAt: serverTimestamp()
+        id: tempId,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
       });
       showToast('تم إضافة المنتج بنجاح');
       logActivity('إضافة منتج', `تم إضافة المنتج الجديد: ${product.name}`);
     } catch (error) {
+      // Rollback on error
+      setProducts(prev => prev.filter(p => p.id !== tempId));
       handleFirestoreError(error, OperationType.CREATE, 'products');
     }
   }, [showToast, logActivity]);
 
   const updateProduct = React.useCallback(async (id: string, updatedData: Partial<Product>) => {
+    // Optimistic UI update
+    setProducts(prev => prev.map(p => p.id === id ? { ...p, ...updatedData } : p));
+
     try {
       const activeDb = adminAuth.currentUser ? adminDb : db;
       await updateDoc(doc(activeDb, 'products', String(id)), {
@@ -3034,11 +3081,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       showToast('تم تحديث المنتج بنجاح');
       logActivity('تحديث منتج', `تم تحديث بيانات المنتج ID: ${id}`);
     } catch (error) {
+      // Snapshot listener will eventually correct state, but explicit rollback is safer
       handleFirestoreError(error, OperationType.UPDATE, `products/${id}`);
     }
   }, [showToast, logActivity]);
 
   const deleteProduct = React.useCallback(async (id: string) => {
+    if (!window.confirm('هل أنت متأكد من حذف هذا المنتج؟')) return;
+
+    // Optimistic UI update
+    setProducts(prev => prev.filter(p => p.id !== id));
+
     try {
       const activeDb = adminAuth.currentUser ? adminDb : db;
       await deleteDoc(doc(activeDb, 'products', String(id)));
@@ -3050,24 +3103,33 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [showToast, logActivity]);
 
   const addCategory = React.useCallback(async (category: Omit<Category, 'id'>) => {
+    const tempId = Date.now().toString();
+    setCategories(prev => [...prev, { ...category, id: tempId }]);
+
     try {
       const activeDb = adminAuth.currentUser ? adminDb : db;
-      const newCategory: Category = {
+      await setDoc(doc(activeDb, 'categories', tempId), {
         ...category,
-        id: Date.now().toString()
-      };
-      await setDoc(doc(activeDb, 'categories', newCategory.id), newCategory);
+        id: tempId,
+        createdAt: serverTimestamp()
+      });
       logActivity('إضافة قسم', `تم إضافة قسم جديد: ${category.name}`);
       showToast('تم إضافة الفئة بنجاح', 'success');
     } catch (error) {
+      setCategories(prev => prev.filter(c => c.id !== tempId));
       handleFirestoreError(error, OperationType.CREATE, 'categories');
     }
   }, [showToast, logActivity]);
 
   const updateCategory = React.useCallback(async (id: string, updatedData: Partial<Category>) => {
+    setCategories(prev => prev.map(c => c.id === id ? { ...c, ...updatedData } : c));
+
     try {
       const activeDb = adminAuth.currentUser ? adminDb : db;
-      await updateDoc(doc(activeDb, 'categories', id), updatedData);
+      await updateDoc(doc(activeDb, 'categories', id), {
+        ...updatedData,
+        updatedAt: serverTimestamp()
+      });
       logActivity('تحديث قسم', `تم تحديث بيانات القسم`);
       showToast('تم تحديث الفئة بنجاح', 'success');
     } catch (error) {
@@ -3076,6 +3138,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [showToast, logActivity]);
 
   const deleteCategory = React.useCallback(async (id: string) => {
+    if (!window.confirm('هل أنت متأكد من حذف هذا القسم؟')) return;
+    setCategories(prev => prev.filter(c => c.id !== id));
+
     try {
       const activeDb = adminAuth.currentUser ? adminDb : db;
       await deleteDoc(doc(activeDb, 'categories', id));

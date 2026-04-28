@@ -1431,7 +1431,7 @@ export default function Checkout() {
                     {cart.map((item) => (
                       <div key={item.id} className="bg-slate-50 p-4 sm:p-5 rounded-2xl border border-slate-100 flex items-center justify-between">
                         <div className="text-right">
-                          <p className="text-sm sm:text-base font-bold text-carbon mb-1">{item.product?.name || 'منتج محذوف غير متوفر'}</p>
+                          <p className="text-sm sm:text-base font-bold text-carbon mb-1">{item.product?.name || 'منتج غير متوفر حالياً'}</p>
                           <p className="text-xs sm:text-sm text-titanium/80">
                             الكمية: {item.quantity}
                           </p>
@@ -1495,10 +1495,10 @@ export default function Checkout() {
               {cart.map((item) => (
                 <div key={item.id} className="flex gap-4 group">
                   <div className="w-16 h-16 bg-slate-50 rounded-2xl p-2 shrink-0 border border-slate-100 group-hover:border-slate-900/30 transition-colors">
-                    <img src={item.product?.image || undefined} alt={item.product?.name || 'محذوف'} className="w-full h-full object-cover" />
+                    <img src={item.product?.image || item.product?.images?.[0] || undefined} alt={item.product?.name || 'محذوف'} className="w-full h-full object-cover" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h4 className="text-sm font-bold text-carbon truncate group-hover:text-slate-900 transition-colors">{item.product?.name || 'منتج محذوف غير متوفر'}</h4>
+                    <h4 className="text-sm font-bold text-carbon truncate group-hover:text-slate-900 transition-colors">{item.product?.name || 'منتج غير متوفر حالياً'}</h4>
                     <div className="flex items-center justify-between mt-1">
                       <span className="text-xs text-titanium/40 font-bold">الكمية: {item.quantity}</span>
                       <span className="text-sm font-bold"><PriceDisplay price={(item.product?.price || 0) * item.quantity} /></span>

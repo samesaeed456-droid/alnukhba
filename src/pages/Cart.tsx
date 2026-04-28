@@ -178,7 +178,9 @@ export default function Cart() {
                   <div className="flex justify-between items-start mb-2">
                     <div>
                       <Link to={`/product/${item.product?.id || ''}`} className="font-bold text-carbon text-sm sm:text-base hover:text-solar transition-colors line-clamp-2">
-                        {item.product?.name || 'منتج محذوف غير متوفر'}
+                        <p className="text-sm sm:text-base font-bold text-carbon mb-1">
+                          {item.product?.name || 'منتج غير متوفر حالياً'}
+                        </p>
                       </Link>
                     </div>
                     <motion.button 

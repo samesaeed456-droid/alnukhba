@@ -72,35 +72,3 @@ export const uploadToCloudinary = async (file: File): Promise<string> => {
   const data = await response.json();
   return data.secure_url;
 };
-
-export const extractPublicIdFromUrl = (url: string): string | null => {
-  if (!url || typeof url !== 'string') return null;
-  if (!url.includes('cloudinary.com')) return null;
-  try {
-    // URL looks like: https://res.cloudinary.com/cloudname/image/upload/v12345/public_id.png
-    const parts = url.split('/');
-    const lastPart = parts[parts.length - 1]; // e.g. public_id.png
-    const publicId = lastPart.split('.')[0];
-    return publicId || null;
-  } catch (error) {
-    return null;
-  }
-};
-
-export const deleteCloudinaryImageByUrl = async (url: string): Promise<boolean> => {
-  const publicId = extractPublicIdFromUrl(url);
-  if (!publicId) return false;
-  
-  try {
-    const response = await fetch('/api/cloudinary?action=bulk-delete', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ public_ids: [publicId] })
-    });
-    
-    return response.ok;
-  } catch (error) {
-    console.error("Failed to delete Cloudinary image automatically", error);
-    return false;
-  }
-};

@@ -345,38 +345,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   });
   const [systemError, setSystemError] = useState<string | null>(null);
 
-  const stateRef = React.useRef<any>({});
-  useEffect(() => {
-    stateRef.current = { products, categories, banners, settings, blogPosts, marketingNotifications, staticPages, customers, supportTickets, abandonedCarts, orders };
-  }, [products, categories, banners, settings, blogPosts, marketingNotifications, staticPages, customers, supportTickets, abandonedCarts, orders]);
-
-  const autoCleanImages = React.useCallback((urlsToVerify: (string | undefined | null)[]) => {
-      const validUrls = urlsToVerify.filter((url): url is string => !!url && typeof url === 'string' && url.includes('cloudinary.com'));
-      if (validUrls.length === 0) return;
-
-      setTimeout(async () => {
-          try {
-             const everythingStr = JSON.stringify(stateRef.current || {});
-             const { deleteCloudinaryImageByUrl } = await import('../lib/cloudinary');
-             
-             for (const url of validUrls) {
-                const parts = url.split('/');
-                const shortId = parts[parts.length - 1]?.split('.')[0];
-                
-                const hasUrl = everythingStr.includes(url);
-                const hasId = shortId && shortId.length > 5 ? everythingStr.includes(shortId) : false;
-
-                if (!hasUrl && !hasId) {
-                   await deleteCloudinaryImageByUrl(url);
-                   console.log("Auto-deleted orphaned image:", url);
-                }
-             }
-          } catch(err) {
-             console.error("Auto image cleanup error", err);
-          }
-      }, 5000);
-  }, []);
-
   // Connection check removed per user request
   useEffect(() => {
     // Intentionally empty
@@ -1396,14 +1364,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         updatedAt: serverTimestamp()
       }, { merge: true });
       
-      const removed = [
-        newSettings.logo !== undefined && settings.logo !== newSettings.logo ? settings.logo : null,
-        newSettings.favicon !== undefined && settings.favicon !== newSettings.favicon ? settings.favicon : null,
-        newSettings.logo_light !== undefined && settings.logo_light !== newSettings.logo_light ? settings.logo_light : null,
-        newSettings.qrCodeImage !== undefined && settings.qrCodeImage !== newSettings.qrCodeImage ? settings.qrCodeImage : null
-      ].filter(Boolean) as string[];
-      if (removed.length > 0) autoCleanImages(removed);
-      
       if (newSettings.language && newSettings.language !== settings.language) {
         setLanguageState(newSettings.language);
       }
@@ -1414,7 +1374,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, 'settings/store');
     }
-  }, [settings, showToast, logActivity, autoCleanImages]);
+  }, [settings, showToast, logActivity]);
 
   const addTicket = React.useCallback(async (ticket: Omit<SupportTicket, 'id' | 'createdAt' | 'replies' | 'status'>) => {
     try {
@@ -1497,36 +1457,24 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const updateBlogPost = React.useCallback(async (id: string, post: Partial<BlogPost>) => {
     try {
-      const oldPost = blogPosts.find(p => String(p.id) === String(id));
       await updateDoc(doc(db, 'blog_posts', id), {
         ...post,
         updatedAt: serverTimestamp()
       });
-      
-      if (oldPost && post.image !== undefined && oldPost.image !== post.image) {
-        if (oldPost.image) autoCleanImages([oldPost.image]);
-      }
-      
       logActivity('تحديث مقال', `تم تحديث المقال ${id}`);
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `blog_posts/${id}`);
     }
-  }, [blogPosts, logActivity, autoCleanImages]);
+  }, [logActivity]);
 
   const deleteBlogPost = React.useCallback(async (id: string) => {
     try {
-      const oldPost = blogPosts.find(p => String(p.id) === String(id));
       await deleteDoc(doc(db, 'blog_posts', id));
-      
-      if (oldPost?.image) {
-        autoCleanImages([oldPost.image]);
-      }
-      
       logActivity('حذف مقال', `تم حذف المقال ${id}`);
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, `blog_posts/${id}`);
     }
-  }, [blogPosts, logActivity, autoCleanImages]);
+  }, [logActivity]);
 
   const updateStaticPage = React.useCallback(async (id: string, content: string) => {
     try {
@@ -1731,46 +1679,27 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const updateBanner = React.useCallback(async (id: string, updatedData: Partial<Banner>) => {
     try {
       const activeDb = adminAuth.currentUser ? adminDb : db;
-      const oldBanner = banners.find(b => String(b.id) === String(id));
-      
       await updateDoc(doc(activeDb, 'banners', id), {
         ...updatedData,
         updatedAt: serverTimestamp()
       });
-      
-      if (oldBanner) {
-        const removed = [
-          updatedData.image !== undefined && oldBanner.image !== updatedData.image ? oldBanner.image : null,
-          updatedData.mobileImage !== undefined && oldBanner.mobileImage !== updatedData.mobileImage ? oldBanner.mobileImage : null
-        ].filter(Boolean) as string[];
-        if (removed.length > 0) autoCleanImages(removed);
-      }
-      
       showToast('تم تحديث البانر بنجاح');
       logActivity('تحديث بنر', `تم تحديث بيانات البانر ID: ${id}`);
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `banners/${id}`);
     }
-  }, [banners, showToast, logActivity, autoCleanImages]);
+  }, [showToast, logActivity]);
 
   const deleteBanner = React.useCallback(async (id: string) => {
     try {
       const activeDb = adminAuth.currentUser ? adminDb : db;
-      const oldBanner = banners.find(b => String(b.id) === String(id));
-      
       await deleteDoc(doc(activeDb, 'banners', id));
-      
-      if (oldBanner) {
-        const removed = [oldBanner.image, oldBanner.mobileImage].filter(Boolean) as string[];
-        if (removed.length > 0) autoCleanImages(removed);
-      }
-      
       showToast('تم حذف البانر');
       logActivity('حذف بنر', `تم حذف البانر ID: ${id}`);
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, `banners/${id}`);
     }
-  }, [banners, showToast, logActivity, autoCleanImages]);
+  }, [showToast, logActivity]);
 
   const sendMarketingNotification = React.useCallback(async (notification: Omit<MarketingNotification, 'id' | 'date' | 'sentCount' | 'openedCount' | 'clickedCount' | 'status'>) => {
     try {
@@ -3098,44 +3027,27 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const updateProduct = React.useCallback(async (id: string, updatedData: Partial<Product>) => {
     try {
       const activeDb = adminAuth.currentUser ? adminDb : db;
-      const oldProduct = products.find(p => String(p.id) === String(id));
-      
       await updateDoc(doc(activeDb, 'products', String(id)), {
         ...updatedData,
         updatedAt: serverTimestamp()
       });
-      
-      // Auto cleanup removed images
-      if (oldProduct && updatedData.images) {
-        const removed = (oldProduct.images || []).filter(img => !updatedData.images?.includes(img));
-        if (removed.length > 0) autoCleanImages(removed);
-      }
-      
       showToast('تم تحديث المنتج بنجاح');
       logActivity('تحديث منتج', `تم تحديث بيانات المنتج ID: ${id}`);
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `products/${id}`);
     }
-  }, [products, showToast, logActivity, autoCleanImages]);
+  }, [showToast, logActivity]);
 
   const deleteProduct = React.useCallback(async (id: string) => {
     try {
       const activeDb = adminAuth.currentUser ? adminDb : db;
-      const oldProduct = products.find(p => String(p.id) === String(id));
-      
       await deleteDoc(doc(activeDb, 'products', String(id)));
-      
-      // Auto cleanup
-      if (oldProduct?.images?.length) {
-        autoCleanImages(oldProduct.images);
-      }
-      
       showToast('تم حذف المنتج بنجاح');
       logActivity('حذف منتج', `تم حذف المنتج ID: ${id}`);
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, `products/${id}`);
     }
-  }, [products, showToast, logActivity, autoCleanImages]);
+  }, [showToast, logActivity]);
 
   const addCategory = React.useCallback(async (category: Omit<Category, 'id'>) => {
     try {
@@ -3155,38 +3067,24 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const updateCategory = React.useCallback(async (id: string, updatedData: Partial<Category>) => {
     try {
       const activeDb = adminAuth.currentUser ? adminDb : db;
-      const oldCategory = categories.find(c => String(c.id) === String(id));
-      
       await updateDoc(doc(activeDb, 'categories', id), updatedData);
-      
-      if (oldCategory?.image && updatedData.image !== undefined && oldCategory.image !== updatedData.image) {
-        autoCleanImages([oldCategory.image]);
-      }
-      
       logActivity('تحديث قسم', `تم تحديث بيانات القسم`);
       showToast('تم تحديث الفئة بنجاح', 'success');
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, 'categories');
     }
-  }, [categories, showToast, logActivity, autoCleanImages]);
+  }, [showToast, logActivity]);
 
   const deleteCategory = React.useCallback(async (id: string) => {
     try {
       const activeDb = adminAuth.currentUser ? adminDb : db;
-      const oldCategory = categories.find(c => String(c.id) === String(id));
-      
       await deleteDoc(doc(activeDb, 'categories', id));
-      
-      if (oldCategory?.image) {
-        autoCleanImages([oldCategory.image]);
-      }
-      
       logActivity('حذف قسم', `تم حذف القسم بنجاح`);
       showToast(`تم حذف الفئة بنجاح`);
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, 'categories');
     }
-  }, [categories, showToast, logActivity, autoCleanImages]);
+  }, [showToast, logActivity]);
 
   const getRecommendations = React.useCallback(async (currentProduct?: Product) => {
     // If we have a Gemini API key, use AI, otherwise rule-based

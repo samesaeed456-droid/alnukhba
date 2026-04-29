@@ -187,49 +187,48 @@ export default function Coupons() {
           <div key={coupon.id} className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 space-y-4">
             <div className="flex justify-between items-start">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-2xl bg-carbon/5 flex items-center justify-center">
-                  <Tag className="w-6 h-6 text-carbon" />
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${coupon.isActive ? 'bg-solar/10 text-solar' : 'bg-gray-100 text-gray-400'}`}>
+                  <Tag className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-carbon font-mono text-xl">{coupon.code}</h3>
+                  <h3 className="font-bold text-carbon font-mono text-lg leading-tight">{coupon.code}</h3>
                   <div className="flex items-center gap-2 mt-1">
-                    <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
-                      coupon.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
+                    <span className={`px-2 py-0.5 rounded-md text-[9px] font-bold ${
+                      coupon.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-600'
                     }`}>
                       {coupon.isActive ? 'نشط' : 'معطل'}
                     </span>
                     {coupon.expiryDate && (
-                      <span className="text-[10px] text-gray-400 flex items-center gap-1">
-                        <Calendar className="w-3 h-3" />
-                        {new Date(coupon.expiryDate).toLocaleDateString('ar-u-nu-latn')}
+                      <span className="text-[9px] text-gray-400 flex items-center gap-1">
+                        <Calendar className="w-2.5 h-2.5" />
+                        {new Date(coupon.expiryDate).toLocaleDateString('ar-YE')}
                       </span>
                     )}
                   </div>
                 </div>
               </div>
               <div className="text-left">
-                <div className="text-xl font-black text-solar">
+                <div className="text-lg font-black text-solar">
                   {coupon.discountType === 'percentage' ? (
-                    <span className="flex items-center justify-end gap-1">{coupon.discountValue}% <Percent className="w-4 h-4" /></span>
+                    <span className="flex items-center justify-end gap-0.5">{coupon.discountValue}%</span>
                   ) : (
                     formatPrice(coupon.discountValue)
                   )}
                 </div>
-                <div className="text-[10px] text-gray-400 mt-1">قيمة الخصم</div>
+                <div className="text-[9px] text-gray-400 mt-0.5">قيمة الخصم</div>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 py-3 border-y border-gray-50">
-              <div className="space-y-1">
-                <div className="text-[10px] text-gray-400">الحد الأدنى للطلب</div>
-                <div className="text-sm font-bold text-gray-700">
+            <div className="grid grid-cols-2 gap-2 py-3 border-y border-gray-50">
+              <div className="bg-gray-50/50 p-2 rounded-xl border border-gray-50">
+                <div className="text-[9px] text-gray-400 font-bold mb-0.5">الحد الأدنى</div>
+                <div className="text-xs font-black text-carbon">
                   {coupon.minOrderValue ? formatPrice(coupon.minOrderValue) : 'لا يوجد'}
                 </div>
               </div>
-              <div className="space-y-1">
-                <div className="text-[10px] text-gray-400">مرات الاستخدام</div>
-                <div className="text-sm font-bold text-gray-700 flex items-center gap-1">
-                  <Users className="w-3.5 h-3.5 text-gray-400" />
+              <div className="bg-gray-50/50 p-2 rounded-xl border border-gray-50">
+                <div className="text-[9px] text-gray-400 font-bold mb-0.5">الاستخدامات</div>
+                <div className="text-xs font-black text-carbon flex items-center gap-1">
                   {coupon.usedCount} {coupon.usageLimit ? `/ ${coupon.usageLimit}` : ''}
                 </div>
               </div>
@@ -238,22 +237,24 @@ export default function Coupons() {
             <div className="flex items-center gap-2 pt-1">
               <button 
                 onClick={() => toggleCouponStatus(coupon.id)}
-                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-gray-50 text-gray-600 font-bold text-sm hover:bg-gray-100 transition-all"
+                className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-xs transition-all ${
+                  coupon.isActive ? 'bg-red-50 text-red-600 hover:bg-red-100' : 'bg-green-50 text-green-600 hover:bg-green-100'
+                }`}
               >
-                {coupon.isActive ? <PowerOff className="w-4 h-4" /> : <Power className="w-4 h-4" />}
+                {coupon.isActive ? <PowerOff className="w-3.5 h-3.5" /> : <Power className="w-3.5 h-3.5" />}
                 <span>{coupon.isActive ? 'تعطيل' : 'تفعيل'}</span>
               </button>
               <button 
                 onClick={() => handleOpenModal(coupon)}
-                className="p-2.5 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 transition-all"
+                className="p-2.5 bg-gray-50 text-gray-600 rounded-xl hover:bg-gray-100 transition-all border border-gray-100"
               >
-                <Edit className="w-5 h-5" />
+                <Edit className="w-4 h-4" />
               </button>
               <button 
                 onClick={() => setItemToDelete(coupon.id)}
-                className="p-2.5 bg-red-50 text-red-600 rounded-xl hover:bg-red-100 transition-all"
+                className="p-2.5 bg-red-50 text-red-600 rounded-xl hover:bg-red-100 transition-all border border-red-50"
               >
-                <Trash2 className="w-5 h-5" />
+                <Trash2 className="w-4 h-4" />
               </button>
             </div>
           </div>
@@ -273,20 +274,20 @@ export default function Coupons() {
       {/* Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden animate-in slide-in-from-bottom duration-300">
-            <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-              <h2 className="text-xl font-black text-carbon">
+          <div className="bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-md shadow-2xl overflow-hidden animate-in slide-in-from-bottom duration-300">
+            <div className="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+              <h2 className="text-lg font-black text-carbon">
                 {editingCoupon ? 'تعديل كوبون' : 'إضافة كوبون جديد'}
               </h2>
               <button 
                 onClick={() => setIsModalOpen(false)}
-                className="w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-sm text-gray-400 hover:text-gray-600 transition-all"
+                className="w-9 h-9 flex items-center justify-center rounded-full bg-white shadow-sm text-gray-400 hover:text-gray-600 transition-all"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
             
-            <form onSubmit={handleSubmit} className="p-6 space-y-5 max-h-[80vh] overflow-y-auto">
+            <form onSubmit={handleSubmit} className="p-5 space-y-4 max-h-[75vh] overflow-y-auto">
               <FloatingInput 
                 label="كود الخصم"
                 required

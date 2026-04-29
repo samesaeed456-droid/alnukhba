@@ -821,6 +821,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           setter(data);
           localStorage.setItem(storageKey, JSON.stringify(data));
           localStorage.setItem(`${storageKey}_time`, Date.now().toString());
+        }, (error) => {
+          console.error(`Error in onSnapshot for ${colName}:`, error);
         });
       } else {
         const cacheTime = localStorage.getItem(`${storageKey}_time`);
@@ -894,13 +896,36 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     
     let isInitialMarketingSync = true;
     const unsubMarketingNotifs = onSnapshot(query(collection(activeDb, 'marketing_notifications'), orderBy('date', 'desc'), limit(50)), (snapshot) => {
-      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as MarketingNotification[];
-      setMarketingNotifications(data);
-      localStorage.setItem('store_marketing_notifications', JSON.stringify(data));
+      // Filter notifications to only show what was created after the user registered
+      const rawUser = localStorage.getItem('store_user');
+      let userRegistrationTime = 0;
+      if (rawUser) {
+        try {
+          const u = JSON.parse(rawUser);
+          if (u.createdAt) userRegistrationTime = new Date(u.createdAt).getTime();
+        } catch(e) {}
+      }
+
+      const allData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as MarketingNotification[];
+      const filteredData = allData.filter(notif => {
+        if (userRegistrationTime === 0) return true;
+        const notifDate = new Date(notif.date || new Date().toISOString()).getTime();
+        return notifDate >= userRegistrationTime;
+      });
+
+      setMarketingNotifications(filteredData);
+      localStorage.setItem('store_marketing_notifications', JSON.stringify(filteredData));
 
       snapshot.docChanges().forEach(change => {
         if (change.type === 'added') {
           const docData = change.doc.data() as MarketingNotification;
+          
+          // Apply same registration time filter for real-time notifications
+          if (userRegistrationTime > 0) {
+            const notifDate = new Date(docData.date || new Date().toISOString()).getTime();
+            if (notifDate < userRegistrationTime) return;
+          }
+
           // Keep notifications from the last 7 days in the bell
           const isRecent = new Date(docData.date || new Date().toISOString()).getTime() > Date.now() - (7 * 24 * 3600000);
           
@@ -978,7 +1003,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       unsubSettings();
       unsubMarketingNotifs();
     };
-  }, []);
+  }, [isAuthReady, user, adminAuth.currentUser]);
 
   // Sync cart to abandonedCarts for abandoned cart notifications
   useEffect(() => {
@@ -1979,17 +2004,24 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const updateCoupon = React.useCallback(async (id: string, updatedData: Partial<Coupon>, showToastMsg = true) => {
+    const previousCoupons = [...coupons];
+    
+    // Optimistic Update
+    setCoupons(prev => prev.map(c => c.id === id ? { ...c, ...updatedData } : c));
+
     try {
-      await updateDoc(doc(db, 'coupons', id), updatedData);
-      setCoupons(prev => prev.map(c => c.id === id ? { ...c, ...updatedData } : c));
+      const activeDb = adminAuth.currentUser ? adminDb : db;
+      await updateDoc(doc(activeDb, 'coupons', id), updatedData);
       if (showToastMsg) {
         showToast('تم تحديث الكوبون بنجاح');
       }
       logActivity('تحديث كوبون', `تم تحديث الكوبون ID: ${id}`);
     } catch (error) {
+      // Rollback
+      setCoupons(previousCoupons);
       handleFirestoreError(error, OperationType.UPDATE, 'coupons');
     }
-  }, [showToast, logActivity]);
+  }, [coupons, showToast, logActivity]);
 
   const updateCustomerBalance = React.useCallback(async (identifier: string, amount: number, description: string) => {
     // 1. Optimistic Update - Update local state immediately for "blink of an eye" performance
@@ -2844,42 +2876,61 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [showToast, logActivity]);
 
   const addCoupon = React.useCallback(async (coupon: Omit<Coupon, 'id' | 'usedCount'>) => {
+    const newId = (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15));
+    const newCoupon: Coupon = {
+      ...coupon,
+      id: newId,
+      usedCount: 0
+    };
+
+    // Optimistic Update
+    setCoupons(prev => [newCoupon, ...prev]);
+
     try {
       const activeDb = adminAuth.currentUser ? adminDb : db;
-      const newCoupon: Coupon = {
-        ...coupon,
-        id: (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15)),
-        usedCount: 0
-      };
-      await setDoc(doc(activeDb, 'coupons', newCoupon.id), newCoupon);
+      await setDoc(doc(activeDb, 'coupons', newId), newCoupon);
       showToast('تمت إضافة الكوبون بنجاح');
       logActivity('إضافة كوبون', `تم إضافة كود خصم جديد: ${coupon.code}`);
     } catch (error) {
+      // Rollback
+      setCoupons(prev => prev.filter(c => c.id !== newId));
       handleFirestoreError(error, OperationType.CREATE, 'coupons');
     }
   }, [showToast, logActivity]);
 
   const deleteCoupon = React.useCallback(async (id: string) => {
+    const previousCoupons = [...coupons];
+    // Optimistic Update
+    setCoupons(prev => prev.filter(c => c.id !== id));
+
     try {
       const activeDb = adminAuth.currentUser ? adminDb : db;
       await deleteDoc(doc(activeDb, 'coupons', id));
       showToast('تم حذف الكوبون بنجاح');
       logActivity('حذف كوبون', `تم حذف كود الخصم بمعرف: ${id}`);
     } catch (error) {
+      // Rollback
+      setCoupons(previousCoupons);
       handleFirestoreError(error, OperationType.DELETE, 'coupons');
     }
-  }, [showToast, logActivity]);
+  }, [coupons, showToast, logActivity]);
 
   const toggleCouponStatus = React.useCallback(async (id: string) => {
+    const previousCoupons = [...coupons];
+    const coupon = coupons.find(c => c.id === id);
+    if (!coupon) return;
+
+    // Optimistic Update
+    setCoupons(prev => prev.map(c => c.id === id ? { ...c, isActive: !c.isActive } : c));
+
     try {
       const activeDb = adminAuth.currentUser ? adminDb : db;
-      const coupon = coupons.find(c => c.id === id);
-      if (coupon) {
-        await updateDoc(doc(activeDb, 'coupons', id), { isActive: !coupon.isActive });
-        showToast('تم تغيير حالة الكوبون');
-        logActivity('تحديث كوبون', `تم إيقاف/تفعيل كود الخصم: ${coupon.code}`);
-      }
+      await updateDoc(doc(activeDb, 'coupons', id), { isActive: !coupon.isActive });
+      showToast('تم تغيير حالة الكوبون');
+      logActivity('تحديث كوبون', `تم إيقاف/تفعيل كود الخصم: ${coupon.code}`);
     } catch (error) {
+      // Rollback
+      setCoupons(previousCoupons);
       handleFirestoreError(error, OperationType.UPDATE, 'coupons');
     }
   }, [coupons, showToast, logActivity]);

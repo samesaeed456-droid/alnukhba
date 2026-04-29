@@ -111,12 +111,12 @@ export default function AdminLogin() {
         let adminData: any = null;
 
         // Base super admins (Instant check)
-        const superAdmins = ['samesaeed456@gmail.com', 'samisaeed2027@gmail.com'];
+        const superAdmins = ['samesaeed456@gmail.com', 'samisaeed2027@gmail.com', 'samisaeed2025@gmail.com'];
         const userEmail = user.email.toLowerCase();
         
-        if (superAdmins.includes(userEmail) || userEmail.endsWith('@elite-store.local')) {
+        if (superAdmins.includes(userEmail)) {
            isAuthorized = true;
-           adminData = { role: 'super_admin', name: 'المدير العام', email: user.email, permissions: [] };
+           adminData = { role: 'super_admin', name: 'المدير العام', email: user.email, permissions: ['all'] };
            
            // Fast track for super admins
            localStorage.setItem('admin_auth', 'true');

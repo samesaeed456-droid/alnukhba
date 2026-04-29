@@ -29,7 +29,17 @@ export default function Auth() {
   const [verificationToken, setVerificationToken] = useState('');
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, updateUser, forceSetUser, showToast } = useStore();
+  const { user, isAuthReady, updateUser, forceSetUser, showToast } = useStore();
+
+  // Handle case where user is authenticated in Firebase but document is missing (deleted user)
+  React.useEffect(() => {
+    if (isAuthReady && !user && auth.currentUser) {
+      // User is logged in to Firebase Auth but has no Firestore profile
+      setIsLogin(false);
+      setStep('form');
+      setError('يرجى استكمال بياناتك لتفعيل حسابك البديل.');
+    }
+  }, [isAuthReady, user, step]);
 
   const handlePasskeyLogin = async () => {
     setIsLoading(true);
@@ -291,42 +301,30 @@ export default function Auth() {
           return;
         }
 
-        if (prevStep === 'login') {
-          const email = getDummyEmail(formData.countryCode, cleanPhone);
-          const userCred = await loginWithEmail(email, formData.password);
-          
-          try {
-            // Fetch profile data immediately to make the transition perfectly instant
-            const userDoc = await getDoc(doc(db, 'users', userCred.user.uid));
-            if (userDoc.exists()) {
-              forceSetUser({ id: userDoc.id, ...userDoc.data() } as any);
-            }
-          } catch(e) {}
-          
-          delete (window as any)._authPrevStep;
-          showToast('تم تسجيل الدخول بنجاح');
-          navigate(redirectPath);
-          return;
-        }
-
         // Proceed with Signup
         const email = getDummyEmail(formData.countryCode, cleanPhone);
         let userCred;
+        
         try {
-           userCred = await signupWithEmail(email, formData.password);
+          userCred = await signupWithEmail(email, formData.password);
         } catch (signupError: any) {
-           console.error("Signup error in verify:", signupError);
-           if (signupError.code === 'auth/email-already-in-use') {
-             setError('هذا الرقم مسجل مسبقاً في حساب آخر، يمنع إنشاء حسابين بنفس الرقم. يرجى تسجيل الدخول.');
-             setStep('form');
-             setIsLogin(true);
-           } else {
-             const smartError = parseSmartError(signupError);
-             setError(smartError.message);
-             setStep('form');
-           }
-           setIsLoading(false);
-           return;
+          console.error("Signup error in verify:", signupError);
+          if (signupError.code === 'auth/email-already-in-use') {
+            // If account already exists, try to log in with the provided password
+            try {
+              userCred = await loginWithEmail(email, formData.password);
+            } catch (loginErr: any) {
+              setError('هذا الرقم مسجل مسبقاً. كلمة المرور التي أدخلتها غير صحيحة للحساب المرتبط بهذا الرقم.');
+              setIsLoading(false);
+              return;
+            }
+          } else {
+            const smartError = parseSmartError(signupError);
+            const errorMessage = typeof smartError === 'string' ? smartError : smartError?.message || 'حدث خطأ أثناء إنشاء الحساب';
+            setError(errorMessage);
+            setIsLoading(false);
+            return;
+          }
         }
         
         try {
@@ -436,33 +434,85 @@ export default function Auth() {
 
     try {
       const cleanPhone = (formData.phone || '').trim().replace(/^0+/, '');
+      
+      // If we are already authenticated via Firebase Auth but document is missing (deleted user scenario)
+      if (!isLogin && auth.currentUser) {
+        const email = getDummyEmail(formData.countryCode, cleanPhone);
+        const currentSessionId = localStorage.getItem('local_session_id');
+
+        // Check if phone is already taken by another account
+        const { getDocs, query, where, collection } = await import('../lib/firebase');
+        const q = query(collection(db, 'users'), where('phone', '==', cleanPhone), where('countryCode', '==', formData.countryCode));
+        const snapshot = await getDocs(q);
+        
+        if (!snapshot.empty) {
+          setError('رقم الهاتف هذا مسجل مسبقاً في حساب آخر. يرجى استخدام رقمك الصحيح.');
+          setIsLoading(false);
+          return;
+        }
+        
+        const photoURL = `https://ui-avatars.com/api/?name=${encodeURIComponent(formData.name)}&background=random`;
+        const newUserObj: any = {
+          uid: auth.currentUser.uid,
+          email: email,
+          name: formData.name,
+          displayName: formData.name,
+          phone: cleanPhone,
+          countryCode: formData.countryCode,
+          photoURL,
+          role: 'customer',
+          walletBalance: 0,
+          currentSessionId: currentSessionId,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        };
+
+        await setDoc(doc(db, 'users', auth.currentUser.uid), newUserObj, { merge: true });
+        forceSetUser({ ...newUserObj, createdAt: new Date().toISOString() });
+        showToast('تم استعادة وتفعيل الحساب بنجاح');
+        navigate(redirectPath);
+        return;
+      }
+
       if (isLogin) {
-        // Enforce SMS verification for login too
         const email = getDummyEmail(formData.countryCode, cleanPhone);
         
         try {
-          // First, verify credentials without fully logging in
-          // We'll sign in and then immediately out to confirm password is correct
+          // Log in directly without OTP
           const userCred = await loginWithEmail(email, formData.password);
-          await auth.signOut();
           
-          // Now send OTP for multi-factor verification
-          const fullPhone = formData.countryCode + cleanPhone;
-          const response = await fetch('/api/send-otp', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ phone: fullPhone }),
-          });
+          try {
+            // Fetch profile data immediately to make the transition perfectly instant
+            const userDocRef = doc(db, 'users', userCred.user.uid);
+            const userDoc = await getDoc(userDocRef);
+            
+            if (userDoc.exists()) {
+              const userData = userDoc.data();
+              
+              // Second security check: Mandatory phone/name for entrance
+              if (!userData.phone || (!userData.name && !userData.displayName)) {
+                 await auth.signOut();
+                 setIsLogin(false);
+                 setStep('form');
+                 setError('بيانات حسابك غير مكتملة. يرجى إعادة إنشاء الحساب أو استكمال الاسم والرقم.');
+                 setIsLoading(false);
+                 return;
+              }
 
-          const data = await response.json();
-
-          if (response.ok && data.success) {
-            setVerificationToken(data.token);
-            (window as any)._authPrevStep = 'login';
-            setStep('verification');
-            showToast('تم التحقق من كلمة المرور، يرجى إدخال كود التحقق المرسل لهاتفك');
-          } else {
-            setError(data.error || 'تعذر إرسال كود التحقق');
+              forceSetUser({ id: userDoc.id, ...userData } as any);
+              showToast('تم تسجيل الدخول بنجاح');
+              navigate(redirectPath);
+            } else {
+              // Document missing! User exists in Auth but was deleted from Firestore.
+              // Switch to "Complete Profile" mode within the signup view
+              setIsLogin(false);
+              setStep('form');
+              setError('يبدو أن بيانات حسابك قد حُذفت مسبقاً. يرجى إدخال اسمك الرباعي لإعادة تفعيل الحساب.');
+              showToast('يرجى استكمال بياناتك لإعادة تفعيل الحساب');
+            }
+          } catch(e) {
+            showToast('تم تسجيل الدخول، يرجى تحديث الصفحة إذا لم تظهر بياناتك');
+            navigate(redirectPath);
           }
         } catch (authErr: any) {
           const smartError = parseSmartError(authErr);

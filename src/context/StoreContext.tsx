@@ -450,9 +450,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
               return;
             }
 
-            // Ensure name is not empty
-            if (!userData.name && !userData.displayName) {
-              userData.name = 'عميل النخبة';
+            // MANDATORY FIELD CHECK:
+            // Forbidden to enter if name or phone is missing.
+            // If incomplete, treat as no profile so Auth.tsx forces completion.
+            const hasName = !!(userData.name || userData.displayName);
+            const hasPhone = !!userData.phone;
+
+            if (!hasName || !hasPhone) {
+              setUser(null);
+              localStorage.removeItem('store_user');
+              setIsAuthReady(true);
+              return;
             }
 
             setUser(userData);
@@ -474,32 +482,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
               setDoc(doc(db, 'users', firebaseUser.uid), adminData, { merge: true });
               setUser(adminData);
             } else {
-              // For normal users, if document is missing, let's try to initialize it from Auth info
-              // This is a safety net for "New Customer" issues where data is missing
-              const nameFromAuth = firebaseUser.displayName || 'عميل النخبة';
-              const emailFromAuth = firebaseUser.email || '';
-              const phoneFromAuth = firebaseUser.phoneNumber || '';
-              
-              const newProfile: any = {
-                uid: firebaseUser.uid,
-                name: nameFromAuth,
-                displayName: nameFromAuth,
-                email: emailFromAuth,
-                phone: phoneFromAuth,
-                role: 'customer',
-                walletBalance: 0,
-                addresses: [],
-                transactions: [],
-                wishlistIds: [],
-                currentSessionId: localStorage.getItem('local_session_id'),
-                createdAt: new Date().toISOString(),
-                updatedAt: serverTimestamp()
-              };
-              
-              // Only create it once, and don't overwrite if it's currently being written by Auth.tsx
-              // We'll use merge: true just in case a background process is writing it
-              setDoc(doc(db, 'users', firebaseUser.uid), newProfile, { merge: true }).catch(() => {});
-              setUser(newProfile);
+              // FOR NORMAL USERS:
+              // If the document is missing, DO NOT automatically create it here.
+              // This ensures that deleted users are forced to re-register.
+              setUser(null);
             }
           }
           setIsAuthReady(true);

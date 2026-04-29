@@ -243,27 +243,26 @@ const Logistics = () => {
               initial={{ opacity: 0, y: 100 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 100 }}
-              className="bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden"
+              className="bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden"
             >
-              <div className="p-4 sm:p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50 shrink-0">
+              <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-solar rounded-xl flex items-center justify-center shadow-lg shadow-solar/20">
                     <MapPin className="w-5 h-5 text-white" />
                   </div>
-                  <h2 className="text-lg sm:text-xl font-black text-carbon">
+                  <h2 className="text-xl font-black text-carbon">
                     {editingZone ? 'تعديل منطقة الشحن' : 'إضافة منطقة شحن جديدة'}
                   </h2>
                 </div>
                 <button 
                   onClick={() => setIsModalOpen(false)} 
-                  className="w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-sm text-gray-400 hover:text-gray-600 transition-all font-bold shrink-0"
+                  className="w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-sm text-gray-400 hover:text-gray-600 transition-all font-bold"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
-              <div className="overflow-y-auto no-scrollbar p-4 sm:p-6">
-                <form onSubmit={handleSubmit} className="space-y-5 sm:space-y-6">
+              <form onSubmit={handleSubmit} className="p-6 space-y-6">
                 <div className="space-y-4">
                   <FloatingInput
                     label="اسم المنطقة (مثال: المدن الرئيسية)"
@@ -372,7 +371,6 @@ const Logistics = () => {
                   </button>
                 </div>
               </form>
-              </div>
             </motion.div>
           </div>
         )}

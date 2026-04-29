@@ -396,8 +396,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       localStorage.setItem('admin_auth', 'true');
     }
 
-    // Still sync with remote document for role updates
-    unsubUser = onSnapshot(doc(db, 'users', firebaseUser.uid), (docSnap) => {
+    // Replace onSnapshot with getDoc for user profile
+    getDoc(doc(db, 'users', firebaseUser.uid)).then((docSnap) => {
       if (docSnap.exists()) {
             const userData = { ...docSnap.data(), uid: docSnap.id } as UserProfile;
              
@@ -573,19 +573,18 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const activeDb = adminAuth.currentUser ? adminDb : db;
     
     if (isAdmin) {
-      const unsubscribe = onSnapshot(collection(activeDb, 'products'), (snapshot) => {
+      getDocs(collection(activeDb, 'products')).then((snapshot) => {
         clearTimeout(loadingTimeout);
         const productsData = snapshot.docs.map(doc => ({ ...doc.data(), id: String(doc.id) })) as unknown as Product[];
         setProducts(productsData);
         localStorage.setItem('store_products', JSON.stringify(productsData));
         setIsLoading(false);
-      }, (error) => {
+      }).catch((error) => {
         clearTimeout(loadingTimeout);
         console.error('Products sync error:', error);
         setIsLoading(false);
       });
       return () => {
-        unsubscribe();
         clearTimeout(loadingTimeout);
       };
     } else {
@@ -647,21 +646,29 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       ? query(ordersRef) 
       : query(ordersRef, where('userId', '==', auth.currentUser?.uid || 'guest'));
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const ordersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as Order[];
-      const sortedOrders = ordersData.sort((a, b) => {
-        const dateA = new Date(a.date).getTime();
-        const dateB = new Date(b.date).getTime();
-        return dateB - dateA;
+    if (activeAdmin) {
+      // Use getDocs for Admins to avoid massive continuous read quota leaks
+      getDocs(query(ordersRef, orderBy('date', 'desc'), limit(50))).then((snapshot) => {
+        const ordersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as Order[];
+        setOrders(ordersData);
+        localStorage.setItem('store_orders', JSON.stringify(ordersData));
+      }).catch((error) => {
+        if (error.code === 'permission-denied') return;
+        console.error('Orders sync error:', error);
       });
-      setOrders(sortedOrders);
-      localStorage.setItem('store_orders', JSON.stringify(sortedOrders));
-    }, (error) => {
-      if (error.code === 'permission-denied') return;
-      console.error('Orders sync error:', error);
-      // Don't set global system error for orders to avoid blocking the whole app
-    });
-    return () => unsubscribe();
+      return () => {};
+    } else {
+      // Use getDocs instead of onSnapshot for normal users as well
+      getDocs(query(ordersRef, where('userId', '==', auth.currentUser?.uid || 'guest'), orderBy('date', 'desc'), limit(50))).then((snapshot) => {
+        const ordersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as Order[];
+        setOrders(ordersData);
+        localStorage.setItem('store_orders', JSON.stringify(ordersData));
+      }).catch((error) => {
+        if (error.code === 'permission-denied') return;
+        console.error('Orders sync error:', error);
+      });
+      return () => {};
+    }
   }, [user, adminUser]);
 
   // Sync Admin-only Data
@@ -678,123 +685,99 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    const unsubUsers = onSnapshot(collection(activeDb, 'users'), (snapshot) => {
-      // Just ensure we are still authenticated as an admin in general
-      const isAdmin = adminAuth.currentUser || (auth.currentUser && user?.role === 'admin');
-      if (!isAdmin) return;
+    // Use getDocs instead of onSnapshot for heavy admin collections to save 100% of continuous read costs
+    const fetchAdminData = async () => {
+      try {
+        const isCurrentAdmin = adminAuth.currentUser || (auth.currentUser && user?.role === 'admin');
+        if (!isCurrentAdmin) return;
+        const currentUid = auth.currentUser?.uid || adminAuth.currentUser?.uid;
 
-      const allUsersData = snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() })) as unknown as UserProfile[];
-      
-      // Separate Admins and Customers
-      const adminsList = allUsersData.filter(u => u.role === 'admin' || u.isAdmin === true).map(u => ({
-        id: u.uid,
-        name: u.displayName || u.name || '',
-        email: u.email || '',
-        phone: u.phone || '',
-        countryCode: u.countryCode || '+967',
-        role: u.adminRole || u.role || 'support',
-        isActive: (u as any).isActive ?? true,
-        permissions: u.permissions || [],
-        createdAt: u.createdAt
-      }));
-      const customersList = allUsersData.filter(u => u.role !== 'admin' && !u.isAdmin);
-      
-      setAdminUsers(adminsList as any); // Update admins state
-      setCustomers(customersList); // Update customers state
-      
-      localStorage.setItem('store_customers', JSON.stringify(customersList));
-      localStorage.setItem('app_users', JSON.stringify(customersList));
-      localStorage.setItem('admin_users_list', JSON.stringify(adminsList));
-    }, (error) => {
-      if (error.code === 'permission-denied') {
-        console.warn('Users sync permission denied - potentially role sync in progress');
-        return;
+        // Fetch Users once per load (Limited to prevent quota issues)
+        try {
+          const snapshot = await getDocs(query(collection(activeDb, 'users'), limit(50)));
+          const allUsersData = snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() })) as unknown as UserProfile[];
+          const adminsList = allUsersData.filter(u => u.role === 'admin' || u.isAdmin === true).map(u => ({
+            id: u.uid,
+            name: u.displayName || u.name || '',
+            email: u.email || '',
+            phone: u.phone || '',
+            countryCode: u.countryCode || '+967',
+            role: u.adminRole || u.role || 'support',
+            isActive: (u as any).isActive ?? true,
+            permissions: u.permissions || [],
+            createdAt: u.createdAt
+          }));
+          const customersList = allUsersData.filter(u => u.role !== 'admin' && !u.isAdmin);
+          setAdminUsers(adminsList as any);
+          setCustomers(customersList);
+          localStorage.setItem('store_customers', JSON.stringify(customersList));
+          localStorage.setItem('app_users', JSON.stringify(customersList));
+          localStorage.setItem('admin_users_list', JSON.stringify(adminsList));
+        } catch (error: any) {
+          if (error.code !== 'permission-denied') console.error(error);
+        }
+
+        // Fetch Logs
+        try {
+          const snapshot = await getDocs(query(collection(activeDb, 'activity_logs'), orderBy('date', 'desc'), limit(50)));
+          const logsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as ActivityLog[];
+          const sortedLogs = logsData.sort((a, b) => {
+            const dateA = (a.date as any)?.seconds ? (a.date as any).seconds : new Date(a.date).getTime();
+            const dateB = (b.date as any)?.seconds ? (b.date as any).seconds : new Date(b.date).getTime();
+            return dateB - dateA;
+          });
+          setActivityLogs(sortedLogs);
+          localStorage.setItem('store_activity_logs', JSON.stringify(sortedLogs));
+        } catch (error: any) {}
+
+        // Fetch Support Tickets
+        try {
+          const snapshot = await getDocs(query(collection(activeDb, 'support_tickets'), orderBy('createdAt', 'desc'), limit(50)));
+          const ticketsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as SupportTicket[];
+          setSupportTickets(ticketsData);
+          localStorage.setItem('store_tickets', JSON.stringify(ticketsData));
+        } catch (error: any) {}
+
+        // Fetch Visits
+        try {
+          const snapshot = await getDocs(query(collection(activeDb, 'visits'), orderBy('timestamp', 'desc'), limit(50)));
+          const visitsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as Visit[];
+          setVisits(visitsData);
+          localStorage.setItem('store_visits', JSON.stringify(visitsData));
+        } catch (error: any) {}
+
+        // Fetch Search Terms
+        try {
+          const snapshot = await getDocs(query(collection(activeDb, 'searchTerms'), orderBy('timestamp', 'desc'), limit(50)));
+          const termsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as SearchTerm[];
+          setSearchTerms(termsData);
+          localStorage.setItem('store_search_terms', JSON.stringify(termsData));
+        } catch (error: any) {}
+
+        // Fetch Abandoned Carts
+        try {
+          const snapshot = await getDocs(query(collection(activeDb, 'abandonedCarts'), orderBy('lastActive', 'desc'), limit(50)));
+          const cartsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as AbandonedCart[];
+          setAbandonedCarts(cartsData);
+          localStorage.setItem('store_abandoned_carts', JSON.stringify(cartsData));
+        } catch (error: any) {}
+
+        // Fetch Inventory Logs
+        try {
+          const snapshot = await getDocs(query(collection(activeDb, 'inventory_logs'), orderBy('date', 'desc'), limit(50)));
+          const logsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as InventoryLog[];
+          setInventoryLogs(logsData.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 1000));
+          localStorage.setItem('store_inventory_logs', JSON.stringify(logsData.slice(0, 500)));
+        } catch (error: any) {}
+
+      } catch (err) {
+        console.error("Admin data fetch error:", err);
       }
-      const hardcodedAdmins = ["samesaeed456@gmail.com", "samisaeed2027@gmail.com", "samisaeed2025@gmail.com"];
-      const isHardcodedAdmin = activeAdmin?.email && hardcodedAdmins.includes(activeAdmin.email);
-      if (!isHardcodedAdmin) handleFirestoreError(error, OperationType.LIST, 'users');
-    });
-
-    const unsubLogs = onSnapshot(query(collection(activeDb, 'activity_logs'), orderBy('date', 'desc'), limit(100)), (snapshot) => {
-      const currentUid = auth.currentUser?.uid || adminAuth.currentUser?.uid;
-      if (currentUid !== activeAdmin.uid || activeAdmin.role !== 'admin') return;
-      const logsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as ActivityLog[];
-      const sortedLogs = logsData.sort((a, b) => {
-        const dateA = (a.date as any)?.seconds ? (a.date as any).seconds : new Date(a.date).getTime();
-        const dateB = (b.date as any)?.seconds ? (b.date as any).seconds : new Date(b.date).getTime();
-        return dateB - dateA;
-      });
-      setActivityLogs(sortedLogs);
-      localStorage.setItem('store_activity_logs', JSON.stringify(sortedLogs));
-    }, (error) => {
-      if (error.code === 'permission-denied') return;
-      handleFirestoreError(error, OperationType.LIST, 'activity_logs');
-    });
-
-    const unsubTickets = onSnapshot(query(collection(activeDb, 'support_tickets'), orderBy('createdAt', 'desc'), limit(100)), (snapshot) => {
-      const currentUid = auth.currentUser?.uid || adminAuth.currentUser?.uid;
-      if (currentUid !== activeAdmin.uid || activeAdmin.role !== 'admin') return;
-      const ticketsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as SupportTicket[];
-      setSupportTickets(ticketsData);
-      localStorage.setItem('store_tickets', JSON.stringify(ticketsData));
-    }, (error) => {
-      if (error.code === 'permission-denied') return;
-      handleFirestoreError(error, OperationType.LIST, 'support_tickets');
-    });
-
-    const unsubVisits = onSnapshot(query(collection(activeDb, 'visits'), orderBy('timestamp', 'desc'), limit(200)), (snapshot) => {
-      const currentUid = auth.currentUser?.uid || adminAuth.currentUser?.uid;
-      if (currentUid !== activeAdmin.uid || activeAdmin.role !== 'admin') return;
-      const visitsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as Visit[];
-      setVisits(visitsData);
-      localStorage.setItem('store_visits', JSON.stringify(visitsData));
-    }, (error) => {
-      if (error.code === 'permission-denied') return;
-      handleFirestoreError(error, OperationType.LIST, 'visits');
-    });
-
-    const unsubSearchTerms = onSnapshot(query(collection(activeDb, 'searchTerms'), orderBy('timestamp', 'desc'), limit(200)), (snapshot) => {
-      const currentUid = auth.currentUser?.uid || adminAuth.currentUser?.uid;
-      if (currentUid !== activeAdmin.uid || activeAdmin.role !== 'admin') return;
-      const termsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as SearchTerm[];
-      setSearchTerms(termsData);
-      localStorage.setItem('store_search_terms', JSON.stringify(termsData));
-    }, (error) => {
-      if (error.code === 'permission-denied') return;
-      handleFirestoreError(error, OperationType.LIST, 'searchTerms');
-    });
-
-    const unsubAbandonedCarts = onSnapshot(query(collection(activeDb, 'abandonedCarts'), orderBy('lastActive', 'desc'), limit(100)), (snapshot) => {
-      const currentUid = auth.currentUser?.uid || adminAuth.currentUser?.uid;
-      if (currentUid !== activeAdmin.uid || activeAdmin.role !== 'admin') return;
-      const cartsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as AbandonedCart[];
-      setAbandonedCarts(cartsData);
-      localStorage.setItem('store_abandoned_carts', JSON.stringify(cartsData));
-    }, (error) => {
-      if (error.code === 'permission-denied') return;
-      handleFirestoreError(error, OperationType.LIST, 'abandonedCarts');
-    });
-
-    const unsubInventoryLogs = onSnapshot(query(collection(activeDb, 'inventory_logs'), orderBy('date', 'desc'), limit(100)), (snapshot) => {
-      const currentUid = auth.currentUser?.uid || adminAuth.currentUser?.uid;
-      if (currentUid !== activeAdmin.uid || activeAdmin.role !== 'admin') return;
-      const logsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as InventoryLog[];
-      setInventoryLogs(logsData.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 1000));
-      localStorage.setItem('store_inventory_logs', JSON.stringify(logsData.slice(0, 500)));
-    }, (error) => {
-      if (error.code === 'permission-denied') return;
-      handleFirestoreError(error, OperationType.LIST, 'inventory_logs');
-    });
-
-    return () => {
-      unsubUsers();
-      unsubLogs();
-      unsubTickets();
-      unsubVisits();
-      unsubSearchTerms();
-      unsubAbandonedCarts();
-      unsubInventoryLogs();
     };
+
+    fetchAdminData();
+    
+    return () => {};
   }, [user, adminUser, isAuthReady]);
 
   // Sync Public Data
@@ -816,14 +799,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       }
 
       if (isAdmin) {
-        return onSnapshot(collection(activeDb, colName), (snapshot) => {
+        // Use getDocs instead of onSnapshot for admin to save massive continuous read costs
+        try {
+          const snapshot = await getDocs(collection(activeDb, colName));
           const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
           setter(data);
           localStorage.setItem(storageKey, JSON.stringify(data));
           localStorage.setItem(`${storageKey}_time`, Date.now().toString());
-        }, (error) => {
-          console.error(`Error in onSnapshot for ${colName}:`, error);
-        });
+        } catch (error) {
+          console.error(`Error fetching ${colName}:`, error);
+        }
+        return () => {};
       } else {
         const cacheTime = localStorage.getItem(`${storageKey}_time`);
         
@@ -836,7 +822,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
           setter(data);
           localStorage.setItem(storageKey, JSON.stringify(data));
-          localStorage.setItem(`${storageKey}_time`, now.toString());
+          localStorage.setItem(`${storageKey}_time`, Date.now().toString());
         } catch (error) {
           console.error(`Error fetching ${colName}:`, error);
           if (cached) { try { setter(JSON.parse(cached)); } catch(e) {} }
@@ -864,13 +850,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       
       // Settings is a single document, not a collection
       if (isAdmin) {
-        unsubSettings = onSnapshot(doc(activeDb, 'settings', 'store'), (docSnap) => {
+        getDoc(doc(activeDb, 'settings', 'store')).then(docSnap => {
           if (docSnap.exists()) {
             const data = docSnap.data() as StoreSettings;
             setSettings(data);
             localStorage.setItem('store_settings', JSON.stringify(data));
           }
-        });
+        }).catch(e => console.error(e));
       } else {
         const cached = localStorage.getItem('store_settings');
         const cacheTime = localStorage.getItem('store_settings_time');
@@ -894,8 +880,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     
     setupSubscriptions();
     
-    let isInitialMarketingSync = true;
-    const unsubMarketingNotifs = onSnapshot(query(collection(activeDb, 'marketing_notifications'), orderBy('date', 'desc'), limit(50)), (snapshot) => {
+    // Use getDocs instead of onSnapshot for marketing notifications to prevent massive read quota drains across all connected users
+    getDocs(query(collection(activeDb, 'marketing_notifications'), orderBy('date', 'desc'), limit(50))).then((snapshot) => {
       // Filter notifications to only show what was created after the user registered
       const rawUser = localStorage.getItem('store_user');
       let userRegistrationTime = 0;
@@ -916,78 +902,77 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setMarketingNotifications(filteredData);
       localStorage.setItem('store_marketing_notifications', JSON.stringify(filteredData));
 
-      snapshot.docChanges().forEach(change => {
-        if (change.type === 'added') {
-          const docData = change.doc.data() as MarketingNotification;
+      // Process newly fetched notifications for the bell
+      snapshot.docs.forEach(docSnap => {
+        const docData = { id: docSnap.id, ...docSnap.data() } as MarketingNotification;
+        
+        // Apply same registration time filter for real-time notifications
+        if (userRegistrationTime > 0) {
+          const notifDate = new Date(docData.date || new Date().toISOString()).getTime();
+          if (notifDate < userRegistrationTime) return;
+        }
+
+        // Keep notifications from the last 7 days in the bell
+        const isRecent = new Date(docData.date || new Date().toISOString()).getTime() > Date.now() - (7 * 24 * 3600000);
+        
+        if (isRecent) {
+          // Only process notifications if the user is authenticated OR is a guest looking at the store
+          const currentUser = auth.currentUser;
+          const hasLocalUser = localStorage.getItem('store_user');
           
-          // Apply same registration time filter for real-time notifications
-          if (userRegistrationTime > 0) {
-            const notifDate = new Date(docData.date || new Date().toISOString()).getTime();
-            if (notifDate < userRegistrationTime) return;
+          // Allow notifications for everyone (including guests) unless specifically targeted
+          // Do not show marketing notifications to admins to avoid cluttering their dashboard
+          const isAdminPath = typeof window !== 'undefined' && window.location.pathname.startsWith('/admin');
+          const isAdminAuth = typeof window !== 'undefined' && window.localStorage.getItem('admin_auth') === 'true';
+          
+          let isUserAdmin = isAdminPath || isAdminAuth;
+          if (hasLocalUser && !isUserAdmin) {
+            try {
+              const localUser = JSON.parse(hasLocalUser);
+              if (localUser.role === 'admin') isUserAdmin = true;
+            } catch (e) {}
+          }
+          if (isUserAdmin) return;
+          
+          // If the notification targets a specific user, strictly ensure the current user matches
+          if (docData.target === 'specific_user') {
+            const currentUid = currentUser?.uid || (hasLocalUser ? JSON.parse(hasLocalUser).uid : null);
+            if (!currentUid) return; 
+            if (docData.targetUserId !== currentUid && docData.targetUserId !== currentUser?.phoneNumber) {
+              return; // Exclude, this is not meant for them
+            }
           }
 
-          // Keep notifications from the last 7 days in the bell
-          const isRecent = new Date(docData.date || new Date().toISOString()).getTime() > Date.now() - (7 * 24 * 3600000);
-          
-          if (isRecent) {
-            // Only process notifications if the user is authenticated OR is a guest looking at the store
-            const currentUser = auth.currentUser;
-            const hasLocalUser = localStorage.getItem('store_user');
+          // Prevent resurrecting deleted marketing notifications
+          const deletedIds = JSON.parse(localStorage.getItem('store_deleted_notif_ids') || '[]');
+          if (deletedIds.includes(docSnap.id)) return;
+
+          setNotifications(prev => {
+            // Prevent duplicates
+            if (prev.some(n => n.id === docSnap.id)) return prev;
             
-            // Allow notifications for everyone (including guests) unless specifically targeted
-            // Do not show marketing notifications to admins to avoid cluttering their dashboard
-            const isAdminPath = typeof window !== 'undefined' && window.location.pathname.startsWith('/admin');
-            const isAdminAuth = typeof window !== 'undefined' && window.localStorage.getItem('admin_auth') === 'true';
-            
-            let isUserAdmin = isAdminPath || isAdminAuth;
-            if (hasLocalUser && !isUserAdmin) {
-              try {
-                const localUser = JSON.parse(hasLocalUser);
-                if (localUser.role === 'admin') isUserAdmin = true;
-              } catch (e) {}
-            }
-            if (isUserAdmin) return;
-            
-            // If the notification targets a specific user, strictly ensure the current user matches
-            if (docData.target === 'specific_user') {
-              const currentUid = currentUser?.uid || (hasLocalUser ? JSON.parse(hasLocalUser).uid : null);
-              if (!currentUid) return; 
-              if (docData.targetUserId !== currentUid && docData.targetUserId !== currentUser?.phoneNumber) {
-                return; // Exclude, this is not meant for them
-              }
+            const appNotif: AppNotification = {
+              id: docSnap.id,
+              title: docData.title,
+              message: docData.message,
+              date: docData.date || new Date().toISOString(),
+              isRead: false,
+              type: 'sale'
+            };
+
+            // Show a pop-up toast if this is a truly new notification arriving in real-time
+            // OR if it was sent less than 2 minutes ago (so if the user just opened the app/tab to check)
+            const timeSinceSent = Date.now() - new Date(docData.date || new Date().toISOString()).getTime();
+            if (!isInitialMarketingSync || timeSinceSent < 120000) {
+              setTimeout(() => sonnerToast.success(`رسالة جديدة: ${docData.title}`, {
+                description: docData.message,
+                duration: 6000,
+                position: 'top-center'
+              }), 100);
             }
 
-            // Prevent resurrecting deleted marketing notifications
-            const deletedIds = JSON.parse(localStorage.getItem('store_deleted_notif_ids') || '[]');
-            if (deletedIds.includes(change.doc.id)) return;
-
-            setNotifications(prev => {
-              // Prevent duplicates
-              if (prev.some(n => n.id === change.doc.id)) return prev;
-              
-              const appNotif: AppNotification = {
-                id: change.doc.id,
-                title: docData.title,
-                message: docData.message,
-                date: docData.date || new Date().toISOString(),
-                isRead: false,
-                type: 'sale'
-              };
-
-              // Show a pop-up toast if this is a truly new notification arriving in real-time
-              // OR if it was sent less than 2 minutes ago (so if the user just opened the app/tab to check)
-              const timeSinceSent = Date.now() - new Date(docData.date || new Date().toISOString()).getTime();
-              if (!isInitialMarketingSync || timeSinceSent < 120000) {
-                setTimeout(() => sonnerToast.success(`رسالة جديدة: ${docData.title}`, {
-                  description: docData.message,
-                  duration: 6000,
-                  position: 'top-center'
-                }), 100);
-              }
-
-              return [appNotif, ...prev];
-            });
-          }
+            return [appNotif, ...prev];
+          });
         }
       });
       isInitialMarketingSync = false;
@@ -1000,8 +985,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       unsubPages();
       unsubZones();
       unsubBanners();
-      unsubSettings();
-      unsubMarketingNotifs();
     };
   }, [isAuthReady, user, adminAuth.currentUser]);
 
@@ -1589,27 +1572,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const trackSearch = React.useCallback(async (term: string, resultsCount: number) => {
     try {
-      const q = query(collection(db, 'searchTerms'), where('term', '==', term));
-      const snapshot = await getDocs(q);
+      if (!term || term.trim() === '') return;
       
-      if (snapshot && !snapshot.empty && snapshot.docs && snapshot.docs.length > 0) {
-        const docRef = snapshot.docs[0].ref;
-        const data = snapshot.docs[0].data();
-        await updateDoc(docRef, {
-          count: (data.count || 0) + 1,
-          resultsCount,
-          lastSearched: new Date().toISOString(),
-          updatedAt: serverTimestamp()
-        });
-      } else {
-        await addDoc(collection(db, 'searchTerms'), {
-          term,
-          count: 1,
-          resultsCount,
-          lastSearched: new Date().toISOString(),
-          createdAt: serverTimestamp()
-        });
-      }
+      const safeId = term.trim().toLowerCase().replace(/[^a-zA-Z0-9_\u0600-\u06FF]/g, '_').substring(0, 50);
+      if (!safeId) return;
+
+      const docRef = doc(db, 'searchTerms', safeId);
+      await setDoc(docRef, {
+        term: term.trim(),
+        count: increment(1),
+        resultsCount,
+        lastSearched: new Date().toISOString(),
+        updatedAt: serverTimestamp()
+      }, { merge: true });
     } catch (error) {
       console.error('Failed to track search:', error);
     }
@@ -1635,39 +1610,21 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         localStorage.setItem('store_visited_before', 'true');
       }
 
-      const ua = navigator.userAgent;
-      let browser = 'Other';
-      if (ua.includes('Chrome')) browser = 'Chrome';
-      else if (ua.includes('Safari')) browser = 'Safari';
-      else if (ua.includes('Firefox')) browser = 'Firefox';
-      else if (ua.includes('Edge')) browser = 'Edge';
-
-      let os = 'Other';
-      if (ua.includes('Windows')) os = 'Windows';
-      else if (ua.includes('Mac')) os = 'MacOS';
-      else if (ua.includes('Android')) os = 'Android';
-      else if (ua.includes('iPhone') || ua.includes('iPad')) os = 'iOS';
-
-      let device: 'mobile' | 'desktop' | 'tablet' = 'desktop';
-      if (/Mobi|Android/i.test(ua)) device = 'mobile';
-      else if (/Tablet|iPad/i.test(ua)) device = 'tablet';
-
-      const visitData = {
-        sessionId,
-        timestamp: new Date().toISOString(),
-        page,
-        referrer: document.referrer || 'Direct',
-        device,
-        browser,
-        os,
-        country: 'اليمن',
-        city: 'صنعاء',
-        duration: 0,
-        isUnique,
-        createdAt: serverTimestamp()
+      // Optimize Analytics: use aggregated document with increment counters instead of individual documents to massively reduce writes
+      const today = new Date().toISOString().split('T')[0];
+      const statsRef = doc(db, 'statistics', `daily_${today}`);
+      
+      const updateData: any = {
+        totalVisits: increment(1),
+        lastUpdated: serverTimestamp()
       };
+      
+      if (isUnique) {
+        updateData.uniqueVisitors = increment(1);
+      }
 
-      await addDoc(collection(db, 'visits'), visitData);
+      // We use setDoc with merge: true to create or update the daily document efficiently
+      await setDoc(statsRef, updateData, { merge: true });
     } catch (error) {
       console.error('Failed to track visit:', error);
     }

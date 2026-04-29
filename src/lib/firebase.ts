@@ -17,7 +17,8 @@ import {
   reauthenticateWithCredential,
   setPersistence,
   inMemoryPersistence,
-  browserSessionPersistence
+  browserSessionPersistence,
+  browserLocalPersistence
 } from 'firebase/auth';
 import { initializeFirestore, getFirestore, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc, collection, query, where, limit, orderBy, onSnapshot, serverTimestamp, increment, getDocFromServer, enableIndexedDbPersistence, writeBatch, runTransaction } from 'firebase/firestore';
 import firebaseConfigJson from '../../firebase-applet-config.json';
@@ -53,7 +54,6 @@ export const adminAuth = getAuth(adminApp);
 
 // Use local persistence for both auth instances to ensure they stay active across tabs and restarts
 if (typeof window !== 'undefined') {
-  const { browserLocalPersistence } = await import('firebase/auth');
   setPersistence(adminAuth, browserLocalPersistence).catch((err) => {
     console.warn('Failed to set adminAuth persistence:', err);
   });

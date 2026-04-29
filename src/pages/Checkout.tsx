@@ -37,6 +37,7 @@ export default function Checkout() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [orderComplete, setOrderComplete] = useState(false);
   const [lastOrderId, setLastOrderId] = useState('');
+  const [orderedItems, setOrderedItems] = useState<typeof cart>([]);
   const [paymentMethod, setPaymentMethod] = useState<string>('');
   const [shippingMethod, setShippingMethod] = useState<'delivery' | 'pickup'>('delivery');
   const [formErrors, setFormErrors] = useState(false);
@@ -287,6 +288,7 @@ export default function Checkout() {
     const paymentProof = selectedPaymentMethod?.requiresProof ? formData.paymentProof : undefined;
     
     try {
+      setOrderedItems([...cart]);
       const newOrderId = await placeOrder(
         methodLabel, 
         shippingMethod, 
@@ -466,7 +468,7 @@ export default function Checkout() {
 
         <motion.div 
           variants={itemVariants}
-          className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex items-center justify-between gap-4 mb-8 w-full max-w-sm"
+          className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex items-center justify-between gap-4 mb-4 w-full max-w-sm"
         >
           <div className="text-right">
             <div className="text-[10px] text-titanium/40 font-bold mb-1">رقم الطلب</div>
@@ -482,6 +484,45 @@ export default function Checkout() {
           >
             <Copy className="w-5 h-5" />
           </button>
+        </motion.div>
+
+        {/* Order Items Summary in Success Screen */}
+        <motion.div 
+          variants={itemVariants}
+          className="w-full max-w-md bg-white border border-slate-100 rounded-3xl p-6 mb-8 text-right shadow-sm"
+        >
+          <h3 className="text-sm font-black text-carbon mb-4 border-b border-slate-50 pb-2">تفاصيل المنتجات</h3>
+          <div className="space-y-4 max-h-[240px] overflow-y-auto pr-2 custom-scrollbar">
+            {orderedItems.map((item, idx) => (
+              <div key={idx} className="flex gap-4 items-start">
+                <div className="w-14 h-14 rounded-xl bg-slate-50 border border-slate-100 overflow-hidden shrink-0">
+                  <img src={item.product?.image} alt="" className="w-full h-full object-cover" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-black text-carbon truncate">{item.product?.name}</p>
+                  <div className="flex flex-wrap items-center gap-2 mt-1">
+                    <span className="text-[10px] text-titanium/40 font-bold">الكمية: {item.quantity}</span>
+                    {item.selectedColor && (
+                      <span className="text-[9px] font-bold text-slate-500 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100">
+                        اللون: {item.selectedColor}
+                      </span>
+                    )}
+                    {item.selectedSize && (
+                      <span className="text-[9px] font-bold text-slate-500 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100">
+                        المقاس: {item.selectedSize}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="mt-4 pt-4 border-t border-slate-50 flex justify-between items-center">
+            <span className="text-xs font-bold text-titanium/40">إجمالي المبلغ</span>
+            <div className="text-lg font-black text-solar">
+              <PriceDisplay price={total} />
+            </div>
+          </div>
         </motion.div>
 
         <motion.div 
@@ -583,8 +624,25 @@ export default function Checkout() {
                       <img src={item.product?.image || undefined} alt={item.product?.name || 'محذوف'} className="w-12 h-12 rounded-lg object-cover border border-slate-100" />
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-bold text-carbon truncate">{item.product?.name || 'منتج محذوف'}</p>
-                        <div className="text-[10px] text-titanium/40 flex items-center gap-1">
-                          الكمية: {item.quantity} • <PriceDisplay price={(item.product?.price || 0) * item.quantity} numberClassName="text-slate-900/60" currencyClassName="text-slate-900/40" />
+                        <div className="text-[10px] text-titanium/40 flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5">
+                          <span>الكمية: {item.quantity}</span>
+                          {(item.selectedColor || item.selectedSize) && (
+                            <span className="text-slate-400">•</span>
+                          )}
+                          {item.selectedColor && (
+                            <span className="flex items-center gap-1 bg-slate-100 px-1.5 rounded">
+                              <span className="opacity-60">اللون:</span>
+                              <span>{item.selectedColor}</span>
+                            </span>
+                          )}
+                          {item.selectedSize && (
+                            <span className="flex items-center gap-1 bg-slate-100 px-1.5 rounded">
+                              <span className="opacity-60">المقاس:</span>
+                              <span>{item.selectedSize}</span>
+                            </span>
+                          )}
+                          <span className="text-slate-400">•</span>
+                          <PriceDisplay price={(item.product?.price || 0) * item.quantity} numberClassName="text-slate-900/60" currencyClassName="text-slate-900/40" />
                         </div>
                       </div>
                     </div>
@@ -1432,9 +1490,19 @@ export default function Checkout() {
                       <div key={item.id} className="bg-slate-50 p-4 sm:p-5 rounded-2xl border border-slate-100 flex items-center justify-between">
                         <div className="text-right">
                           <p className="text-sm sm:text-base font-bold text-carbon mb-1">{item.product?.name || 'منتج غير متوفر حالياً'}</p>
-                          <p className="text-xs sm:text-sm text-titanium/80">
-                            الكمية: {item.quantity}
-                          </p>
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
+                            <span className="text-xs sm:text-sm text-titanium/80 font-bold">الكمية: {item.quantity}</span>
+                            {item.selectedColor && (
+                              <span className="text-[10px] sm:text-xs font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-lg border border-slate-200">
+                                اللون: <span className="text-carbon">{item.selectedColor}</span>
+                              </span>
+                            )}
+                            {item.selectedSize && (
+                              <span className="text-[10px] sm:text-xs font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-lg border border-slate-200">
+                                المقاس: <span className="text-carbon">{item.selectedSize}</span>
+                              </span>
+                            )}
+                          </div>
                         </div>
                         <div className="text-left shrink-0">
                           <PriceDisplay price={(item.product?.price || 0) * item.quantity} numberClassName="text-sm sm:text-base font-bold text-carbon" currencyClassName="text-xs sm:text-sm text-carbon/80" />
@@ -1499,8 +1567,20 @@ export default function Checkout() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <h4 className="text-sm font-bold text-carbon truncate group-hover:text-slate-900 transition-colors">{item.product?.name || 'منتج غير متوفر حالياً'}</h4>
-                    <div className="flex items-center justify-between mt-1">
-                      <span className="text-xs text-titanium/40 font-bold">الكمية: {item.quantity}</span>
+                    <div className="flex flex-wrap items-center gap-2 mt-1">
+                      <span className="text-[10px] text-titanium/40 font-bold">الكمية: {item.quantity}</span>
+                      {item.selectedColor && (
+                        <span className="text-[9px] font-bold text-slate-500 px-1.5 py-0.5 bg-slate-50 rounded border border-slate-100">
+                          {item.selectedColor}
+                        </span>
+                      )}
+                      {item.selectedSize && (
+                        <span className="text-[9px] font-bold text-slate-500 px-1.5 py-0.5 bg-slate-50 rounded border border-slate-100">
+                          {item.selectedSize}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex justify-end mt-1">
                       <span className="text-sm font-bold"><PriceDisplay price={(item.product?.price || 0) * item.quantity} /></span>
                     </div>
                   </div>

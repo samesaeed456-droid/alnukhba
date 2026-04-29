@@ -409,18 +409,22 @@ export default function TrackOrder() {
                                           <p className="font-bold text-carbon text-sm">{itemName}</p>
                                           <div className="flex items-center gap-3 mt-1">
                                             {(item.selectedColor || item.color) && (
-                                              <div className="flex items-center gap-1.5">
-                                                <div 
-                                                  className="w-2.5 h-2.5 rounded-full border border-bg-hover shadow-sm"
-                                                  style={{ backgroundColor: item.selectedColor || item.color }}
-                                                />
-                                                <span className="text-[10px] sm:text-xs text-slate-400">اللون</span>
+                                              <div className="flex items-center gap-1.5 px-2 py-0.5 bg-bg-section rounded-lg border border-bg-hover">
+                                                {item.color && item.color.startsWith('#') && (
+                                                  <div 
+                                                    className="w-2.5 h-2.5 rounded-full border border-bg-hover shadow-sm"
+                                                    style={{ backgroundColor: item.color }}
+                                                  />
+                                                )}
+                                                <span className="text-[10px] sm:text-xs font-black text-carbon">
+                                                  {item.selectedColor || 'اللون'}
+                                                </span>
                                               </div>
                                             )}
                                             {item.selectedSize && (
-                                              <div className="flex items-center gap-1.5 border-r border-bg-hover pr-3">
+                                              <div className="flex items-center gap-1.5 px-2 py-0.5 bg-bg-section rounded-lg border border-bg-hover">
                                                 <span className="text-[10px] sm:text-xs font-black text-solar">{item.selectedSize}</span>
-                                                <span className="text-[10px] sm:text-xs text-slate-400">المقاس</span>
+                                                <span className="text-[10px] sm:text-xs font-bold text-slate-400">المقاس</span>
                                               </div>
                                             )}
                                           </div>
@@ -453,16 +457,20 @@ export default function TrackOrder() {
                                    <p className="text-xs font-bold text-carbon truncate">{itemName}</p>
                                    <div className="flex flex-wrap items-center justify-end gap-x-2 gap-y-1 mt-1">
                                      {(item.selectedColor || item.color) && (
-                                       <div className="flex items-center gap-1">
-                                         <div 
-                                           className="w-2 h-2 rounded-full border border-bg-hover"
-                                           style={{ backgroundColor: item.selectedColor || item.color }}
-                                         />
-                                         <span className="text-[9px] text-slate-400">اللون</span>
+                                       <div className="flex items-center gap-1 bg-white px-1.5 py-0.5 rounded-md border border-bg-hover">
+                                         {item.color && item.color.startsWith('#') && (
+                                           <div 
+                                             className="w-2 h-2 rounded-full border border-bg-hover"
+                                             style={{ backgroundColor: item.color }}
+                                           />
+                                         )}
+                                         <span className="text-[9px] font-black text-carbon">
+                                           {item.selectedColor || 'اللون'}
+                                         </span>
                                        </div>
                                      )}
                                      {item.selectedSize && (
-                                       <div className="flex items-center gap-1 border-r border-bg-hover pr-2">
+                                       <div className="flex items-center gap-1 bg-white px-1.5 py-0.5 rounded-md border border-bg-hover">
                                          <span className="text-[9px] font-black text-solar">{item.selectedSize}</span>
                                          <span className="text-[9px] text-slate-400">المقاس</span>
                                        </div>

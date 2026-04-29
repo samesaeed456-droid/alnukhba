@@ -1155,16 +1155,20 @@ export default function Orders() {
                                     </div>
                                     <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mb-1">
                                       {(item.selectedColor || item.color) && (
-                                        <div className="flex items-center gap-1">
-                                          <div 
-                                            className="w-2 sm:w-2.5 h-2 sm:h-2.5 rounded-full border border-bg-hover"
-                                            style={{ backgroundColor: item.selectedColor || item.color }}
-                                          />
-                                          <span className="text-[9px] sm:text-[10px] font-bold text-slate-400">اللون</span>
+                                        <div className="flex items-center gap-1 bg-slate-50 px-2 py-0.5 rounded-lg border border-bg-hover">
+                                          {item.color && item.color.startsWith('#') && (
+                                            <div 
+                                              className="w-2 sm:w-2.5 h-2 sm:h-2.5 rounded-full border border-bg-hover"
+                                              style={{ backgroundColor: item.color }}
+                                            />
+                                          )}
+                                          <span className="text-[9px] sm:text-[10px] font-black text-carbon">
+                                            {item.selectedColor || 'اللون'}
+                                          </span>
                                         </div>
                                       )}
                                       {item.selectedSize && (
-                                        <div className="flex items-center gap-1 border-r border-bg-hover pr-2">
+                                        <div className="flex items-center gap-1 bg-slate-50 px-2 py-0.5 rounded-lg border border-bg-hover">
                                           <span className="text-[9px] sm:text-[10px] font-black text-solar">{item.selectedSize}</span>
                                           <span className="text-[9px] sm:text-[10px] font-bold text-slate-400">المقاس</span>
                                         </div>

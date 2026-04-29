@@ -552,21 +552,6 @@ export default function Orders() {
                       <Eye className="w-4 h-4" />
                       التفاصيل
                     </motion.button>
-                    {order.paymentProof && (
-                      <motion.button 
-                        whileHover={{ scale: 1.05, backgroundColor: '#FCD34D', color: '#000' }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setCurrentImage(order.paymentProof || null);
-                          setIsImageModalOpen(true);
-                        }}
-                        className="w-14 h-14 bg-white border border-bg-hover rounded-2xl flex items-center justify-center text-emerald-500 transition-all shadow-sm"
-                        title="مشاهدة سند الدفع"
-                      >
-                        <ShieldCheck className="w-6 h-6" />
-                      </motion.button>
-                    )}
                     <motion.button 
                       whileHover={{ scale: 1.05, backgroundColor: '#EF4444', color: '#fff' }}
                       whileTap={{ scale: 0.85 }}
@@ -1207,22 +1192,7 @@ export default function Orders() {
                         {/* Order Summary Card */}
                         <div className="bg-carbon rounded-[24px] sm:rounded-[40px] p-5 sm:p-10 text-white shadow-2xl shadow-carbon/30 relative overflow-hidden">
                           <div className="absolute top-0 right-0 w-32 h-32 bg-solar/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-                          <div className="relative z-10">
-                            {selectedOrder.paymentProof && (
-                              <motion.button
-                                whileHover={{ scale: 1.02 }}
-                                whileTap={{ scale: 0.98 }}
-                                onClick={() => {
-                                  setCurrentImage(selectedOrder.paymentProof || null);
-                                  setIsImageModalOpen(true);
-                                }}
-                                className="mb-6 w-full py-3 bg-white/10 hover:bg-white/20 border border-white/10 rounded-xl flex items-center justify-center gap-2 text-xs font-black text-solar transition-all"
-                              >
-                                <ShieldCheck className="w-4 h-4" />
-                                عرض سند الدفع المرفق
-                              </motion.button>
-                            )}
-                            <div className="space-y-3 sm:space-y-6">
+                          <div className="relative z-10 space-y-3 sm:space-y-6">
                             <div className="flex justify-between items-center text-[11px] sm:text-sm">
                               <span className="text-slate-400 font-bold">المجموع الفرعي</span>
                               <span>{renderPrice(selectedOrder.subtotal, "font-black")}</span>
@@ -1257,8 +1227,7 @@ export default function Orders() {
                           </div>
                         </div>
                       </div>
-                    </div>
-                  )}
+                    )}
 
                     {activeModalTab === 'customer' && (
                       /* Customer Card */
@@ -1315,7 +1284,19 @@ export default function Orders() {
                                 <ShieldCheck className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
                               </div>
                               <div className="flex-1">
-                                <div className="text-[8px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 sm:mb-2">سند الدفع</div>
+                                <div className="flex items-center justify-between mb-1.5 sm:mb-2">
+                                  <div className="text-[8px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">سند الدفع</div>
+                                  <button 
+                                    onClick={() => {
+                                      setCurrentImage(selectedOrder.paymentProof || null);
+                                      setIsImageModalOpen(true);
+                                    }}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-solar/10 text-solar rounded-lg text-[9px] sm:text-[10px] font-black hover:bg-solar hover:text-carbon transition-all border border-solar/20 shadow-sm"
+                                  >
+                                    <Eye className="w-3.5 h-3.5" />
+                                    مشاهدة السند
+                                  </button>
+                                </div>
                                 <div className="relative group cursor-zoom-in rounded-xl sm:rounded-2xl overflow-hidden border border-bg-hover shadow-sm">
                                   <img 
                                     src={selectedOrder.paymentProof || undefined} 

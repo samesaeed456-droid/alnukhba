@@ -582,6 +582,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       }).catch((error) => {
         clearTimeout(loadingTimeout);
         console.error('Products sync error:', error);
+        const cached = localStorage.getItem('store_products');
+        if (cached) {
+          try { setProducts(JSON.parse(cached)); } catch(e){}
+        } else {
+          setProducts(initialProducts); // Fallback to avoid empty store on quota exceeded
+        }
         setIsLoading(false);
       });
       return () => {
@@ -620,6 +626,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           console.error('Products fetch error:', error);
           if (cached) {
             try { setProducts(JSON.parse(cached)); } catch(e){}
+          } else {
+            setProducts(initialProducts); // Fallback to avoid empty store on quota exceeded
           }
           setIsLoading(false);
         });

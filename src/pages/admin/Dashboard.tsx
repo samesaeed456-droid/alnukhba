@@ -408,8 +408,15 @@ export default function Dashboard() {
         </div>
         <div className="flex -space-x-3 rtl:space-x-reverse">
           {customers.slice(0, 4).map((c, i) => (
-            <div key={i} className="w-10 h-10 rounded-full border-4 border-white bg-slate-100 overflow-hidden shadow-sm">
-              <img src={c.avatar || `https://picsum.photos/seed/${c.phone}/100/100`} alt="User" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+            <div key={i} className="w-10 h-10 rounded-full border-4 border-white bg-slate-100 overflow-hidden shadow-sm flex items-center justify-center text-[10px] font-black text-slate-400">
+              {(() => {
+                const img = c.avatar || c.photoURL;
+                const isPlaceholder = img && (img.includes('ui-avatars.com') || img.includes('dicebear.com'));
+                if (img && !isPlaceholder) {
+                  return <img src={img} alt="User" className="w-full h-full object-cover" referrerPolicy="no-referrer" />;
+                }
+                return (c.name || c.displayName || c.phone || '?').charAt(0).toUpperCase();
+              })()}
             </div>
           ))}
           {customers.length > 4 && (

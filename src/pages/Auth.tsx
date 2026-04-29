@@ -440,7 +440,6 @@ export default function Auth() {
         const email = getDummyEmail(formData.countryCode, cleanPhone);
         const currentSessionId = localStorage.getItem('local_session_id');
 
-        const photoURL = `https://ui-avatars.com/api/?name=${encodeURIComponent(formData.name)}&background=random`;
         const newUserObj: any = {
           uid: auth.currentUser.uid,
           email: email,
@@ -448,7 +447,7 @@ export default function Auth() {
           displayName: formData.name,
           phone: cleanPhone,
           countryCode: formData.countryCode,
-          photoURL,
+          photoURL: null,
           role: 'customer',
           walletBalance: 0,
           currentSessionId: currentSessionId,

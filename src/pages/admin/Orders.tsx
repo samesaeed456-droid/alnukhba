@@ -17,8 +17,33 @@ import { notificationService } from '../../services/notificationService';
 import { FloatingInput } from '../../components/FloatingInput';
 
 export default function Orders() {
-  const { orders, products, updateOrderStatus, deleteOrder, formatPrice, showToast, logActivity } = useStore();
+  const { orders, products, customers, updateOrderStatus, deleteOrder, formatPrice, showToast, logActivity } = useStore();
   
+  const getCustomerImage = (order: Order) => {
+    // 1. Try to find customer from current customers list to get most recent image
+    const customer = customers.find(c => 
+      (c.uid && c.uid === order.userId) || 
+      (c.phone && c.phone === order.customerPhone)
+    );
+    
+    // 2. Prefer customer's latest avatar/photoURL if it's not a placeholder
+    if (customer) {
+      const img = customer.avatar || customer.photoURL;
+      if (img && !img.includes('ui-avatars.com') && !img.includes('dicebear.com')) {
+        return img;
+      }
+    }
+    
+    // 3. Fallback to order's recorded image if it's not a placeholder
+    const orderImg = order.customerImage;
+    if (orderImg && !orderImg.includes('ui-avatars.com') && !orderImg.includes('dicebear.com')) {
+      return orderImg;
+    }
+    
+    // 4. Default to initials/dicebear
+    return `https://api.dicebear.com/7.x/avataaars/svg?seed=${order.customerName || order.id}`;
+  };
+
   const renderPrice = (price: number, className?: string) => {
     const formatted = formatPrice(price);
     const lastSpaceIndex = formatted.lastIndexOf(' ');
@@ -476,7 +501,7 @@ export default function Orders() {
                   <div className="flex items-center gap-4 mb-8 relative z-10">
                     <div className="w-16 h-16 rounded-[24px] bg-bg-general overflow-hidden border-2 border-white shadow-xl group-hover:scale-110 transition-transform duration-500">
                       <img 
-                        src={order.customerImage || `https://api.dicebear.com/7.x/avataaars/svg?seed=${order.customerName || order.id}`} 
+                        src={getCustomerImage(order)} 
                         alt="Customer" 
                         className="w-full h-full object-cover"
                       />
@@ -1210,7 +1235,7 @@ export default function Orders() {
                         <div className="flex items-center gap-3 sm:gap-5 mb-5 sm:mb-8">
                           <div className="w-12 h-12 sm:w-20 sm:h-20 rounded-[14px] sm:rounded-[24px] bg-bg-general border border-bg-hover overflow-hidden shadow-inner shrink-0 flex items-center justify-center">
                             <img 
-                              src={selectedOrder.customerImage || `https://api.dicebear.com/7.x/avataaars/svg?seed=${selectedOrder.customerName}`} 
+                              src={getCustomerImage(selectedOrder)} 
                               alt={selectedOrder.customerName} 
                               className="w-full h-full object-cover" 
                             />

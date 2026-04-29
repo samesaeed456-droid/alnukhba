@@ -455,11 +455,14 @@ export default function Header({
                   )}
                   <FastLink to={user ? "/profile" : "/auth"} state={{ from: location.pathname + location.search }} prefetchPage={user ? 'Profile' : 'Auth'} className="relative p-1 text-white/70 hover:text-white hover:bg-white/10 rounded-xl transition-all group" title="حسابي">
                     <div className="w-8 h-8 rounded-full overflow-hidden border border-white/10 flex items-center justify-center bg-white/5 group-hover:scale-110 transition-transform">
-                      {user?.photoURL ? (
-                        <img src={user.photoURL || undefined} alt={user.displayName} className="w-full h-full object-cover" />
-                      ) : (
-                        <User className="w-4 h-4" />
-                      )}
+                      {(() => {
+                        const img = user?.avatar || user?.photoURL;
+                        const isPlaceholder = img && (img.includes('ui-avatars.com') || img.includes('dicebear.com'));
+                        if (img && !isPlaceholder) {
+                          return <img src={img} alt={user?.displayName || 'User'} className="w-full h-full object-cover" />;
+                        }
+                        return <User className="w-4 h-4" />;
+                      })()}
                     </div>
                   </FastLink>
                 </div>

@@ -1023,11 +1023,14 @@ export default function Profile() {
             <motion.div variants={itemVariants} className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 mb-4 flex items-center gap-4">
               <div className="relative group/avatar shrink-0">
                 <div className="w-12 h-12 sm:w-16 sm:h-16 bg-slate-50 rounded-full flex items-center justify-center border border-slate-100 overflow-hidden shadow-inner">
-                  {user.avatar ? (
-                    <img src={user.avatar || undefined} alt={user.name} className="w-full h-full object-cover" />
-                  ) : (
-                    <User className="w-6 h-6 sm:w-8 sm:h-8 text-slate-300" />
-                  )}
+                  {(() => {
+                    const img = user.avatar || user.photoURL;
+                    const isPlaceholder = img && (img.includes('ui-avatars.com') || img.includes('dicebear.com'));
+                    if (img && !isPlaceholder) {
+                      return <img src={img} alt={user.name} className="w-full h-full object-cover" />;
+                    }
+                    return <User className="w-6 h-6 sm:w-8 sm:h-8 text-slate-300" />;
+                  })()}
                 </div>
                 <label className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full opacity-0 group-hover/avatar:opacity-100 transition-all cursor-pointer backdrop-blur-[2px]">
                   <Camera className="w-5 h-5 text-white" />

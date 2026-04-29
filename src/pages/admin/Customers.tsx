@@ -234,7 +234,7 @@ export default function Customers() {
       phone: cleanPhone,
       password: newCustomer.password,
       address: `${newCustomer.city}, ${newCustomer.address}`,
-      photoURL: `https://ui-avatars.com/api/?name=${encodeURIComponent(newCustomer.name)}&background=random`,
+      photoURL: null,
       walletBalance: Number(newCustomer.balance) || 0,
       joinDate: new Date().toISOString(),
       orderCount: 0,
@@ -639,9 +639,14 @@ export default function Customers() {
                   {/* Customer Info */}
                   <div className="flex items-center gap-4 mb-6 relative z-10">
                     <div className="w-16 h-16 rounded-[24px] bg-bg-general overflow-hidden border-2 border-white shadow-xl group-hover:scale-110 transition-transform duration-500 flex items-center justify-center text-2xl font-black text-slate-400 relative">
-                      {customer.avatar ? (
-                        <img src={customer.avatar || undefined} alt={customer.name || customer.displayName} className="w-full h-full object-cover absolute inset-0 z-10" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-                      ) : null}
+                      {(() => {
+                        const img = customer.avatar || customer.photoURL;
+                        const isPlaceholder = img && (img.includes('ui-avatars.com') || img.includes('dicebear.com'));
+                        if (img && !isPlaceholder) {
+                          return <img src={img} alt={customer.name || customer.displayName} className="w-full h-full object-cover absolute inset-0 z-10" />;
+                        }
+                        return null;
+                      })()}
                       <span className="relative z-0">{(customer.name || customer.displayName || customer.phone || '?').charAt(0).toUpperCase()}</span>
                     </div>
                     <div className="flex-1 min-w-0">

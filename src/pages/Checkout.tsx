@@ -11,6 +11,8 @@ import ConfirmationModal from '../components/ConfirmationModal';
 import PriceDisplay from '../components/PriceDisplay';
 import { FloatingInput } from '../components/FloatingInput';
 
+import { YEMEN_CITIES } from '../constants';
+
 export default function Checkout() {
   const { cart, placeOrder, discount, applyDiscountCode, formatPrice, removeDiscount, showToast, user, updateUser, language, settings, shippingZones } = useStore();
   const navigate = useNavigate();
@@ -21,7 +23,7 @@ export default function Checkout() {
       return Array.from(new Set(zoneCities)).sort();
     }
     // Fallback if no shipping zones are defined
-    return ['صنعاء', 'عدن', 'تعز', 'الحديدة', 'إب', 'ذمار', 'المكلا', 'حجة', 'صعدة', 'البيضاء', 'مأرب', 'عمران', 'الجوف', 'المهرة', 'سقطرى', 'شبوة', 'أبين', 'لحج', 'الضالع', 'ريمة', 'المحويت'].sort();
+    return [...YEMEN_CITIES].sort();
   }, [shippingZones]);
 
   useEffect(() => {

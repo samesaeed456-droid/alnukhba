@@ -577,37 +577,55 @@ export default function TrackOrder() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md"
+              className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-md overflow-hidden"
               onClick={() => setIsZoomed(false)}
             >
-              <div className="relative max-w-5xl w-full h-full flex items-center justify-center py-10">
-                <div className="absolute top-0 right-0 flex gap-2 z-[110]">
-                  <a 
-                    href={trackedOrder.paymentProof} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="p-3 text-white hover:bg-white/10 rounded-full transition-colors flex items-center gap-2 font-bold text-sm"
-                    title="فتح في نافذة جديدة"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <ExternalLink className="w-6 h-6" />
-                  </a>
-                  <button 
-                    onClick={() => setIsZoomed(false)}
-                    className="p-3 text-white hover:bg-white/10 rounded-full transition-colors"
-                  >
-                    <X className="w-8 h-8" />
-                  </button>
-                </div>
-                <motion.img 
+              <div className="absolute top-6 right-6 z-[110] flex gap-3">
+                <a 
+                  href={trackedOrder.paymentProof} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="p-3 bg-white/10 text-white hover:bg-white/20 rounded-2xl transition-all backdrop-blur-md border border-white/10 flex items-center gap-2 font-bold text-xs"
+                  title="فتح في نافذة جديدة"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <ExternalLink className="w-5 h-5" />
+                  <span className="hidden sm:inline">فتح في نافذة جديدة</span>
+                </a>
+                <button 
+                  onClick={() => setIsZoomed(false)}
+                  className="p-3 bg-white/10 text-white hover:bg-white/20 rounded-2xl transition-all backdrop-blur-md border border-white/10 flex items-center gap-2 font-bold text-xs"
+                >
+                  <X className="w-6 h-6" />
+                  <span>إغلاق</span>
+                </button>
+              </div>
+
+              <div className="w-full h-full overflow-y-auto p-4 sm:p-12 no-scrollbar flex flex-col items-center">
+                <motion.div
                   initial={{ scale: 0.9, y: 20 }}
                   animate={{ scale: 1, y: 0 }}
                   exit={{ scale: 0.9, y: 20 }}
-                  src={trackedOrder.paymentProof} 
-                  alt="سند التحويل مكبر" 
-                  className="max-w-full max-h-full object-contain shadow-2xl rounded-lg"
+                  className="relative max-w-4xl w-full my-auto"
                   onClick={(e) => e.stopPropagation()}
-                />
+                >
+                  <img 
+                    src={trackedOrder.paymentProof} 
+                    alt="سند التحويل مكبر" 
+                    className="w-full h-auto object-contain shadow-2xl rounded-2xl border border-white/10"
+                  />
+                  
+                  {/* Floating visible bottom close button for mobile/long images */}
+                  <div className="mt-8 flex justify-center sticky bottom-6 z-[120]">
+                    <button
+                      onClick={() => setIsZoomed(false)}
+                      className="px-10 py-4 bg-solar text-carbon rounded-full font-black text-lg shadow-2xl shadow-solar/40 flex items-center gap-3 active:scale-95 transition-transform border-4 border-white/20"
+                    >
+                      <X className="w-6 h-6" />
+                      <span>إغلاق السند</span>
+                    </button>
+                  </div>
+                </motion.div>
               </div>
             </motion.div>
           )}

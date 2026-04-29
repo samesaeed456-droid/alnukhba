@@ -1710,14 +1710,20 @@ export default function Profile() {
                   </div>
 
                   <div className="space-y-2">
-                    <FloatingInput 
-                      label="العنوان الوطني"
-                      type="text" 
-                      value={formData.address}
-                      onChange={(e) => setFormData({...formData, address: e.target.value})}
-                      bgClass="bg-slate-50"
-                      icon={<MapPin className="w-5 h-5" />}
-                    />
+                    <label className="text-xs font-bold text-titanium/80 mr-1">المدينة</label>
+                    <div className="relative group/select">
+                      <select 
+                        value={formData.address}
+                        onChange={(e) => setFormData({...formData, address: e.target.value})}
+                        className="w-full h-14 px-5 rounded-2xl border border-slate-100 bg-slate-50 focus:ring-4 focus:ring-slate-900/10 focus:bg-white focus:border-slate-900 outline-none transition-all duration-300 appearance-none font-bold text-carbon"
+                      >
+                        {allCities.map(city => (
+                          <option key={city} value={city}>{city}</option>
+                        ))}
+                      </select>
+                      <ChevronDown className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none group-hover/select:text-carbon transition-colors" />
+                      <MapPin className="w-5 h-5 absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                    </div>
                   </div>
                 </div>
 

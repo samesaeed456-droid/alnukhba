@@ -17,8 +17,17 @@ import { notificationService } from '../../services/notificationService';
 import { FloatingInput } from '../../components/FloatingInput';
 
 export default function Orders() {
-  const { orders, products, customers, updateOrderStatus, deleteOrder, formatPrice, showToast, logActivity } = useStore();
+  const { orders, products, customers, updateOrderStatus, deleteOrder, formatPrice, showToast, logActivity, shippingZones } = useStore();
   
+  const allCities = useMemo(() => {
+    const zoneCities = shippingZones.filter(z => z.isActive).flatMap(z => z.cities);
+    if (zoneCities.length > 0) {
+      return Array.from(new Set(zoneCities)).sort();
+    }
+    // Fallback if no shipping zones are defined
+    return ['صنعاء', 'عدن', 'تعز', 'الحديدة', 'إب', 'ذمار', 'المكلا', 'حجة', 'صعدة', 'البيضاء', 'مأرب', 'عمران', 'الجوف', 'المهرة', 'سقطرى', 'شبوة', 'أبين', 'لحج', 'الضالع', 'ريمة', 'المحويت'].sort();
+  }, [shippingZones]);
+
   const getCustomerImage = (order: Order) => {
     // 1. Try to find customer from current customers list to get most recent image
     const customer = customers.find(c => 
@@ -86,7 +95,7 @@ export default function Orders() {
   const dateOptions = ['الكل', 'اليوم', 'أمس', 'آخر 7 أيام', 'هذا الشهر'];
   const paymentOptions = ['الكل', 'كاش', 'تحويل بنكي', 'مدى', 'فيزا'];
   const priceOptions = ['الكل', 'أقل من 500', '500 - 2000', 'أكثر من 2000'];
-  const cityOptions = ['الكل', 'الرياض', 'جدة', 'الدمام', 'مكة', 'المدينة'];
+  const cityOptions = useMemo(() => ['الكل', ...allCities], [allCities]);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -1318,7 +1327,6 @@ export default function Orders() {
                         </div>
                       </div>
                     )}
-
                     {activeModalTab === 'timeline' && (
                       /* Order Timeline (Simplified) */
                       <div className="bg-white rounded-[24px] sm:rounded-[40px] p-4 sm:p-8 border border-bg-hover shadow-sm">
@@ -1362,7 +1370,7 @@ export default function Orders() {
       {/* Image Viewer Modal */}
       <AnimatePresence>
         {isImageModalOpen && currentImage && (
-          <div className="fixed inset-0 z-[120] flex items-center justify-center p-0 sm:p-6 overflow-hidden">
+          <div className="fixed inset-0 z-[120] flex items-center justify-center bg-carbon/95 backdrop-blur-md overflow-hidden">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -1371,30 +1379,34 @@ export default function Orders() {
                 setIsImageModalOpen(false);
                 setCurrentImage(null);
               }}
-              className="absolute inset-0 bg-carbon/95 backdrop-blur-md cursor-zoom-out"
+              className="absolute inset-0 cursor-zoom-out"
             />
             
-            <button
-              onClick={() => {
-                setIsImageModalOpen(false);
-                setCurrentImage(null);
-              }}
-              className="fixed top-6 right-6 z-[130] p-4 bg-white/10 text-white rounded-2xl hover:bg-white/20 transition-all backdrop-blur-xl border border-white/10 shadow-2xl active:scale-95 group"
-            >
-              <X className="w-8 h-8 group-hover:rotate-90 transition-transform duration-300" />
-            </button>
+            <div className="fixed top-6 right-6 z-[130] flex gap-3">
+              <button
+                onClick={() => {
+                  setIsImageModalOpen(false);
+                  setCurrentImage(null);
+                }}
+                className="p-4 bg-white/10 text-white rounded-2xl hover:bg-white/20 transition-all backdrop-blur-xl border border-white/10 shadow-2xl active:scale-95 flex items-center gap-2 font-black group"
+              >
+                <X className="w-8 h-8 group-hover:rotate-90 transition-transform duration-300" />
+                <span className="hidden sm:inline">إغلاق المعاينة</span>
+              </button>
+            </div>
 
-            <motion.div
-              initial={{ opacity: 0, y: 40 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 40 }}
-              className="relative w-full max-w-4xl max-h-screen sm:max-h-[95vh] overflow-y-auto no-scrollbar pointer-events-auto bg-transparent rounded-none sm:rounded-[32px] p-0"
-            >
-              <div className="flex flex-col items-center min-h-full">
+            <div className="w-full h-full overflow-y-auto p-4 sm:p-12 no-scrollbar flex flex-col items-center">
+              <motion.div
+                initial={{ opacity: 0, y: 40 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 40 }}
+                className="relative w-full max-w-4xl my-auto"
+                onClick={(e) => e.stopPropagation()}
+              >
                 <img 
                   src={currentImage} 
                   alt="Full size" 
-                  className="w-full h-auto object-contain rounded-none sm:rounded-[24px] shadow-2xl"
+                  className="w-full h-auto object-contain rounded-2xl shadow-2xl border border-white/10"
                   onLoad={(e) => {
                     const img = e.currentTarget;
                     if (img.naturalHeight > img.naturalWidth * 2) {
@@ -1403,8 +1415,22 @@ export default function Orders() {
                     }
                   }}
                 />
-              </div>
-            </motion.div>
+
+                {/* Floating visible bottom close button for mobile/long images */}
+                <div className="mt-8 flex justify-center sticky bottom-6 z-[140]">
+                  <button
+                    onClick={() => {
+                      setIsImageModalOpen(false);
+                      setCurrentImage(null);
+                    }}
+                    className="px-10 py-4 bg-solar text-carbon rounded-full font-black text-lg shadow-2xl shadow-solar/40 flex items-center gap-3 active:scale-95 transition-transform border-4 border-white/20"
+                  >
+                    <X className="w-6 h-6" />
+                    <span>إغلاق السند</span>
+                  </button>
+                </div>
+              </motion.div>
+            </div>
           </div>
         )}
       </AnimatePresence>

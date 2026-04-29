@@ -7,7 +7,7 @@ import {
   TrendingUp, ArrowUpDown, X, Printer, MessageSquare, PhoneCall,
   Eye, EyeOff, Lock, BarChart3, Package, ChevronRight, TrendingDown, ArrowLeft, ArrowRight,
   AlertCircle, ListFilter, Grid, UserPlus, Wallet, Activity, Download, Bell, Pin,
-  Ban, UserCheck, Zap, History, Info
+  Ban, UserCheck, Zap, History, Info, ChevronDown
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FloatingInput } from '@/components/FloatingInput';
@@ -30,12 +30,22 @@ const itemVariants = {
 };
 
 export default function Customers() {
-  const { customers, orders, formatPrice, addCustomer, deleteCustomer, updateCustomerBalance, updateCustomer, blockCustomer, showToast, settings, setNotifications, logActivity, sendMarketingNotification } = useStore();
+  const { customers, orders, formatPrice, addCustomer, deleteCustomer, updateCustomerBalance, updateCustomer, blockCustomer, showToast, settings, setNotifications, logActivity, sendMarketingNotification, shippingZones } = useStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('الكل');
   const [sortBy, setSortBy] = useState<'name' | 'orders' | 'spent'>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [selectedCustomer, setSelectedCustomer] = useState<UserType | null>(null);
+
+  const allCities = useMemo(() => {
+    const zoneCities = shippingZones.filter(z => z.isActive).flatMap(z => z.cities);
+    if (zoneCities.length > 0) {
+      return Array.from(new Set(zoneCities)).sort();
+    }
+    // Fallback if no shipping zones are defined
+    return ['صنعاء', 'عدن', 'تعز', 'الحديدة', 'إب', 'ذمار', 'المكلا', 'حجة', 'صعدة', 'البيضاء', 'مأرب', 'عمران', 'الجوف', 'المهرة', 'سقطرى', 'شبوة', 'أبين', 'لحج', 'الضالع', 'ريمة', 'المحويت'].sort();
+  }, [shippingZones]);
+
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isBalanceModalOpen, setIsBalanceModalOpen] = useState(false);
@@ -1255,11 +1265,22 @@ export default function Customers() {
                     onChange={(e) => setEditCustomerData({...editCustomerData, phone: e.target.value})}
                     dir="ltr"
                   />
-                  <FloatingInput 
-                    label="العنوان"
-                    value={editCustomerData.address}
-                    onChange={(e) => setEditCustomerData({...editCustomerData, address: e.target.value})}
-                  />
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-gray-500 mr-1">المدينة</label>
+                    <div className="relative group/select">
+                      <select 
+                        value={editCustomerData.address}
+                        onChange={(e) => setEditCustomerData({...editCustomerData, address: e.target.value})}
+                        className="w-full h-12 px-10 rounded-xl border border-gray-200 bg-gray-50 focus:ring-4 focus:ring-gray-900/5 focus:bg-white focus:border-gray-900 outline-none transition-all duration-300 appearance-none font-bold text-carbon"
+                      >
+                        {allCities.map(city => (
+                          <option key={city} value={city}>{city}</option>
+                        ))}
+                      </select>
+                      <ChevronDown className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none group-hover/select:text-gray-900 transition-colors" />
+                      <MapPin className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                    </div>
+                  </div>
 
                   <div className="pt-4 flex gap-3">
                     <button 

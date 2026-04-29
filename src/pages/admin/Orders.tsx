@@ -1362,7 +1362,7 @@ export default function Orders() {
       {/* Image Viewer Modal */}
       <AnimatePresence>
         {isImageModalOpen && currentImage && (
-          <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-0 sm:p-6 overflow-hidden">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -1371,28 +1371,39 @@ export default function Orders() {
                 setIsImageModalOpen(false);
                 setCurrentImage(null);
               }}
-              className="absolute inset-0 bg-carbon/90 backdrop-blur-sm cursor-zoom-out"
+              className="absolute inset-0 bg-carbon/95 backdrop-blur-md cursor-zoom-out"
             />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="relative w-full max-w-4xl max-h-[90vh] flex items-center justify-center pointer-events-none"
+            
+            <button
+              onClick={() => {
+                setIsImageModalOpen(false);
+                setCurrentImage(null);
+              }}
+              className="fixed top-6 right-6 z-[130] p-4 bg-white/10 text-white rounded-2xl hover:bg-white/20 transition-all backdrop-blur-xl border border-white/10 shadow-2xl active:scale-95 group"
             >
-              <img 
-                src={currentImage} 
-                alt="Full size" 
-                className="max-w-full max-h-[90vh] object-contain rounded-xl pointer-events-auto"
-              />
-              <button
-                onClick={() => {
-                  setIsImageModalOpen(false);
-                  setCurrentImage(null);
-                }}
-                className="absolute -top-12 right-0 sm:-right-12 p-3 bg-white/10 text-white rounded-full hover:bg-white/20 transition-all pointer-events-auto backdrop-blur-md"
-              >
-                <X className="w-6 h-6" />
-              </button>
+              <X className="w-8 h-8 group-hover:rotate-90 transition-transform duration-300" />
+            </button>
+
+            <motion.div
+              initial={{ opacity: 0, y: 40 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 40 }}
+              className="relative w-full max-w-4xl max-h-screen sm:max-h-[95vh] overflow-y-auto no-scrollbar pointer-events-auto bg-transparent rounded-none sm:rounded-[32px] p-0"
+            >
+              <div className="flex flex-col items-center min-h-full">
+                <img 
+                  src={currentImage} 
+                  alt="Full size" 
+                  className="w-full h-auto object-contain rounded-none sm:rounded-[24px] shadow-2xl"
+                  onLoad={(e) => {
+                    const img = e.currentTarget;
+                    if (img.naturalHeight > img.naturalWidth * 2) {
+                      img.classList.remove('object-contain');
+                      img.classList.add('object-cover');
+                    }
+                  }}
+                />
+              </div>
             </motion.div>
           </div>
         )}

@@ -78,13 +78,19 @@ export default function Layout({ children }: LayoutProps) {
     !isSearching && 
     !hideBottomNavPaths.includes(location.pathname);
 
+  // Paths where header should be hidden on mobile
+  const hideHeaderMobilePaths = ['/auth', '/signup'];
+  const isHeaderMobileHidden = hideHeaderMobilePaths.includes(location.pathname);
+
   return (
     <div className="min-h-screen flex flex-col font-sans text-carbon transition-colors duration-200" dir="rtl">
-      <Header 
-        scrolled={scrolled} 
-        isMobileMenuOpen={isMobileMenuOpen}
-        setIsMobileMenuOpen={setIsMobileMenuOpen} 
-      />
+      <div className={isHeaderMobileHidden ? 'hidden md:block' : ''}>
+        <Header 
+          scrolled={scrolled} 
+          isMobileMenuOpen={isMobileMenuOpen}
+          setIsMobileMenuOpen={setIsMobileMenuOpen} 
+        />
+      </div>
 
       <main className={`flex-grow w-full ${(!isFooterVisible && isBottomNavVisible) ? 'pb-20 md:pb-0' : ''}`}>
         {children}

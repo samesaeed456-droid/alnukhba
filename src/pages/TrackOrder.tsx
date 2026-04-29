@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Package, Search, Truck, CheckCircle2, Clock, MapPin, ArrowRight, AlertCircle, Zap, CreditCard, Receipt, ShoppingBag, ChevronDown, ChevronUp, Box, Store, ShieldCheck } from 'lucide-react';
+import { Package, Search, Truck, CheckCircle2, Clock, MapPin, ArrowRight, AlertCircle, Zap, CreditCard, Receipt, ShoppingBag, ChevronDown, ChevronUp, Box, Store, ShieldCheck, ExternalLink, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useStore } from '../context/StoreContext';
@@ -407,9 +407,23 @@ export default function TrackOrder() {
                                         </div>
                                         <div>
                                           <p className="font-bold text-carbon text-sm">{itemName}</p>
-                                          {(item.selectedColor || item.color) && (
-                                            <p className="text-xs text-slate-400 mt-0.5">اللون: {item.selectedColor || item.color}</p>
-                                          )}
+                                          <div className="flex items-center gap-3 mt-1">
+                                            {(item.selectedColor || item.color) && (
+                                              <div className="flex items-center gap-1.5">
+                                                <div 
+                                                  className="w-2.5 h-2.5 rounded-full border border-bg-hover shadow-sm"
+                                                  style={{ backgroundColor: item.selectedColor || item.color }}
+                                                />
+                                                <span className="text-[10px] sm:text-xs text-slate-400">اللون</span>
+                                              </div>
+                                            )}
+                                            {item.selectedSize && (
+                                              <div className="flex items-center gap-1.5 border-r border-bg-hover pr-3">
+                                                <span className="text-[10px] sm:text-xs font-black text-solar">{item.selectedSize}</span>
+                                                <span className="text-[10px] sm:text-xs text-slate-400">المقاس</span>
+                                              </div>
+                                            )}
+                                          </div>
                                         </div>
                                       </div>
                                     </td>
@@ -437,9 +451,26 @@ export default function TrackOrder() {
                                  </div>
                                  <div className="flex-1 min-w-0 text-right">
                                    <p className="text-xs font-bold text-carbon truncate">{itemName}</p>
-                                   <div className="flex justify-between items-center mt-1">
+                                   <div className="flex flex-wrap items-center justify-end gap-x-2 gap-y-1 mt-1">
+                                     {(item.selectedColor || item.color) && (
+                                       <div className="flex items-center gap-1">
+                                         <div 
+                                           className="w-2 h-2 rounded-full border border-bg-hover"
+                                           style={{ backgroundColor: item.selectedColor || item.color }}
+                                         />
+                                         <span className="text-[9px] text-slate-400">اللون</span>
+                                       </div>
+                                     )}
+                                     {item.selectedSize && (
+                                       <div className="flex items-center gap-1 border-r border-bg-hover pr-2">
+                                         <span className="text-[9px] font-black text-solar">{item.selectedSize}</span>
+                                         <span className="text-[9px] text-slate-400">المقاس</span>
+                                       </div>
+                                     )}
+                                   </div>
+                                   <div className="flex justify-between items-center mt-2 pt-2 border-t border-bg-hover/30">
                                      <p className="text-[10px] text-slate-500">{item.quantity} × {formatPrice(itemPrice)}</p>
-                                     <p className="text-xs font-black text-carbon">{formatPrice(itemPrice * item.quantity)}</p>
+                                     <p className="text-xs font-black text-solar">{formatPrice(itemPrice * item.quantity)}</p>
                                    </div>
                                  </div>
                                </div>

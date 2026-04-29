@@ -93,7 +93,24 @@ export default function OrderDetailsModal({ order, isOpen, onClose }: OrderDetai
                                 />
                                 <div>
                                   <p className="font-bold text-carbon line-clamp-1">{itemName}</p>
-                                  <p className="text-xs text-gray-500">{itemBrand}</p>
+                                  <div className="flex flex-wrap items-center gap-2 mt-1">
+                                    <p className="text-[10px] text-gray-400 font-bold">{itemBrand}</p>
+                                    {(item.selectedColor || item.color) && (
+                                      <div className="flex items-center gap-1.5 border-r border-gray-100 pr-2 mr-1">
+                                        <div 
+                                          className="w-2 h-2 rounded-full border border-gray-200"
+                                          style={{ backgroundColor: item.selectedColor || item.color }}
+                                        />
+                                        <span className="text-[10px] text-gray-500">اللون</span>
+                                      </div>
+                                    )}
+                                    {item.selectedSize && (
+                                      <div className="flex items-center gap-1.5 border-r border-gray-100 pr-2">
+                                        <span className="text-[10px] font-black text-solar">{item.selectedSize}</span>
+                                        <span className="text-[10px] text-gray-500">المقاس</span>
+                                      </div>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
                             </td>

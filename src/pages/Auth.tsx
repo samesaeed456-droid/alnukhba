@@ -666,9 +666,19 @@ export default function Auth() {
 
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-0 sm:p-6 bg-slate-50 relative overflow-hidden">
-      {/* Background Decorative Elements */}
-      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
+    <div className="min-h-screen sm:min-h-screen flex items-center justify-center p-0 sm:p-6 bg-white sm:bg-slate-50 relative overflow-hidden">
+      {/* Mobile-only Back Button */}
+      <div className="md:hidden absolute top-6 right-6 z-50">
+        <Link 
+          to="/" 
+          className="w-10 h-10 flex items-center justify-center bg-slate-100 rounded-full text-slate-600 active:scale-95 transition-transform"
+        >
+          <ArrowRight className="w-5 h-5" />
+        </Link>
+      </div>
+
+      {/* Background Decorative Elements (Desktop only) */}
+      <div className="hidden sm:block absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
         <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] bg-solar/5 rounded-full blur-[120px]" />
         <div className="absolute bottom-[-10%] left-[-10%] w-[40%] h-[40%] bg-carbon/5 rounded-full blur-[120px]" />
       </div>
@@ -677,7 +687,7 @@ export default function Auth() {
         initial="hidden"
         animate="visible"
         variants={containerVariants}
-        className="w-full max-w-7xl flex flex-col md:flex-row bg-white rounded-none sm:rounded-[40px] shadow-2xl shadow-slate-200/50 border-0 sm:border border-slate-100 overflow-hidden relative z-10 min-h-screen sm:min-h-0"
+        className="w-full max-w-7xl flex flex-col md:flex-row bg-white rounded-none sm:rounded-[40px] shadow-none sm:shadow-2xl shadow-slate-200/50 border-0 sm:border border-slate-100 overflow-hidden relative z-10 min-h-screen sm:min-h-0 sm:max-h-[850px]"
       >
         {/* Left Side: Image/Branding (Visible on Desktop) */}
         <div className="hidden md:flex md:w-1/2 bg-carbon relative overflow-hidden">
@@ -731,7 +741,7 @@ export default function Auth() {
         </div>
 
         {/* Right Side: Form */}
-        <div className="w-full md:w-1/2 p-6 sm:p-10 lg:p-14 flex flex-col justify-center min-h-[500px] sm:min-h-[600px] relative bg-white">
+        <div className="w-full md:w-1/2 p-6 sm:p-10 lg:p-14 flex flex-col justify-center min-h-full sm:min-h-[600px] relative bg-white">
           {step !== 'form' && (
             <button 
               onClick={() => {
@@ -739,10 +749,10 @@ export default function Auth() {
                 setError('');
                 setSuccess('');
               }}
-              className="absolute top-6 right-6 sm:top-8 sm:right-8 p-2.5 text-slate-400 hover:text-carbon hover:bg-slate-100 rounded-full transition-all z-20 shadow-sm border border-slate-50"
+              className="absolute top-6 left-6 sm:top-8 sm:right-8 p-2.5 text-slate-400 hover:text-carbon hover:bg-slate-100 rounded-full transition-all z-20 shadow-sm border border-slate-50 md:right-8"
               title="العودة"
             >
-              <ArrowRight className="w-5 h-5 rotate-180" />
+              <ArrowRight className="w-5 h-5 rotate-180 md:rotate-180" />
             </button>
           )}
 
@@ -790,7 +800,7 @@ export default function Auth() {
                   setError('');
                   setSuccess('');
                 }}
-                className={`relative z-10 flex-1 py-3 text-sm font-black transition-colors ${!isLogin ? 'text-carbon' : 'text-slate-400'}`}
+                className={`relative z-10 flex-1 py-3 text-sm font-black transition-colors ${!isLogin ? 'text-carbon' : 'text-slate-600'}`}
               >
                 إنشاء حساب
               </button>
@@ -801,7 +811,7 @@ export default function Auth() {
                   setError('');
                   setSuccess('');
                 }}
-                className={`relative z-10 flex-1 py-3 text-sm font-black transition-colors ${isLogin ? 'text-carbon' : 'text-slate-400'}`}
+                className={`relative z-10 flex-1 py-3 text-sm font-black transition-colors ${isLogin ? 'text-carbon' : 'text-slate-600'}`}
               >
                 تسجيل الدخول
               </button>

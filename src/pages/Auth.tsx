@@ -440,17 +440,6 @@ export default function Auth() {
         const email = getDummyEmail(formData.countryCode, cleanPhone);
         const currentSessionId = localStorage.getItem('local_session_id');
 
-        // Check if phone is already taken by another account
-        const { getDocs, query, where, collection } = await import('../lib/firebase');
-        const q = query(collection(db, 'users'), where('phone', '==', cleanPhone), where('countryCode', '==', formData.countryCode));
-        const snapshot = await getDocs(q);
-        
-        if (!snapshot.empty) {
-          setError('رقم الهاتف هذا مسجل مسبقاً في حساب آخر. يرجى استخدام رقمك الصحيح.');
-          setIsLoading(false);
-          return;
-        }
-        
         const photoURL = `https://ui-avatars.com/api/?name=${encodeURIComponent(formData.name)}&background=random`;
         const newUserObj: any = {
           uid: auth.currentUser.uid,
@@ -519,35 +508,11 @@ export default function Auth() {
           setError(smartError.message);
         }
       } else {
-        // Pre-check if phone already exists before sending OTP on signup
-        const email = getDummyEmail(formData.countryCode, cleanPhone);
-        
-        try {
-          const { collection, query, where, getDocs, db } = await import('../lib/firebase');
-          const q = query(collection(db, 'users'), where('phone', '==', cleanPhone), where('countryCode', '==', formData.countryCode));
-          const snapshot = await getDocs(q);
-          
-          if (!snapshot.empty) {
-             setError('هذا الرقم مسجل مسبقاً في حساب آخر، يمنع إنشاء حسابين بنفس الرقم. يرجى تسجيل الدخول.');
-             setIsLoading(false);
-             return;
-          }
-        } catch (dbErr) {
-          console.warn("Could not check Firestore, falling back to Auth pre-check", dbErr);
-          try {
-            await loginWithEmail(email, "a_very_fake_password_12345");
-          } catch (checkErr: any) {
-            if (checkErr.code === 'auth/wrong-password' || checkErr.code === 'auth/too-many-requests') {
-               setError('هذا الرقم مسجل مسبقاً في حساب آخر، يرجى تسجيل الدخول.');
-               setIsLoading(false);
-               return;
-            }
-          }
-        }
-
         const fullPhone = formData.countryCode + cleanPhone;
 
         try {
+          // We rely on auth/email-already-in-use check during actual verify step
+          // instead of pre-checking collection which requires admin permissions
           const response = await fetch('/api/send-otp', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

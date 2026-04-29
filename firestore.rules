@@ -24,7 +24,6 @@ service cloud.firestore {
         (request.auth.token.email != null && request.auth.token.email.lower() == "samesaeed456@gmail.com") || 
         (request.auth.token.email != null && request.auth.token.email.lower() == "samisaeed2027@gmail.com") || 
         (request.auth.token.email != null && request.auth.token.email.lower() == "samisaeed2025@gmail.com") ||
-        (request.auth.token.email != null && request.auth.token.email.lower() == "967776668370@elite-store.local") ||
         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
          (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('isAdmin', false) == true ||
           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', 'customer') == 'admin'))
@@ -194,7 +193,7 @@ service cloud.firestore {
     }
 
     match /visits/{visitId} { allow create: if true; allow read: if isAdmin(); }
-    match /searchTerms/{termId} { allow create, update: if true; allow read: if isAdmin(); }
+    match /searchTerms/{termId} { allow create, update, read: if true; }
     match /abandonedCarts/{cartId} { allow create, update, delete: if true; allow read: if isAdmin(); }
     
     match /marketing_notifications/{notificationId} {

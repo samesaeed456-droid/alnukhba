@@ -394,6 +394,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       
       // Mark as pre-authorized to bypass some security initial checks in UI
       localStorage.setItem('admin_auth', 'true');
+    } else {
+      // Cleanup for users who are no longer hardcoded admins
+      localStorage.removeItem('admin_auth');
     }
 
     // Still sync with remote document for role updates
@@ -543,7 +546,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const syncPermissions = async () => {
         try {
           // 1. Simple Role/Permissions Check (Single Collection 'users')
-          const hardcodedAdmins = ["samesaeed456@gmail.com", "samisaeed2027@gmail.com", "samisaeed2025@gmail.com", "967776668370@elite-store.local"];
+          const hardcodedAdmins = ["samesaeed456@gmail.com", "samisaeed2027@gmail.com", "samisaeed2025@gmail.com"];
           const userEmail = (user.email || '').toLowerCase();
           const isHardcoded = hardcodedAdmins.includes(userEmail);
 
@@ -667,6 +670,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setOrders(sortedOrders);
       localStorage.setItem('store_orders', JSON.stringify(sortedOrders));
     }, (error) => {
+      if (error.code === 'permission-denied') return;
       console.error('Orders sync error:', error);
       // Don't set global system error for orders to avoid blocking the whole app
     });
@@ -719,7 +723,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         console.warn('Users sync permission denied - potentially role sync in progress');
         return;
       }
-      const hardcodedAdmins = ["samesaeed456@gmail.com", "samisaeed2027@gmail.com", "samisaeed2025@gmail.com", "967776668370@elite-store.local"];
+      const hardcodedAdmins = ["samesaeed456@gmail.com", "samisaeed2027@gmail.com", "samisaeed2025@gmail.com"];
       const isHardcodedAdmin = activeAdmin?.email && hardcodedAdmins.includes(activeAdmin.email);
       if (!isHardcodedAdmin) handleFirestoreError(error, OperationType.LIST, 'users');
     });

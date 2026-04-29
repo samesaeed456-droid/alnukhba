@@ -394,9 +394,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       
       // Mark as pre-authorized to bypass some security initial checks in UI
       localStorage.setItem('admin_auth', 'true');
-    } else {
-      // Cleanup for users who are no longer hardcoded admins
-      localStorage.removeItem('admin_auth');
     }
 
     // Still sync with remote document for role updates
@@ -431,7 +428,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             const currentLocalSession = localStorage.getItem('local_session_id');
             const lastPing = localStorage.getItem('last_session_ping');
             const now = Date.now();
-            let justPinged = false;
             
             if (!lastPing || (now - parseInt(lastPing)) > 600000) { // 10 mins
               updateDoc(doc(db, 'users', firebaseUser.uid), {
@@ -440,18 +436,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
                 updatedAt: serverTimestamp()
               }).catch(() => {});
               localStorage.setItem('last_session_ping', now.toString());
-              justPinged = true;
-            } else if ((now - parseInt(lastPing)) < 5000) {
-              // Grace period of 5 seconds to ignore old snapshots arriving from server
-              // before our local updateDoc is fully processed.
-              justPinged = true;
             }
 
-            if (!justPinged && userData.currentSessionId && currentLocalSession && userData.currentSessionId !== currentLocalSession) {
-              auth.signOut();
-              showToast('تم تسجيل الدخول من جهاز آخر، تم تسجيل خروجك لحماية حسابك', 'error');
-              return;
-            }
+            // Mismatch check removed to allow multiple tabs/windows
 
             // MANDATORY FIELD CHECK:
             // Forbidden to enter if name or phone is missing.
@@ -2575,21 +2562,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const logout = React.useCallback(async () => {
     try {
-      // Clear ALL session flags immediately
+      // Clear only customer session flags
       const keysToRemove = [
         'local_session_id',
         'last_session_ping',
-        'admin_auth',
-        'admin_email',
-        'admin_name',
-        'admin_role',
-        'admin_auth_token',
-        'admin_attempt',
-        'admin_users_list',
-        'admin_read_notifications',
-        'app_users',
+        'is_logged_in',
         'store_user',
-        'has_migrated_to_firebase'
+        'store_cart',
+        'store_wishlist'
       ];
       keysToRemove.forEach(key => localStorage.removeItem(key));
       

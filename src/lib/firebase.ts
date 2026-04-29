@@ -51,9 +51,10 @@ const adminApp = initializeApp(firebaseConfig, 'admin-app');
 export const auth = getAuth(app);
 export const adminAuth = getAuth(adminApp);
 
-// Avoid IndexedDB race conditions by setting adminAuth to session persistence
+// Use local persistence for both auth instances to ensure they stay active across tabs and restarts
 if (typeof window !== 'undefined') {
-  setPersistence(adminAuth, browserSessionPersistence).catch((err) => {
+  const { browserLocalPersistence } = await import('firebase/auth');
+  setPersistence(adminAuth, browserLocalPersistence).catch((err) => {
     console.warn('Failed to set adminAuth persistence:', err);
   });
 }

@@ -35,6 +35,9 @@ export default function Layout({ children }: LayoutProps) {
 
   // AUTH GUARD: Force incomplete/deleted profiles to auth page
   useEffect(() => {
+    // Skip guard for admin paths or auth-related paths
+    if (location.pathname.startsWith('/admin')) return;
+    
     if (isAuthReady && !user && auth.currentUser && !['/auth', '/signup'].includes(location.pathname)) {
       navigate('/auth', { replace: true });
     }

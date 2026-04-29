@@ -2325,7 +2325,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             selectedColor: item.selectedColor || null,
             selectedSize: item.selectedSize || null
           })),
-          subtotal, shippingFee: shipping, discountAmount, total,
+          subtotal, shippingFee: shipping, discountAmount, 
+          couponCode: discount.code || null,
+          total,
           status: paymentMethod === 'المحفظة الرقمية' ? 'processing' : 'pending',
           paymentMethod, paymentReference: paymentReference || null,
           paymentProof: paymentProof || null,

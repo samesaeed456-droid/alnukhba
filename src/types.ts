@@ -132,6 +132,7 @@ export interface Order {
   subtotal: number;
   shippingFee: number;
   discountAmount: number;
+  couponCode?: string;
   total: number;
   status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
   paymentMethod: string;

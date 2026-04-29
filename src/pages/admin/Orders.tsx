@@ -452,7 +452,14 @@ export default function Orders() {
                       </div>
                       <div className="flex flex-col">
                         <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-0.5">رقم الطلب</span>
-                        <span className="text-xs font-black text-carbon uppercase tracking-tighter">#{order.id.slice(-6).toUpperCase()}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-black text-carbon uppercase tracking-tighter">#{order.id.slice(-6).toUpperCase()}</span>
+                          {order.couponCode && (
+                            <span className="text-[8px] bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded-md font-bold border border-emerald-100 uppercase tracking-tighter">
+                              {order.couponCode}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                     <div className={`px-4 py-2 rounded-full text-[9px] font-black uppercase tracking-widest shadow-sm border border-white/50 ${getStatusColor(order.status)}`}>
@@ -487,7 +494,14 @@ export default function Orders() {
                   <div className="bg-bg-general rounded-[24px] p-5 mb-8 flex items-center justify-between border border-bg-hover group-hover:bg-white transition-colors relative z-10">
                     <div className="flex flex-col">
                       <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">القيمة الإجمالية</span>
-                      {renderPrice(order.total, "text-xl font-black text-carbon tracking-tighter")}
+                      <div className="flex items-baseline gap-2">
+                        {renderPrice(order.total, "text-xl font-black text-carbon tracking-tighter")}
+                        {order.discountAmount > 0 && (
+                          <span className="text-[10px] font-bold text-emerald-500 whitespace-nowrap">
+                            (وفر {formatPrice(order.discountAmount)})
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <div className="flex flex-col items-end">
                       <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">المنتجات</span>
@@ -1160,8 +1174,16 @@ export default function Orders() {
                             </div>
                             {selectedOrder.discountAmount > 0 && (
                               <div className="flex justify-between items-center text-[11px] sm:text-sm text-emerald-400">
-                                <span className="font-bold">خصم ترويجي</span>
-                                <span>-{renderPrice(selectedOrder.discountAmount, "font-black")}</span>
+                                <div className="flex flex-col text-right">
+                                  <span className="font-bold">خصم ترويجي</span>
+                                  {selectedOrder.couponCode && (
+                                    <span className="text-[10px] text-emerald-500/70 font-black font-mono">CODE: {selectedOrder.couponCode}</span>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <span>-</span>
+                                  {renderPrice(selectedOrder.discountAmount, "font-black")}
+                                </div>
                               </div>
                             )}
                             <div className="pt-4 sm:pt-8 border-t border-white/10 flex justify-between items-center">
@@ -1186,8 +1208,12 @@ export default function Orders() {
                           بيانات العميل
                         </h3>
                         <div className="flex items-center gap-3 sm:gap-5 mb-5 sm:mb-8">
-                          <div className="w-12 h-12 sm:w-20 sm:h-20 rounded-[14px] sm:rounded-[24px] bg-bg-general border border-bg-hover overflow-hidden shadow-inner shrink-0">
-                            <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${selectedOrder.customerName}`} alt="" className="w-full h-full" />
+                          <div className="w-12 h-12 sm:w-20 sm:h-20 rounded-[14px] sm:rounded-[24px] bg-bg-general border border-bg-hover overflow-hidden shadow-inner shrink-0 flex items-center justify-center">
+                            <img 
+                              src={selectedOrder.customerImage || `https://api.dicebear.com/7.x/avataaars/svg?seed=${selectedOrder.customerName}`} 
+                              alt={selectedOrder.customerName} 
+                              className="w-full h-full object-cover" 
+                            />
                           </div>
                           <div className="min-w-0 flex-1">
                             <div className="text-sm sm:text-lg font-black text-carbon leading-tight mb-1 truncate">{selectedOrder.customerName}</div>

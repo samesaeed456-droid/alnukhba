@@ -62,6 +62,15 @@ service cloud.firestore {
              (data.status in ['pending', 'processing', 'shipped', 'delivered', 'cancelled']);
     }
 
+    function isValidReview(data) {
+      return (data.productId is string && data.productId.size() <= 128) &&
+             (data.userId is string && data.userId.size() <= 128) &&
+             (data.rating is number && data.rating >= 1 && data.rating <= 5) &&
+             (data.comment is string && data.comment.size() <= 2000) &&
+             (data.get('images', []) is list && data.get('images', []).size() <= 5) &&
+             (data.get('status', 'approved') in ['pending', 'approved', 'rejected']);
+    }
+
     // ===============================================================
     // Section 3: Collection Rules (Pillar 1 & 8)
     // ===============================================================
@@ -138,6 +147,18 @@ service cloud.firestore {
     match /shipping_zones/{zoneId} {
       allow read: if true;
       allow write: if isAdmin();
+    }
+
+    // --- REVIEWS ---
+    match /products/{productId}/reviews/{reviewId} {
+      allow read: if true; 
+      allow create: if isSignedIn() &&
+                    isValidReview(incoming()) &&
+                    incoming().userId == request.auth.uid &&
+                    incoming().productId == productId &&
+                    incoming().createdAt == request.time;
+      allow update: if isAdmin();
+      allow delete: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
     }
 
     // --- PASSKEYS ---

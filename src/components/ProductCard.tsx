@@ -244,19 +244,21 @@ const ProductCardInner = React.memo(function ProductCardInner({
               {p.name}
             </h3>
 
-            {/* Rating */}
-            <div className="flex items-center gap-1 mb-1.5">
-              <div className="flex items-center">
+            {/* Premium Rating Display */}
+            <div className="flex items-center gap-1.5 mb-2 bg-slate-50/50 px-2.5 py-1 rounded-full border border-slate-100/50 group-hover:bg-solar/10 group-hover:border-solar/20 transition-colors">
+              <div className="flex items-center -space-x-0.5">
                 {[1, 2, 3, 4, 5].map((star) => (
                   <Star
                     key={star}
-                    className={`w-3 h-3 sm:w-3.5 sm:h-3.5 ${star <= (p.rating || 5) ? "fill-solar text-solar" : "fill-bg-hover text-bg-hover"}`}
+                    size={10}
+                    className={`sm:w-3 sm:h-3 ${star <= (p.rating || 5) ? "fill-solar text-solar" : "text-slate-200"}`}
                   />
                 ))}
               </div>
-              <span className="text-[9px] sm:text-[10px] text-slate-500 font-medium">
-                ({p.reviews || 0})
-              </span>
+              <div className="flex items-center gap-1 leading-none">
+                <span className="text-[10px] font-black text-carbon">{(p.rating || 5).toFixed(1)}</span>
+                <span className="text-[8px] font-bold text-slate-400">({p.reviews || 0})</span>
+              </div>
             </div>
 
             <div className="flex flex-col items-center mb-0.5 sm:mb-1 mt-auto">

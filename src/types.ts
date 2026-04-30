@@ -1,9 +1,14 @@
 export interface Review {
   id: string;
-  user: string;
+  productId: string;
+  userId: string;
+  userName: string;
+  userImage?: string;
   rating: number;
   comment: string;
-  date: string;
+  images?: string[];
+  status?: "pending" | "approved" | "rejected";
+  createdAt: string;
 }
 
 export interface Product {

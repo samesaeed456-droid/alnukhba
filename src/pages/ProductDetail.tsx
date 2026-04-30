@@ -40,6 +40,7 @@ import RecommendedProducts from "../components/RecommendedProducts";
 import ProductSlider from "../components/ProductSlider";
 import ProductGallery from "../components/ProductGallery";
 import KitProductItem from "../components/KitProductItem";
+import ProductReviews from "../components/ProductReviews";
 import { FastLink } from "../components/FastLink";
 import { FastImage } from "../components/FastImage";
 import { copyToClipboard } from "../lib/clipboard";
@@ -853,6 +854,9 @@ export default function ProductDetail() {
           </div>
         )}
       </div>
+
+      {/* Product Reviews Sector */}
+      <ProductReviews productId={product.id} productName={product.name} />
 
       {/* Lightbox / Full Screen Gallery */}
       <AnimatePresence>

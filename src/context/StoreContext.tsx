@@ -479,8 +479,26 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             }
           }
           setIsAuthReady(true);
-        }, (error) => {
+        }).catch((error) => {
           console.warn("User profile sync warning:", error);
+          if (firebaseUser.email && hardcodedAdmins.includes(firebaseUser.email)) {
+            const adminData: any = { 
+              uid: firebaseUser.uid, 
+              email: firebaseUser.email, 
+              role: 'admin', 
+              isAdmin: true, 
+              displayName: 'مدير النظام',
+              currentSessionId: localStorage.getItem('local_session_id')
+            };
+            setUser(adminData);
+          } else {
+             const cachedUser = localStorage.getItem('store_user');
+             if (cachedUser) {
+               try { setUser(JSON.parse(cachedUser)); } catch (e) { setUser(null); }
+             } else {
+               setUser(null);
+             }
+          }
           setIsAuthReady(true);
         });
       } else {
@@ -514,6 +532,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           }
         } catch (e) {
           console.warn("Admin profile background sync:", e);
+          const hardcoded = ["samesaeed456@gmail.com", "samisaeed2027@gmail.com", "samisaeed2025@gmail.com"];
+          if (firebaseAdmin.email && hardcoded.includes(firebaseAdmin.email.toLowerCase())) {
+            setAdminUser({
+              uid: firebaseAdmin.uid,
+              email: firebaseAdmin.email,
+              role: 'admin',
+              isAdmin: true,
+              displayName: 'المدير العام'
+            } as UserProfile);
+          }
         }
       } else {
         setAdminUser(null);
@@ -579,9 +607,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         setProducts(productsData);
         localStorage.setItem('store_products', JSON.stringify(productsData));
         setIsLoading(false);
-      }).catch((error) => {
+      }).catch((error: any) => {
         clearTimeout(loadingTimeout);
-        console.error('Products sync error:', error);
+        if (error.code === 'resource-exhausted' || error?.message?.includes('Quota')) {
+           console.warn('Products sync alert: Quota exceeded, using cache.');
+        } else {
+           console.error('Products fetch error:', error);
+        }
         const cached = localStorage.getItem('store_products');
         if (cached) {
           try { setProducts(JSON.parse(cached)); } catch(e){}
@@ -621,9 +653,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           localStorage.setItem('store_products_time', now.toString());
           setIsLoading(false);
         })
-        .catch((error) => {
+        .catch((error: any) => {
           clearTimeout(loadingTimeout);
-          console.error('Products fetch error:', error);
+          if (error.code === 'resource-exhausted' || error?.message?.includes('Quota')) {
+             console.warn('Products fetch alert: Quota exceeded, using cache.');
+          } else {
+             console.error('Products fetch error:', error);
+          }
           if (cached) {
             try { setProducts(JSON.parse(cached)); } catch(e){}
           } else {
@@ -776,10 +812,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           const logsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as InventoryLog[];
           setInventoryLogs(logsData.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 1000));
           localStorage.setItem('store_inventory_logs', JSON.stringify(logsData.slice(0, 500)));
-        } catch (error: any) {}
-
-      } catch (err) {
-        console.error("Admin data fetch error:", err);
+        } catch (error: any) {
+          if (error.code === 'resource-exhausted' || error?.message?.includes('Quota')) {
+             console.warn(`Admin data fetch alert: Quota exceeded.`);
+          } else {
+             console.error("Admin data fetch error:", error);
+          }
+        }
+      } catch (err: any) {
+        if (err.code === 'resource-exhausted' || err?.message?.includes('Quota')) {
+           console.warn("Admin data fetch alert: Quota exceeded.");
+        } else {
+           console.error("Admin data fetch error:", err);
+        }
       }
     };
 
@@ -814,8 +859,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           setter(data);
           localStorage.setItem(storageKey, JSON.stringify(data));
           localStorage.setItem(`${storageKey}_time`, Date.now().toString());
-        } catch (error) {
-          console.error(`Error fetching ${colName}:`, error);
+        } catch (error: any) {
+          if (error.code === 'resource-exhausted' || error?.message?.includes('Quota')) {
+            console.warn(`Error fetching ${colName}: Quota limit exceeded.`);
+          } else {
+            console.error(`Error fetching ${colName}:`, error);
+          }
         }
         return () => {};
       } else {
@@ -831,8 +880,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           setter(data);
           localStorage.setItem(storageKey, JSON.stringify(data));
           localStorage.setItem(`${storageKey}_time`, Date.now().toString());
-        } catch (error) {
-          console.error(`Error fetching ${colName}:`, error);
+        } catch (error: any) {
+          if (error.code === 'resource-exhausted' || error?.message?.includes('Quota')) {
+            console.warn(`Error fetching ${colName}: Quota limit exceeded.`);
+          } else {
+            console.error(`Error fetching ${colName}:`, error);
+          }
           if (cached) { try { setter(JSON.parse(cached)); } catch(e) {} }
         }
         return () => {};

@@ -134,10 +134,29 @@ export default function AdminLayout() {
   };
 
   const adminEmail = localStorage.getItem('admin_email');
-  const currentAdmin = useMemo(() => 
-    adminUsers.find(u => u.email === adminEmail),
-    [adminUsers, adminEmail]
-  );
+  const currentAdmin = useMemo(() => {
+    const found = adminUsers.find(u => u.email === adminEmail);
+    if (found) return found;
+    
+    // Fallback if offline or quota exceeded
+    if (adminEmail && localStorage.getItem('admin_auth') === 'true') {
+      const superAdmins = ['samesaeed456@gmail.com', 'samisaeed2027@gmail.com', 'samisaeed2025@gmail.com'];
+      if (superAdmins.includes(adminEmail.toLowerCase())) {
+        return {
+          email: adminEmail,
+          role: 'super_admin',
+          name: localStorage.getItem('admin_name') || 'المدير العام',
+          permissions: ['all']
+        };
+      }
+      return {
+          email: adminEmail,
+          role: localStorage.getItem('admin_role') || 'admin',
+          name: localStorage.getItem('admin_name') || 'مدير'
+      };
+    }
+    return undefined;
+  }, [adminUsers, adminEmail]);
 
   const navGroups = useMemo(() => {
     const groups = [

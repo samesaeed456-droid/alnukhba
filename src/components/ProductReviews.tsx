@@ -110,12 +110,12 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ productId, productName 
   }));
 
   return (
-    <div className="mt-12 pt-12 border-t border-slate-100 pb-20">
+    <div className="mt-8 pt-8 border-t border-slate-100 pb-12">
       <div className="max-w-4xl mx-auto px-4">
         
         {/* Simplified Review Submission - Always visible or very prominent */}
-        <div className="mb-16">
-          <div className="flex items-center justify-between mb-8">
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="text-xl font-black text-carbon mb-1">آراء العملاء</h3>
               <div className="flex items-center gap-2">
@@ -223,7 +223,7 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ productId, productName 
                 <div key={i} className="animate-pulse bg-slate-50 h-32 rounded-3xl" />
               ))
             ) : reviews.length === 0 ? (
-              <div className="col-span-full py-20 text-center">
+              <div className="col-span-full py-12 text-center">
                 <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
                   <MessageSquare size={24} className="text-slate-200" />
                 </div>

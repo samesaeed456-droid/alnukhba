@@ -105,7 +105,7 @@ export default React.memo(function ProductSlider({
             clickable: true,
             dynamicBullets: true,
           }}
-          className="!pb-12 !pt-4 px-2"
+          className="!pb-8 !pt-4 px-2"
           breakpoints={{
             640: {
               spaceBetween: 20,

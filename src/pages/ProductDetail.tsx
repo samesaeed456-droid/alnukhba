@@ -210,7 +210,7 @@ export default function ProductDetail() {
 
   if (!product) {
     return (
-      <div className="flex flex-col items-center justify-center py-20">
+      <div className="flex flex-col items-center justify-center py-12">
         <h2 className="text-xl font-bold text-carbon mb-4">المنتج غير موجود</h2>
         <FastLink
           to="/"
@@ -227,10 +227,10 @@ export default function ProductDetail() {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="max-w-screen-2xl mx-auto px-4 sm:px-6 py-4 sm:py-8 pb-28 sm:pb-12"
+      className="max-w-screen-2xl mx-auto px-4 sm:px-6 py-2 sm:py-4 pb-20 sm:pb-8"
     >
       {/* Top Navigation & Breadcrumbs */}
-      <div className="flex items-center justify-between mb-6 gap-2 sm:gap-4">
+      <div className="flex items-center justify-between mb-4 gap-2 sm:gap-4">
         <div className="flex items-center gap-3 overflow-hidden">
           <button
             onClick={() => {
@@ -284,7 +284,7 @@ export default function ProductDetail() {
         </div>
       </div>
 
-      <div className="bg-white sm:rounded-[40px] shadow-[0_30px_70px_rgba(0,0,0,0.03)] border border-slate-100 overflow-hidden">
+      <div className="bg-white sm:rounded-[32px] shadow-sm border border-slate-100 overflow-hidden">
         <div className="flex flex-col lg:flex-row">
           {/* Image Gallery */}
           <div className="w-full lg:w-[55%] bg-gradient-to-b from-slate-50 to-slate-100/50 relative overflow-hidden flex flex-col">
@@ -301,7 +301,7 @@ export default function ProductDetail() {
 
             {/* Desktop Gallery */}
             <div className="hidden sm:flex flex-col flex-1">
-              <div className="relative flex-1 aspect-square flex items-center justify-center p-8 sm:p-16">
+              <div className="relative flex-1 aspect-square flex items-center justify-center p-4 sm:p-8">
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={activeImage}
@@ -339,7 +339,7 @@ export default function ProductDetail() {
                 </AnimatePresence>
 
                 {/* Floating Status Badges */}
-                <div className="absolute top-8 right-8 z-10 flex flex-col gap-3">
+                <div className="absolute top-4 right-4 z-10 flex flex-col gap-3">
                   {product.isNew && (
                     <motion.div
                       initial={{ x: 20, opacity: 0 }}
@@ -369,7 +369,7 @@ export default function ProductDetail() {
               </div>
 
               {/* Thumbnails - Desktop Premium */}
-              <div className="flex gap-4 p-8 pt-0 overflow-x-auto hide-scrollbar justify-center relative z-20">
+              <div className="flex gap-3 p-4 pt-0 overflow-x-auto hide-scrollbar justify-center relative z-20">
                 {allImages.map((img, idx) => (
                   <motion.button
                     key={idx}
@@ -393,9 +393,9 @@ export default function ProductDetail() {
           </div>
 
           {/* Product Info */}
-          <div className="w-full lg:w-[45%] p-6 sm:p-10 lg:border-r border-slate-100 flex flex-col bg-white">
-            <div className="mb-8">
-              <div className="flex items-center gap-3 mb-4">
+          <div className="w-full lg:w-[45%] p-4 sm:p-6 lg:border-r border-slate-100 flex flex-col bg-white">
+            <div className="mb-4">
+              <div className="flex items-center gap-3 mb-2">
                 <span className="text-[9px] font-black uppercase tracking-widest text-solar bg-solar/5 border border-solar/10 px-3 py-1 rounded-full">
                   {product.category}
                 </span>
@@ -407,11 +407,11 @@ export default function ProductDetail() {
                 </div>
               </div>
 
-              <h1 className="text-xl sm:text-2xl font-bold text-carbon mb-3 leading-snug">
+              <h1 className="text-xl sm:text-2xl font-bold text-carbon mb-2 leading-snug">
                 {product.name}
               </h1>
 
-              <div className="flex flex-col mb-6">
+              <div className="flex flex-col mb-4">
                 <div className="flex items-center gap-3 mb-1">
                   <div className="flex items-baseline gap-1.5">
                     <span className="text-2xl sm:text-4xl font-black text-slate-900">
@@ -446,7 +446,7 @@ export default function ProductDetail() {
               {/* Delivery & Seller Info removed as requested */}
 
               {/* Social Proof & Stock Status - Minimalist */}
-              <div className="flex flex-col gap-3 mb-8">
+              <div className="flex flex-col gap-3 mb-4">
                 <div className="flex items-center gap-2">
                   <span className="bg-amber-50 text-amber-600 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-amber-100 flex items-center gap-1.5">
                     <Award className="w-3.5 h-3.5" />
@@ -476,7 +476,7 @@ export default function ProductDetail() {
                 )}
               </div>
 
-              <div className="mb-8 overflow-hidden w-full">
+              <div className="mb-4 overflow-hidden w-full">
                 <div
                   className={`text-titanium/60 leading-relaxed text-sm font-medium break-words whitespace-pre-wrap ${!isDescExpanded ? "line-clamp-3 sm:line-clamp-none" : ""}`}
                 >
@@ -499,10 +499,10 @@ export default function ProductDetail() {
             </div>
 
             {/* Selection Controls */}
-            <div className="space-y-6 mb-8">
+            <div className="space-y-4 mb-4">
               {product.colors && product.colors.length > 0 && (
                 <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
-                  <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
                       <div className="w-1 h-3 bg-solar rounded-full" />
                       <h3 className="text-[10px] font-black text-carbon uppercase tracking-widest">
@@ -562,7 +562,7 @@ export default function ProductDetail() {
 
               {product.sizes && product.sizes.length > 0 && (
                 <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 delay-75">
-                  <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
                       <div className="w-1 h-3 bg-solar rounded-full" />
                       <h3 className="text-[10px] font-black text-carbon uppercase tracking-widest">
@@ -598,7 +598,7 @@ export default function ProductDetail() {
 
               {/* Unified Quantity Selector */}
               <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 delay-150">
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <div className="w-1 h-3 bg-solar rounded-full" />
                     <h3 className="text-[10px] font-black text-carbon uppercase tracking-widest">
@@ -606,7 +606,7 @@ export default function ProductDetail() {
                     </h3>
                   </div>
                 </div>
-                <div className="flex items-center bg-slate-50 rounded-2xl p-1.5 border border-slate-100 w-40 h-14 shadow-sm">
+                <div className="flex items-center bg-slate-50 rounded-2xl p-1.5 border border-slate-100 w-40 h-10 shadow-sm">
                   <button
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
                     className="w-12 h-full flex items-center justify-center text-carbon hover:bg-white rounded-xl transition-all hover:shadow-sm active:scale-95"
@@ -630,7 +630,7 @@ export default function ProductDetail() {
               </div>
 
               {/* Desktop Total Price & Purchase Actions */}
-              <div className="hidden sm:flex flex-col gap-6 pt-6 border-t border-slate-100">
+              <div className="hidden sm:flex flex-col gap-4 pt-4 border-t border-slate-100">
                 <div className="flex items-end justify-between">
                   <div className="flex flex-col">
                     <span className="text-[10px] font-black text-carbon/40 uppercase tracking-widest mb-1">
@@ -736,8 +736,8 @@ export default function ProductDetail() {
 
       {/* Kit / Completion Section */}
       {kitProducts.length > 0 && (
-        <div className="mt-12 sm:mt-20">
-          <div className="flex items-center justify-between mb-8">
+        <div className="mt-8 sm:mt-12">
+          <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <div className="w-2 h-8 bg-solar rounded-full" />
               <div>
@@ -766,11 +766,11 @@ export default function ProductDetail() {
       )}
 
       {/* Simple Professional Specifications Table (Accordion on Mobile) */}
-      <div className="mt-8 mb-8 max-w-5xl">
+      <div className="mt-4 mb-4 max-w-5xl">
         <div className="bg-white sm:rounded-[32px] border-y sm:border border-slate-100 shadow-sm overflow-hidden">
           <button
             onClick={() => setIsSpecsExpanded(!isSpecsExpanded)}
-            className="w-full flex items-center justify-between p-4 sm:p-6 bg-slate-50/50 hover:bg-slate-50 transition-colors"
+            className="w-full flex items-center justify-between p-3 sm:p-4 bg-slate-50/50 hover:bg-slate-50 transition-colors"
           >
             <div className="flex items-center gap-3">
               <div className="w-1.5 h-6 bg-solar rounded-full" />
@@ -830,7 +830,7 @@ export default function ProductDetail() {
       </div>
 
       {/* Related Products - Using Home Page Slider Style */}
-      <div className="mt-16 mb-24 space-y-12">
+      <div className="mt-8 mb-12 space-y-8">
         {/* Similar Products */}
         {products.filter(
           (p) => p.category === product.category && p.id !== product.id,
@@ -846,7 +846,7 @@ export default function ProductDetail() {
 
         {/* Recently Viewed */}
         {recentlyViewed.length > 1 && (
-          <div className="border-t border-slate-100 pt-12">
+          <div className="border-t border-slate-100 pt-8">
             <ProductSlider
               title="شاهدتها مؤخراً"
               products={recentlyViewed.filter((p) => p.id !== product.id)}
@@ -1024,7 +1024,7 @@ export default function ProductDetail() {
             initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 100, opacity: 0 }}
-            className="fixed bottom-0 left-0 right-0 z-[60] p-4 sm:p-6 bg-white border-t border-slate-100 shadow-[0_-15px_35px_rgba(0,0,0,0.1)] lg:rounded-t-[32px] max-w-4xl mx-auto"
+            className="fixed bottom-0 left-0 right-0 z-[60] p-3 sm:p-4 bg-white border-t border-slate-100 shadow-[0_-15px_35px_rgba(0,0,0,0.1)] lg:rounded-t-[32px] max-w-4xl mx-auto"
           >
             <div className="flex flex-col sm:flex-row items-center gap-4">
               <div className="flex items-center gap-3 w-full sm:w-auto">

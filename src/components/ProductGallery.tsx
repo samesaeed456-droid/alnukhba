@@ -50,7 +50,7 @@ const ProductGallery: React.FC<ProductGalleryProps> = React.memo(
     };
 
     return (
-      <div className="w-full mx-auto flex flex-col gap-4 select-none">
+      <div className="w-full mx-auto flex flex-col gap-2 select-none">
         {/* Main Image Container */}
         <div className="relative aspect-square w-full bg-white shadow-sm overflow-hidden group border-b border-black/5">
           <AnimatePresence initial={false} custom={direction} mode="popLayout">

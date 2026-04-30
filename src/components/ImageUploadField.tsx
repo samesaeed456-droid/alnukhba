@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { Upload, X, Image as ImageIcon, Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
-import { uploadToCloudinary } from '../lib/cloudinary';
+import React, { useState } from "react";
+import { Upload, X, Image as ImageIcon, Loader2 } from "lucide-react";
+import { toast } from "sonner";
+import { uploadToCloudinary } from "../lib/cloudinary";
 
 interface ImageUploadFieldProps {
   id: string;
@@ -18,7 +18,7 @@ export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
   value,
   onChange,
   description,
-  className = ""
+  className = "",
 }) => {
   const [isUploading, setIsUploading] = useState(false);
 
@@ -46,23 +46,25 @@ export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
   };
 
   const handleRemove = () => {
-    onChange('');
+    onChange("");
   };
 
   return (
     <div className={`space-y-2 ${className}`}>
-      <label className="block text-sm font-bold text-slate-700 mb-1">{label}</label>
-      
+      <label className="block text-sm font-bold text-slate-700 mb-1">
+        {label}
+      </label>
+
       <div className="relative group">
         {value ? (
           <div className="relative w-full aspect-video sm:aspect-auto sm:h-32 bg-slate-50 rounded-2xl border border-slate-200 overflow-hidden group">
-            <img 
-              src={value} 
-              alt={label} 
+            <img
+              src={value}
+              alt={label}
               className="w-full h-full object-contain"
             />
             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-              <label 
+              <label
                 htmlFor={id}
                 className="p-2 bg-white rounded-full text-carbon cursor-pointer hover:scale-110 transition-transform"
               >
@@ -78,35 +80,41 @@ export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
             </div>
           </div>
         ) : (
-          <label 
+          <label
             htmlFor={id}
-            className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-slate-200 rounded-2xl cursor-pointer bg-slate-50 hover:bg-slate-100/50 transition-all ${isUploading ? 'pointer-events-none' : ''}`}
+            className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-slate-200 rounded-2xl cursor-pointer bg-slate-50 hover:bg-slate-100/50 transition-all ${isUploading ? "pointer-events-none" : ""}`}
           >
             {isUploading ? (
               <div className="flex flex-col items-center gap-2">
                 <Loader2 className="w-8 h-8 text-solar animate-spin" />
-                <span className="text-xs font-bold text-slate-500">جاري الرفع...</span>
+                <span className="text-xs font-bold text-slate-500">
+                  جاري الرفع...
+                </span>
               </div>
             ) : (
               <>
                 <ImageIcon className="w-8 h-8 text-slate-300 mb-2" />
-                <span className="text-xs font-bold text-slate-500">اضغط لرفع صورة</span>
+                <span className="text-xs font-bold text-slate-500">
+                  اضغط لرفع صورة
+                </span>
               </>
             )}
-            <input 
+            <input
               id={id}
-              type="file" 
-              className="hidden" 
-              accept="image/*" 
+              type="file"
+              className="hidden"
+              accept="image/*"
               onChange={handleFileChange}
               disabled={isUploading}
             />
           </label>
         )}
       </div>
-      
+
       {description && (
-        <p className="text-[10px] text-slate-400 font-medium px-1">{description}</p>
+        <p className="text-[10px] text-slate-400 font-medium px-1">
+          {description}
+        </p>
       )}
     </div>
   );

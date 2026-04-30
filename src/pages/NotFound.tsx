@@ -1,7 +1,7 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
-import { Home, Search, ShoppingBag, ArrowRight } from 'lucide-react';
-import { motion } from 'motion/react';
+import React from "react";
+import { Link } from "react-router-dom";
+import { Home, Search, ShoppingBag, ArrowRight } from "lucide-react";
+import { motion } from "motion/react";
 
 export default function NotFound() {
   return (
@@ -13,7 +13,7 @@ export default function NotFound() {
       </div>
 
       <div className="relative z-10 text-center max-w-7xl mx-auto">
-        <motion.div 
+        <motion.div
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ duration: 0.6, ease: "easeOut" }}
@@ -34,7 +34,7 @@ export default function NotFound() {
             </motion.div>
           </div>
         </motion.div>
-        
+
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
@@ -44,26 +44,27 @@ export default function NotFound() {
             عذراً، هذه الصفحة <span className="text-solar">غير متوفرة</span>
           </h2>
           <p className="text-slate-500 mb-12 max-w-md mx-auto text-sm sm:text-lg leading-relaxed">
-            يبدو أنك سلكت طريقاً خاطئاً. لا تقلق، يمكنك العودة لتصفح أحدث مجموعاتنا الفاخرة بكل سهولة.
+            يبدو أنك سلكت طريقاً خاطئاً. لا تقلق، يمكنك العودة لتصفح أحدث
+            مجموعاتنا الفاخرة بكل سهولة.
           </p>
         </motion.div>
-        
-        <motion.div 
+
+        <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.5 }}
           className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full"
         >
-          <Link 
-            to="/" 
+          <Link
+            to="/"
             className="w-full sm:w-auto bg-carbon hover:bg-black text-white px-10 py-4 rounded-2xl font-bold transition-all shadow-xl hover:shadow-carbon/20 hover:-translate-y-1 flex items-center justify-center gap-3 group"
           >
             <Home className="w-5 h-5 group-hover:scale-110 transition-transform" />
             <span>العودة للرئيسية</span>
           </Link>
-          
-          <Link 
-            to="/search" 
+
+          <Link
+            to="/search"
             className="w-full sm:w-auto bg-white border border-slate-200 hover:border-solar hover:text-solar text-carbon px-10 py-4 rounded-2xl font-bold transition-all flex items-center justify-center gap-3 group"
           >
             <Search className="w-5 h-5 group-hover:scale-110 transition-transform" />
@@ -83,11 +84,11 @@ export default function NotFound() {
           </p>
           <div className="flex flex-wrap justify-center gap-x-8 gap-y-4">
             {[
-              { name: 'أحدث العروض', path: '/deals' },
-              { name: 'الأكثر مبيعاً', path: '/search?sort=popular' },
-              { name: 'تتبع طلبك', path: '/track-order' }
+              { name: "أحدث العروض", path: "/deals" },
+              { name: "الأكثر مبيعاً", path: "/search?sort=popular" },
+              { name: "تتبع طلبك", path: "/track-order" },
             ].map((link) => (
-              <Link 
+              <Link
                 key={link.path}
                 to={link.path}
                 className="text-xs sm:text-sm font-bold text-carbon hover:text-solar transition-colors flex items-center gap-1 group"

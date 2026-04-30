@@ -30,7 +30,7 @@ export interface Product {
   metaTitle?: string;
   metaDescription?: string;
   sku?: string;
-  status?: 'active' | 'draft';
+  status?: "active" | "draft";
   kitProductIds?: string[];
 }
 
@@ -55,9 +55,9 @@ export interface Address {
 export interface Transaction {
   id: string;
   amount: number;
-  type: 'deposit' | 'withdrawal' | 'purchase';
+  type: "deposit" | "withdrawal" | "purchase";
   date: string;
-  status: 'completed' | 'pending' | 'failed';
+  status: "completed" | "pending" | "failed";
   description: string;
 }
 
@@ -86,7 +86,7 @@ export interface UserProfile {
   wishlist?: Product[];
   preferences?: {
     notifications?: boolean;
-    language?: 'ar' | 'en';
+    language?: "ar" | "en";
   };
   notes?: UserNote[];
   totalSpent?: number;
@@ -134,15 +134,15 @@ export interface Order {
   discountAmount: number;
   couponCode?: string;
   total: number;
-  status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+  status: "pending" | "processing" | "shipped" | "delivered" | "cancelled";
   paymentMethod: string;
   paymentReference?: string;
   paymentProof?: string;
-  shippingMethod?: 'delivery' | 'pickup';
+  shippingMethod?: "delivery" | "pickup";
   deliveryInstructions?: string;
   currency: string;
   timeline?: {
-    status: Order['status'];
+    status: Order["status"];
     date: string;
     note?: string;
   }[];
@@ -150,7 +150,7 @@ export interface Order {
 
 export interface NotificationSubscription {
   productId: string;
-  type: 'back_in_stock' | 'on_sale';
+  type: "back_in_stock" | "on_sale";
   email: string;
 }
 
@@ -168,7 +168,7 @@ export interface AppNotification {
   date: string;
   isRead: boolean;
   productId?: string;
-  type: 'sale' | 'stock' | 'order' | 'system';
+  type: "sale" | "stock" | "order" | "system";
   userId?: string;
   image?: string;
   url?: string;
@@ -178,7 +178,7 @@ export interface AppNotification {
 export interface Coupon {
   id: string;
   code: string;
-  discountType: 'percentage' | 'fixed';
+  discountType: "percentage" | "fixed";
   discountValue: number;
   minOrderValue?: number;
   expiryDate?: string;
@@ -216,7 +216,15 @@ export interface Banner {
   link?: string;
   isActive: boolean;
   order: number;
-  position?: 'hero' | 'middle' | 'bottom' | 'screens' | 'electronics' | 'solar' | 'accessories' | 'batteries';
+  position?:
+    | "hero"
+    | "middle"
+    | "bottom"
+    | "screens"
+    | "electronics"
+    | "solar"
+    | "accessories"
+    | "batteries";
   startDate?: string;
   endDate?: string;
   views: number;
@@ -228,34 +236,41 @@ export interface MarketingNotification {
   title: string;
   message: string;
   date: string;
-  target: 'all' | 'vip' | 'new' | 'inactive' | 'abandoned_cart' | 'specific_product' | 'specific_user';
+  target:
+    | "all"
+    | "vip"
+    | "new"
+    | "inactive"
+    | "abandoned_cart"
+    | "specific_product"
+    | "specific_user";
   targetUserId?: string;
   sentCount: number;
   openedCount: number;
   clickedCount: number;
-  status: 'sent' | 'scheduled' | 'draft';
+  status: "sent" | "scheduled" | "draft";
   scheduledFor?: string;
-  type: 'push' | 'email' | 'sms';
+  type: "push" | "email" | "sms";
   image?: string;
   url?: string;
   actions?: { action: string; title: string; icon?: string }[];
 }
 
-export type AdminPermission = 
-  | 'view_dashboard'
-  | 'manage_orders'
-  | 'manage_products'
-  | 'manage_customers'
-  | 'manage_marketing'
-  | 'manage_coupons'
-  | 'manage_settings'
-  | 'manage_security'
-  | 'view_logs'
-  | 'manage_logistics'
-  | 'manage_messages'
-  | 'all';
+export type AdminPermission =
+  | "view_dashboard"
+  | "manage_orders"
+  | "manage_products"
+  | "manage_customers"
+  | "manage_marketing"
+  | "manage_coupons"
+  | "manage_settings"
+  | "manage_security"
+  | "view_logs"
+  | "manage_logistics"
+  | "manage_messages"
+  | "all";
 
-export type AdminRole = 'super_admin' | 'manager' | 'editor' | 'support';
+export type AdminRole = "super_admin" | "manager" | "editor" | "support";
 
 export interface AdminUser {
   id: string;
@@ -289,7 +304,7 @@ export interface PaymentMethodConfig {
   instructions?: string;
   isActive: boolean;
   requiresProof: boolean;
-  type: 'wallet' | 'bank' | 'other';
+  type: "wallet" | "bank" | "other";
 }
 
 export interface StoreSettings {
@@ -311,7 +326,7 @@ export interface StoreSettings {
   shippingFee: number;
   freeShippingThreshold: number;
   currency: string;
-  language: 'ar' | 'en';
+  language: "ar" | "en";
   isMaintenanceMode: boolean;
   maintenanceMessage?: string;
   announcementText?: string;
@@ -322,7 +337,7 @@ export interface StoreSettings {
     enabled: boolean;
     sms: boolean;
     email: boolean;
-    onStatusChange: Order['status'][];
+    onStatusChange: Order["status"][];
   };
   paymentMethods?: PaymentMethodConfig[];
   seo?: {
@@ -340,7 +355,7 @@ export interface Visit {
   timestamp: string;
   page: string;
   referrer: string;
-  device: 'mobile' | 'desktop' | 'tablet';
+  device: "mobile" | "desktop" | "tablet";
   browser: string;
   os: string;
   country: string;
@@ -355,12 +370,12 @@ export interface SupportTicket {
   customerName: string;
   subject: string;
   message: string;
-  status: 'open' | 'in_progress' | 'resolved';
-  priority: 'low' | 'medium' | 'high';
+  status: "open" | "in_progress" | "resolved";
+  priority: "low" | "medium" | "high";
   createdAt: string;
   replies: {
     id: string;
-    sender: 'admin' | 'customer';
+    sender: "admin" | "customer";
     message: string;
     timestamp: string;
   }[];

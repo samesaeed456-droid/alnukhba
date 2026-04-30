@@ -1,32 +1,55 @@
-import React, { useState, useCallback, useMemo } from 'react';
-import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { Lock, User, ArrowRight, AlertCircle, CheckCircle2, Eye, EyeOff, Zap, ChevronDown, ShieldCheck, Loader2, Smartphone, Fingerprint } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
-import { startAuthentication } from '@simplewebauthn/browser';
-import { signInWithCustomToken } from 'firebase/auth';
-import { useStore } from '../context/StoreContext';
-import { parseSmartError } from '../lib/errorUtils';
-import { 
-  auth, db, doc, getDoc, setDoc, serverTimestamp, loginWithEmail, signupWithEmail
-} from '../lib/firebase';
-import FloatingInput from '../components/FloatingInput';
+import React, { useState, useCallback, useMemo } from "react";
+import { useNavigate, useLocation, Link } from "react-router-dom";
+import {
+  Lock,
+  User,
+  ArrowRight,
+  AlertCircle,
+  CheckCircle2,
+  Eye,
+  EyeOff,
+  Zap,
+  ChevronDown,
+  ShieldCheck,
+  Loader2,
+  Smartphone,
+  Fingerprint,
+} from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
+import { startAuthentication } from "@simplewebauthn/browser";
+import { signInWithCustomToken } from "firebase/auth";
+import { useStore } from "../context/StoreContext";
+import { parseSmartError } from "../lib/errorUtils";
+import {
+  auth,
+  db,
+  doc,
+  getDoc,
+  setDoc,
+  serverTimestamp,
+  loginWithEmail,
+  signupWithEmail,
+} from "../lib/firebase";
+import FloatingInput from "../components/FloatingInput";
 
-import Logo from '../components/Logo';
+import Logo from "../components/Logo";
 
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-  const [step, setStep] = useState<'form' | 'verification' | 'forgot_password' | 'reset_password'>('form');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [otp, setOtp] = useState(['', '', '', '']);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [step, setStep] = useState<
+    "form" | "verification" | "forgot_password" | "reset_password"
+  >("form");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [otp, setOtp] = useState(["", "", "", ""]);
   const [timer, setTimer] = useState(59);
   const [isResending, setIsResending] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
-  const [verificationToken, setVerificationToken] = useState('');
+  const [verificationToken, setVerificationToken] = useState("");
   const navigate = useNavigate();
   const location = useLocation();
   const { user, isAuthReady, updateUser, forceSetUser, showToast } = useStore();
@@ -36,20 +59,21 @@ export default function Auth() {
     if (isAuthReady && !user && auth.currentUser) {
       // User is logged in to Firebase Auth but has no Firestore profile
       setIsLogin(false);
-      setStep('form');
-      setError('يرجى استكمال بياناتك لتفعيل حسابك البديل.');
+      setStep("form");
+      setError("يرجى استكمال بياناتك لتفعيل حسابك البديل.");
     }
   }, [isAuthReady, user, step]);
 
   const handlePasskeyLogin = async () => {
     setIsLoading(true);
-    setError('');
+    setError("");
     try {
-      const currentSessionId = localStorage.getItem('local_session_id') || 'anon';
-      
-      const res = await fetch('/api/webauthn/login/generate', {
-        method: 'POST',
-        headers: { 'x-session-id': currentSessionId }
+      const currentSessionId =
+        localStorage.getItem("local_session_id") || "anon";
+
+      const res = await fetch("/api/webauthn/login/generate", {
+        method: "POST",
+        headers: { "x-session-id": currentSessionId },
       });
       const resText = await res.text();
       if (!res.ok) {
@@ -67,22 +91,26 @@ export default function Auth() {
       try {
         response = await startAuthentication({ optionsJSON: options });
       } catch (authErr: any) {
-         if (authErr.name === 'NotAllowedError') {
-           setIsLoading(false);
-           return; 
-         }
-         throw authErr;
+        if (authErr.name === "NotAllowedError") {
+          setIsLoading(false);
+          return;
+        }
+        throw authErr;
       }
 
-      const verifyRes = await fetch('/api/webauthn/login/verify', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'x-session-id': currentSessionId
+      const verifyRes = await fetch("/api/webauthn/login/verify", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-session-id": currentSessionId,
         },
-        body: JSON.stringify({ response, challenge: expectedChallenge, sessionToken })
+        body: JSON.stringify({
+          response,
+          challenge: expectedChallenge,
+          sessionToken,
+        }),
       });
-      
+
       const verifyText = await verifyRes.text();
       if (!verifyRes.ok) {
         console.error("Login Verify error text:", verifyRes.status, verifyText);
@@ -91,29 +119,35 @@ export default function Auth() {
       const verifyData = JSON.parse(verifyText);
       if (verifyData.success) {
         await signInWithCustomToken(auth, verifyData.customToken);
-        showToast('تم تسجيل الدخول بالبصمة بنجاح!');
+        showToast("تم تسجيل الدخول بالبصمة بنجاح!");
         setTimeout(() => {
           navigate(redirectPath);
           window.scrollTo(0, 0);
         }, 500);
       } else {
-        throw new Error(verifyData.error || 'فشل التحقق');
+        throw new Error(verifyData.error || "فشل التحقق");
       }
     } catch (err: any) {
       console.error("[WebAuthn Login Error]:", err);
-      if (err.name === 'NotAllowedError') {
+      if (err.name === "NotAllowedError") {
         // This is usually user cancel, don't show a loud error unless it's a real failure
         return;
-      } else if (err.name === 'NotSupportedError') {
-        setError('مستشعرات البصمة غير مدعومة في هذا المتصفح أو يجب فتح التطبيق في تبويب جديد.');
-      } else if (err.message?.includes('غير مفعلة')) {
-        setError('البصمة غير مفعلة في حسابك. يرجى تسجيل الدخول أولاً وتفعيلها من الإعدادات.');
+      } else if (err.name === "NotSupportedError") {
+        setError(
+          "مستشعرات البصمة غير مدعومة في هذا المتصفح أو يجب فتح التطبيق في تبويب جديد.",
+        );
+      } else if (err.message?.includes("غير مفعلة")) {
+        setError(
+          "البصمة غير مفعلة في حسابك. يرجى تسجيل الدخول أولاً وتفعيلها من الإعدادات.",
+        );
       } else {
         const errorMsg = err.message || err.toString();
-        if (errorMsg.includes('The operation either timed out or was not allowed')) {
-           setError('البصمة غير مفعلة في حسابك أو تم إلغاء المحاولة.');
+        if (
+          errorMsg.includes("The operation either timed out or was not allowed")
+        ) {
+          setError("البصمة غير مفعلة في حسابك أو تم إلغاء المحاولة.");
         } else {
-           setError(`خطأ في البصمة: ${errorMsg}. يرجى استخدام كلمة المرور.`);
+          setError(`خطأ في البصمة: ${errorMsg}. يرجى استخدام كلمة المرور.`);
         }
       }
     } finally {
@@ -122,18 +156,18 @@ export default function Auth() {
   };
 
   const queryParams = new URLSearchParams(location.search);
-  const searchRedirectPath = queryParams.get('redirect');
+  const searchRedirectPath = queryParams.get("redirect");
   const stateRedirectPath = (location.state as any)?.from;
-  const redirectPath = searchRedirectPath || stateRedirectPath || '/profile';
-  const mode = queryParams.get('mode');
+  const redirectPath = searchRedirectPath || stateRedirectPath || "/profile";
+  const mode = queryParams.get("mode");
 
   React.useEffect(() => {
-    if (location.pathname === '/signup' || mode === 'signup') {
+    if (location.pathname === "/signup" || mode === "signup") {
       setIsLogin(false);
     }
-    const stepParam = queryParams.get('step');
-    if (stepParam === 'forgot_password') {
-      setStep('forgot_password');
+    const stepParam = queryParams.get("step");
+    if (stepParam === "forgot_password") {
+      setStep("forgot_password");
       setIsLogin(true);
     }
   }, [location.pathname, mode, location.search]);
@@ -146,16 +180,16 @@ export default function Auth() {
   }, [user, navigate, redirectPath]);
 
   const [formData, setFormData] = useState({
-    name: '',
-    phone: '',
-    countryCode: '+967',
-    password: ''
+    name: "",
+    phone: "",
+    countryCode: "+967",
+    password: "",
   });
 
   // Timer logic for resend
   React.useEffect(() => {
     let interval: any;
-    if (step === 'verification' && timer > 0) {
+    if (step === "verification" && timer > 0) {
       interval = setInterval(() => {
         setTimer((prev) => prev - 1);
       }, 1000);
@@ -165,34 +199,34 @@ export default function Auth() {
 
   // Web OTP API implementation
   React.useEffect(() => {
-    if (step !== 'verification' || !('OTPCredential' in window)) return;
+    if (step !== "verification" || !("OTPCredential" in window)) return;
 
     const ac = new AbortController();
-    
+
     const listenForOTP = async () => {
       try {
         const otpResult = await navigator.credentials.get({
-          otp: { transport: ['sms'] },
-          signal: ac.signal
+          otp: { transport: ["sms"] },
+          signal: ac.signal,
         } as any);
-        
-        if (otpResult && 'code' in otpResult) {
+
+        if (otpResult && "code" in otpResult) {
           const code = (otpResult as any).code;
           if (code && code.length === 4) {
-            const digits = code.split('');
+            const digits = code.split("");
             setOtp(digits);
             // Small delay before auto-submit for better UX
             setTimeout(() => {
-              const verifyButton = document.getElementById('verify-submit-btn');
+              const verifyButton = document.getElementById("verify-submit-btn");
               verifyButton?.click();
             }, 500);
           }
         }
       } catch (err: any) {
-        if (err.name !== 'AbortError') {
+        if (err.name !== "AbortError") {
           // Only log if it's not a permission error (common in iframes)
-          if (!err.message?.includes('otp-credentials')) {
-            console.error('Web OTP Error:', err);
+          if (!err.message?.includes("otp-credentials")) {
+            console.error("Web OTP Error:", err);
           }
         }
       }
@@ -206,8 +240,8 @@ export default function Auth() {
     // Only allow digits
     if (value && !/^\d+$/.test(value)) return;
     if (value.length > 1) return;
-    
-    setOtp(prev => {
+
+    setOtp((prev) => {
       const newOtp = [...prev];
       newOtp[index] = value;
       return newOtp;
@@ -220,444 +254,521 @@ export default function Auth() {
     }
   }, []);
 
-  const handleOtpKeyDown = useCallback((index: number, e: React.KeyboardEvent) => {
-    if (e.key === 'Backspace' && !otp[index] && index > 0) {
-      const prevInput = document.getElementById(`otp-${index - 1}`);
-      prevInput?.focus();
-    }
-  }, [otp]);
+  const handleOtpKeyDown = useCallback(
+    (index: number, e: React.KeyboardEvent) => {
+      if (e.key === "Backspace" && !otp[index] && index > 0) {
+        const prevInput = document.getElementById(`otp-${index - 1}`);
+        prevInput?.focus();
+      }
+    },
+    [otp],
+  );
 
   const handleResendCode = useCallback(async () => {
     setIsResending(true);
-    setError('');
-    
+    setError("");
+
     try {
-      const cleanPhone = (formData.phone || '').trim().replace(/^0+/, '');
+      const cleanPhone = (formData.phone || "").trim().replace(/^0+/, "");
       const fullPhone = formData.countryCode + cleanPhone;
-      
-      const response = await fetch('/api/send-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+
+      const response = await fetch("/api/send-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ phone: fullPhone }),
       });
-      
+
       const data = await response.json();
-      
+
       if (response.ok && data.success) {
         setVerificationToken(data.token);
         setTimer(59);
-        showToast('تم إعادة إرسال كود التحقق بنجاح');
+        showToast("تم إعادة إرسال كود التحقق بنجاح");
       } else {
-        setError(data.error || 'تعذر إرسال الكود. يرجى المحاولة لاحقاً');
+        setError(data.error || "تعذر إرسال الكود. يرجى المحاولة لاحقاً");
         // Fallback for demo environment if SMS is not configured or returns 405
         setTimer(59);
-        showToast('تم إرسال كود التحقق (وضع ديمو مفعل)');
+        showToast("تم إرسال كود التحقق (وضع ديمو مفعل)");
       }
     } catch (err) {
-      showToast('حدث خطأ أثناء إرسال الكود');
+      showToast("حدث خطأ أثناء إرسال الكود");
     } finally {
       setIsResending(false);
     }
   }, [formData, showToast]);
 
   const getDummyEmail = useCallback((countryCode: string, phone: string) => {
-    return `${(countryCode || '').replace('+', '')}${phone}@elite-store.local`;
+    return `${(countryCode || "").replace("+", "")}${phone}@elite-store.local`;
   }, []);
 
-  const handleVerify = useCallback(async (e: React.FormEvent) => {
-    e.preventDefault();
-    const code = otp.join('');
-    if (code.length < 4) {
-      setError('يرجى إدخال كود التحقق كاملًا');
-      return;
-    }
+  const handleVerify = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+      const code = otp.join("");
+      if (code.length < 4) {
+        setError("يرجى إدخال كود التحقق كاملًا");
+        return;
+      }
 
-    setIsLoading(true);
-    setError('');
+      setIsLoading(true);
+      setError("");
 
-    try {
-      const cleanPhone = (formData.phone || '').trim().replace(/^0+/, '');
-      const fullPhone = formData.countryCode + cleanPhone;
-      
-      const response = await fetch('/api/verify-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          phone: fullPhone, 
-          otp: code, 
-          token: verificationToken 
-        }),
-      });
+      try {
+        const cleanPhone = (formData.phone || "").trim().replace(/^0+/, "");
+        const fullPhone = formData.countryCode + cleanPhone;
 
-      const data = await response.json();
+        const response = await fetch("/api/verify-otp", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            phone: fullPhone,
+            otp: code,
+            token: verificationToken,
+          }),
+        });
 
-      if (response.ok && data.success) {
-        const prevStep = (window as any)._authPrevStep;
-        
-        if (prevStep === 'forgot_password') {
-          setStep('reset_password');
-          delete (window as any)._authPrevStep;
-          setIsLoading(false);
-          return;
-        }
+        const data = await response.json();
 
-        // Proceed with Signup
-        const email = getDummyEmail(formData.countryCode, cleanPhone);
-        let userCred;
-        
-        try {
-          userCred = await signupWithEmail(email, formData.password);
-        } catch (signupError: any) {
-          console.error("Signup error in verify:", signupError);
-          if (signupError.code === 'auth/email-already-in-use') {
-            // If account already exists, try to log in with the provided password
-            try {
-              userCred = await loginWithEmail(email, formData.password);
-            } catch (loginErr: any) {
-              setError('هذا الرقم مسجل مسبقاً. كلمة المرور التي أدخلتها غير صحيحة للحساب المرتبط بهذا الرقم.');
-              setIsLoading(false);
-              return;
-            }
-          } else {
-            const smartError = parseSmartError(signupError);
-            const errorMessage = typeof smartError === 'string' ? smartError : smartError?.message || 'حدث خطأ أثناء إنشاء الحساب';
-            setError(errorMessage);
+        if (response.ok && data.success) {
+          const prevStep = (window as any)._authPrevStep;
+
+          if (prevStep === "forgot_password") {
+            setStep("reset_password");
+            delete (window as any)._authPrevStep;
             setIsLoading(false);
             return;
           }
-        }
-        
-        try {
-          // Update Firebase Auth profile
-          await import('firebase/auth').then(({ updateProfile }) => {
-            updateProfile(userCred.user, { displayName: formData.name }).catch(console.error);
+
+          // Proceed with Signup
+          const email = getDummyEmail(formData.countryCode, cleanPhone);
+          let userCred;
+
+          try {
+            userCred = await signupWithEmail(email, formData.password);
+          } catch (signupError: any) {
+            console.error("Signup error in verify:", signupError);
+            if (signupError.code === "auth/email-already-in-use") {
+              // If account already exists, try to log in with the provided password
+              try {
+                userCred = await loginWithEmail(email, formData.password);
+              } catch (loginErr: any) {
+                setError(
+                  "هذا الرقم مسجل مسبقاً. كلمة المرور التي أدخلتها غير صحيحة للحساب المرتبط بهذا الرقم.",
+                );
+                setIsLoading(false);
+                return;
+              }
+            } else {
+              const smartError = parseSmartError(signupError);
+              const errorMessage =
+                typeof smartError === "string"
+                  ? smartError
+                  : smartError?.message || "حدث خطأ أثناء إنشاء الحساب";
+              setError(errorMessage);
+              setIsLoading(false);
+              return;
+            }
+          }
+
+          try {
+            // Update Firebase Auth profile
+            await import("firebase/auth").then(({ updateProfile }) => {
+              updateProfile(userCred.user, {
+                displayName: formData.name,
+              }).catch(console.error);
+            });
+          } catch (e) {}
+
+          const currentSessionId = localStorage.getItem("local_session_id");
+          const newUserObj: any = {
+            uid: userCred.user.uid,
+            email: email,
+            name: formData.name,
+            phone: cleanPhone,
+            countryCode: formData.countryCode,
+            role: "customer",
+            walletBalance: 0,
+            currentSessionId: currentSessionId,
+            createdAt: serverTimestamp(),
+          };
+
+          // Save to Firestore (must include uid and email to quickly satisfy firestore.rules)
+          await setDoc(doc(db, "users", userCred.user.uid), newUserObj, {
+            merge: true,
           });
-        } catch (e) {}
-        
-        const currentSessionId = localStorage.getItem('local_session_id');
-        const newUserObj: any = {
-          uid: userCred.user.uid,
-          email: email,
-          name: formData.name,
-          phone: cleanPhone,
-          countryCode: formData.countryCode,
-          role: 'customer',
-          walletBalance: 0,
-          currentSessionId: currentSessionId,
-          createdAt: serverTimestamp()
-        };
 
-        // Save to Firestore (must include uid and email to quickly satisfy firestore.rules)
-        await setDoc(doc(db, 'users', userCred.user.uid), newUserObj, { merge: true });
+          // Optimistically update local store so Profile feels instantaneous
+          forceSetUser({ ...newUserObj, createdAt: new Date().toISOString() });
 
-        // Optimistically update local store so Profile feels instantaneous
-        forceSetUser({ ...newUserObj, createdAt: new Date().toISOString() });
-
-        showToast('تم إنشاء الحساب بنجاح');
-        navigate(redirectPath);
-      } else {
-        setError(data.error || 'كود التحقق غير صحيح');
+          showToast("تم إنشاء الحساب بنجاح");
+          navigate(redirectPath);
+        } else {
+          setError(data.error || "كود التحقق غير صحيح");
+        }
+      } catch (err: any) {
+        console.error("Verification Error [verifyOTP final catch]:", err);
+        console.error(
+          "Error Code:",
+          err.code,
+          "Message:",
+          err.message,
+          "Stack:",
+          err.stack,
+        );
+        const smartError = parseSmartError(err);
+        setError(smartError.message);
+      } finally {
+        setIsLoading(false);
       }
-    } catch (err: any) {
-      console.error('Verification Error [verifyOTP final catch]:', err);
-      console.error('Error Code:', err.code, 'Message:', err.message, 'Stack:', err.stack);
-      const smartError = parseSmartError(err);
-      setError(smartError.message);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [otp, showToast, formData, getDummyEmail, navigate, redirectPath]);
+    },
+    [otp, showToast, formData, getDummyEmail, navigate, redirectPath],
+  );
 
-  const validatePhone = useCallback((phone: string) => {
-    if (formData.countryCode === '+967') {
-      const yemenPhoneRegex = /^7\d{8}$/;
-      return yemenPhoneRegex.test(phone);
-    }
-    return /^\d{7,15}$/.test(phone);
-  }, [formData.countryCode]);
+  const validatePhone = useCallback(
+    (phone: string) => {
+      if (formData.countryCode === "+967") {
+        const yemenPhoneRegex = /^7\d{8}$/;
+        return yemenPhoneRegex.test(phone);
+      }
+      return /^\d{7,15}$/.test(phone);
+    },
+    [formData.countryCode],
+  );
 
   const MAX_ATTEMPTS = 5;
   const LOCKOUT_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
 
   const getLockoutData = useCallback((phone: string) => {
-    const lockouts = JSON.parse(localStorage.getItem('login_lockouts') || '{}');
+    const lockouts = JSON.parse(localStorage.getItem("login_lockouts") || "{}");
     return lockouts[phone] || { attempts: 0, lockedUntil: 0 };
   }, []);
 
-  const updateLockoutData = useCallback((phone: string, data: { attempts: number; lockedUntil: number }) => {
-    const lockouts = JSON.parse(localStorage.getItem('login_lockouts') || '{}');
-    lockouts[phone] = data;
-    localStorage.setItem('login_lockouts', JSON.stringify(lockouts));
-  }, []);
+  const updateLockoutData = useCallback(
+    (phone: string, data: { attempts: number; lockedUntil: number }) => {
+      const lockouts = JSON.parse(
+        localStorage.getItem("login_lockouts") || "{}",
+      );
+      lockouts[phone] = data;
+      localStorage.setItem("login_lockouts", JSON.stringify(lockouts));
+    },
+    [],
+  );
 
   const clearLockoutData = useCallback((phone: string) => {
-    const lockouts = JSON.parse(localStorage.getItem('login_lockouts') || '{}');
+    const lockouts = JSON.parse(localStorage.getItem("login_lockouts") || "{}");
     delete lockouts[phone];
-    localStorage.setItem('login_lockouts', JSON.stringify(lockouts));
+    localStorage.setItem("login_lockouts", JSON.stringify(lockouts));
   }, []);
 
-  const handleSubmit = useCallback(async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setSuccess('');
+  const handleSubmit = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+      setError("");
+      setSuccess("");
 
-    // Validation
-    if (!isLogin) {
-      const nameParts = formData.name.trim().split(/\s+/);
-      if (nameParts.length < 4) {
-        setError('يرجى إدخال الاسم الرباعي كاملاً (مثال: حسين عبد الكريم هزاع)');
-        return;
+      // Validation
+      if (!isLogin) {
+        const nameParts = formData.name.trim().split(/\s+/);
+        if (nameParts.length < 4) {
+          setError(
+            "يرجى إدخال الاسم الرباعي كاملاً (مثال: حسين عبد الكريم هزاع)",
+          );
+          return;
+        }
       }
-    }
 
-    if (!formData.phone) {
-      setError('يرجى إدخال رقم الجوال');
-      return;
-    }
-
-    if (!validatePhone(formData.phone)) {
-      setError('رقم الجوال غير صحيح. يجب أن يبدأ بـ 7 ويتكون من 9 أرقام');
-      return;
-    }
-
-    if (!isLogin && !agreedToTerms) {
-      setError('يجب الموافقة على شروط الخدمة وسياسة الخصوصية للمتابعة');
-      return;
-    }
-
-    if (!formData.password || formData.password.length < 6) {
-      setError('كلمة المرور يجب أن تكون 6 أحرف على الأقل');
-      return;
-    }
-
-    setIsLoading(true);
-
-    try {
-      const cleanPhone = (formData.phone || '').trim().replace(/^0+/, '');
-      
-      // If we are already authenticated via Firebase Auth but document is missing (deleted user scenario)
-      if (!isLogin && auth.currentUser) {
-        const email = getDummyEmail(formData.countryCode, cleanPhone);
-        const currentSessionId = localStorage.getItem('local_session_id');
-
-        const newUserObj: any = {
-          uid: auth.currentUser.uid,
-          email: email,
-          name: formData.name,
-          displayName: formData.name,
-          phone: cleanPhone,
-          countryCode: formData.countryCode,
-          photoURL: null,
-          role: 'customer',
-          walletBalance: 0,
-          currentSessionId: currentSessionId,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp()
-        };
-
-        await setDoc(doc(db, 'users', auth.currentUser.uid), newUserObj, { merge: true });
-        forceSetUser({ ...newUserObj, createdAt: new Date().toISOString() });
-        showToast('تم استعادة وتفعيل الحساب بنجاح');
-        navigate(redirectPath);
+      if (!formData.phone) {
+        setError("يرجى إدخال رقم الجوال");
         return;
       }
 
-      if (isLogin) {
-        const email = getDummyEmail(formData.countryCode, cleanPhone);
-        
-        try {
-          // Log in directly without OTP
-          const userCred = await loginWithEmail(email, formData.password);
-          
+      if (!validatePhone(formData.phone)) {
+        setError("رقم الجوال غير صحيح. يجب أن يبدأ بـ 7 ويتكون من 9 أرقام");
+        return;
+      }
+
+      if (!isLogin && !agreedToTerms) {
+        setError("يجب الموافقة على شروط الخدمة وسياسة الخصوصية للمتابعة");
+        return;
+      }
+
+      if (!formData.password || formData.password.length < 6) {
+        setError("كلمة المرور يجب أن تكون 6 أحرف على الأقل");
+        return;
+      }
+
+      setIsLoading(true);
+
+      try {
+        const cleanPhone = (formData.phone || "").trim().replace(/^0+/, "");
+
+        // If we are already authenticated via Firebase Auth but document is missing (deleted user scenario)
+        if (!isLogin && auth.currentUser) {
+          const email = getDummyEmail(formData.countryCode, cleanPhone);
+          const currentSessionId = localStorage.getItem("local_session_id");
+
+          const newUserObj: any = {
+            uid: auth.currentUser.uid,
+            email: email,
+            name: formData.name,
+            displayName: formData.name,
+            phone: cleanPhone,
+            countryCode: formData.countryCode,
+            photoURL: null,
+            role: "customer",
+            walletBalance: 0,
+            currentSessionId: currentSessionId,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+          };
+
+          await setDoc(doc(db, "users", auth.currentUser.uid), newUserObj, {
+            merge: true,
+          });
+          forceSetUser({ ...newUserObj, createdAt: new Date().toISOString() });
+          showToast("تم استعادة وتفعيل الحساب بنجاح");
+          navigate(redirectPath);
+          return;
+        }
+
+        if (isLogin) {
+          const email = getDummyEmail(formData.countryCode, cleanPhone);
+
           try {
-            // Fetch profile data immediately to make the transition perfectly instant
-            const userDocRef = doc(db, 'users', userCred.user.uid);
-            const userDoc = await getDoc(userDocRef);
-            
-            if (userDoc.exists()) {
-              const userData = userDoc.data();
-              
-              // Second security check: Mandatory phone/name for entrance
-              if (!userData.phone || (!userData.name && !userData.displayName)) {
-                 await auth.signOut();
-                 setIsLogin(false);
-                 setStep('form');
-                 setError('بيانات حسابك غير مكتملة. يرجى إعادة إنشاء الحساب أو استكمال الاسم والرقم.');
-                 setIsLoading(false);
-                 return;
-              }
+            // Log in directly without OTP
+            const userCred = await loginWithEmail(email, formData.password);
 
-              forceSetUser({ id: userDoc.id, ...userData } as any);
-              showToast('تم تسجيل الدخول بنجاح');
+            try {
+              // Fetch profile data immediately to make the transition perfectly instant
+              const userDocRef = doc(db, "users", userCred.user.uid);
+              const userDoc = await getDoc(userDocRef);
+
+              if (userDoc.exists()) {
+                const userData = userDoc.data();
+
+                // Second security check: Mandatory phone/name for entrance
+                if (
+                  !userData.phone ||
+                  (!userData.name && !userData.displayName)
+                ) {
+                  await auth.signOut();
+                  setIsLogin(false);
+                  setStep("form");
+                  setError(
+                    "بيانات حسابك غير مكتملة. يرجى إعادة إنشاء الحساب أو استكمال الاسم والرقم.",
+                  );
+                  setIsLoading(false);
+                  return;
+                }
+
+                forceSetUser({ id: userDoc.id, ...userData } as any);
+                showToast("تم تسجيل الدخول بنجاح");
+                navigate(redirectPath);
+              } else {
+                // Document missing! User exists in Auth but was deleted from Firestore.
+                // Switch to "Complete Profile" mode within the signup view
+                setIsLogin(false);
+                setStep("form");
+                setError(
+                  "يبدو أن بيانات حسابك قد حُذفت مسبقاً. يرجى إدخال اسمك الرباعي لإعادة تفعيل الحساب.",
+                );
+                showToast("يرجى استكمال بياناتك لإعادة تفعيل الحساب");
+              }
+            } catch (e) {
+              showToast(
+                "تم تسجيل الدخول، يرجى تحديث الصفحة إذا لم تظهر بياناتك",
+              );
               navigate(redirectPath);
-            } else {
-              // Document missing! User exists in Auth but was deleted from Firestore.
-              // Switch to "Complete Profile" mode within the signup view
-              setIsLogin(false);
-              setStep('form');
-              setError('يبدو أن بيانات حسابك قد حُذفت مسبقاً. يرجى إدخال اسمك الرباعي لإعادة تفعيل الحساب.');
-              showToast('يرجى استكمال بياناتك لإعادة تفعيل الحساب');
             }
-          } catch(e) {
-            showToast('تم تسجيل الدخول، يرجى تحديث الصفحة إذا لم تظهر بياناتك');
-            navigate(redirectPath);
+          } catch (authErr: any) {
+            const smartError = parseSmartError(authErr);
+            setError(smartError.message);
           }
-        } catch (authErr: any) {
-          const smartError = parseSmartError(authErr);
+        } else {
+          const fullPhone = formData.countryCode + cleanPhone;
+
+          try {
+            // We rely on auth/email-already-in-use check during actual verify step
+            // instead of pre-checking collection which requires admin permissions
+            const response = await fetch("/api/send-otp", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ phone: fullPhone }),
+            });
+
+            const data = await response.json();
+
+            if (response.ok && data.success) {
+              setVerificationToken(data.token);
+              setStep("verification");
+              showToast("تم إرسال كود التحقق إلى هاتفك");
+            } else {
+              setError(data.error || "تعذر إرسال كود التحقق");
+            }
+          } catch (smsError) {
+            console.error("SMS API not available:", smsError);
+            setError("حدث خطأ أثناء الاتصال بخادم الرسائل");
+          }
+        }
+      } catch (err: any) {
+        console.error("Full Auth Error Object:", err);
+        const smartError = parseSmartError(err);
+
+        if (smartError.code === "auth/email-already-in-use") {
+          setError(
+            "هذا الرقم مسجل مسبقاً، יمنع إنشاء حسابين بنفس الرقم. يرجى تسجيل الدخول.",
+          );
+        } else {
           setError(smartError.message);
         }
-      } else {
+
+        if (
+          smartError.isConfigError ||
+          smartError.message === "حدث خطأ غير متوقع، يرجى المحاولة لاحقاً"
+        ) {
+          console.error(
+            "Technical Details:",
+            smartError.technicalDetails || err.message || err,
+          );
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [
+      isLogin,
+      formData,
+      agreedToTerms,
+      validatePhone,
+      showToast,
+      getDummyEmail,
+      navigate,
+      redirectPath,
+    ],
+  );
+
+  const handleForgotPassword = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+      setError("");
+
+      if (!formData.phone) {
+        setError("يرجى إدخال رقم الجوال");
+        return;
+      }
+
+      if (!validatePhone(formData.phone)) {
+        setError("رقم الجوال غير صحيح");
+        return;
+      }
+
+      setIsLoading(true);
+
+      try {
+        const cleanPhone = (formData.phone || "").trim().replace(/^0+/, "");
         const fullPhone = formData.countryCode + cleanPhone;
 
-        try {
-          // We rely on auth/email-already-in-use check during actual verify step
-          // instead of pre-checking collection which requires admin permissions
-          const response = await fetch('/api/send-otp', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ phone: fullPhone }),
-          });
+        const response = await fetch("/api/send-otp", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ phone: fullPhone }),
+        });
 
-          const data = await response.json();
+        const data = await response.json();
 
-          if (response.ok && data.success) {
-            setVerificationToken(data.token);
-            setStep('verification');
-            showToast('تم إرسال كود التحقق إلى هاتفك');
-          } else {
-            setError(data.error || 'تعذر إرسال كود التحقق');
+        if (response.ok && data.success) {
+          setVerificationToken(data.token);
+          (window as any)._authPrevStep = "forgot_password";
+          setStep("verification");
+          showToast("تم إرسال كود التحقق لاستعادة كلمة المرور");
+        } else {
+          setError(data.error || "تعذر إرسال كود التحقق");
+        }
+      } catch (err) {
+        console.error("Error in handleForgotPassword:", err);
+        setError("حدث خطأ أثناء الاتصال بالخادم");
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [formData.phone, formData.countryCode, validatePhone, showToast],
+  );
+
+  const handleResetPassword = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+      setError("");
+
+      if (newPassword.length < 6) {
+        setError("كلمة المرور يجب أن تكون 6 أحرف على الأقل");
+        return;
+      }
+
+      if (newPassword !== confirmPassword) {
+        setError("كلمات المرور غير متطابقة");
+        return;
+      }
+
+      setIsLoading(true);
+
+      try {
+        const cleanPhone = (formData.phone || "").trim().replace(/^0+/, "");
+        const response = await fetch("/api/reset-password", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            countryCode: formData.countryCode,
+            phone: cleanPhone,
+            newPassword: newPassword,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+          showToast("تم بنجاح! يرجى تسجيل الدخول بكلمة المرور الجديدة");
+          setStep("form");
+          setIsLogin(true);
+          // Clear passwords
+          setNewPassword("");
+          setConfirmPassword("");
+        } else {
+          // Show specific error from server if admin SDK is not setup
+          setError(data.error || "حدث خطأ أثناء تغيير كلمة المرور");
+          if (data.error === "إعدادات Firebase Admin غير متوفرة في السيرفر") {
+            showToast(
+              "عذراً، الخادم غير مهيأ لاستعادة كلمات المرور حالياً. تواصل مع الدعم الفني.",
+              "error",
+            );
           }
-        } catch (smsError) {
-          console.error("SMS API not available:", smsError);
-          setError('حدث خطأ أثناء الاتصال بخادم الرسائل');
         }
+      } catch (err) {
+        console.error("Reset password error:", err);
+        setError("فشل الاتصال بالخادم");
+      } finally {
+        setIsLoading(false);
       }
-    } catch (err: any) {
-      console.error("Full Auth Error Object:", err);
-      const smartError = parseSmartError(err);
-      
-      if (smartError.code === 'auth/email-already-in-use') {
-         setError('هذا الرقم مسجل مسبقاً، יمنع إنشاء حسابين بنفس الرقم. يرجى تسجيل الدخول.');
-      } else {
-         setError(smartError.message);
-      }
-      
-      if (smartError.isConfigError || smartError.message === 'حدث خطأ غير متوقع، يرجى المحاولة لاحقاً') {
-        console.error("Technical Details:", smartError.technicalDetails || err.message || err);
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  }, [isLogin, formData, agreedToTerms, validatePhone, showToast, getDummyEmail, navigate, redirectPath]);
-
-  const handleForgotPassword = useCallback(async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    
-    if (!formData.phone) {
-      setError('يرجى إدخال رقم الجوال');
-      return;
-    }
-
-    if (!validatePhone(formData.phone)) {
-      setError('رقم الجوال غير صحيح');
-      return;
-    }
-
-    setIsLoading(true);
-
-    try {
-      const cleanPhone = (formData.phone || '').trim().replace(/^0+/, '');
-      const fullPhone = formData.countryCode + cleanPhone;
-      
-      const response = await fetch('/api/send-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: fullPhone }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok && data.success) {
-        setVerificationToken(data.token);
-        (window as any)._authPrevStep = 'forgot_password';
-        setStep('verification');
-        showToast('تم إرسال كود التحقق لاستعادة كلمة المرور');
-      } else {
-        setError(data.error || 'تعذر إرسال كود التحقق');
-      }
-    } catch (err) {
-      console.error("Error in handleForgotPassword:", err);
-      setError('حدث خطأ أثناء الاتصال بالخادم');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [formData.phone, formData.countryCode, validatePhone, showToast]);
-
-  const handleResetPassword = useCallback(async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-
-    if (newPassword.length < 6) {
-      setError('كلمة المرور يجب أن تكون 6 أحرف على الأقل');
-      return;
-    }
-
-    if (newPassword !== confirmPassword) {
-      setError('كلمات المرور غير متطابقة');
-      return;
-    }
-
-    setIsLoading(true);
-    
-    try {
-      const cleanPhone = (formData.phone || '').trim().replace(/^0+/, '');
-      const response = await fetch('/api/reset-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          countryCode: formData.countryCode,
-          phone: cleanPhone,
-          newPassword: newPassword 
-        })
-      });
-
-      const data = await response.json();
-      
-      if (response.ok && data.success) {
-        showToast('تم بنجاح! يرجى تسجيل الدخول بكلمة المرور الجديدة');
-        setStep('form');
-        setIsLogin(true);
-        // Clear passwords
-        setNewPassword('');
-        setConfirmPassword('');
-      } else {
-        // Show specific error from server if admin SDK is not setup
-        setError(data.error || 'حدث خطأ أثناء تغيير كلمة المرور');
-        if (data.error === "إعدادات Firebase Admin غير متوفرة في السيرفر") {
-           showToast('عذراً، الخادم غير مهيأ لاستعادة كلمات المرور حالياً. تواصل مع الدعم الفني.', 'error');
-        }
-      }
-    } catch (err) {
-      console.error("Reset password error:", err);
-      setError('فشل الاتصال بالخادم');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [newPassword, confirmPassword, formData, showToast]);
+    },
+    [newPassword, confirmPassword, formData, showToast],
+  );
 
   const getTitle = useCallback(() => {
-    if (step === 'verification') return 'كود التحقق';
-    if (step === 'forgot_password') return 'استعادة كلمة المرور';
-    if (step === 'reset_password') return 'تعيين كلمة مرور جديدة';
-    return isLogin ? 'تسجيل الدخول' : 'إنشاء حساب جديد';
+    if (step === "verification") return "كود التحقق";
+    if (step === "forgot_password") return "استعادة كلمة المرور";
+    if (step === "reset_password") return "تعيين كلمة مرور جديدة";
+    return isLogin ? "تسجيل الدخول" : "إنشاء حساب جديد";
   }, [step, isLogin]);
 
   const getSubtitle = useCallback(() => {
-    if (step === 'verification') return `تم إرسال كود التحقق إلى الرقم ${formData.phone}`;
-    if (step === 'forgot_password') return 'أدخل رقم جوالك لتلقي كود استعادة الحساب';
-    if (step === 'reset_password') return 'يرجى اختيار كلمة مرور قوية وسهلة التذكر';
-    return isLogin ? 'أهلاً بك مجدداً في متجرنا' : 'انضم إلينا واستمتع بأفضل العروض والخدمات الحصرية';
+    if (step === "verification")
+      return `تم إرسال كود التحقق إلى الرقم ${formData.phone}`;
+    if (step === "forgot_password")
+      return "أدخل رقم جوالك لتلقي كود استعادة الحساب";
+    if (step === "reset_password")
+      return "يرجى اختيار كلمة مرور قوية وسهلة التذكر";
+    return isLogin
+      ? "أهلاً بك مجدداً في متجرنا"
+      : "انضم إلينا واستمتع بأفضل العروض والخدمات الحصرية";
   }, [step, isLogin, formData.phone]);
 
   const containerVariants = {
@@ -667,24 +778,22 @@ export default function Auth() {
       y: 0,
       transition: {
         duration: 0.5,
-        staggerChildren: 0.1
-      }
-    }
+        staggerChildren: 0.1,
+      },
+    },
   };
 
   const itemVariants = {
     hidden: { opacity: 0, y: 10 },
-    visible: { opacity: 1, y: 0 }
+    visible: { opacity: 1, y: 0 },
   };
-
-
 
   return (
     <div className="min-h-screen sm:min-h-screen flex items-center justify-center p-0 sm:p-6 bg-white sm:bg-slate-50 relative overflow-hidden">
       {/* Mobile-only Back Button */}
       <div className="md:hidden absolute top-6 right-6 z-50">
-        <Link 
-          to="/" 
+        <Link
+          to="/"
           className="w-10 h-10 flex items-center justify-center bg-slate-100 rounded-full text-slate-600 active:scale-95 transition-transform"
         >
           <ArrowRight className="w-5 h-5" />
@@ -697,7 +806,7 @@ export default function Auth() {
         <div className="absolute bottom-[-10%] left-[-10%] w-[40%] h-[40%] bg-carbon/5 rounded-full blur-[120px]" />
       </div>
 
-      <motion.div 
+      <motion.div
         initial="hidden"
         animate="visible"
         variants={containerVariants}
@@ -706,20 +815,20 @@ export default function Auth() {
         {/* Left Side: Image/Branding (Visible on Desktop) */}
         <div className="hidden md:flex md:w-1/2 bg-carbon relative overflow-hidden">
           <div className="absolute inset-0">
-            <img 
-              src="https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?auto=format&fit=crop&q=80&w=2070" 
-              alt="Shopping Experience" 
+            <img
+              src="https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?auto=format&fit=crop&q=80&w=2070"
+              alt="Shopping Experience"
               className="w-full h-full object-cover opacity-40 mix-blend-overlay"
               referrerPolicy="no-referrer"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-carbon via-carbon/50 to-transparent" />
           </div>
-          
+
           <div className="relative z-10 p-12 flex flex-col justify-between h-full text-white">
             <div>
               <Logo variant="light" className="h-12" />
             </div>
-            
+
             <div className="space-y-6">
               <motion.div
                 initial={{ opacity: 0, x: -20 }}
@@ -727,27 +836,37 @@ export default function Auth() {
                 transition={{ delay: 0.3 }}
               >
                 <h2 className="text-4xl font-black leading-tight mb-4">
-                  {isLogin ? 'مرحباً بك مجدداً في عالم التسوق الذكي' : 'ابدأ رحلتك معنا اليوم واستمتع بمزايا حصرية'}
+                  {isLogin
+                    ? "مرحباً بك مجدداً في عالم التسوق الذكي"
+                    : "ابدأ رحلتك معنا اليوم واستمتع بمزايا حصرية"}
                 </h2>
                 <p className="text-slate-300 text-lg font-medium leading-relaxed">
-                  {isLogin 
-                    ? 'سجل دخولك للوصول إلى سلة تسوقك، طلباتك السابقة، وعروضك المخصصة.' 
-                    : 'أنشئ حسابك الآن لتحصل على خصومات فورية، تتبع طلباتك بكل سهولة، وتجربة تسوق لا مثيل لها.'}
+                  {isLogin
+                    ? "سجل دخولك للوصول إلى سلة تسوقك، طلباتك السابقة، وعروضك المخصصة."
+                    : "أنشئ حسابك الآن لتحصل على خصومات فورية، تتبع طلباتك بكل سهولة، وتجربة تسوق لا مثيل لها."}
                 </p>
               </motion.div>
-              
+
               <div className="flex items-center gap-6 pt-8 border-t border-white/10">
                 <div className="flex flex-col">
                   <span className="text-2xl font-black text-white">+50k</span>
-                  <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">عميل سعيد</span>
+                  <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">
+                    عميل سعيد
+                  </span>
                 </div>
                 <div className="flex flex-col">
                   <span className="text-2xl font-black text-white">+10k</span>
-                  <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">منتج أصلي</span>
+                  <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">
+                    منتج أصلي
+                  </span>
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-2xl font-black text-emerald-400">24/7</span>
-                  <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">دعم فني</span>
+                  <span className="text-2xl font-black text-emerald-400">
+                    24/7
+                  </span>
+                  <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">
+                    دعم فني
+                  </span>
                 </div>
               </div>
             </div>
@@ -756,12 +875,12 @@ export default function Auth() {
 
         {/* Right Side: Form */}
         <div className="w-full md:w-1/2 p-6 sm:p-10 lg:p-14 flex flex-col justify-center min-h-full sm:min-h-[600px] relative bg-white">
-          {step !== 'form' && (
-            <button 
+          {step !== "form" && (
+            <button
               onClick={() => {
-                setStep('form');
-                setError('');
-                setSuccess('');
+                setStep("form");
+                setError("");
+                setSuccess("");
               }}
               className="absolute top-6 left-6 sm:top-8 sm:right-8 p-2.5 text-slate-400 hover:text-carbon hover:bg-slate-100 rounded-full transition-all z-20 shadow-sm border border-slate-50 md:right-8"
               title="العودة"
@@ -777,16 +896,16 @@ export default function Auth() {
           </div>
 
           <div className="mb-6 sm:mb-8 text-center md:text-right">
-            <motion.h1 
-              key={step + (isLogin ? 'login-title' : 'signup-title')}
+            <motion.h1
+              key={step + (isLogin ? "login-title" : "signup-title")}
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               className="text-2xl sm:text-3xl font-black text-carbon mb-2 sm:mb-3 tracking-tight"
             >
               {getTitle()}
             </motion.h1>
-            <motion.p 
-              key={step + (isLogin ? 'login-sub' : 'signup-sub')}
+            <motion.p
+              key={step + (isLogin ? "login-sub" : "signup-sub")}
               initial={{ opacity: 0, y: -5 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
@@ -796,14 +915,14 @@ export default function Auth() {
             </motion.p>
           </div>
 
-          {step === 'form' && (
+          {step === "form" && (
             <div className="relative flex p-1 bg-slate-100 rounded-2xl mb-8 w-full max-w-[320px] mx-auto md:mx-0 shadow-inner">
               <motion.div
                 className="absolute inset-y-1 bg-white rounded-xl shadow-md z-0"
                 initial={false}
                 animate={{
-                  x: isLogin ? '-100%' : '0%',
-                  width: '50%'
+                  x: isLogin ? "-100%" : "0%",
+                  width: "50%",
                 }}
                 transition={{ type: "spring", stiffness: 300, damping: 30 }}
               />
@@ -811,10 +930,10 @@ export default function Auth() {
                 type="button"
                 onClick={() => {
                   setIsLogin(false);
-                  setError('');
-                  setSuccess('');
+                  setError("");
+                  setSuccess("");
                 }}
-                className={`relative z-10 flex-1 py-3 text-sm font-black transition-colors ${!isLogin ? 'text-carbon' : 'text-slate-600'}`}
+                className={`relative z-10 flex-1 py-3 text-sm font-black transition-colors ${!isLogin ? "text-carbon" : "text-slate-600"}`}
               >
                 إنشاء حساب
               </button>
@@ -822,10 +941,10 @@ export default function Auth() {
                 type="button"
                 onClick={() => {
                   setIsLogin(true);
-                  setError('');
-                  setSuccess('');
+                  setError("");
+                  setSuccess("");
                 }}
-                className={`relative z-10 flex-1 py-3 text-sm font-black transition-colors ${isLogin ? 'text-carbon' : 'text-slate-600'}`}
+                className={`relative z-10 flex-1 py-3 text-sm font-black transition-colors ${isLogin ? "text-carbon" : "text-slate-600"}`}
               >
                 تسجيل الدخول
               </button>
@@ -835,10 +954,10 @@ export default function Auth() {
           <div className="relative">
             <AnimatePresence mode="wait">
               {error && (
-                <motion.div 
+                <motion.div
                   key="error"
                   initial={{ opacity: 0, height: 0, y: -10 }}
-                  animate={{ opacity: 1, height: 'auto', y: 0 }}
+                  animate={{ opacity: 1, height: "auto", y: 0 }}
                   exit={{ opacity: 0, height: 0, y: -10 }}
                   className="bg-red-50 border border-red-100 rounded-2xl p-4 mb-6 flex items-center gap-3 text-red-600 text-sm font-bold overflow-hidden"
                 >
@@ -848,10 +967,10 @@ export default function Auth() {
               )}
 
               {success && (
-                <motion.div 
+                <motion.div
                   key="success"
                   initial={{ opacity: 0, height: 0, y: -10 }}
-                  animate={{ opacity: 1, height: 'auto', y: 0 }}
+                  animate={{ opacity: 1, height: "auto", y: 0 }}
                   exit={{ opacity: 0, height: 0, y: -10 }}
                   className="bg-emerald-50 border border-emerald-100 rounded-2xl p-4 mb-6 flex items-center gap-3 text-emerald-600 text-sm font-bold overflow-hidden"
                 >
@@ -869,14 +988,17 @@ export default function Auth() {
                 exit={{ opacity: 0, x: -20 }}
                 transition={{ duration: 0.3, ease: "easeInOut" }}
               >
-                {step === 'form' ? (
-                  <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-7">
+                {step === "form" ? (
+                  <form
+                    onSubmit={handleSubmit}
+                    className="space-y-6 sm:space-y-7"
+                  >
                     <AnimatePresence mode="popLayout">
                       {!isLogin && (
-                        <motion.div 
+                        <motion.div
                           key="name-field"
                           initial={{ opacity: 0, height: 0, scale: 0.95 }}
-                          animate={{ opacity: 1, height: 'auto', scale: 1 }}
+                          animate={{ opacity: 1, height: "auto", scale: 1 }}
                           exit={{ opacity: 0, height: 0, scale: 0.95 }}
                           transition={{ duration: 0.3 }}
                         >
@@ -884,7 +1006,9 @@ export default function Auth() {
                             label="الاسم الرباعي كاملاً"
                             id="name"
                             value={formData.name}
-                            onChange={(e) => setFormData({...formData, name: e.target.value})}
+                            onChange={(e) =>
+                              setFormData({ ...formData, name: e.target.value })
+                            }
                             icon={<User className="w-5 h-5" />}
                             iconPosition="end"
                             autoComplete="name"
@@ -903,16 +1027,26 @@ export default function Auth() {
                         pattern="[0-9]*"
                         maxLength={9}
                         value={formData.phone}
-                        onChange={(e) => setFormData({...formData, phone: e.target.value.replace(/\D/g, '')})}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            phone: e.target.value.replace(/\D/g, ""),
+                          })
+                        }
                         placeholder="77x xxx xxx"
                         dir="ltr"
                         className="tracking-widest text-left"
                         error={!!error}
                         startElement={
                           <div className="flex items-center justify-center h-full text-slate-400 font-bold px-4 relative group/select border-r border-slate-200">
-                            <select 
+                            <select
                               value={formData.countryCode}
-                              onChange={(e) => setFormData({...formData, countryCode: e.target.value})}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  countryCode: e.target.value,
+                                })
+                              }
                               className="bg-transparent border-none outline-none text-xs cursor-pointer appearance-none text-center pr-5 pl-1"
                             >
                               <option value="+967">🇾🇪 +967</option>
@@ -927,12 +1061,16 @@ export default function Auth() {
                       <FloatingInput
                         label="كلمة المرور"
                         id="password"
-                        type={showPassword ? 'text' : 'password'}
+                        type={showPassword ? "text" : "password"}
                         value={formData.password}
-                        onChange={(e) => setFormData({...formData, password: e.target.value})}
+                        onChange={(e) =>
+                          setFormData({ ...formData, password: e.target.value })
+                        }
                         icon={<Lock className="w-5 h-5" />}
                         iconPosition="start"
-                        autoComplete={isLogin ? 'current-password' : 'new-password'}
+                        autoComplete={
+                          isLogin ? "current-password" : "new-password"
+                        }
                         dir="ltr"
                         className="text-left"
                         error={!!error}
@@ -952,9 +1090,13 @@ export default function Auth() {
                               <button
                                 type="button"
                                 onClick={() => setShowPassword(!showPassword)}
-                                className={`px-4 transition-colors h-full flex items-center justify-center ${formData.password ? 'text-slate-400 hover:text-solar' : 'text-slate-200'}`}
+                                className={`px-4 transition-colors h-full flex items-center justify-center ${formData.password ? "text-slate-400 hover:text-solar" : "text-slate-200"}`}
                               >
-                                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                                {showPassword ? (
+                                  <EyeOff className="w-5 h-5" />
+                                ) : (
+                                  <Eye className="w-5 h-5" />
+                                )}
                               </button>
                             )}
                           </div>
@@ -962,12 +1104,12 @@ export default function Auth() {
                       />
                       {isLogin && (
                         <div className="flex justify-end px-1 mt-2">
-                          <button 
-                            type="button" 
+                          <button
+                            type="button"
                             onClick={() => {
-                              setStep('forgot_password');
-                              setError('');
-                              setSuccess('');
+                              setStep("forgot_password");
+                              setError("");
+                              setSuccess("");
                             }}
                             className="text-[10px] font-bold text-slate-400 hover:text-solar transition-colors"
                           >
@@ -988,13 +1130,30 @@ export default function Auth() {
                             className="w-4 h-4 text-solar border-slate-300 rounded focus:ring-solar cursor-pointer transition-all accent-solar"
                           />
                         </div>
-                        <label htmlFor="terms" className="text-xs sm:text-sm text-slate-500 font-medium leading-relaxed cursor-pointer select-none">
-                          أوافق على <Link to="/terms" className="text-slate-600 font-bold hover:text-carbon underline">شروط الخدمة</Link> و <Link to="/privacy" className="text-slate-600 font-bold hover:text-carbon underline">سياسة الخصوصية</Link>.
+                        <label
+                          htmlFor="terms"
+                          className="text-xs sm:text-sm text-slate-500 font-medium leading-relaxed cursor-pointer select-none"
+                        >
+                          أوافق على{" "}
+                          <Link
+                            to="/terms"
+                            className="text-slate-600 font-bold hover:text-carbon underline"
+                          >
+                            شروط الخدمة
+                          </Link>{" "}
+                          و{" "}
+                          <Link
+                            to="/privacy"
+                            className="text-slate-600 font-bold hover:text-carbon underline"
+                          >
+                            سياسة الخصوصية
+                          </Link>
+                          .
                         </label>
                       </div>
                     )}
 
-                    <motion.button 
+                    <motion.button
                       whileHover={{ scale: 1.01 }}
                       whileTap={{ scale: 0.99 }}
                       type="submit"
@@ -1003,30 +1162,40 @@ export default function Auth() {
                     >
                       {isLoading ? (
                         <motion.div
-                          animate={{ scale: [1, 1.2, 1], rotate: [0, 180, 360] }}
-                          transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                          animate={{
+                            scale: [1, 1.2, 1],
+                            rotate: [0, 180, 360],
+                          }}
+                          transition={{
+                            duration: 1.5,
+                            repeat: Infinity,
+                            ease: "easeInOut",
+                          }}
                         >
                           <Zap className="w-6 h-6 fill-white" />
                         </motion.div>
                       ) : (
                         <AnimatePresence mode="wait">
                           <motion.span
-                            key={isLogin ? 'login-btn' : 'signup-btn'}
+                            key={isLogin ? "login-btn" : "signup-btn"}
                             initial={{ opacity: 0, y: 5 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -5 }}
                             transition={{ duration: 0.2 }}
                             className="flex items-center gap-2"
                           >
-                            {isLogin ? 'تسجيل الدخول' : 'إنشاء حساب'}
+                            {isLogin ? "تسجيل الدخول" : "إنشاء حساب"}
                             <ArrowRight className="w-5 h-5" />
                           </motion.span>
                         </AnimatePresence>
                       )}
                     </motion.button>
                   </form>
-                ) : step === 'forgot_password' ? (
-                  <form onSubmit={handleForgotPassword} className="space-y-6 sm:space-y-7">
+                ) : step === "forgot_password" ? (
+                  <form
+                    onSubmit={handleForgotPassword}
+                    className="space-y-6 sm:space-y-7"
+                  >
                     <div>
                       <FloatingInput
                         label="رقم الجوال"
@@ -1036,16 +1205,26 @@ export default function Auth() {
                         pattern="[0-9]*"
                         maxLength={9}
                         value={formData.phone}
-                        onChange={(e) => setFormData({...formData, phone: e.target.value.replace(/\D/g, '')})}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            phone: e.target.value.replace(/\D/g, ""),
+                          })
+                        }
                         placeholder="77x xxx xxx"
                         dir="ltr"
                         className="tracking-widest text-left"
                         error={!!error}
                         startElement={
                           <div className="flex items-center justify-center h-full text-slate-400 font-bold px-4 relative group/select border-r border-slate-200">
-                            <select 
+                            <select
                               value={formData.countryCode}
-                              onChange={(e) => setFormData({...formData, countryCode: e.target.value})}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  countryCode: e.target.value,
+                                })
+                              }
                               className="bg-transparent border-none outline-none text-xs cursor-pointer appearance-none text-center pr-5 pl-1"
                             >
                               <option value="+967">🇾🇪 +967</option>
@@ -1056,36 +1235,39 @@ export default function Auth() {
                       />
                     </div>
 
-                    <motion.button 
+                    <motion.button
                       whileHover={{ scale: 1.01 }}
                       whileTap={{ scale: 0.99 }}
                       type="submit"
                       disabled={isLoading}
                       className="w-full h-12 sm:h-14 bg-gold-gradient hover:bg-gold-shimmer text-black font-bold rounded-xl sm:rounded-2xl transition-all flex items-center justify-center gap-2 shadow-sm hover:shadow-md text-base sm:text-lg mt-2"
                     >
-                      {isLoading ? 'جاري الإرسال...' : 'إرسال كود التحقق'}
+                      {isLoading ? "جاري الإرسال..." : "إرسال كود التحقق"}
                       {!isLoading && <ArrowRight className="w-5 h-5" />}
                     </motion.button>
 
                     <button
                       type="button"
                       onClick={() => {
-                        setStep('form');
-                        setError('');
-                        setSuccess('');
+                        setStep("form");
+                        setError("");
+                        setSuccess("");
                       }}
                       className="w-full text-center text-sm font-bold text-slate-400 hover:text-solar transition-colors pt-2"
                     >
                       العودة لتسجيل الدخول
                     </button>
                   </form>
-                ) : step === 'reset_password' ? (
-                  <form onSubmit={handleResetPassword} className="space-y-6 sm:space-y-7">
+                ) : step === "reset_password" ? (
+                  <form
+                    onSubmit={handleResetPassword}
+                    className="space-y-6 sm:space-y-7"
+                  >
                     <div>
                       <FloatingInput
                         label="كلمة المرور الجديدة"
                         id="new-password"
-                        type={showPassword ? 'text' : 'password'}
+                        type={showPassword ? "text" : "password"}
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
                         icon={<Lock className="w-5 h-5" />}
@@ -1097,9 +1279,13 @@ export default function Auth() {
                           <button
                             type="button"
                             onClick={() => setShowPassword(!showPassword)}
-                            className={`px-4 transition-colors h-full flex items-center justify-center ${newPassword ? 'text-slate-400 hover:text-solar' : 'text-slate-200'}`}
+                            className={`px-4 transition-colors h-full flex items-center justify-center ${newPassword ? "text-slate-400 hover:text-solar" : "text-slate-200"}`}
                           >
-                            {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                            {showPassword ? (
+                              <EyeOff className="w-5 h-5" />
+                            ) : (
+                              <Eye className="w-5 h-5" />
+                            )}
                           </button>
                         }
                       />
@@ -1109,7 +1295,7 @@ export default function Auth() {
                       <FloatingInput
                         label="تأكيد كلمة المرور الجديدة"
                         id="confirm-password"
-                        type={showPassword ? 'text' : 'password'}
+                        type={showPassword ? "text" : "password"}
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
                         icon={<ShieldCheck className="w-5 h-5" />}
@@ -1120,20 +1306,26 @@ export default function Auth() {
                       />
                     </div>
 
-                    <motion.button 
+                    <motion.button
                       whileHover={{ scale: 1.01 }}
                       whileTap={{ scale: 0.99 }}
                       type="submit"
                       disabled={isLoading}
                       className="w-full h-12 sm:h-14 bg-gold-gradient hover:bg-gold-shimmer text-black font-bold rounded-xl sm:rounded-2xl transition-all flex items-center justify-center gap-2 shadow-sm hover:shadow-md text-base sm:text-lg mt-2"
                     >
-                      {isLoading ? 'جاري التحديث...' : 'تحديث كلمة المرور'}
+                      {isLoading ? "جاري التحديث..." : "تحديث كلمة المرور"}
                       {!isLoading && <CheckCircle2 className="w-5 h-5" />}
                     </motion.button>
                   </form>
                 ) : (
-                  <form onSubmit={handleVerify} className="space-y-6 sm:space-y-8">
-                    <div className="flex justify-center gap-3 sm:gap-4" dir="ltr">
+                  <form
+                    onSubmit={handleVerify}
+                    className="space-y-6 sm:space-y-8"
+                  >
+                    <div
+                      className="flex justify-center gap-3 sm:gap-4"
+                      dir="ltr"
+                    >
                       {otp.map((digit, index) => (
                         <input
                           key={index}
@@ -1143,19 +1335,23 @@ export default function Auth() {
                           pattern="[0-9]*"
                           maxLength={1}
                           value={digit}
-                          onChange={(e) => handleOtpChange(index, e.target.value)}
+                          onChange={(e) =>
+                            handleOtpChange(index, e.target.value)
+                          }
                           onKeyDown={(e) => handleOtpKeyDown(index, e)}
                           autoComplete={index === 0 ? "one-time-code" : "off"}
-                          className={`w-12 h-14 sm:w-14 sm:h-14 text-center text-xl sm:text-2xl font-bold bg-white rounded-xl focus:ring-1 outline-none transition-all text-carbon shadow-sm border ${error ? 'border-red-400 focus:ring-red-500 focus:border-red-500' : 'border-slate-200 focus:ring-solar focus:border-solar'}`}
+                          className={`w-12 h-14 sm:w-14 sm:h-14 text-center text-xl sm:text-2xl font-bold bg-white rounded-xl focus:ring-1 outline-none transition-all text-carbon shadow-sm border ${error ? "border-red-400 focus:ring-red-500 focus:border-red-500" : "border-slate-200 focus:ring-solar focus:border-solar"}`}
                         />
                       ))}
                     </div>
 
                     <div className="text-center space-y-4">
                       <p className="text-sm font-bold text-slate-500">
-                        لم يصلك الرمز؟ {' '}
+                        لم يصلك الرمز؟{" "}
                         {timer > 0 ? (
-                          <span className="text-slate-500">إعادة الإرسال خلال {timer} ثانية</span>
+                          <span className="text-slate-500">
+                            إعادة الإرسال خلال {timer} ثانية
+                          </span>
                         ) : (
                           <button
                             type="button"
@@ -1163,12 +1359,14 @@ export default function Auth() {
                             disabled={isResending}
                             className="text-carbon font-bold hover:underline disabled:opacity-50"
                           >
-                            {isResending ? 'جاري الإرسال...' : 'إعادة إرسال الرمز'}
+                            {isResending
+                              ? "جاري الإرسال..."
+                              : "إعادة إرسال الرمز"}
                           </button>
                         )}
                       </p>
 
-                      <motion.button 
+                      <motion.button
                         whileHover={{ scale: 1.01 }}
                         whileTap={{ scale: 0.99 }}
                         type="submit"
@@ -1178,8 +1376,15 @@ export default function Auth() {
                       >
                         {isLoading ? (
                           <motion.div
-                            animate={{ scale: [1, 1.2, 1], rotate: [0, 180, 360] }}
-                            transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                            animate={{
+                              scale: [1, 1.2, 1],
+                              rotate: [0, 180, 360],
+                            }}
+                            transition={{
+                              duration: 1.5,
+                              repeat: Infinity,
+                              ease: "easeInOut",
+                            }}
                           >
                             <Loader2 className="w-6 h-6 text-black" />
                           </motion.div>
@@ -1193,7 +1398,7 @@ export default function Auth() {
 
                       <button
                         type="button"
-                        onClick={() => setStep('form')}
+                        onClick={() => setStep("form")}
                         className="text-sm font-bold text-slate-400 hover:text-carbon transition-colors"
                       >
                         تغيير رقم الهاتف
@@ -1204,27 +1409,32 @@ export default function Auth() {
               </motion.div>
             </AnimatePresence>
 
-            <motion.div 
+            <motion.div
               variants={itemVariants}
               className="mt-10 pt-8 border-t border-slate-100 flex items-center justify-center gap-4 sm:gap-10"
             >
               <div className="flex items-center gap-1.5 text-slate-400/80">
                 <ShieldCheck className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-emerald-500/70" />
-                <span className="text-[8px] sm:text-[9px] font-bold uppercase tracking-wider">تشفير آمن</span>
+                <span className="text-[8px] sm:text-[9px] font-bold uppercase tracking-wider">
+                  تشفير آمن
+                </span>
               </div>
               <div className="flex items-center gap-1.5 text-slate-400/80">
                 <Lock className="w-3 sm:w-3.5 h-3 sm:h-3.5" />
-                <span className="text-[8px] sm:text-[9px] font-bold uppercase tracking-wider">حماية البيانات</span>
+                <span className="text-[8px] sm:text-[9px] font-bold uppercase tracking-wider">
+                  حماية البيانات
+                </span>
               </div>
               <div className="flex items-center gap-1.5 text-slate-400/80">
                 <CheckCircle2 className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-carbon/60" />
-                <span className="text-[8px] sm:text-[9px] font-bold uppercase tracking-wider">موثوق</span>
+                <span className="text-[8px] sm:text-[9px] font-bold uppercase tracking-wider">
+                  موثوق
+                </span>
               </div>
             </motion.div>
           </div>
         </div>
-        </motion.div>
-      </div>
-    );
-  }
-
+      </motion.div>
+    </div>
+  );
+}

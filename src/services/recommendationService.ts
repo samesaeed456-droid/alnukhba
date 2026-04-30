@@ -5,17 +5,24 @@ export async function getAIRecommendations(
   recentlyViewed: Product[],
   cart: CartItem[],
   products: Product[],
-  currentProduct?: Product
+  currentProduct?: Product,
 ): Promise<Product[]> {
   try {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey || apiKey === "MY_GEMINI_API_KEY") {
-      return getRuleBasedRecommendations(recentlyViewed, cart, products, currentProduct);
+      return getRuleBasedRecommendations(
+        recentlyViewed,
+        cart,
+        products,
+        currentProduct,
+      );
     }
 
     const ai = new GoogleGenAI({ apiKey });
-    
-    const productsSummary = products.map(p => `ID: ${p.id}, Name: ${p.name}, Category: ${p.category}`).join("\n");
+
+    const productsSummary = products
+      .map((p) => `ID: ${p.id}, Name: ${p.name}, Category: ${p.category}`)
+      .join("\n");
 
     const prompt = `
       You are an expert e-commerce recommendation engine for a store called "HORIZON" (The Elite) in Yemen.
@@ -23,7 +30,7 @@ export async function getAIRecommendations(
       
       User Data:
       - Recently Viewed: ${recentlyViewed.map((p: any) => p.name).join(", ")}
-      - Items in Cart: ${cart.map((item: any) => `${item.product?.name || 'Unknown'} (Qty: ${item.quantity})`).join(", ")}
+      - Items in Cart: ${cart.map((item: any) => `${item.product?.name || "Unknown"} (Qty: ${item.quantity})`).join(", ")}
       ${currentProduct ? `- Currently Viewing: ${currentProduct.name} (Category: ${currentProduct.category})` : ""}
       
       Catalog Summary (Product IDs and Names):
@@ -45,28 +52,35 @@ export async function getAIRecommendations(
           properties: {
             recommendedIds: {
               type: Type.ARRAY,
-              items: { type: Type.STRING }
-            }
+              items: { type: Type.STRING },
+            },
           },
-          required: ["recommendedIds"]
-        }
-      }
+          required: ["recommendedIds"],
+        },
+      },
     });
 
     const text = response.text;
     const data = JSON.parse(text || '{"recommendedIds":[]}');
     const recommendedIds: string[] = data.recommendedIds || [];
-    const recommendedProducts = products.filter(p => recommendedIds.includes(p.id));
-    
+    const recommendedProducts = products.filter((p) =>
+      recommendedIds.includes(p.id),
+    );
+
     // Filter out items already in cart or currently being viewed
-    const cartIds = cart.map(item => item.product?.id).filter(id => id);
+    const cartIds = cart.map((item) => item.product?.id).filter((id) => id);
     return recommendedProducts
-      .filter(p => !cartIds.includes(p.id) && p.id !== currentProduct?.id)
+      .filter((p) => !cartIds.includes(p.id) && p.id !== currentProduct?.id)
       .slice(0, 6);
   } catch (error: any) {
     console.error("AI Recommendation Error:", error);
     // Silently handle AI recommendation errors and fallback to rule-based recommendations
-    return getRuleBasedRecommendations(recentlyViewed, cart, products, currentProduct);
+    return getRuleBasedRecommendations(
+      recentlyViewed,
+      cart,
+      products,
+      currentProduct,
+    );
   }
 }
 
@@ -74,48 +88,58 @@ export function getRuleBasedRecommendations(
   recentlyViewed: Product[],
   cart: CartItem[],
   products: Product[],
-  currentProduct?: Product
+  currentProduct?: Product,
 ): Product[] {
-  const cartIds = cart.map(item => item.product?.id).filter(id => id);
-  const viewedIds = recentlyViewed.map(p => p.id);
-  
+  const cartIds = cart.map((item) => item.product?.id).filter((id) => id);
+  const viewedIds = recentlyViewed.map((p) => p.id);
+
   let recommendations: Product[] = [];
 
   // 1. Complementary logic
-  const cartCategories = cart.map(item => item.product?.category).filter(c => c);
-  if (cartCategories.includes('إلكترونيات')) {
+  const cartCategories = cart
+    .map((item) => item.product?.category)
+    .filter((c) => c);
+  if (cartCategories.includes("إلكترونيات")) {
     // If they have electronics, suggest accessories
-    recommendations.push(...products.filter(p => p.category === 'إكسسوارات' && !cartIds.includes(p.id)));
+    recommendations.push(
+      ...products.filter(
+        (p) => p.category === "إكسسوارات" && !cartIds.includes(p.id),
+      ),
+    );
   }
 
   // 2. Similar to current product
   if (currentProduct) {
-    const similar = products.filter(p => 
-      p.category === currentProduct.category && 
-      p.id !== currentProduct.id && 
-      !cartIds.includes(p.id)
+    const similar = products.filter(
+      (p) =>
+        p.category === currentProduct.category &&
+        p.id !== currentProduct.id &&
+        !cartIds.includes(p.id),
     );
     recommendations.push(...similar);
   }
 
   // 3. Based on history
-  const historyCategories = recentlyViewed.map(p => p.category);
-  const historyBased = products.filter(p => 
-    historyCategories.includes(p.category) && 
-    !viewedIds.includes(p.id) && 
-    !cartIds.includes(p.id)
+  const historyCategories = recentlyViewed.map((p) => p.category);
+  const historyBased = products.filter(
+    (p) =>
+      historyCategories.includes(p.category) &&
+      !viewedIds.includes(p.id) &&
+      !cartIds.includes(p.id),
   );
   recommendations.push(...historyBased);
 
   // 4. Trending/New if nothing else
   if (recommendations.length < 4) {
-    recommendations.push(...products.filter(p => p.isNew && !cartIds.includes(p.id)));
+    recommendations.push(
+      ...products.filter((p) => p.isNew && !cartIds.includes(p.id)),
+    );
   }
 
   // Remove duplicates and limit
-  const uniqueRecs = Array.from(new Set(recommendations.map(p => p.id)))
-    .map(id => products.find(p => p.id === id)!)
-    .filter(p => p.id !== currentProduct?.id && !cartIds.includes(p.id));
+  const uniqueRecs = Array.from(new Set(recommendations.map((p) => p.id)))
+    .map((id) => products.find((p) => p.id === id)!)
+    .filter((p) => p.id !== currentProduct?.id && !cartIds.includes(p.id));
 
   return uniqueRecs.slice(0, 6);
 }

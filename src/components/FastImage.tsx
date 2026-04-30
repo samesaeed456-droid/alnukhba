@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import React, { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "motion/react";
 
 interface FastImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   fallback?: string;
@@ -12,22 +12,22 @@ interface FastImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
  * A high-performance image component that handles lazy loading,
  * low-res placeholders, and smooth transitions.
  */
-export const FastImage: React.FC<FastImageProps> = ({ 
-  src, 
-  alt, 
-  fallback = 'https://picsum.photos/seed/placeholder/800/600',
+export const FastImage: React.FC<FastImageProps> = ({
+  src,
+  alt,
+  fallback = "https://picsum.photos/seed/placeholder/800/600",
   lowRes,
   className,
-  containerClassName = '',
+  containerClassName = "",
   priority = false,
-  ...props 
+  ...props
 }) => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [error, setError] = useState(false);
 
   useEffect(() => {
     if (!src) return;
-    
+
     const img = new Image();
     img.src = src;
     img.onload = () => setIsLoaded(true);
@@ -43,9 +43,9 @@ export const FastImage: React.FC<FastImageProps> = ({
     <div className={`relative overflow-hidden ${containerClassName}`}>
       {/* Low-res placeholder */}
       {lowRes && !isLoaded && (
-        <img 
-          src={lowRes || undefined} 
-          alt={alt} 
+        <img
+          src={lowRes || undefined}
+          alt={alt}
           className={`w-full h-full object-cover blur-lg scale-110 ${className}`}
           referrerPolicy="no-referrer-when-downgrade"
         />
@@ -59,7 +59,7 @@ export const FastImage: React.FC<FastImageProps> = ({
           alt={alt}
           initial={{ opacity: 0 }}
           animate={{ opacity: isLoaded ? 1 : 0 }}
-          transition={{ duration: 0.3, ease: 'easeOut' }}
+          transition={{ duration: 0.3, ease: "easeOut" }}
           className={`w-full h-full object-cover ${className}`}
           referrerPolicy="no-referrer-when-downgrade"
           loading={priority ? "eager" : "lazy"}

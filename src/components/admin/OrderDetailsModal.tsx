@@ -1,8 +1,24 @@
-import React from 'react';
-import { X, Package, Truck, CreditCard, User, MapPin, Phone, Calendar, CheckCircle2, Clock, AlertCircle, ShoppingCart, Trash2, Maximize2, ExternalLink } from 'lucide-react';
-import { Order } from '../../types';
-import { useStore } from '../../context/StoreContext';
-import { motion, AnimatePresence } from 'framer-motion';
+import React from "react";
+import {
+  X,
+  Package,
+  Truck,
+  CreditCard,
+  User,
+  MapPin,
+  Phone,
+  Calendar,
+  CheckCircle2,
+  Clock,
+  AlertCircle,
+  ShoppingCart,
+  Trash2,
+  Maximize2,
+  ExternalLink,
+} from "lucide-react";
+import { Order } from "../../types";
+import { useStore } from "../../context/StoreContext";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface OrderDetailsModalProps {
   order: Order;
@@ -10,31 +26,42 @@ interface OrderDetailsModalProps {
   onClose: () => void;
 }
 
-export default function OrderDetailsModal({ order, isOpen, onClose }: OrderDetailsModalProps) {
+export default function OrderDetailsModal({
+  order,
+  isOpen,
+  onClose,
+}: OrderDetailsModalProps) {
   const { formatPrice, updateOrderStatus, deleteOrder, products } = useStore();
   const [isZoomed, setIsZoomed] = React.useState(false);
 
   if (!isOpen) return null;
 
-  const getStatusIcon = (status: Order['status']) => {
+  const getStatusIcon = (status: Order["status"]) => {
     switch (status) {
-      case 'delivered': return <CheckCircle2 className="w-5 h-5 text-green-500" />;
-      case 'cancelled': return <AlertCircle className="w-5 h-5 text-red-500" />;
-      case 'pending': return <Clock className="w-5 h-5 text-amber-500" />;
-      default: return <Package className="w-5 h-5 text-blue-500" />;
+      case "delivered":
+        return <CheckCircle2 className="w-5 h-5 text-green-500" />;
+      case "cancelled":
+        return <AlertCircle className="w-5 h-5 text-red-500" />;
+      case "pending":
+        return <Clock className="w-5 h-5 text-amber-500" />;
+      default:
+        return <Package className="w-5 h-5 text-blue-500" />;
     }
   };
 
-  const statusMap: Record<Order['status'], string> = {
-    pending: 'قيد الانتظار',
-    processing: 'قيد التنفيذ',
-    shipped: 'تم الشحن',
-    delivered: 'تم التوصيل',
-    cancelled: 'ملغي'
+  const statusMap: Record<Order["status"], string> = {
+    pending: "قيد الانتظار",
+    processing: "قيد التنفيذ",
+    shipped: "تم الشحن",
+    delivered: "تم التوصيل",
+    cancelled: "ملغي",
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm overflow-y-auto" dir="rtl">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm overflow-y-auto"
+      dir="rtl"
+    >
       <div className="bg-white rounded-3xl w-full max-w-4xl shadow-2xl my-8">
         {/* Header */}
         <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50 rounded-t-3xl">
@@ -43,11 +70,15 @@ export default function OrderDetailsModal({ order, isOpen, onClose }: OrderDetai
               <ShoppingCart className="w-6 h-6" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-carbon">تفاصيل الطلب #{order.id}</h2>
-              <p className="text-sm text-gray-500">بتاريخ {new Date(order.date).toLocaleString('ar-u-nu-latn')}</p>
+              <h2 className="text-xl font-bold text-carbon">
+                تفاصيل الطلب #{order.id}
+              </h2>
+              <p className="text-sm text-gray-500">
+                بتاريخ {new Date(order.date).toLocaleString("ar-u-nu-latn")}
+              </p>
             </div>
           </div>
-          <button 
+          <button
             onClick={onClose}
             className="p-2 hover:bg-gray-200 rounded-xl transition-colors text-gray-500"
           >
@@ -70,44 +101,66 @@ export default function OrderDetailsModal({ order, isOpen, onClose }: OrderDetai
                     <thead className="sticky top-0 bg-gray-50 text-gray-500 text-xs uppercase z-10 shadow-sm">
                       <tr>
                         <th className="px-4 py-3 font-bold">المنتج</th>
-                        <th className="px-4 py-3 font-bold text-center">الكمية</th>
+                        <th className="px-4 py-3 font-bold text-center">
+                          الكمية
+                        </th>
                         <th className="px-4 py-3 font-bold text-left">السعر</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
-                        {order.items?.map((item, idx) => {
-                        const product = products.find(p => p.id === item.productId);
-                        const itemName = item.name || product?.name || 'منتج محذوف';
-                        const itemImage = item.image || product?.image || product?.images?.[0] || undefined;
+                      {order.items?.map((item, idx) => {
+                        const product = products.find(
+                          (p) => p.id === item.productId,
+                        );
+                        const itemName =
+                          item.name || product?.name || "منتج محذوف";
+                        const itemImage =
+                          item.image ||
+                          product?.image ||
+                          product?.images?.[0] ||
+                          undefined;
                         const itemPrice = item.price || product?.price || 0;
-                        const itemBrand = item.brand || product?.brand || '';
+                        const itemBrand = item.brand || product?.brand || "";
 
                         return (
                           <tr key={idx} className="text-sm">
                             <td className="px-4 py-4">
                               <div className="flex items-center gap-3">
-                                <img 
-                                  src={itemImage} 
+                                <img
+                                  src={itemImage}
                                   alt={itemName}
                                   className="w-12 h-12 rounded-lg object-cover border border-gray-100"
                                 />
                                 <div>
-                                  <p className="font-bold text-carbon line-clamp-1">{itemName}</p>
+                                  <p className="font-bold text-carbon line-clamp-1">
+                                    {itemName}
+                                  </p>
                                   <div className="flex flex-wrap items-center gap-2 mt-1">
-                                    <p className="text-[10px] text-gray-400 font-bold">{itemBrand}</p>
+                                    <p className="text-[10px] text-gray-400 font-bold">
+                                      {itemBrand}
+                                    </p>
                                     {(item.selectedColor || item.color) && (
                                       <div className="flex items-center gap-1.5 border-r border-gray-100 pr-2 mr-1">
-                                        <div 
+                                        <div
                                           className="w-2 h-2 rounded-full border border-gray-200"
-                                          style={{ backgroundColor: item.selectedColor || item.color }}
+                                          style={{
+                                            backgroundColor:
+                                              item.selectedColor || item.color,
+                                          }}
                                         />
-                                        <span className="text-[10px] text-gray-500">اللون</span>
+                                        <span className="text-[10px] text-gray-500">
+                                          اللون
+                                        </span>
                                       </div>
                                     )}
                                     {item.selectedSize && (
                                       <div className="flex items-center gap-1.5 border-r border-gray-100 pr-2">
-                                        <span className="text-[10px] font-black text-solar">{item.selectedSize}</span>
-                                        <span className="text-[10px] text-gray-500">المقاس</span>
+                                        <span className="text-[10px] font-black text-solar">
+                                          {item.selectedSize}
+                                        </span>
+                                        <span className="text-[10px] text-gray-500">
+                                          المقاس
+                                        </span>
                                       </div>
                                     )}
                                   </div>
@@ -147,7 +200,9 @@ export default function OrderDetailsModal({ order, isOpen, onClose }: OrderDetai
               )}
               <div className="pt-3 border-t border-gray-200 flex justify-between items-center">
                 <span className="text-lg font-bold text-carbon">الإجمالي</span>
-                <span className="text-2xl font-black text-solar">{formatPrice(order.total)}</span>
+                <span className="text-2xl font-black text-solar">
+                  {formatPrice(order.total)}
+                </span>
               </div>
             </div>
           </div>
@@ -159,18 +214,29 @@ export default function OrderDetailsModal({ order, isOpen, onClose }: OrderDetai
               <h3 className="font-bold text-carbon mb-2">حالة الطلب</h3>
               <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
                 {getStatusIcon(order.status)}
-                <span className="font-bold text-carbon">{statusMap[order.status]}</span>
+                <span className="font-bold text-carbon">
+                  {statusMap[order.status]}
+                </span>
               </div>
-              
+
               <div className="space-y-2">
-                <label className="text-xs font-bold text-gray-500 uppercase">تغيير الحالة</label>
-                <select 
+                <label className="text-xs font-bold text-gray-500 uppercase">
+                  تغيير الحالة
+                </label>
+                <select
                   value={order.status}
-                  onChange={(e) => updateOrderStatus(order.id, e.target.value as Order['status'])}
+                  onChange={(e) =>
+                    updateOrderStatus(
+                      order.id,
+                      e.target.value as Order["status"],
+                    )
+                  }
                   className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-solar outline-none text-sm font-bold"
                 >
                   {Object.entries(statusMap).map(([key, value]) => (
-                    <option key={key} value={key}>{value}</option>
+                    <option key={key} value={key}>
+                      {value}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -181,15 +247,22 @@ export default function OrderDetailsModal({ order, isOpen, onClose }: OrderDetai
               <h3 className="font-bold text-carbon mb-2">معلومات العميل</h3>
               <div className="flex items-center gap-4 mb-4 pb-4 border-b border-gray-50">
                 <div className="w-12 h-12 rounded-xl bg-gray-100 overflow-hidden">
-                  <img 
-                    src={order.customerImage || `https://api.dicebear.com/7.x/avataaars/svg?seed=${order.customerName || order.id}`} 
-                    alt="Customer" 
+                  <img
+                    src={
+                      order.customerImage ||
+                      `https://api.dicebear.com/7.x/avataaars/svg?seed=${order.customerName || order.id}`
+                    }
+                    alt="Customer"
                     className="w-full h-full object-cover"
                   />
                 </div>
                 <div>
-                  <p className="font-bold text-carbon">{order.customerName || 'عميل المتجر'}</p>
-                  <p className="text-xs text-gray-500">{order.customerPhone || 'بدون هاتف'}</p>
+                  <p className="font-bold text-carbon">
+                    {order.customerName || "عميل المتجر"}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {order.customerPhone || "بدون هاتف"}
+                  </p>
                 </div>
               </div>
               <div className="space-y-4">
@@ -200,7 +273,7 @@ export default function OrderDetailsModal({ order, isOpen, onClose }: OrderDetai
                   <div>
                     <p className="text-xs text-gray-500">عنوان التوصيل</p>
                     <p className="text-sm font-bold text-carbon leading-relaxed">
-                      {order.shippingAddress || 'لم يتم تحديد عنوان'}
+                      {order.shippingAddress || "لم يتم تحديد عنوان"}
                     </p>
                   </div>
                 </div>
@@ -217,25 +290,34 @@ export default function OrderDetailsModal({ order, isOpen, onClose }: OrderDetai
                 <div>
                   <p className="text-xs text-gray-500">طريقة الدفع</p>
                   <p className="text-sm font-bold text-carbon">
-                    {order.paymentMethod === 'wallet' ? 'المحفظة الإلكترونية' : 
-                     order.paymentMethod === 'cod' ? 'الدفع عند الاستلام' : 'بطاقة ائتمان'}
+                    {order.paymentMethod === "wallet"
+                      ? "المحفظة الإلكترونية"
+                      : order.paymentMethod === "cod"
+                        ? "الدفع عند الاستلام"
+                        : "بطاقة ائتمان"}
                   </p>
                 </div>
               </div>
               {order.paymentReference && (
                 <div className="mt-2 p-2 bg-gray-50 rounded-lg border border-dashed border-gray-200">
-                  <p className="text-[10px] text-gray-400 uppercase font-bold">مرجع العملية</p>
-                  <p className="text-xs font-mono text-gray-600 break-all">{order.paymentReference}</p>
+                  <p className="text-[10px] text-gray-400 uppercase font-bold">
+                    مرجع العملية
+                  </p>
+                  <p className="text-xs font-mono text-gray-600 break-all">
+                    {order.paymentReference}
+                  </p>
                 </div>
               )}
-              
+
               {order.paymentProof && (
                 <div className="mt-4 space-y-2">
                   <div className="flex justify-between items-center mb-1">
-                    <label className="text-xs font-bold text-gray-500 uppercase">سند الدفع</label>
-                    <a 
-                      href={order.paymentProof} 
-                      target="_blank" 
+                    <label className="text-xs font-bold text-gray-500 uppercase">
+                      سند الدفع
+                    </label>
+                    <a
+                      href={order.paymentProof}
+                      target="_blank"
                       rel="noopener noreferrer"
                       className="text-[10px] font-bold text-blue-600 flex items-center gap-1 hover:underline"
                     >
@@ -244,13 +326,13 @@ export default function OrderDetailsModal({ order, isOpen, onClose }: OrderDetai
                     </a>
                   </div>
                   <div className="relative group rounded-xl overflow-hidden border border-gray-200 aspect-video bg-gray-100 shadow-sm hover:border-solar/30 transition-colors">
-                    <img 
-                      src={order.paymentProof} 
-                      alt="سند الدفع" 
+                    <img
+                      src={order.paymentProof}
+                      alt="سند الدفع"
                       className="w-full h-full object-contain cursor-pointer transition-transform group-hover:scale-105"
                       onClick={() => setIsZoomed(true)}
                     />
-                    <div 
+                    <div
                       className="absolute inset-0 bg-black/0 group-hover:bg-black/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all cursor-pointer"
                       onClick={() => setIsZoomed(true)}
                     >
@@ -269,7 +351,7 @@ export default function OrderDetailsModal({ order, isOpen, onClose }: OrderDetai
         {/* Zoomed Image Modal */}
         <AnimatePresence>
           {isZoomed && order.paymentProof && (
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -277,9 +359,9 @@ export default function OrderDetailsModal({ order, isOpen, onClose }: OrderDetai
               onClick={() => setIsZoomed(false)}
             >
               <div className="absolute top-6 right-6 z-[110] flex gap-3">
-                <a 
-                  href={order.paymentProof} 
-                  target="_blank" 
+                <a
+                  href={order.paymentProof}
+                  target="_blank"
                   rel="noopener noreferrer"
                   className="p-3 bg-white/10 text-white hover:bg-white/20 rounded-2xl transition-all backdrop-blur-md border border-white/10 flex items-center gap-2 font-bold text-xs"
                   title="فتح في نافذة جديدة"
@@ -288,7 +370,7 @@ export default function OrderDetailsModal({ order, isOpen, onClose }: OrderDetai
                   <ExternalLink className="w-5 h-5" />
                   <span className="hidden sm:inline">فتح في نافذة جديدة</span>
                 </a>
-                <button 
+                <button
                   onClick={() => setIsZoomed(false)}
                   className="p-3 bg-white/10 text-white hover:bg-white/20 rounded-2xl transition-all backdrop-blur-md border border-white/10 flex items-center gap-2 font-bold text-xs"
                 >
@@ -305,12 +387,12 @@ export default function OrderDetailsModal({ order, isOpen, onClose }: OrderDetai
                   className="relative max-w-4xl w-full my-auto"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <img 
-                    src={order.paymentProof} 
-                    alt="سند التحويل مكبر" 
+                  <img
+                    src={order.paymentProof}
+                    alt="سند التحويل مكبر"
                     className="w-full h-auto object-contain shadow-2xl rounded-2xl border border-white/10"
                   />
-                  
+
                   {/* Floating visible bottom close button for mobile/long images */}
                   <div className="mt-8 flex justify-center sticky bottom-6 z-[120]">
                     <button
@@ -329,9 +411,9 @@ export default function OrderDetailsModal({ order, isOpen, onClose }: OrderDetai
 
         {/* Footer */}
         <div className="p-6 border-t border-gray-100 flex justify-between gap-3 rounded-b-3xl">
-          <button 
+          <button
             onClick={() => {
-              if (window.confirm('هل أنت متأكد من حذف هذا الطلب؟')) {
+              if (window.confirm("هل أنت متأكد من حذف هذا الطلب؟")) {
                 deleteOrder(order.id);
                 onClose();
               }
@@ -341,15 +423,15 @@ export default function OrderDetailsModal({ order, isOpen, onClose }: OrderDetai
             <Trash2 className="w-5 h-5" />
             <span>حذف الطلبية</span>
           </button>
-          
+
           <div className="flex gap-3">
-            <button 
+            <button
               onClick={onClose}
               className="px-6 py-2.5 rounded-xl font-bold text-gray-600 hover:bg-gray-100 transition-colors"
             >
               إغلاق
             </button>
-            <button 
+            <button
               className="px-6 py-2.5 rounded-xl font-bold bg-carbon text-white hover:bg-carbon/90 transition-colors flex items-center gap-2"
               onClick={() => window.print()}
             >

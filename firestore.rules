@@ -192,6 +192,10 @@ service cloud.firestore {
       allow create: if true;
     }
 
+    match /statistics/{statId} {
+      allow read: if isAdmin();
+      allow write: if true;
+    }
     match /visits/{visitId} { allow create: if true; allow read: if isAdmin(); }
     match /searchTerms/{termId} { allow create, update, read: if true; }
     match /abandonedCarts/{cartId} { allow create, update, delete: if true; allow read: if isAdmin(); }

@@ -1,24 +1,47 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { motion, AnimatePresence } from 'motion/react';
-import { Zap, Lock, ShieldCheck, Eye, EyeOff, Check, ArrowLeft, Loader2, Fingerprint, Home } from 'lucide-react';
-import { FloatingInput } from '../../components/FloatingInput';
-import { Toaster, toast } from 'sonner';
-import { useStore } from '@/context/StoreContext';
-import { startAuthentication } from '@simplewebauthn/browser';
-import { 
-  auth, adminAuth, db, adminDb, doc, getDoc, 
-  query, collection, where, getDocs, limit
-} from '../../lib/firebase';
-import { signInWithEmailAndPassword, signInWithCustomToken } from 'firebase/auth';
-import { getAdminDummyEmail } from '../../lib/adminAuth';
-import Logo from '../../components/Logo';
+import React, { useState, useEffect, useCallback } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { motion, AnimatePresence } from "motion/react";
+import {
+  Zap,
+  Lock,
+  ShieldCheck,
+  Eye,
+  EyeOff,
+  Check,
+  ArrowLeft,
+  Loader2,
+  Fingerprint,
+  Home,
+} from "lucide-react";
+import { FloatingInput } from "../../components/FloatingInput";
+import { Toaster, toast } from "sonner";
+import { useStore } from "@/context/StoreContext";
+import { startAuthentication } from "@simplewebauthn/browser";
+import {
+  auth,
+  adminAuth,
+  db,
+  adminDb,
+  doc,
+  getDoc,
+  query,
+  collection,
+  where,
+  getDocs,
+  limit,
+} from "../../lib/firebase";
+import {
+  signInWithEmailAndPassword,
+  signInWithCustomToken,
+} from "firebase/auth";
+import { getAdminDummyEmail } from "../../lib/adminAuth";
+import Logo from "../../components/Logo";
 
 export default function AdminLogin() {
   const navigate = useNavigate();
   const { adminUsers, logActivity } = useStore();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -26,15 +49,16 @@ export default function AdminLogin() {
 
   const handlePasskeyLogin = async () => {
     setIsLoading(true);
-    localStorage.setItem('admin_attempt', 'true');
+    localStorage.setItem("admin_attempt", "true");
     try {
-      const currentSessionId = localStorage.getItem('local_session_id') || 'anon';
-      
-      const res = await fetch('/api/webauthn/login/generate', {
-        method: 'POST',
-        headers: { 'x-session-id': currentSessionId }
+      const currentSessionId =
+        localStorage.getItem("local_session_id") || "anon";
+
+      const res = await fetch("/api/webauthn/login/generate", {
+        method: "POST",
+        headers: { "x-session-id": currentSessionId },
       });
-      
+
       const resText = await res.text();
       if (!res.ok) throw new Error(`Server returned ${res.status}: ${resText}`);
       const options = JSON.parse(resText);
@@ -47,58 +71,65 @@ export default function AdminLogin() {
       try {
         response = await startAuthentication({ optionsJSON: options });
       } catch (authErr: any) {
-         if (authErr.name === 'NotAllowedError') {
-           setIsLoading(false);
-           return; 
-         }
-         throw authErr;
+        if (authErr.name === "NotAllowedError") {
+          setIsLoading(false);
+          return;
+        }
+        throw authErr;
       }
 
-      const verifyRes = await fetch('/api/webauthn/login/verify', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'x-session-id': currentSessionId
+      const verifyRes = await fetch("/api/webauthn/login/verify", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-session-id": currentSessionId,
         },
-        body: JSON.stringify({ response, challenge: expectedChallenge, sessionToken })
+        body: JSON.stringify({
+          response,
+          challenge: expectedChallenge,
+          sessionToken,
+        }),
       });
-      
+
       const verifyText = await verifyRes.text();
-      if (!verifyRes.ok) throw new Error(`Server returned ${verifyRes.status}: ${verifyText}`);
+      if (!verifyRes.ok)
+        throw new Error(`Server returned ${verifyRes.status}: ${verifyText}`);
       const verifyData = JSON.parse(verifyText);
-      
+
       if (verifyData.success) {
         await signInWithCustomToken(adminAuth, verifyData.customToken);
-        toast.success('تم تسجيل الدخول بالبصمة بنجاح!');
+        toast.success("تم تسجيل الدخول بالبصمة بنجاح!");
         // Navigation will be handled by useEffect auth listener
       } else {
-        throw new Error(verifyData.error || 'فشل التحقق');
+        throw new Error(verifyData.error || "فشل التحقق");
       }
     } catch (err: any) {
       console.error("[Admin Passkey Login Error]:", err);
-      if (err.name === 'NotAllowedError') {
-        toast.error('تم إلغاء العملية');
-      } else if (err.name === 'NotSupportedError') {
-        toast.error('المتصفح لا يدعم البصمة هنا. يرجى فتح المتصفح بشكل كامل.');
+      if (err.name === "NotAllowedError") {
+        toast.error("تم إلغاء العملية");
+      } else if (err.name === "NotSupportedError") {
+        toast.error("المتصفح لا يدعم البصمة هنا. يرجى فتح المتصفح بشكل كامل.");
       } else {
-        toast.error(`خطأ في البصمة: ${err.message || 'يرجى المحاولة بالطريقة التقليدية'}`);
+        toast.error(
+          `خطأ في البصمة: ${err.message || "يرجى المحاولة بالطريقة التقليدية"}`,
+        );
       }
     } finally {
       setIsLoading(false);
     }
   };
-  
+
   // Check if already logged in with authorized email
   useEffect(() => {
     // Instant check if we already have a valid session in local storage
-    const hasAdminAuth = localStorage.getItem('admin_auth') === 'true';
-    const savedUser = localStorage.getItem('store_user');
-    
+    const hasAdminAuth = localStorage.getItem("admin_auth") === "true";
+    const savedUser = localStorage.getItem("store_user");
+
     if (hasAdminAuth && savedUser) {
       try {
         const userData = JSON.parse(savedUser);
-        if (userData.role === 'admin') {
-          navigate('/admin');
+        if (userData.role === "admin") {
+          navigate("/admin");
           setIsCheckingAuth(false);
           return;
         }
@@ -111,43 +142,52 @@ export default function AdminLogin() {
         let adminData: any = null;
 
         // Base super admins (Instant check)
-        const superAdmins = ['samesaeed456@gmail.com', 'samisaeed2027@gmail.com', 'samisaeed2025@gmail.com'];
+        const superAdmins = [
+          "samesaeed456@gmail.com",
+          "samisaeed2027@gmail.com",
+          "samisaeed2025@gmail.com",
+        ];
         const userEmail = user.email.toLowerCase();
-        
+
         if (superAdmins.includes(userEmail)) {
-           isAuthorized = true;
-           adminData = { role: 'super_admin', name: 'المدير العام', email: user.email, permissions: ['all'] };
-           
-           // Fast track for super admins
-           localStorage.setItem('admin_auth', 'true');
-           localStorage.setItem('admin_email', user.email);
-           localStorage.setItem('admin_name', 'المدير العام');
-           localStorage.setItem('admin_role', 'super_admin');
-           navigate('/admin');
-           setIsCheckingAuth(false);
-           return;
+          isAuthorized = true;
+          adminData = {
+            role: "super_admin",
+            name: "المدير العام",
+            email: user.email,
+            permissions: ["all"],
+          };
+
+          // Fast track for super admins
+          localStorage.setItem("admin_auth", "true");
+          localStorage.setItem("admin_email", user.email);
+          localStorage.setItem("admin_name", "المدير العام");
+          localStorage.setItem("admin_role", "super_admin");
+          navigate("/admin");
+          setIsCheckingAuth(false);
+          return;
         }
 
         // Secondary check via Firestore (Optimized with limit 1)
         try {
           const adminQuery = query(
-            collection(adminDb, 'users'), 
-            where('email', '==', user.email), 
-            where('role', '==', 'admin'),
-            limit(1)
+            collection(adminDb, "users"),
+            where("email", "==", user.email),
+            where("role", "==", "admin"),
+            limit(1),
           );
           const adminSnap = await getDocs(adminQuery);
-          
+
           if (!adminSnap.empty) {
             isAuthorized = true;
             adminData = adminSnap.docs[0].data();
           } else {
             // Fallback: check if isAdmin flag exists even if role is different (for safety/migration)
             const backupQuery = query(
-              collection(adminDb, 'users'), 
-              where('email', '==', user.email), 
-              where('isAdmin', '==', true),
-              limit(1)
+              collection(adminDb, "users"),
+              where("email", "==", user.email),
+              where("isAdmin", "==", true),
+              limit(1),
             );
             const backupSnap = await getDocs(backupQuery);
             if (!backupSnap.empty) {
@@ -158,17 +198,23 @@ export default function AdminLogin() {
         } catch (err) {
           console.warn("Minor background auth check error:", err);
         }
-        
+
         if (isAuthorized && adminData) {
-          localStorage.setItem('admin_auth', 'true');
-          localStorage.setItem('admin_email', user.email);
-          localStorage.setItem('admin_name', adminData.displayName || adminData.name || 'مشرف');
-          localStorage.setItem('admin_role', adminData.adminRole || adminData.role || 'editor');
-          navigate('/admin');
+          localStorage.setItem("admin_auth", "true");
+          localStorage.setItem("admin_email", user.email);
+          localStorage.setItem(
+            "admin_name",
+            adminData.displayName || adminData.name || "مشرف",
+          );
+          localStorage.setItem(
+            "admin_role",
+            adminData.adminRole || adminData.role || "editor",
+          );
+          navigate("/admin");
         } else {
-          if (localStorage.getItem('admin_attempt') === 'true') {
-            toast.error('هذا الحساب ليس لديه صلاحيات إدارية');
-            localStorage.removeItem('admin_attempt');
+          if (localStorage.getItem("admin_attempt") === "true") {
+            toast.error("هذا الحساب ليس لديه صلاحيات إدارية");
+            localStorage.removeItem("admin_attempt");
             await adminAuth.signOut();
           }
         }
@@ -179,25 +225,29 @@ export default function AdminLogin() {
     return () => unsubscribe();
   }, [navigate]);
 
-
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) return;
-    
+
     setIsLoading(true);
-    localStorage.setItem('admin_attempt', 'true');
+    localStorage.setItem("admin_attempt", "true");
 
     try {
       await signInWithEmailAndPassword(adminAuth, email, password);
       // If login successful, the useEffect Auth listener handles the redirection logic
     } catch (error: any) {
-      console.error('Login error:', error);
-      let message = 'حدث خطأ أثناء تسجيل الدخول';
-      if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') message = 'البيانات غير صحيحة أو غير متوفرة';
-      if (error.code === 'auth/wrong-password') message = 'كلمة المرور خاطئة';
-      if (error.code === 'auth/too-many-requests') message = 'تم حظر المحاولات مؤقتاً، حاول لاحقاً';
+      console.error("Login error:", error);
+      let message = "حدث خطأ أثناء تسجيل الدخول";
+      if (
+        error.code === "auth/user-not-found" ||
+        error.code === "auth/invalid-credential"
+      )
+        message = "البيانات غير صحيحة أو غير متوفرة";
+      if (error.code === "auth/wrong-password") message = "كلمة المرور خاطئة";
+      if (error.code === "auth/too-many-requests")
+        message = "تم حظر المحاولات مؤقتاً، حاول لاحقاً";
       if (error.message && !error.code) message = error.message;
-      
+
       toast.error(message);
     } finally {
       setIsLoading(false);
@@ -206,26 +256,34 @@ export default function AdminLogin() {
 
   if (isCheckingAuth) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center font-sans" dir="rtl">
+      <div
+        className="min-h-screen bg-slate-50 flex items-center justify-center font-sans"
+        dir="rtl"
+      >
         <div className="text-center">
           <div className="w-16 h-16 bg-solar rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-gold/20 animate-bounce">
             <Zap className="w-8 h-8 text-carbon fill-current" />
           </div>
-          <p className="text-slate-500 font-bold animate-pulse">جاري التحقق من الصلاحيات...</p>
+          <p className="text-slate-500 font-bold animate-pulse">
+            جاري التحقق من الصلاحيات...
+          </p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-0 sm:p-6 font-sans relative overflow-hidden" dir="rtl">
+    <div
+      className="min-h-screen bg-slate-50 flex items-center justify-center p-0 sm:p-6 font-sans relative overflow-hidden"
+      dir="rtl"
+    >
       {/* Background Decorative Elements */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
         <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] bg-solar/5 rounded-full blur-[120px]" />
         <div className="absolute bottom-[-10%] left-[-10%] w-[40%] h-[40%] bg-carbon/5 rounded-full blur-[120px]" />
       </div>
 
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-6xl flex flex-col md:flex-row bg-white rounded-none sm:rounded-[40px] shadow-2xl shadow-slate-200/50 border-0 sm:border border-slate-100 overflow-hidden relative z-10 min-h-screen sm:min-h-0"
@@ -233,20 +291,20 @@ export default function AdminLogin() {
         {/* Left Side: Branding & Info */}
         <div className="hidden md:flex md:w-1/2 bg-carbon relative overflow-hidden">
           <div className="absolute inset-0">
-            <img 
-              src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&q=80&w=2000" 
-              alt="Admin Experience" 
+            <img
+              src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&q=80&w=2000"
+              alt="Admin Experience"
               className="w-full h-full object-cover opacity-30 mix-blend-overlay"
               referrerPolicy="no-referrer"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-carbon via-carbon/50 to-transparent" />
           </div>
-          
+
           <div className="relative z-10 p-12 flex flex-col justify-between h-full text-white">
             <div>
               <Logo variant="light" className="h-12" />
             </div>
-            
+
             <div className="space-y-6">
               <motion.div
                 initial={{ opacity: 0, x: -20 }}
@@ -257,21 +315,26 @@ export default function AdminLogin() {
                   <Zap className="w-8 h-8 text-solar fill-solar" />
                 </div>
                 <h2 className="text-4xl font-black leading-tight mb-4 tracking-tight">
-                  نظام الإدارة المتطور<br /> لمتجر النخبة
+                  نظام الإدارة المتطور
+                  <br /> لمتجر النخبة
                 </h2>
                 <p className="text-slate-400 text-lg font-medium leading-relaxed">
                   تحكم كامل بمتجرك، منتجاتك، وعملائك في منصة واحدة ذكية وسريعة.
                 </p>
               </motion.div>
-              
+
               <div className="flex items-center gap-8 pt-8 border-t border-white/10">
                 <div className="flex flex-col">
                   <span className="text-2xl font-black text-white">100%</span>
-                  <span className="text-[10px] text-slate-400 font-black uppercase tracking-wider">تحكم آمن</span>
+                  <span className="text-[10px] text-slate-400 font-black uppercase tracking-wider">
+                    تحكم آمن
+                  </span>
                 </div>
                 <div className="flex flex-col">
                   <span className="text-2xl font-black text-white">Live</span>
-                  <span className="text-[10px] text-slate-400 font-black uppercase tracking-wider">مراقبة فورية</span>
+                  <span className="text-[10px] text-slate-400 font-black uppercase tracking-wider">
+                    مراقبة فورية
+                  </span>
                 </div>
               </div>
             </div>
@@ -284,8 +347,8 @@ export default function AdminLogin() {
 
         {/* Right Side: Form */}
         <div className="w-full md:w-1/2 p-8 sm:p-12 lg:p-16 flex flex-col justify-center bg-white relative">
-          <button 
-            onClick={() => navigate('/')}
+          <button
+            onClick={() => navigate("/")}
             className="absolute top-8 right-8 p-2.5 text-slate-400 hover:text-carbon hover:bg-slate-50 rounded-2xl transition-all border border-slate-50 flex items-center gap-2 text-[10px] font-black uppercase tracking-tighter"
           >
             <Home className="w-4 h-4" />
@@ -307,12 +370,12 @@ export default function AdminLogin() {
           </div>
 
           <AnimatePresence mode="wait">
-            <motion.form 
+            <motion.form
               key="login"
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
-              onSubmit={handleLogin} 
+              onSubmit={handleLogin}
               className="space-y-6"
             >
               <div className="space-y-5">
@@ -329,7 +392,7 @@ export default function AdminLogin() {
                 />
 
                 <div className="relative">
-                  <FloatingInput 
+                  <FloatingInput
                     id="adminPassword"
                     label="كلمة المرور"
                     type={showPassword ? "text" : "password"}
@@ -343,9 +406,9 @@ export default function AdminLogin() {
                   />
                   <div className="absolute left-1 top-1 bottom-1 flex items-center gap-1">
                     {!password && (
-                      <button 
-                        type="button" 
-                        onClick={handlePasskeyLogin} 
+                      <button
+                        type="button"
+                        onClick={handlePasskeyLogin}
                         disabled={isLoading}
                         className="px-3 h-full flex items-center justify-center text-orange-500 hover:text-orange-600 transition-all hover:scale-110 active:scale-95"
                         title="دخول سريع بالبصمة"
@@ -353,12 +416,16 @@ export default function AdminLogin() {
                         <Fingerprint className="w-5 h-5" />
                       </button>
                     )}
-                    <button 
-                      type="button" 
-                      onClick={() => setShowPassword(!showPassword)} 
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
                       className="px-3 h-full flex items-center justify-center text-slate-400 hover:text-carbon transition-colors"
                     >
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      {showPassword ? (
+                        <EyeOff className="w-4 h-4" />
+                      ) : (
+                        <Eye className="w-4 h-4" />
+                      )}
                     </button>
                   </div>
                 </div>
@@ -366,15 +433,24 @@ export default function AdminLogin() {
 
               <div className="flex items-center justify-between">
                 <label className="flex items-center gap-2 cursor-pointer group">
-                  <div className={`w-5 h-5 rounded-lg border-2 flex items-center justify-center transition-all ${rememberMe ? 'bg-carbon border-carbon text-white shadow-lg shadow-carbon/20' : 'border-slate-200 group-hover:border-slate-300'}`}>
+                  <div
+                    className={`w-5 h-5 rounded-lg border-2 flex items-center justify-center transition-all ${rememberMe ? "bg-carbon border-carbon text-white shadow-lg shadow-carbon/20" : "border-slate-200 group-hover:border-slate-300"}`}
+                  >
                     {rememberMe && <Check className="w-3.5 h-3.5 stroke-[3]" />}
                   </div>
-                  <span className="font-bold text-xs text-slate-500 select-none">تذكر حذائي الإداري</span>
-                  <input type="checkbox" className="hidden" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} />
+                  <span className="font-bold text-xs text-slate-500 select-none">
+                    تذكر حذائي الإداري
+                  </span>
+                  <input
+                    type="checkbox"
+                    className="hidden"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                  />
                 </label>
               </div>
 
-              <button 
+              <button
                 type="submit"
                 disabled={isLoading}
                 className="w-full h-14 bg-carbon text-white rounded-2xl font-black text-sm flex items-center justify-center gap-3 hover:bg-slate-800 transition-all hover:shadow-2xl hover:shadow-carbon/30 active:scale-[0.98] disabled:opacity-70 group"
@@ -391,7 +467,8 @@ export default function AdminLogin() {
 
               <div className="pt-6 text-center border-t border-slate-100">
                 <p className="text-[10px] text-slate-400 font-bold leading-relaxed">
-                  هذا النظام محمي بطبقات أمان النخبة. أي محاولة دخول غير مصرح بها يتم تسجيلها فورياً.
+                  هذا النظام محمي بطبقات أمان النخبة. أي محاولة دخول غير مصرح
+                  بها يتم تسجيلها فورياً.
                 </p>
               </div>
             </motion.form>

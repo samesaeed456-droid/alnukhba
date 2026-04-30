@@ -1,6 +1,6 @@
-import React from 'react';
-import { Store, Users, Target, Award, CheckCircle2 } from 'lucide-react';
-import { motion } from 'motion/react';
+import React from "react";
+import { Store, Users, Target, Award, CheckCircle2 } from "lucide-react";
+import { motion } from "motion/react";
 
 export default function About() {
   const containerVariants = {
@@ -8,28 +8,31 @@ export default function About() {
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.2
-      }
-    }
+        staggerChildren: 0.2,
+      },
+    },
   };
 
   const itemVariants = {
     hidden: { opacity: 0, y: 30 },
-    visible: { opacity: 1, y: 0 }
+    visible: { opacity: 1, y: 0 },
   };
 
   return (
-    <motion.div 
+    <motion.div
       variants={containerVariants}
       initial="hidden"
       animate="visible"
       className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12"
     >
       {/* Hero Section */}
-      <motion.div variants={itemVariants} className="text-center mb-12 sm:mb-20">
+      <motion.div
+        variants={itemVariants}
+        className="text-center mb-12 sm:mb-20"
+      >
         <h1 className="text-2xl sm:text-4xl md:text-5xl font-black text-slate-900 mb-4 sm:mb-6 leading-tight">
           نحن هنا لنعيد تعريف <br className="hidden sm:block" />
-          <motion.span 
+          <motion.span
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.5, duration: 0.8 }}
@@ -39,44 +42,51 @@ export default function About() {
           </motion.span>
         </h1>
         <p className="text-sm sm:text-xl text-slate-500 max-w-3xl mx-auto leading-relaxed">
-          منذ تأسيسنا في عام 2020، أخذنا على عاتقنا مهمة توفير أحدث المنتجات التقنية والإلكترونية بأفضل الأسعار، مع التركيز التام على جودة الخدمة ورضا العميل.
+          منذ تأسيسنا في عام 2020، أخذنا على عاتقنا مهمة توفير أحدث المنتجات
+          التقنية والإلكترونية بأفضل الأسعار، مع التركيز التام على جودة الخدمة
+          ورضا العميل.
         </p>
       </motion.div>
 
       {/* Image Grid */}
-      <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 mb-16 sm:mb-24">
-        <motion.div 
+      <motion.div
+        variants={itemVariants}
+        className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 mb-16 sm:mb-24"
+      >
+        <motion.div
           whileHover={{ y: -10 }}
           className="md:col-span-2 h-56 sm:h-96 rounded-2xl sm:rounded-3xl overflow-hidden shadow-lg relative group"
         >
-          <img 
-            src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&q=80&w=1600" 
-            alt="Our Team" 
+          <img
+            src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&q=80&w=1600"
+            alt="Our Team"
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-6 sm:p-8">
-            <h3 className="text-lg sm:text-xl font-bold text-white">فريق عمل شغوف</h3>
+            <h3 className="text-lg sm:text-xl font-bold text-white">
+              فريق عمل شغوف
+            </h3>
           </div>
         </motion.div>
         <div className="grid grid-cols-2 md:flex md:flex-col gap-4 sm:gap-6">
-          <motion.div 
+          <motion.div
             whileHover={{ y: -5 }}
             className="h-40 sm:h-[calc(50%-12px)] rounded-2xl sm:rounded-3xl overflow-hidden shadow-lg relative group"
           >
-            <img 
-              src="https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=800" 
-              alt="Our Office" 
+            <img
+              src="https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=800"
+              alt="Our Office"
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
             />
             <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors"></div>
           </motion.div>
-          <motion.div 
+          <motion.div
             whileHover={{ y: -5 }}
             className="h-40 sm:h-[calc(50%-12px)] rounded-2xl sm:rounded-3xl overflow-hidden shadow-lg relative group"
           >
-            <img 
-              src="https://images.unsplash.com/photo-1556761175-5973dc0f32e7?auto=format&fit=crop&q=80&w=800" 
-              alt="Customer Service" 
+            <img
+              src="https://images.unsplash.com/photo-1556761175-5973dc0f32e7?auto=format&fit=crop&q=80&w=800"
+              alt="Customer Service"
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
             />
             <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors"></div>
@@ -86,33 +96,42 @@ export default function About() {
 
       {/* Core Values */}
       <div className="mb-16 sm:mb-24">
-        <motion.div variants={itemVariants} className="text-center mb-8 sm:mb-12">
-          <h2 className="text-xl sm:text-2xl font-black text-slate-900 mb-3 sm:mb-4">قيمنا الأساسية</h2>
+        <motion.div
+          variants={itemVariants}
+          className="text-center mb-8 sm:mb-12"
+        >
+          <h2 className="text-xl sm:text-2xl font-black text-slate-900 mb-3 sm:mb-4">
+            قيمنا الأساسية
+          </h2>
           <p className="text-sm sm:text-base text-slate-500 max-w-2xl mx-auto px-4">
-            نؤمن بأن النجاح الحقيقي يبنى على أسس وقيم راسخة لا نحيد عنها في تعاملاتنا اليومية.
+            نؤمن بأن النجاح الحقيقي يبنى على أسس وقيم راسخة لا نحيد عنها في
+            تعاملاتنا اليومية.
           </p>
         </motion.div>
 
-        <motion.div variants={containerVariants} className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-8">
+        <motion.div
+          variants={containerVariants}
+          className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-8"
+        >
           {[
             {
               icon: Target,
               title: "الجودة أولاً",
-              desc: "ننتقي منتجاتنا بعناية فائقة من أفضل العلامات التجارية العالمية لضمان حصولك على الأفضل دائماً."
+              desc: "ننتقي منتجاتنا بعناية فائقة من أفضل العلامات التجارية العالمية لضمان حصولك على الأفضل دائماً.",
             },
             {
               icon: Users,
               title: "العميل هو المحور",
-              desc: "كل قرار نتخذه يهدف في المقام الأول إلى تحسين وتسهيل تجربة التسوق لعملائنا الكرام."
+              desc: "كل قرار نتخذه يهدف في المقام الأول إلى تحسين وتسهيل تجربة التسوق لعملائنا الكرام.",
             },
             {
               icon: Award,
               title: "الشفافية والمصداقية",
-              desc: "نلتزم بالوضوح التام في أسعارنا، سياساتنا، ومواصفات منتجاتنا دون أي تكاليف خفية."
-            }
+              desc: "نلتزم بالوضوح التام في أسعارنا، سياساتنا، ومواصفات منتجاتنا دون أي تكاليف خفية.",
+            },
           ].map((val, idx) => (
-            <motion.div 
-              key={idx} 
+            <motion.div
+              key={idx}
               variants={itemVariants}
               whileHover={{ y: -10 }}
               className="bg-white p-6 sm:p-8 rounded-2xl sm:rounded-3xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow"
@@ -120,38 +139,42 @@ export default function About() {
               <div className="w-12 h-12 sm:w-14 sm:h-14 bg-blue-50 rounded-xl sm:rounded-2xl flex items-center justify-center mb-4 sm:mb-6">
                 <val.icon className="w-6 h-6 sm:w-7 sm:h-7 text-blue-600" />
               </div>
-              <h3 className="text-lg sm:text-xl font-bold text-slate-900 mb-2 sm:mb-3">{val.title}</h3>
-              <p className="text-xs sm:text-base text-slate-500 leading-relaxed">{val.desc}</p>
+              <h3 className="text-lg sm:text-xl font-bold text-slate-900 mb-2 sm:mb-3">
+                {val.title}
+              </h3>
+              <p className="text-xs sm:text-base text-slate-500 leading-relaxed">
+                {val.desc}
+              </p>
             </motion.div>
           ))}
         </motion.div>
       </div>
 
       {/* Stats */}
-      <motion.div 
+      <motion.div
         variants={itemVariants}
         className="bg-slate-900 rounded-2xl sm:rounded-3xl p-8 sm:p-16 text-white relative overflow-hidden"
       >
-        <motion.div 
+        <motion.div
           animate={{ scale: [1, 1.2, 1], opacity: [0.2, 0.3, 0.2] }}
           transition={{ repeat: Infinity, duration: 10, ease: "easeInOut" }}
           className="absolute top-0 right-0 w-64 h-64 bg-blue-600/20 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl"
         ></motion.div>
-        <motion.div 
+        <motion.div
           animate={{ scale: [1, 1.3, 1], opacity: [0.2, 0.4, 0.2] }}
           transition={{ repeat: Infinity, duration: 12, ease: "easeInOut" }}
           className="absolute bottom-0 left-0 w-64 h-64 bg-indigo-600/20 rounded-full translate-y-1/2 -translate-x-1/2 blur-3xl"
         ></motion.div>
-        
+
         <div className="relative z-10 grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 text-center">
           {[
             { num: "+50K", label: "عميل سعيد" },
             { num: "+10K", label: "منتج متاح" },
             { num: "99%", label: "نسبة الرضا" },
-            { num: "24/7", label: "دعم فني" }
+            { num: "24/7", label: "دعم فني" },
           ].map((stat, idx) => (
-            <motion.div 
-              key={idx} 
+            <motion.div
+              key={idx}
               initial={{ opacity: 0, scale: 0.5 }}
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
@@ -161,7 +184,9 @@ export default function About() {
               <div className="text-2xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-white/60">
                 {stat.num}
               </div>
-              <div className="text-[10px] sm:text-base text-slate-400 font-bold uppercase tracking-wider">{stat.label}</div>
+              <div className="text-[10px] sm:text-base text-slate-400 font-bold uppercase tracking-wider">
+                {stat.label}
+              </div>
             </motion.div>
           ))}
         </div>

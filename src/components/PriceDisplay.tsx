@@ -1,5 +1,5 @@
-import React from 'react';
-import { useStore } from '../context/StoreContext';
+import React from "react";
+import { useStore } from "../context/StoreContext";
 
 interface PriceDisplayProps {
   price: number;
@@ -8,19 +8,19 @@ interface PriceDisplayProps {
   currencyClassName?: string;
 }
 
-export default function PriceDisplay({ 
-  price, 
-  className = "flex items-center gap-1", 
-  numberClassName = "text-slate-900", 
-  currencyClassName = "text-slate-900/70" 
+export default function PriceDisplay({
+  price,
+  className = "flex items-center gap-1",
+  numberClassName = "text-slate-900",
+  currencyClassName = "text-slate-900/70",
 }: PriceDisplayProps) {
   const { formatPrice } = useStore();
   const formatted = formatPrice(price);
-  
+
   // Split by space to separate number and currency
-  const parts = formatted.split(' ');
+  const parts = formatted.split(" ");
   const number = parts[0];
-  const currency = parts.slice(1).join(' ');
+  const currency = parts.slice(1).join(" ");
 
   return (
     <span className={className}>

@@ -1,16 +1,19 @@
-import React from 'react';
-import { useLocation } from 'react-router-dom';
-import { ChevronUp, MessageCircle } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import React from "react";
+import { useLocation } from "react-router-dom";
+import { ChevronUp, MessageCircle } from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
 
 interface FloatingActionsProps {
   showScrollTop: boolean;
   scrollToTop: () => void;
 }
 
-export default React.memo(function FloatingActions({ showScrollTop, scrollToTop }: FloatingActionsProps) {
+export default React.memo(function FloatingActions({
+  showScrollTop,
+  scrollToTop,
+}: FloatingActionsProps) {
   const location = useLocation();
-  const hideOnPaths = ['/checkout', '/auth', '/signup'];
+  const hideOnPaths = ["/checkout", "/auth", "/signup"];
   const shouldHide = hideOnPaths.includes(location.pathname);
 
   return (

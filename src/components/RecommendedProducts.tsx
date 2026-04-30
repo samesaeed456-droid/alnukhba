@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from 'react';
-import { useStore } from '../context/StoreContext';
-import { Product } from '../types';
-import ProductCard from './ProductCard';
-import { Sparkles, Plus } from 'lucide-react';
-import { motion } from 'motion/react';
-import { FastImage } from './FastImage';
+import React, { useEffect, useState } from "react";
+import { useStore } from "../context/StoreContext";
+import { Product } from "../types";
+import ProductCard from "./ProductCard";
+import { Sparkles, Plus } from "lucide-react";
+import { motion } from "motion/react";
+import { FastImage } from "./FastImage";
 
 interface RecommendedProductsProps {
   currentProduct?: Product;
@@ -13,13 +13,18 @@ interface RecommendedProductsProps {
   compact?: boolean;
 }
 
-export default React.memo(function RecommendedProducts({ 
-  currentProduct, 
-  title = "منتجات مقترحة لك", 
+export default React.memo(function RecommendedProducts({
+  currentProduct,
+  title = "منتجات مقترحة لك",
   limit = 4,
-  compact = false
+  compact = false,
 }: RecommendedProductsProps) {
-  const { getRecommendations, getRuleBasedRecommendations, addToCart, formatPrice } = useStore();
+  const {
+    getRecommendations,
+    getRuleBasedRecommendations,
+    addToCart,
+    formatPrice,
+  } = useStore();
   const [recommendations, setRecommendations] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -34,9 +39,20 @@ export default React.memo(function RecommendedProducts({
     // 2. Fetch AI recommendations in the background if possible
     const fetchAIRecommendations = async () => {
       try {
+        const cacheKey = `ai_recs_${currentProduct?.id || 'home'}`;
+        const cached = sessionStorage.getItem(cacheKey);
+        
+        if (cached) {
+          setRecommendations(JSON.parse(cached));
+          setLoading(false);
+          return;
+        }
+
         const recs = await getRecommendations(currentProduct);
         if (recs.length > 0) {
-          setRecommendations(recs.slice(0, limit));
+          const limited = recs.slice(0, limit);
+          sessionStorage.setItem(cacheKey, JSON.stringify(limited));
+          setRecommendations(limited);
         }
       } catch (error) {
         // Fallback already shown
@@ -58,27 +74,39 @@ export default React.memo(function RecommendedProducts({
           <h3 className="text-sm font-black text-carbon">{title}</h3>
         </div>
         <div className="space-y-3">
-          {loading ? (
-            [...Array(limit)].map((_, i) => (
-              <div key={i} className="h-20 bg-slate-50 rounded-xl animate-pulse" />
-            ))
-          ) : (
-            recommendations.map((product) => (
-              <div key={product.id} className="flex gap-3 bg-slate-50 p-2 rounded-xl border border-slate-100">
-                <FastImage src={product.image || undefined} alt={product.name} className="w-12 h-12 rounded-lg object-cover" />
-                <div className="flex-1 min-w-0">
-                  <h4 className="text-xs font-bold text-carbon truncate">{product.name}</h4>
-                  <p className="text-[10px] text-solar font-black mt-1">{formatPrice(product.price)}</p>
-                </div>
-                <button 
-                  onClick={() => addToCart(product)}
-                  className="self-center p-1.5 bg-white rounded-lg shadow-sm text-carbon hover:text-solar transition-colors"
+          {loading
+            ? [...Array(limit)].map((_, i) => (
+                <div
+                  key={i}
+                  className="h-20 bg-slate-50 rounded-xl animate-pulse"
+                />
+              ))
+            : recommendations.map((product) => (
+                <div
+                  key={product.id}
+                  className="flex gap-3 bg-slate-50 p-2 rounded-xl border border-slate-100"
                 >
-                  <Plus className="w-4 h-4" />
-                </button>
-              </div>
-            ))
-          )}
+                  <FastImage
+                    src={product.image || undefined}
+                    alt={product.name}
+                    className="w-12 h-12 rounded-lg object-cover"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <h4 className="text-xs font-bold text-carbon truncate">
+                      {product.name}
+                    </h4>
+                    <p className="text-[10px] text-solar font-black mt-1">
+                      {formatPrice(product.price)}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => addToCart(product)}
+                    className="self-center p-1.5 bg-white rounded-lg shadow-sm text-carbon hover:text-solar transition-colors"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
         </div>
       </div>
     );
@@ -93,8 +121,12 @@ export default React.memo(function RecommendedProducts({
               <Sparkles className="w-6 h-6" />
             </div>
             <div>
-              <h2 className="text-xl font-black text-carbon tracking-tight">{title}</h2>
-              <p className="text-sm text-slate-500 font-medium">بناءً على اهتماماتك وتصفحك</p>
+              <h2 className="text-xl font-black text-carbon tracking-tight">
+                {title}
+              </h2>
+              <p className="text-sm text-slate-500 font-medium">
+                بناءً على اهتماماتك وتصفحك
+              </p>
             </div>
           </div>
         </div>
@@ -103,7 +135,10 @@ export default React.memo(function RecommendedProducts({
       {loading ? (
         <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-2 sm:gap-6">
           {[...Array(limit)].map((_, i) => (
-            <div key={i} className="aspect-[3/4] bg-slate-100 rounded-3xl animate-pulse" />
+            <div
+              key={i}
+              className="aspect-[3/4] bg-slate-100 rounded-3xl animate-pulse"
+            />
           ))}
         </div>
       ) : (
@@ -123,5 +158,4 @@ export default React.memo(function RecommendedProducts({
       )}
     </section>
   );
-}
-);
+});

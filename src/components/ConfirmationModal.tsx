@@ -1,6 +1,13 @@
-import React from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { AlertTriangle, X, Loader2, Trash2, Info, AlertCircle } from 'lucide-react';
+import React from "react";
+import { motion, AnimatePresence } from "motion/react";
+import {
+  AlertTriangle,
+  X,
+  Loader2,
+  Trash2,
+  Info,
+  AlertCircle,
+} from "lucide-react";
 
 interface ConfirmationModalProps {
   isOpen: boolean;
@@ -10,7 +17,7 @@ interface ConfirmationModalProps {
   message: string;
   confirmText?: string;
   cancelText?: string;
-  type?: 'danger' | 'warning' | 'info' | 'success';
+  type?: "danger" | "warning" | "info" | "success";
   isLoading?: boolean;
 }
 
@@ -20,17 +27,17 @@ export default function ConfirmationModal({
   onConfirm,
   title,
   message,
-  confirmText = 'تأكيد',
-  cancelText = 'إلغاء',
-  type = 'danger',
-  isLoading: externalLoading = false
+  confirmText = "تأكيد",
+  cancelText = "إلغاء",
+  type = "danger",
+  isLoading: externalLoading = false,
 }: ConfirmationModalProps) {
   const [internalLoading, setInternalLoading] = React.useState(false);
   const isLoading = externalLoading || internalLoading;
 
   const handleConfirm = async () => {
     if (isLoading) return;
-    
+
     const result = onConfirm();
     if (result instanceof Promise) {
       setInternalLoading(true);
@@ -38,7 +45,7 @@ export default function ConfirmationModal({
         await result;
         onClose();
       } catch (error) {
-        console.error('Confirmation error:', error);
+        console.error("Confirmation error:", error);
       } finally {
         setInternalLoading(false);
       }
@@ -49,36 +56,50 @@ export default function ConfirmationModal({
 
   const getIcon = () => {
     switch (type) {
-      case 'danger': return <Trash2 className="w-8 h-8" />;
-      case 'warning': return <AlertTriangle className="w-8 h-8" />;
-      case 'success': return <AlertCircle className="w-8 h-8" />;
-      case 'info': return <Info className="w-8 h-8" />;
-      default: return <Info className="w-8 h-8" />;
+      case "danger":
+        return <Trash2 className="w-8 h-8" />;
+      case "warning":
+        return <AlertTriangle className="w-8 h-8" />;
+      case "success":
+        return <AlertCircle className="w-8 h-8" />;
+      case "info":
+        return <Info className="w-8 h-8" />;
+      default:
+        return <Info className="w-8 h-8" />;
     }
   };
 
   const getTypeStyles = () => {
     switch (type) {
-      case 'danger': return {
-        iconBg: 'bg-red-50 text-red-500',
-        confirmBtn: 'bg-red-500 hover:bg-red-600 text-white shadow-red-500/20'
-      };
-      case 'warning': return {
-        iconBg: 'bg-amber-50 text-amber-500',
-        confirmBtn: 'bg-amber-500 hover:bg-amber-600 text-white shadow-amber-500/20'
-      };
-      case 'success': return {
-        iconBg: 'bg-green-50 text-green-500',
-        confirmBtn: 'bg-green-500 hover:bg-green-600 text-white shadow-green-500/20'
-      };
-      case 'info': return {
-        iconBg: 'bg-blue-50 text-blue-500',
-        confirmBtn: 'bg-blue-500 hover:bg-blue-600 text-white shadow-blue-500/20'
-      };
-      default: return {
-        iconBg: 'bg-solar/10 text-solar',
-        confirmBtn: 'bg-solar hover:bg-solar-dark text-white shadow-solar/20'
-      };
+      case "danger":
+        return {
+          iconBg: "bg-red-50 text-red-500",
+          confirmBtn:
+            "bg-red-500 hover:bg-red-600 text-white shadow-red-500/20",
+        };
+      case "warning":
+        return {
+          iconBg: "bg-amber-50 text-amber-500",
+          confirmBtn:
+            "bg-amber-500 hover:bg-amber-600 text-white shadow-amber-500/20",
+        };
+      case "success":
+        return {
+          iconBg: "bg-green-50 text-green-500",
+          confirmBtn:
+            "bg-green-500 hover:bg-green-600 text-white shadow-green-500/20",
+        };
+      case "info":
+        return {
+          iconBg: "bg-blue-50 text-blue-500",
+          confirmBtn:
+            "bg-blue-500 hover:bg-blue-600 text-white shadow-blue-500/20",
+        };
+      default:
+        return {
+          iconBg: "bg-solar/10 text-solar",
+          confirmBtn: "bg-solar hover:bg-solar-dark text-white shadow-solar/20",
+        };
     }
   };
 
@@ -101,15 +122,19 @@ export default function ConfirmationModal({
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             className="relative bg-white rounded-[2.5rem] shadow-2xl w-full max-w-sm overflow-hidden p-8 text-center border border-gray-100"
           >
-            <div className={`w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-6 transition-all ${styles.iconBg}`}>
+            <div
+              className={`w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-6 transition-all ${styles.iconBg}`}
+            >
               {getIcon()}
             </div>
-            
-            <h3 className="text-2xl font-black text-carbon mb-3 tracking-tight">{title}</h3>
+
+            <h3 className="text-2xl font-black text-carbon mb-3 tracking-tight">
+              {title}
+            </h3>
             <p className="text-gray-500 text-sm mb-8 leading-relaxed font-medium">
               {message}
             </p>
-            
+
             <div className="flex gap-3">
               <button
                 disabled={isLoading}

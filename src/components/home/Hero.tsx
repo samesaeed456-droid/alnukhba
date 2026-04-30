@@ -1,60 +1,66 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { ChevronRight, ChevronLeft } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
-import { FastLink } from '../FastLink';
-import { FastImage } from '../FastImage';
-import { useStore } from '../../context/StoreContext';
+import React, { useState, useEffect, useMemo } from "react";
+import { ChevronRight, ChevronLeft } from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
+import { FastLink } from "../FastLink";
+import { FastImage } from "../FastImage";
+import { useStore } from "../../context/StoreContext";
 
 export const defaultSlides = [
   {
-    id: 'default-0',
-    image: "https://images.unsplash.com/photo-1566576721346-d4a3b4eaad5b?auto=format&fit=crop&q=80&w=1600",
+    id: "default-0",
+    image:
+      "https://images.unsplash.com/photo-1566576721346-d4a3b4eaad5b?auto=format&fit=crop&q=80&w=1600",
     title: "توصيل مجاني لجميع الطلبات",
     subtitle: "استمتع بتوصيل مجاني عند تسوقك بمبلغ 50 ألف ﷼ أو أكثر.",
     buttonText: "تسوق الآن",
     link: "/search",
-    isSpecial: true
+    isSpecial: true,
   },
   {
-    id: 'default-1',
-    image: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&q=80&w=1600",
+    id: "default-1",
+    image:
+      "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&q=80&w=1600",
     title: "مستقبل التكنولوجيا بين يديك",
     subtitle: "اكتشف أحدث الأجهزة الذكية بتصاميم عصرية وأداء لا يضاهى.",
     buttonText: "تسوق الآن",
-    link: "/search"
+    link: "/search",
   },
   {
-    id: 'default-2',
-    image: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&q=80&w=1600",
+    id: "default-2",
+    image:
+      "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&q=80&w=1600",
     title: "عروض الموسم",
     subtitle: "خصومات تصل إلى 50% على جميع المنتجات.",
     buttonText: "تسوق الآن",
-    link: "/search"
+    link: "/search",
   },
   {
-    id: 'default-3',
-    image: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&q=80&w=1600",
+    id: "default-3",
+    image:
+      "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&q=80&w=1600",
     title: "أناقة بلا حدود",
     subtitle: "مجموعة جديدة من الساعات الذكية.",
     buttonText: "تسوق الآن",
-    link: "/search"
+    link: "/search",
   },
   {
-    id: 'default-4',
-    image: "https://images.unsplash.com/photo-1491933382434-500287f9b54b?auto=format&fit=crop&q=80&w=1600",
+    id: "default-4",
+    image:
+      "https://images.unsplash.com/photo-1491933382434-500287f9b54b?auto=format&fit=crop&q=80&w=1600",
     title: "عالم الألعاب",
     subtitle: "أقوى أجهزة الجيمنج بانتظارك.",
     buttonText: "تسوق الآن",
-    link: "/search"
+    link: "/search",
   },
   {
-    id: 'default-5',
-    image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&q=80&w=1600",
+    id: "default-5",
+    image:
+      "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&q=80&w=1600",
     title: "صوت نقي",
     subtitle: "أحدث سماعات الرأس اللاسلكية.",
     buttonText: "تسوق الآن",
-    link: "/search"
-  }
+    link: "/search",
+  },
 ];
 
 const Hero = React.memo(() => {
@@ -62,25 +68,27 @@ const Hero = React.memo(() => {
   const [activeSlide, setActiveSlide] = useState(0);
 
   const activeBanners = useMemo(() => {
-    const filtered = banners.filter(b => b.isActive && (!b.position || b.position === 'hero')).sort((a, b) => a.order - b.order);
+    const filtered = banners
+      .filter((b) => b.isActive && (!b.position || b.position === "hero"))
+      .sort((a, b) => a.order - b.order);
     if (filtered.length === 0) return defaultSlides;
-    
+
     // Flatten banners that have multiple images
     const flattened: any[] = [];
-    filtered.forEach(banner => {
+    filtered.forEach((banner) => {
       if (banner.images && banner.images.length > 0) {
         banner.images.forEach((img, index) => {
           flattened.push({
             ...banner,
             id: `${banner.id}-${index}`,
-            image: img
+            image: img,
           });
         });
       } else {
         flattened.push(banner);
       }
     });
-    
+
     return flattened;
   }, [banners]);
 
@@ -92,8 +100,12 @@ const Hero = React.memo(() => {
     return () => clearInterval(timer);
   }, [activeBanners.length]);
 
-  const nextSlide = () => setActiveSlide((prev) => (prev + 1) % activeBanners.length);
-  const prevSlide = () => setActiveSlide((prev) => (prev - 1 + activeBanners.length) % activeBanners.length);
+  const nextSlide = () =>
+    setActiveSlide((prev) => (prev + 1) % activeBanners.length);
+  const prevSlide = () =>
+    setActiveSlide(
+      (prev) => (prev - 1 + activeBanners.length) % activeBanners.length,
+    );
 
   const onDragEnd = (_: any, info: any) => {
     const threshold = 50;
@@ -122,7 +134,10 @@ const Hero = React.memo(() => {
             onDragEnd={onDragEnd}
             className="absolute inset-0 w-full h-full touch-none"
           >
-            <FastLink to={activeBanners[activeSlide].link || '/search'} className="block w-full h-full relative">
+            <FastLink
+              to={activeBanners[activeSlide].link || "/search"}
+              className="block w-full h-full relative"
+            >
               {/* Background Image with Zoom Animation */}
               <motion.div
                 key={`img-${activeSlide}`}
@@ -138,7 +153,7 @@ const Hero = React.memo(() => {
                   className="w-full h-full object-cover select-none"
                 />
               </motion.div>
-              
+
               {/* Overlays removed as per user request */}
             </FastLink>
           </motion.div>
@@ -149,18 +164,30 @@ const Hero = React.memo(() => {
       {activeBanners.length > 1 && (
         <>
           <div className="absolute inset-y-0 right-0 left-0 flex items-center justify-between px-2 sm:px-4 pointer-events-none">
-            <motion.button 
-              whileHover={{ scale: 1.1, backgroundColor: 'rgba(255, 193, 7, 0.9)' }}
+            <motion.button
+              whileHover={{
+                scale: 1.1,
+                backgroundColor: "rgba(255, 193, 7, 0.9)",
+              }}
               whileTap={{ scale: 0.9 }}
-              onClick={(e) => { e.preventDefault(); prevSlide(); }}
+              onClick={(e) => {
+                e.preventDefault();
+                prevSlide();
+              }}
               className="pointer-events-auto w-8 h-8 sm:w-12 sm:h-12 bg-black/20 backdrop-blur-md border border-white/10 rounded-full flex items-center justify-center text-white hover:text-black opacity-0 group-hover:opacity-100 transition-all z-20 shadow-lg"
             >
               <ChevronRight className="w-4 h-4 sm:w-6 sm:h-6" />
             </motion.button>
-            <motion.button 
-              whileHover={{ scale: 1.1, backgroundColor: 'rgba(255, 193, 7, 0.9)' }}
+            <motion.button
+              whileHover={{
+                scale: 1.1,
+                backgroundColor: "rgba(255, 193, 7, 0.9)",
+              }}
               whileTap={{ scale: 0.9 }}
-              onClick={(e) => { e.preventDefault(); nextSlide(); }}
+              onClick={(e) => {
+                e.preventDefault();
+                nextSlide();
+              }}
               className="pointer-events-auto w-8 h-8 sm:w-12 sm:h-12 bg-black/20 backdrop-blur-md border border-white/10 rounded-full flex items-center justify-center text-white hover:text-black opacity-0 group-hover:opacity-100 transition-all z-20 shadow-lg"
             >
               <ChevronLeft className="w-4 h-4 sm:w-6 sm:h-6" />
@@ -174,20 +201,32 @@ const Hero = React.memo(() => {
                 key={idx}
                 onClick={() => setActiveSlide(idx)}
                 initial={false}
-                animate={{ 
+                animate={{
                   width: activeSlide === idx ? 20 : 5,
-                  backgroundColor: activeSlide === idx ? '#E5C76B' : 'rgba(255, 255, 255, 0.25)',
+                  backgroundColor:
+                    activeSlide === idx
+                      ? "#E5C76B"
+                      : "rgba(255, 255, 255, 0.25)",
                 }}
-                whileHover={{ backgroundColor: activeSlide === idx ? '#E5C76B' : 'rgba(255, 255, 255, 0.4)' }}
+                whileHover={{
+                  backgroundColor:
+                    activeSlide === idx
+                      ? "#E5C76B"
+                      : "rgba(255, 255, 255, 0.4)",
+                }}
                 transition={{ type: "spring", stiffness: 400, damping: 40 }}
                 className="h-1 rounded-full relative overflow-hidden"
               >
                 {activeSlide === idx && (
-                  <motion.div 
+                  <motion.div
                     layoutId="active-pill-shimmer"
                     className="absolute inset-0 bg-white/10"
-                    animate={{ x: ['-100%', '100%'] }}
-                    transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                    animate={{ x: ["-100%", "100%"] }}
+                    transition={{
+                      duration: 2,
+                      repeat: Infinity,
+                      ease: "linear",
+                    }}
                   />
                 )}
               </motion.button>

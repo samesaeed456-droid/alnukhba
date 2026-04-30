@@ -1,10 +1,10 @@
-import React from 'react';
+import React from "react";
 
 interface SkeletonProps {
   className?: string;
 }
 
-export function Skeleton({ className = '' }: SkeletonProps) {
+export function Skeleton({ className = "" }: SkeletonProps) {
   return (
     <div className={`animate-pulse bg-slate-200 rounded-xl ${className}`} />
   );

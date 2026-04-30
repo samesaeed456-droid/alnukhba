@@ -1,29 +1,49 @@
-import React, { useState } from 'react';
-import { Plus, Edit, Trash2, Search, Tag, Percent, Banknote, Calendar, Users, Power, PowerOff, X } from 'lucide-react';
-import { useStore } from '@/context/StoreContext';
-import { Coupon } from '@/types';
-import ConfirmationModal from '@/components/ConfirmationModal';
-import FloatingInput from '@/components/FloatingInput';
+import React, { useState } from "react";
+import {
+  Plus,
+  Edit,
+  Trash2,
+  Search,
+  Tag,
+  Percent,
+  Banknote,
+  Calendar,
+  Users,
+  Power,
+  PowerOff,
+  X,
+} from "lucide-react";
+import { useStore } from "@/context/StoreContext";
+import { Coupon } from "@/types";
+import ConfirmationModal from "@/components/ConfirmationModal";
+import FloatingInput from "@/components/FloatingInput";
 
 export default function Coupons() {
-  const { coupons, addCoupon, updateCoupon, deleteCoupon, toggleCouponStatus, formatPrice } = useStore();
-  const [searchTerm, setSearchTerm] = useState('');
+  const {
+    coupons,
+    addCoupon,
+    updateCoupon,
+    deleteCoupon,
+    toggleCouponStatus,
+    formatPrice,
+  } = useStore();
+  const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCoupon, setEditingCoupon] = useState<Coupon | null>(null);
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
-    code: '',
-    discountType: 'percentage' as 'percentage' | 'fixed',
-    discountValue: '',
-    minOrderValue: '',
-    expiryDate: '',
-    usageLimit: '',
-    isActive: true
+    code: "",
+    discountType: "percentage" as "percentage" | "fixed",
+    discountValue: "",
+    minOrderValue: "",
+    expiryDate: "",
+    usageLimit: "",
+    isActive: true,
   });
 
-  const filteredCoupons = coupons.filter(coupon => 
-    (coupon.code || '').toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredCoupons = coupons.filter((coupon) =>
+    (coupon.code || "").toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   const handleOpenModal = (coupon?: Coupon) => {
@@ -33,21 +53,23 @@ export default function Coupons() {
         code: coupon.code,
         discountType: coupon.discountType,
         discountValue: coupon.discountValue.toString(),
-        minOrderValue: coupon.minOrderValue ? coupon.minOrderValue.toString() : '',
-        expiryDate: coupon.expiryDate || '',
-        usageLimit: coupon.usageLimit ? coupon.usageLimit.toString() : '',
-        isActive: coupon.isActive
+        minOrderValue: coupon.minOrderValue
+          ? coupon.minOrderValue.toString()
+          : "",
+        expiryDate: coupon.expiryDate || "",
+        usageLimit: coupon.usageLimit ? coupon.usageLimit.toString() : "",
+        isActive: coupon.isActive,
       });
     } else {
       setEditingCoupon(null);
       setFormData({
-        code: '',
-        discountType: 'percentage',
-        discountValue: '',
-        minOrderValue: '',
-        expiryDate: '',
-        usageLimit: '',
-        isActive: true
+        code: "",
+        discountType: "percentage",
+        discountValue: "",
+        minOrderValue: "",
+        expiryDate: "",
+        usageLimit: "",
+        isActive: true,
       });
     }
     setIsModalOpen(true);
@@ -55,15 +77,17 @@ export default function Coupons() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     const couponData = {
       code: formData.code.toUpperCase(),
       discountType: formData.discountType,
       discountValue: Number(formData.discountValue),
-      minOrderValue: formData.minOrderValue ? Number(formData.minOrderValue) : undefined,
+      minOrderValue: formData.minOrderValue
+        ? Number(formData.minOrderValue)
+        : undefined,
       expiryDate: formData.expiryDate || undefined,
       usageLimit: formData.usageLimit ? Number(formData.usageLimit) : undefined,
-      isActive: formData.isActive
+      isActive: formData.isActive,
     };
 
     if (editingCoupon) {
@@ -71,7 +95,7 @@ export default function Coupons() {
     } else {
       addCoupon(couponData);
     }
-    
+
     setIsModalOpen(false);
   };
 
@@ -88,8 +112,8 @@ export default function Coupons() {
           />
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
         </div>
-        
-        <button 
+
+        <button
           onClick={() => handleOpenModal()}
           className="flex items-center gap-2 bg-solar text-white px-6 py-3 rounded-2xl font-bold hover:bg-solar/90 transition-all shadow-lg shadow-solar/20 active:scale-95 justify-center"
         >
@@ -106,7 +130,9 @@ export default function Coupons() {
               <tr>
                 <th className="p-4 font-bold text-gray-600">الكود</th>
                 <th className="p-4 font-bold text-gray-600">الخصم</th>
-                <th className="p-4 font-bold text-gray-600">الحد الأدنى للطلب</th>
+                <th className="p-4 font-bold text-gray-600">
+                  الحد الأدنى للطلب
+                </th>
                 <th className="p-4 font-bold text-gray-600">تاريخ الانتهاء</th>
                 <th className="p-4 font-bold text-gray-600">الاستخدام</th>
                 <th className="p-4 font-bold text-gray-600">الحالة</th>
@@ -115,57 +141,75 @@ export default function Coupons() {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {filteredCoupons.map((coupon) => (
-                <tr key={coupon.id} className="hover:bg-gray-50 transition-colors">
+                <tr
+                  key={coupon.id}
+                  className="hover:bg-gray-50 transition-colors"
+                >
                   <td className="p-4">
                     <div className="flex items-center gap-2">
                       <div className="w-10 h-10 rounded-xl bg-carbon/5 flex items-center justify-center">
                         <Tag className="w-5 h-5 text-carbon" />
                       </div>
-                      <span className="font-bold text-carbon font-mono text-lg">{coupon.code}</span>
+                      <span className="font-bold text-carbon font-mono text-lg">
+                        {coupon.code}
+                      </span>
                     </div>
                   </td>
                   <td className="p-4 font-bold text-solar text-lg">
-                    {coupon.discountType === 'percentage' ? (
-                      <span className="flex items-center gap-1">{coupon.discountValue}% <Percent className="w-4 h-4" /></span>
+                    {coupon.discountType === "percentage" ? (
+                      <span className="flex items-center gap-1">
+                        {coupon.discountValue}% <Percent className="w-4 h-4" />
+                      </span>
                     ) : (
                       formatPrice(coupon.discountValue)
                     )}
                   </td>
                   <td className="p-4 text-gray-600">
-                    {coupon.minOrderValue ? formatPrice(coupon.minOrderValue) : 'لا يوجد'}
+                    {coupon.minOrderValue
+                      ? formatPrice(coupon.minOrderValue)
+                      : "لا يوجد"}
                   </td>
                   <td className="p-4 text-gray-600">
-                    {coupon.expiryDate ? new Date(coupon.expiryDate).toLocaleDateString('ar-u-nu-latn') : 'مفتوح'}
+                    {coupon.expiryDate
+                      ? new Date(coupon.expiryDate).toLocaleDateString(
+                          "ar-u-nu-latn",
+                        )
+                      : "مفتوح"}
                   </td>
                   <td className="p-4">
                     <div className="flex items-center gap-1 text-gray-600">
                       <Users className="w-4 h-4" />
-                      <span>{coupon.usedCount} {coupon.usageLimit ? `/ ${coupon.usageLimit}` : ''}</span>
+                      <span>
+                        {coupon.usedCount}{" "}
+                        {coupon.usageLimit ? `/ ${coupon.usageLimit}` : ""}
+                      </span>
                     </div>
                   </td>
                   <td className="p-4">
-                    <button 
+                    <button
                       onClick={() => toggleCouponStatus(coupon.id)}
                       className={`px-4 py-1.5 rounded-full text-xs font-bold flex items-center gap-2 transition-all ${
-                        coupon.isActive 
-                          ? 'bg-green-100 text-green-700 hover:bg-green-200' 
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        coupon.isActive
+                          ? "bg-green-100 text-green-700 hover:bg-green-200"
+                          : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                       }`}
                     >
-                      <div className={`w-2 h-2 rounded-full ${coupon.isActive ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`} />
-                      {coupon.isActive ? 'نشط' : 'معطل'}
+                      <div
+                        className={`w-2 h-2 rounded-full ${coupon.isActive ? "bg-green-500 animate-pulse" : "bg-gray-400"}`}
+                      />
+                      {coupon.isActive ? "نشط" : "معطل"}
                     </button>
                   </td>
                   <td className="p-4">
                     <div className="flex items-center gap-2">
-                      <button 
+                      <button
                         onClick={() => handleOpenModal(coupon)}
                         className="p-2.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
                         title="تعديل"
                       >
                         <Edit className="w-5 h-5" />
                       </button>
-                      <button 
+                      <button
                         onClick={() => setItemToDelete(coupon.id)}
                         className="p-2.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
                         title="حذف"
@@ -184,24 +228,37 @@ export default function Coupons() {
       {/* Mobile Card View */}
       <div className="lg:hidden grid grid-cols-1 gap-4">
         {filteredCoupons.map((coupon) => (
-          <div key={coupon.id} className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 space-y-4">
+          <div
+            key={coupon.id}
+            className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 space-y-4"
+          >
             <div className="flex justify-between items-start">
               <div className="flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${coupon.isActive ? 'bg-solar/10 text-solar' : 'bg-gray-100 text-gray-400'}`}>
+                <div
+                  className={`w-10 h-10 rounded-xl flex items-center justify-center ${coupon.isActive ? "bg-solar/10 text-solar" : "bg-gray-100 text-gray-400"}`}
+                >
                   <Tag className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-carbon font-mono text-lg leading-tight">{coupon.code}</h3>
+                  <h3 className="font-bold text-carbon font-mono text-lg leading-tight">
+                    {coupon.code}
+                  </h3>
                   <div className="flex items-center gap-2 mt-1">
-                    <span className={`px-2 py-0.5 rounded-md text-[9px] font-bold ${
-                      coupon.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-600'
-                    }`}>
-                      {coupon.isActive ? 'نشط' : 'معطل'}
+                    <span
+                      className={`px-2 py-0.5 rounded-md text-[9px] font-bold ${
+                        coupon.isActive
+                          ? "bg-emerald-100 text-emerald-700"
+                          : "bg-gray-100 text-gray-600"
+                      }`}
+                    >
+                      {coupon.isActive ? "نشط" : "معطل"}
                     </span>
                     {coupon.expiryDate && (
                       <span className="text-[9px] text-gray-400 flex items-center gap-1">
                         <Calendar className="w-2.5 h-2.5" />
-                        {new Date(coupon.expiryDate).toLocaleDateString('ar-YE')}
+                        {new Date(coupon.expiryDate).toLocaleDateString(
+                          "ar-YE",
+                        )}
                       </span>
                     )}
                   </div>
@@ -209,48 +266,65 @@ export default function Coupons() {
               </div>
               <div className="text-left">
                 <div className="text-lg font-black text-solar">
-                  {coupon.discountType === 'percentage' ? (
-                    <span className="flex items-center justify-end gap-0.5">{coupon.discountValue}%</span>
+                  {coupon.discountType === "percentage" ? (
+                    <span className="flex items-center justify-end gap-0.5">
+                      {coupon.discountValue}%
+                    </span>
                   ) : (
                     formatPrice(coupon.discountValue)
                   )}
                 </div>
-                <div className="text-[9px] text-gray-400 mt-0.5">قيمة الخصم</div>
+                <div className="text-[9px] text-gray-400 mt-0.5">
+                  قيمة الخصم
+                </div>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-2 py-3 border-y border-gray-50">
               <div className="bg-gray-50/50 p-2 rounded-xl border border-gray-50">
-                <div className="text-[9px] text-gray-400 font-bold mb-0.5">الحد الأدنى</div>
+                <div className="text-[9px] text-gray-400 font-bold mb-0.5">
+                  الحد الأدنى
+                </div>
                 <div className="text-xs font-black text-carbon">
-                  {coupon.minOrderValue ? formatPrice(coupon.minOrderValue) : 'لا يوجد'}
+                  {coupon.minOrderValue
+                    ? formatPrice(coupon.minOrderValue)
+                    : "لا يوجد"}
                 </div>
               </div>
               <div className="bg-gray-50/50 p-2 rounded-xl border border-gray-50">
-                <div className="text-[9px] text-gray-400 font-bold mb-0.5">الاستخدامات</div>
+                <div className="text-[9px] text-gray-400 font-bold mb-0.5">
+                  الاستخدامات
+                </div>
                 <div className="text-xs font-black text-carbon flex items-center gap-1">
-                  {coupon.usedCount} {coupon.usageLimit ? `/ ${coupon.usageLimit}` : ''}
+                  {coupon.usedCount}{" "}
+                  {coupon.usageLimit ? `/ ${coupon.usageLimit}` : ""}
                 </div>
               </div>
             </div>
 
             <div className="flex items-center gap-2 pt-1">
-              <button 
+              <button
                 onClick={() => toggleCouponStatus(coupon.id)}
                 className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-xs transition-all ${
-                  coupon.isActive ? 'bg-red-50 text-red-600 hover:bg-red-100' : 'bg-green-50 text-green-600 hover:bg-green-100'
+                  coupon.isActive
+                    ? "bg-red-50 text-red-600 hover:bg-red-100"
+                    : "bg-green-50 text-green-600 hover:bg-green-100"
                 }`}
               >
-                {coupon.isActive ? <PowerOff className="w-3.5 h-3.5" /> : <Power className="w-3.5 h-3.5" />}
-                <span>{coupon.isActive ? 'تعطيل' : 'تفعيل'}</span>
+                {coupon.isActive ? (
+                  <PowerOff className="w-3.5 h-3.5" />
+                ) : (
+                  <Power className="w-3.5 h-3.5" />
+                )}
+                <span>{coupon.isActive ? "تعطيل" : "تفعيل"}</span>
               </button>
-              <button 
+              <button
                 onClick={() => handleOpenModal(coupon)}
                 className="p-2.5 bg-gray-50 text-gray-600 rounded-xl hover:bg-gray-100 transition-all border border-gray-100"
               >
                 <Edit className="w-4 h-4" />
               </button>
-              <button 
+              <button
                 onClick={() => setItemToDelete(coupon.id)}
                 className="p-2.5 bg-red-50 text-red-600 rounded-xl hover:bg-red-100 transition-all border border-red-50"
               >
@@ -267,7 +341,9 @@ export default function Coupons() {
             <Search className="w-10 h-10 text-gray-300" />
           </div>
           <h3 className="text-lg font-bold text-gray-700">لا توجد نتائج</h3>
-          <p className="text-gray-400 mt-1">لم نجد أي كوبونات تطابق بحثك الحالي</p>
+          <p className="text-gray-400 mt-1">
+            لم نجد أي كوبونات تطابق بحثك الحالي
+          </p>
         </div>
       )}
 
@@ -277,92 +353,132 @@ export default function Coupons() {
           <div className="bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-md shadow-2xl overflow-hidden animate-in slide-in-from-bottom duration-300">
             <div className="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
               <h2 className="text-lg font-black text-carbon">
-                {editingCoupon ? 'تعديل كوبون' : 'إضافة كوبون جديد'}
+                {editingCoupon ? "تعديل كوبون" : "إضافة كوبون جديد"}
               </h2>
-              <button 
+              <button
                 onClick={() => setIsModalOpen(false)}
                 className="w-9 h-9 flex items-center justify-center rounded-full bg-white shadow-sm text-gray-400 hover:text-gray-600 transition-all"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
-            
-            <form onSubmit={handleSubmit} className="p-5 space-y-4 max-h-[75vh] overflow-y-auto">
-              <FloatingInput 
+
+            <form
+              onSubmit={handleSubmit}
+              className="p-5 space-y-4 max-h-[75vh] overflow-y-auto"
+            >
+              <FloatingInput
                 label="كود الخصم"
                 required
                 value={formData.code}
-                onChange={(e) => setFormData({...formData, code: e.target.value.toUpperCase()})}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    code: e.target.value.toUpperCase(),
+                  })
+                }
                 placeholder="مثال: SUMMER2026"
                 startElement={<Tag className="w-5 h-5 text-gray-400" />}
               />
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-gray-400 px-1">نوع الخصم</label>
-                  <select 
+                  <label className="text-xs font-bold text-gray-400 px-1">
+                    نوع الخصم
+                  </label>
+                  <select
                     value={formData.discountType}
-                    onChange={(e) => setFormData({...formData, discountType: e.target.value as 'percentage' | 'fixed'})}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        discountType: e.target.value as "percentage" | "fixed",
+                      })
+                    }
                     className="w-full h-14 px-4 rounded-2xl border border-gray-200 focus:ring-2 focus:ring-solar/30 focus:border-solar outline-none bg-white transition-all font-bold text-carbon"
                   >
                     <option value="percentage">نسبة مئوية (%)</option>
                     <option value="fixed">مبلغ ثابت</option>
                   </select>
                 </div>
-                <FloatingInput 
+                <FloatingInput
                   label="قيمة الخصم"
                   required
                   type="number"
                   min="1"
                   step="any"
                   value={formData.discountValue}
-                  onChange={(e) => setFormData({...formData, discountValue: e.target.value})}
-                  startElement={formData.discountType === 'percentage' ? <Percent className="w-5 h-5 text-gray-400" /> : <Banknote className="w-5 h-5 text-gray-400" />}
+                  onChange={(e) =>
+                    setFormData({ ...formData, discountValue: e.target.value })
+                  }
+                  startElement={
+                    formData.discountType === "percentage" ? (
+                      <Percent className="w-5 h-5 text-gray-400" />
+                    ) : (
+                      <Banknote className="w-5 h-5 text-gray-400" />
+                    )
+                  }
                 />
               </div>
 
-              <FloatingInput 
+              <FloatingInput
                 label="الحد الأدنى للطلب (اختياري)"
                 type="number"
                 min="0"
                 value={formData.minOrderValue}
-                onChange={(e) => setFormData({...formData, minOrderValue: e.target.value})}
+                onChange={(e) =>
+                  setFormData({ ...formData, minOrderValue: e.target.value })
+                }
                 placeholder="اتركه فارغاً إذا لم يوجد حد أدنى"
               />
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <FloatingInput 
+                <FloatingInput
                   label="تاريخ الانتهاء (اختياري)"
                   type="date"
                   value={formData.expiryDate}
-                  onChange={(e) => setFormData({...formData, expiryDate: e.target.value})}
+                  onChange={(e) =>
+                    setFormData({ ...formData, expiryDate: e.target.value })
+                  }
                 />
-                <FloatingInput 
+                <FloatingInput
                   label="حد الاستخدام (اختياري)"
                   type="number"
                   min="1"
                   value={formData.usageLimit}
-                  onChange={(e) => setFormData({...formData, usageLimit: e.target.value})}
+                  onChange={(e) =>
+                    setFormData({ ...formData, usageLimit: e.target.value })
+                  }
                   placeholder="عدد المرات"
                   startElement={<Users className="w-5 h-5 text-gray-400" />}
                 />
               </div>
 
-              <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-2xl cursor-pointer hover:bg-gray-100 transition-all" onClick={() => setFormData({...formData, isActive: !formData.isActive})}>
-                <div className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition-all ${formData.isActive ? 'bg-solar border-solar' : 'bg-white border-gray-300'}`}>
-                  {formData.isActive && <div className="w-2 h-2 bg-white rounded-full" />}
+              <div
+                className="flex items-center gap-3 p-4 bg-gray-50 rounded-2xl cursor-pointer hover:bg-gray-100 transition-all"
+                onClick={() =>
+                  setFormData({ ...formData, isActive: !formData.isActive })
+                }
+              >
+                <div
+                  className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition-all ${formData.isActive ? "bg-solar border-solar" : "bg-white border-gray-300"}`}
+                >
+                  {formData.isActive && (
+                    <div className="w-2 h-2 bg-white rounded-full" />
+                  )}
                 </div>
-                <span className="text-sm font-bold text-gray-700">تفعيل الكوبون فوراً</span>
+                <span className="text-sm font-bold text-gray-700">
+                  تفعيل الكوبون فوراً
+                </span>
               </div>
 
               <div className="flex flex-col sm:flex-row gap-3 pt-4">
-                <button 
+                <button
                   type="submit"
                   className="flex-1 bg-solar text-white py-4 rounded-2xl font-bold hover:opacity-90 transition-all shadow-lg shadow-solar/20 active:scale-95"
                 >
-                  {editingCoupon ? 'حفظ التعديلات' : 'إضافة الكوبون'}
+                  {editingCoupon ? "حفظ التعديلات" : "إضافة الكوبون"}
                 </button>
-                <button 
+                <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
                   className="flex-1 bg-gray-100 text-gray-700 py-4 rounded-2xl font-bold hover:bg-gray-200 transition-all active:scale-95"

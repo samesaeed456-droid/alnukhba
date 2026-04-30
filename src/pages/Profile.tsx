@@ -1,25 +1,76 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { 
-  User, Phone, MapPin, Package, Heart, LogOut, 
-  ChevronLeft, Edit2, Check, Key, Globe, 
-  MessageCircle, FileText, Shield, Trash2, Settings, Award, Camera, BadgeCheck, Plus, ChevronDown, CreditCard, ArrowDownToLine, Clock, ArrowUpRight, ArrowDownLeft,
-  Eye, EyeOff, AlertCircle, CheckCircle2, Search, Truck, UserPlus, HelpCircle, Smartphone, Fingerprint,
-  ShieldAlert, Wallet, ChevronRight, Zap, MessageSquare, History, Lock, ShieldCheck
-} from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
-import { startRegistration } from '@simplewebauthn/browser';
-import { useStore } from '../context/StoreContext';
-import { Address } from '../types';
-import ConfirmationModal from '../components/ConfirmationModal';
-import PriceDisplay from '../components/PriceDisplay';
-import FloatingInput from '../components/FloatingInput';
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import {
+  User,
+  Phone,
+  MapPin,
+  Package,
+  Heart,
+  LogOut,
+  ChevronLeft,
+  Edit2,
+  Check,
+  Key,
+  Globe,
+  MessageCircle,
+  FileText,
+  Shield,
+  Trash2,
+  Settings,
+  Award,
+  Camera,
+  BadgeCheck,
+  Plus,
+  ChevronDown,
+  CreditCard,
+  ArrowDownToLine,
+  Clock,
+  ArrowUpRight,
+  ArrowDownLeft,
+  Eye,
+  EyeOff,
+  AlertCircle,
+  CheckCircle2,
+  Search,
+  Truck,
+  UserPlus,
+  HelpCircle,
+  Smartphone,
+  Fingerprint,
+  ShieldAlert,
+  Wallet,
+  ChevronRight,
+  Zap,
+  MessageSquare,
+  History,
+  Lock,
+  ShieldCheck,
+} from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
+import { startRegistration } from "@simplewebauthn/browser";
+import { useStore } from "../context/StoreContext";
+import { Address } from "../types";
+import ConfirmationModal from "../components/ConfirmationModal";
+import PriceDisplay from "../components/PriceDisplay";
+import FloatingInput from "../components/FloatingInput";
 
 export default function Profile() {
-  const { user, isAuthReady, updateUser, logout, showToast, language, setLanguage, formatPrice, shippingZones } = useStore();
+  const {
+    user,
+    isAuthReady,
+    updateUser,
+    logout,
+    showToast,
+    language,
+    setLanguage,
+    formatPrice,
+    shippingZones,
+  } = useStore();
   const navigate = useNavigate();
   const location = useLocation();
-  const [currentView, setCurrentView] = useState<'menu' | 'edit' | 'addresses' | 'wallet' | 'transactions' | 'delete-account'>('menu');
+  const [currentView, setCurrentView] = useState<
+    "menu" | "edit" | "addresses" | "wallet" | "transactions" | "delete-account"
+  >("menu");
 
   useEffect(() => {
     if (location.state && (location.state as any).view) {
@@ -32,25 +83,29 @@ export default function Profile() {
     if (user && user.uid) {
       const checkPasskey = async () => {
         try {
-          const { db, collection, query, where, getDocs, auth } = await import('../lib/firebase');
-          const q = query(collection(db, 'passkeys'), where('uid', '==', user.uid));
+          const { db, collection, query, where, getDocs, auth } =
+            await import("../lib/firebase");
+          const q = query(
+            collection(db, "passkeys"),
+            where("uid", "==", user.uid),
+          );
           try {
             const snapshot = await getDocs(q);
             setHasPasskey(!snapshot.empty);
           } catch (err: any) {
-             // Standard handleFirestoreError logic as per instructions
-             const errInfo = {
-                error: err instanceof Error ? err.message : String(err),
-                authInfo: {
-                  userId: auth.currentUser?.uid,
-                  email: auth.currentUser?.email,
-                  emailVerified: auth.currentUser?.emailVerified,
-                },
-                operationType: 'list',
-                path: 'passkeys'
-             };
-             console.error('Firestore Error: ', JSON.stringify(errInfo));
-             throw new Error(JSON.stringify(errInfo));
+            // Standard handleFirestoreError logic as per instructions
+            const errInfo = {
+              error: err instanceof Error ? err.message : String(err),
+              authInfo: {
+                userId: auth.currentUser?.uid,
+                email: auth.currentUser?.email,
+                emailVerified: auth.currentUser?.emailVerified,
+              },
+              operationType: "list",
+              path: "passkeys",
+            };
+            console.error("Firestore Error: ", JSON.stringify(errInfo));
+            throw new Error(JSON.stringify(errInfo));
           }
         } catch (error) {
           console.error("Error checking passkey status:", error);
@@ -62,14 +117,17 @@ export default function Profile() {
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-  const [showAddressDeleteConfirm, setShowAddressDeleteConfirm] = useState(false);
+  const [showAddressDeleteConfirm, setShowAddressDeleteConfirm] =
+    useState(false);
   const [addressToDelete, setAddressToDelete] = useState<string | null>(null);
-  const [topUpAmount, setTopUpAmount] = useState('');
-  const [topUpRef, setTopUpRef] = useState('');
+  const [topUpAmount, setTopUpAmount] = useState("");
+  const [topUpRef, setTopUpRef] = useState("");
   const [topUpError, setTopUpError] = useState(false);
   const [isProcessingTopUp, setIsProcessingTopUp] = useState(false);
-  const [deletionStep, setDeletionStep] = useState<'confirm' | 'reason'>('confirm');
-  const [deletionReason, setDeletionReason] = useState('');
+  const [deletionStep, setDeletionStep] = useState<"confirm" | "reason">(
+    "confirm",
+  );
+  const [deletionReason, setDeletionReason] = useState("");
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showAddAddress, setShowAddAddress] = useState(false);
   const [hasPasskey, setHasPasskey] = useState(false);
@@ -78,18 +136,21 @@ export default function Profile() {
     if (!user) return;
     setIsLoading(true);
     try {
-      const res = await fetch('/api/webauthn/register/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ uid: user.uid, email: user.email || user.phone || 'user' })
+      const res = await fetch("/api/webauthn/register/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          uid: user.uid,
+          email: user.email || user.phone || "user",
+        }),
       });
-      
+
       const resText = await res.text();
       if (!res.ok) {
         console.error("Generate error text:", res.status, resText);
         throw new Error(`Server returned ${res.status}: ${resText}`);
       }
-      
+
       const options = JSON.parse(resText);
       if (options.error) throw new Error(options.error);
 
@@ -98,11 +159,16 @@ export default function Profile() {
       const expectedChallenge = options.challenge;
 
       const response = await startRegistration({ optionsJSON: options });
-      
-      const verifyRes = await fetch('/api/webauthn/register/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ uid: user.uid, response, challenge: expectedChallenge, sessionToken })
+
+      const verifyRes = await fetch("/api/webauthn/register/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          uid: user.uid,
+          response,
+          challenge: expectedChallenge,
+          sessionToken,
+        }),
       });
       const verifyText = await verifyRes.text();
       if (!verifyRes.ok) {
@@ -110,22 +176,28 @@ export default function Profile() {
         throw new Error(`Server returned ${verifyRes.status}: ${verifyText}`);
       }
       const verifyData = JSON.parse(verifyText);
-      
+
       if (verifyData.success) {
         setHasPasskey(true);
-        showToast('تم إعداد الدخول بالبصمة بنجاح!', 'success');
+        showToast("تم إعداد الدخول بالبصمة بنجاح!", "success");
       } else {
-        throw new Error(verifyData.error || 'فشل التحقق');
+        throw new Error(verifyData.error || "فشل التحقق");
       }
     } catch (err: any) {
       console.error("[WebAuthn Register Error]:", err);
-      if (err.name === 'NotAllowedError') {
-         showToast('تم إلغاء عملية البصمة أو المتصفح حظر الطلب. تأكد من فتح الرابط في تبويب جديد وليس داخل إطار المعاينة.', 'info');
-      } else if (err.name === 'NotSupportedError') {
-         showToast('مستشعرات البصمة غير مدعومة في هذا المتصفح أو يجب فتح التطبيق في تبويب جديد.', 'error');
+      if (err.name === "NotAllowedError") {
+        showToast(
+          "تم إلغاء عملية البصمة أو المتصفح حظر الطلب. تأكد من فتح الرابط في تبويب جديد وليس داخل إطار المعاينة.",
+          "info",
+        );
+      } else if (err.name === "NotSupportedError") {
+        showToast(
+          "مستشعرات البصمة غير مدعومة في هذا المتصفح أو يجب فتح التطبيق في تبويب جديد.",
+          "error",
+        );
       } else {
-         const errorMsg = err.message || err.toString();
-         showToast(`خطأ: ${errorMsg}`, 'error');
+        const errorMsg = err.message || err.toString();
+        showToast(`خطأ: ${errorMsg}`, "error");
       }
     } finally {
       setIsLoading(false);
@@ -133,53 +205,81 @@ export default function Profile() {
   }, [user, showToast]);
 
   const allCities = useMemo(() => {
-    const zoneCities = shippingZones.filter(z => z.isActive).flatMap(z => z.cities);
+    const zoneCities = shippingZones
+      .filter((z) => z.isActive)
+      .flatMap((z) => z.cities);
     if (zoneCities.length > 0) {
       return Array.from(new Set(zoneCities)).sort();
     }
     // Fallback if no shipping zones are defined
-    return ['صنعاء', 'عدن', 'تعز', 'الحديدة', 'إب', 'ذمار', 'المكلا', 'حجة', 'صعدة', 'البيضاء', 'مأرب', 'عمران', 'الجوف', 'المهرة', 'سقطرى', 'شبوة', 'أبين', 'لحج', 'الضالع', 'ريمة', 'المحويت'].sort();
+    return [
+      "صنعاء",
+      "عدن",
+      "تعز",
+      "الحديدة",
+      "إب",
+      "ذمار",
+      "المكلا",
+      "حجة",
+      "صعدة",
+      "البيضاء",
+      "مأرب",
+      "عمران",
+      "الجوف",
+      "المهرة",
+      "سقطرى",
+      "شبوة",
+      "أبين",
+      "لحج",
+      "الضالع",
+      "ريمة",
+      "المحويت",
+    ].sort();
   }, [shippingZones]);
 
   const [newAddress, setNewAddress] = useState<Partial<Address>>({
-    firstName: '',
-    lastName: '',
-    address: '',
-    city: allCities[0] || 'صنعاء',
-    phone: '',
-    countryCode: '+967'
+    firstName: "",
+    lastName: "",
+    address: "",
+    city: allCities[0] || "صنعاء",
+    phone: "",
+    countryCode: "+967",
   });
   const [formData, setFormData] = useState({
-    name: user?.displayName || '',
-    avatar: user?.photoURL || '',
-    phone: user?.phone || '',
-    countryCode: user?.countryCode || '+967',
-    address: user?.address || ''
+    name: user?.displayName || "",
+    avatar: user?.photoURL || "",
+    phone: user?.phone || "",
+    countryCode: user?.countryCode || "+967",
+    address: user?.address || "",
   });
   const [passwordData, setPasswordData] = useState({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: ''
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
   });
-  const [passwordModalStep, setPasswordModalStep] = useState<'change' | 'otp' | 'reset'>('change');
-  const [recoveryOtp, setRecoveryOtp] = useState(['', '', '', '']);
+  const [passwordModalStep, setPasswordModalStep] = useState<
+    "change" | "otp" | "reset"
+  >("change");
+  const [recoveryOtp, setRecoveryOtp] = useState(["", "", "", ""]);
   const [recoveryTimer, setRecoveryTimer] = useState(59);
   const [isResending, setIsResending] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
-  const [deleteModalStep, setDeleteModalStep] = useState<'reason' | 'otp'>('reason');
-  const [deleteOtp, setDeleteOtp] = useState(['', '', '', '']);
+  const [deleteModalStep, setDeleteModalStep] = useState<"reason" | "otp">(
+    "reason",
+  );
+  const [deleteOtp, setDeleteOtp] = useState(["", "", "", ""]);
 
   useEffect(() => {
     if (user) {
       setFormData({
-        name: user.name || user.displayName || '',
-        avatar: user.avatar || user.photoURL || '',
-        phone: user.phone || '',
-        countryCode: user.countryCode || '+967',
-        address: user.address || ''
+        name: user.name || user.displayName || "",
+        avatar: user.avatar || user.photoURL || "",
+        phone: user.phone || "",
+        countryCode: user.countryCode || "+967",
+        address: user.address || "",
       });
     }
   }, [user]);
@@ -187,7 +287,7 @@ export default function Profile() {
   useEffect(() => {
     window.scrollTo(0, 0);
     const timer = setTimeout(() => {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      window.scrollTo({ top: 0, behavior: "smooth" });
     }, 100);
     return () => clearTimeout(timer);
   }, [currentView]);
@@ -195,7 +295,7 @@ export default function Profile() {
   // Timer logic for recovery
   useEffect(() => {
     let interval: any;
-    if (passwordModalStep === 'otp' && recoveryTimer > 0) {
+    if (passwordModalStep === "otp" && recoveryTimer > 0) {
       interval = setInterval(() => {
         setRecoveryTimer((prev) => prev - 1);
       }, 1000);
@@ -205,34 +305,36 @@ export default function Profile() {
 
   // Web OTP API implementation for recovery
   useEffect(() => {
-    if (passwordModalStep !== 'otp' || !('OTPCredential' in window)) return;
+    if (passwordModalStep !== "otp" || !("OTPCredential" in window)) return;
 
     const ac = new AbortController();
-    
+
     const listenForOTP = async () => {
       try {
         const otpResult = await navigator.credentials.get({
-          otp: { transport: ['sms'] },
-          signal: ac.signal
+          otp: { transport: ["sms"] },
+          signal: ac.signal,
         } as any);
-        
-        if (otpResult && 'code' in otpResult) {
+
+        if (otpResult && "code" in otpResult) {
           const code = (otpResult as any).code;
           if (code && code.length === 4) {
-            const digits = code.split('');
+            const digits = code.split("");
             setRecoveryOtp(digits);
             // Small delay before auto-submit
             setTimeout(() => {
-              const verifyButton = document.getElementById('verify-recovery-btn');
+              const verifyButton = document.getElementById(
+                "verify-recovery-btn",
+              );
               verifyButton?.click();
             }, 500);
           }
         }
       } catch (err: any) {
-        if (err.name !== 'AbortError') {
+        if (err.name !== "AbortError") {
           // Only log if it's not a permission error (common in iframes)
-          if (!err.message?.includes('otp-credentials')) {
-            console.error('Web OTP Error:', err);
+          if (!err.message?.includes("otp-credentials")) {
+            console.error("Web OTP Error:", err);
           }
         }
       }
@@ -242,64 +344,73 @@ export default function Profile() {
     return () => ac.abort();
   }, [passwordModalStep]);
 
-  const handleRecoveryOtpChange = useCallback((index: number, value: string) => {
-    if (value && !/^\d+$/.test(value)) return;
-    if (value.length > 1) return;
-    
-    const newOtp = [...recoveryOtp];
-    newOtp[index] = value;
-    setRecoveryOtp(newOtp);
+  const handleRecoveryOtpChange = useCallback(
+    (index: number, value: string) => {
+      if (value && !/^\d+$/.test(value)) return;
+      if (value.length > 1) return;
 
-    if (value && index < 3) {
-      const nextInput = document.getElementById(`recovery-otp-${index + 1}`);
-      nextInput?.focus();
-    }
-  }, [recoveryOtp]);
+      const newOtp = [...recoveryOtp];
+      newOtp[index] = value;
+      setRecoveryOtp(newOtp);
 
-  const handleRecoveryOtpKeyDown = useCallback((index: number, e: React.KeyboardEvent) => {
-    if (e.key === 'Backspace' && !recoveryOtp[index] && index > 0) {
-      const prevInput = document.getElementById(`recovery-otp-${index - 1}`);
-      prevInput?.focus();
-    }
-  }, [recoveryOtp]);
-
-  const handleImageUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        showToast('حجم الصورة يجب أن يكون أقل من 5 ميجابايت', 'error');
-        return;
+      if (value && index < 3) {
+        const nextInput = document.getElementById(`recovery-otp-${index + 1}`);
+        nextInput?.focus();
       }
-      try {
-        const { uploadToCloudinary } = await import('../lib/cloudinary');
-        showToast('جاري رفع الصورة...', 'info');
-        const secureUrl = await uploadToCloudinary(file);
-        
-        const updatedData = { ...formData, avatar: secureUrl };
-        setFormData(updatedData);
-        
-        // Automatically save the avatar update
-        if (user) {
-          updateUser({ 
-            ...user, 
-            ...updatedData,
-            name: updatedData.name || user.name || user.displayName || '',
-            avatar: secureUrl 
-          } as any);
+    },
+    [recoveryOtp],
+  );
+
+  const handleRecoveryOtpKeyDown = useCallback(
+    (index: number, e: React.KeyboardEvent) => {
+      if (e.key === "Backspace" && !recoveryOtp[index] && index > 0) {
+        const prevInput = document.getElementById(`recovery-otp-${index - 1}`);
+        prevInput?.focus();
+      }
+    },
+    [recoveryOtp],
+  );
+
+  const handleImageUpload = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (file) {
+        if (file.size > 5 * 1024 * 1024) {
+          showToast("حجم الصورة يجب أن يكون أقل من 5 ميجابايت", "error");
+          return;
         }
-        showToast('تم تحديث الصورة الشخصية بنجاح');
-      } catch (error: any) {
-        showToast(error.message || 'فشل في رفع الصورة', 'error');
+        try {
+          const { uploadToCloudinary } = await import("../lib/cloudinary");
+          showToast("جاري رفع الصورة...", "info");
+          const secureUrl = await uploadToCloudinary(file);
+
+          const updatedData = { ...formData, avatar: secureUrl };
+          setFormData(updatedData);
+
+          // Automatically save the avatar update
+          if (user) {
+            updateUser({
+              ...user,
+              ...updatedData,
+              name: updatedData.name || user.name || user.displayName || "",
+              avatar: secureUrl,
+            } as any);
+          }
+          showToast("تم تحديث الصورة الشخصية بنجاح");
+        } catch (error: any) {
+          showToast(error.message || "فشل في رفع الصورة", "error");
+        }
       }
-    }
-  }, [user, formData, updateUser, showToast]);
+    },
+    [user, formData, updateUser, showToast],
+  );
 
   const [isChangingPhone, setIsChangingPhone] = useState(false);
-  const [changePhoneOtp, setChangePhoneOtp] = useState(['', '', '', '']);
-  const [verificationToken, setVerificationToken] = useState('');
+  const [changePhoneOtp, setChangePhoneOtp] = useState(["", "", "", ""]);
+  const [verificationToken, setVerificationToken] = useState("");
 
   const validatePhone = useCallback((phone: string, countryCode: string) => {
-    if (countryCode === '+967') {
+    if (countryCode === "+967") {
       const yemenPhoneRegex = /^7\d{8}$/;
       return yemenPhoneRegex.test(phone);
     }
@@ -308,21 +419,24 @@ export default function Profile() {
 
   const handleSave = useCallback(async () => {
     if (!user) return;
-    
+
     // Check if phone number is being changed
-    const currentPhone = user.phone || '';
+    const currentPhone = user.phone || "";
     const newPhone = formData.phone;
-    const currentCountryCode = user.countryCode || '+967';
+    const currentCountryCode = user.countryCode || "+967";
     const newCountryCode = formData.countryCode;
 
     if (newPhone !== currentPhone || newCountryCode !== currentCountryCode) {
       // Validate new phone
       if (!newPhone) {
-        showToast('يرجى إدخال رقم الجوال', 'error');
+        showToast("يرجى إدخال رقم الجوال", "error");
         return;
       }
       if (!validatePhone(newPhone, newCountryCode)) {
-        showToast('رقم الجوال غير صحيح. الجوال اليمني يجب أن يبدأ بـ 7 ويتكون من 9 أرقام.', 'error');
+        showToast(
+          "رقم الجوال غير صحيح. الجوال اليمني يجب أن يبدأ بـ 7 ويتكون من 9 أرقام.",
+          "error",
+        );
         return;
       }
 
@@ -330,23 +444,23 @@ export default function Profile() {
       setIsLoading(true);
       try {
         const fullPhone = newCountryCode + newPhone;
-        const response = await fetch('/api/send-otp', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+        const response = await fetch("/api/send-otp", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ phone: fullPhone }),
         });
         const data = await response.json();
-        
+
         if (response.ok && data.success) {
           setVerificationToken(data.token);
           setIsChangingPhone(true);
-          setChangePhoneOtp(['', '', '', '']);
-          showToast('تم إرسال كود التحقق إلى الرقم الجديد');
+          setChangePhoneOtp(["", "", "", ""]);
+          showToast("تم إرسال كود التحقق إلى الرقم الجديد");
         } else {
-          showToast(data.error || 'تعذر إرسال كود التحقق', 'error');
+          showToast(data.error || "تعذر إرسال كود التحقق", "error");
         }
       } catch (err) {
-        showToast('فشل إرسال كود التحقق', 'error');
+        showToast("فشل إرسال كود التحقق", "error");
       } finally {
         setIsLoading(false);
       }
@@ -356,31 +470,31 @@ export default function Profile() {
     try {
       await updateUser({ ...user, ...formData } as any);
       window.scrollTo(0, 0);
-      setCurrentView('menu');
-      showToast('تم تحديث الحساب بنجاح');
+      setCurrentView("menu");
+      showToast("تم تحديث الحساب بنجاح");
     } catch (err) {
-      showToast('فشل في تحديث الحساب، قد يكون هناك خطأ في الاتصال', 'error');
+      showToast("فشل في تحديث الحساب، قد يكون هناك خطأ في الاتصال", "error");
     }
   }, [user, formData, updateUser, validatePhone, showToast]);
 
   const verifyPhoneChangeAndSave = useCallback(async () => {
     if (!user) return;
-    const code = changePhoneOtp.join('');
+    const code = changePhoneOtp.join("");
     if (code.length < 4) {
-      showToast('يرجى إدخال الكود كاملاً', 'error');
+      showToast("يرجى إدخال الكود كاملاً", "error");
       return;
     }
 
     setIsLoading(true);
     try {
       const fullPhone = formData.countryCode + formData.phone;
-      const response = await fetch('/api/verify-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          phone: fullPhone, 
-          otp: code, 
-          token: verificationToken 
+      const response = await fetch("/api/verify-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          phone: fullPhone,
+          otp: code,
+          token: verificationToken,
         }),
       });
 
@@ -391,20 +505,27 @@ export default function Profile() {
         await updateUser({ ...user, ...formData } as any);
         setIsChangingPhone(false);
         window.scrollTo(0, 0);
-        setCurrentView('menu');
-        showToast('تم تحديث الحساب وتغيير الرقم في كل مكان بنجاح');
+        setCurrentView("menu");
+        showToast("تم تحديث الحساب وتغيير الرقم في كل مكان بنجاح");
       } else {
-        showToast(data.error || 'كود التحقق غير صحيح', 'error');
+        showToast(data.error || "كود التحقق غير صحيح", "error");
       }
     } catch (err) {
-      showToast('فشل إكمال العملية. تأكد من اتصالك', 'error');
+      showToast("فشل إكمال العملية. تأكد من اتصالك", "error");
     } finally {
       setIsLoading(false);
     }
-  }, [user, formData, changePhoneOtp, verificationToken, updateUser, showToast]);
+  }, [
+    user,
+    formData,
+    changePhoneOtp,
+    verificationToken,
+    updateUser,
+    showToast,
+  ]);
 
   const handleNotImplemented = useCallback(() => {
-    showToast('سيتم توفير هذه الميزة قريباً');
+    showToast("سيتم توفير هذه الميزة قريباً");
   }, [showToast]);
 
   const handleInitiateDelete = useCallback(async () => {
@@ -415,7 +536,7 @@ export default function Profile() {
       // For now, we'll keep the logic but move away from localStorage for the OTP
       const generatedOtp = Math.floor(1000 + Math.random() * 9000).toString();
       const fullPhone = user.countryCode + user.phone;
-      
+
       // Store OTP in a temporary session state or a secure way
       // For this demo, we'll just use a state variable
       (window as any)._tempDeletionOtp = generatedOtp;
@@ -423,58 +544,65 @@ export default function Profile() {
       const domain = window.location.hostname;
       const message = `تطبيق النخبة: كود التحقق الخاص بك هو ${generatedOtp}. يرجى عدم مشاركة هذا الكود مع أي شخص لضمان أمان حسابك.\n\n@${domain} #${generatedOtp}`;
 
-      const response = await fetch('/api/sms', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: fullPhone, message })
+      const response = await fetch("/api/sms", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: fullPhone, message }),
       });
 
       const data = await response.json();
-      if (!response.ok || !data.success) throw new Error(data.error || 'Failed to send SMS');
+      if (!response.ok || !data.success)
+        throw new Error(data.error || "Failed to send SMS");
 
-      setDeleteModalStep('otp');
-      setDeleteOtp(['', '', '', '']);
-      showToast('تم إرسال كود التحقق لحذف الحساب');
+      setDeleteModalStep("otp");
+      setDeleteOtp(["", "", "", ""]);
+      showToast("تم إرسال كود التحقق لحذف الحساب");
     } catch (err) {
-      showToast('فشل إرسال كود التحقق. يرجى المحاولة لاحقاً', 'error');
+      showToast("فشل إرسال كود التحقق. يرجى المحاولة لاحقاً", "error");
     } finally {
       setIsLoading(false);
     }
   }, [user, showToast]);
 
-  const handleDeleteOtpChange = useCallback((index: number, value: string) => {
-    if (value && !/^\d+$/.test(value)) return;
-    if (value.length > 1) return;
-    
-    const newOtp = [...deleteOtp];
-    newOtp[index] = value;
-    setDeleteOtp(newOtp);
+  const handleDeleteOtpChange = useCallback(
+    (index: number, value: string) => {
+      if (value && !/^\d+$/.test(value)) return;
+      if (value.length > 1) return;
 
-    if (value && index < 3) {
-      const nextInput = document.getElementById(`delete-otp-${index + 1}`);
-      nextInput?.focus();
-    }
-  }, [deleteOtp]);
+      const newOtp = [...deleteOtp];
+      newOtp[index] = value;
+      setDeleteOtp(newOtp);
 
-  const handleDeleteOtpKeyDown = useCallback((index: number, e: React.KeyboardEvent) => {
-    if (e.key === 'Backspace' && !deleteOtp[index] && index > 0) {
-      const prevInput = document.getElementById(`delete-otp-${index - 1}`);
-      prevInput?.focus();
-    }
-  }, [deleteOtp]);
+      if (value && index < 3) {
+        const nextInput = document.getElementById(`delete-otp-${index + 1}`);
+        nextInput?.focus();
+      }
+    },
+    [deleteOtp],
+  );
+
+  const handleDeleteOtpKeyDown = useCallback(
+    (index: number, e: React.KeyboardEvent) => {
+      if (e.key === "Backspace" && !deleteOtp[index] && index > 0) {
+        const prevInput = document.getElementById(`delete-otp-${index - 1}`);
+        prevInput?.focus();
+      }
+    },
+    [deleteOtp],
+  );
 
   const handleDeleteAccount = useCallback(async () => {
     if (!user) return;
-    const code = deleteOtp.join('');
+    const code = deleteOtp.join("");
     if (code.length < 4) {
-      showToast('يرجى إدخال الكود كاملاً', 'error');
+      showToast("يرجى إدخال الكود كاملاً", "error");
       return;
     }
 
     const storedOtp = (window as any)._tempDeletionOtp;
 
     if (code !== storedOtp) {
-      showToast('كود التحقق غير صحيح', 'error');
+      showToast("كود التحقق غير صحيح", "error");
       return;
     }
 
@@ -482,67 +610,80 @@ export default function Profile() {
       setIsLoading(true);
       // In Firebase, we should delete the user's data and then the auth account
       // This requires re-authentication usually, but for this demo:
-      const { db, doc, deleteDoc, auth } = await import('../lib/firebase');
-      await deleteDoc(doc(db, 'users', user.uid));
-      
+      const { db, doc, deleteDoc, auth } = await import("../lib/firebase");
+      await deleteDoc(doc(db, "users", user.uid));
+
       // Attempt to delete auth account (might fail if not recently logged in)
       if (auth.currentUser) {
         await auth.currentUser.delete();
       }
 
       logout();
-      navigate('/');
-      showToast('تم حذف الحساب بنجاح. نأسف لرحيلك.');
+      navigate("/");
+      showToast("تم حذف الحساب بنجاح. نأسف لرحيلك.");
       setShowDeleteAccountModal(false);
-      setDeletionStep('confirm');
-      setDeletionReason('');
-      setDeleteModalStep('reason');
+      setDeletionStep("confirm");
+      setDeletionReason("");
+      setDeleteModalStep("reason");
       delete (window as any)._tempDeletionOtp;
     } catch (error) {
-      console.error('Account deletion failed:', error);
-      showToast('حدث خطأ أثناء حذف الحساب. قد تحتاج لتسجيل الخروج والدخول مرة أخرى.', 'error');
+      console.error("Account deletion failed:", error);
+      showToast(
+        "حدث خطأ أثناء حذف الحساب. قد تحتاج لتسجيل الخروج والدخول مرة أخرى.",
+        "error",
+      );
     } finally {
       setIsLoading(false);
     }
   }, [user, deleteOtp, deletionReason, logout, navigate, showToast]);
 
-  const handleChangePassword = useCallback(async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (passwordData.newPassword !== passwordData.confirmPassword) {
-      showToast('كلمة المرور الجديدة غير متطابقة', 'error');
-      return;
-    }
+  const handleChangePassword = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
 
-    if (passwordData.newPassword.length < 6) {
-      showToast('كلمة المرور يجب أن تكون 6 أحرف على الأقل', 'error');
-      return;
-    }
+      if (passwordData.newPassword !== passwordData.confirmPassword) {
+        showToast("كلمة المرور الجديدة غير متطابقة", "error");
+        return;
+      }
 
-    setIsLoading(true);
-    try {
-      const { reauthenticate, changePassword } = await import('../lib/firebase');
-      
-      // Re-authenticate first
-      await reauthenticate(passwordData.currentPassword);
-      
-      // Update password
-      await changePassword(passwordData.newPassword);
-      
-      showToast('تم تغيير كلمة المرور بنجاح');
-      setShowPasswordModal(false);
-      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
-    } catch (error: any) {
-      console.error('Password change failed:', error);
-      let message = 'فشل تغيير كلمة المرور';
-      if (error.code === 'auth/wrong-password') message = 'كلمة المرور الحالية غير صحيحة';
-      if (error.code === 'auth/requires-recent-login') message = 'يرجى تسجيل الخروج والدخول مرة أخرى لإتمام هذه العملية';
-      
-      showToast(message, 'error');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [passwordData, showToast]);
+      if (passwordData.newPassword.length < 6) {
+        showToast("كلمة المرور يجب أن تكون 6 أحرف على الأقل", "error");
+        return;
+      }
+
+      setIsLoading(true);
+      try {
+        const { reauthenticate, changePassword } =
+          await import("../lib/firebase");
+
+        // Re-authenticate first
+        await reauthenticate(passwordData.currentPassword);
+
+        // Update password
+        await changePassword(passwordData.newPassword);
+
+        showToast("تم تغيير كلمة المرور بنجاح");
+        setShowPasswordModal(false);
+        setPasswordData({
+          currentPassword: "",
+          newPassword: "",
+          confirmPassword: "",
+        });
+      } catch (error: any) {
+        console.error("Password change failed:", error);
+        let message = "فشل تغيير كلمة المرور";
+        if (error.code === "auth/wrong-password")
+          message = "كلمة المرور الحالية غير صحيحة";
+        if (error.code === "auth/requires-recent-login")
+          message = "يرجى تسجيل الخروج والدخول مرة أخرى لإتمام هذه العملية";
+
+        showToast(message, "error");
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [passwordData, showToast],
+  );
 
   const handleForgotPasswordFromProfile = useCallback(async () => {
     if (!user) return;
@@ -555,20 +696,20 @@ export default function Profile() {
       const domain = window.location.hostname;
       const message = `كود استعادة كلمة المرور الخاص بك هو: ${generatedOtp}\n\n@${domain} #${generatedOtp}`;
 
-      const response = await fetch('/api/sms', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: fullPhone, message })
+      const response = await fetch("/api/sms", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: fullPhone, message }),
       });
 
-      if (!response.ok) throw new Error('Failed to send SMS');
+      if (!response.ok) throw new Error("Failed to send SMS");
 
-      setPasswordModalStep('otp');
+      setPasswordModalStep("otp");
       setRecoveryTimer(59);
-      setRecoveryOtp(['', '', '', '']);
-      showToast('تم إرسال كود التحقق لاستعادة كلمة المرور');
+      setRecoveryOtp(["", "", "", ""]);
+      showToast("تم إرسال كود التحقق لاستعادة كلمة المرور");
     } catch (err) {
-      showToast('فشل إرسال كود التحقق. يرجى المحاولة لاحقاً', 'error');
+      showToast("فشل إرسال كود التحقق. يرجى المحاولة لاحقاً", "error");
     } finally {
       setIsLoading(false);
     }
@@ -585,111 +726,123 @@ export default function Profile() {
       const domain = window.location.hostname;
       const message = `كود استعادة كلمة المرور الجديد الخاص بك هو: ${generatedOtp}\n\n@${domain} #${generatedOtp}`;
 
-      const response = await fetch('/api/sms', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: fullPhone, message })
+      const response = await fetch("/api/sms", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: fullPhone, message }),
       });
 
-      if (!response.ok) throw new Error('Failed to send SMS');
+      if (!response.ok) throw new Error("Failed to send SMS");
 
       setRecoveryTimer(59);
-      setRecoveryOtp(['', '', '', '']);
-      showToast('تم إعادة إرسال كود التحقق بنجاح');
+      setRecoveryOtp(["", "", "", ""]);
+      showToast("تم إعادة إرسال كود التحقق بنجاح");
     } catch (err) {
-      showToast('فشل إعادة إرسال الكود', 'error');
+      showToast("فشل إعادة إرسال الكود", "error");
     } finally {
       setIsResending(false);
     }
   }, [user, showToast]);
 
-  const handleVerifyRecoveryOtp = useCallback((e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user) return;
-    
-    const code = recoveryOtp.join('');
-    if (code.length < 4) {
-      setError('يرجى إدخال كود التحقق كاملاً');
-      return;
-    }
+  const handleVerifyRecoveryOtp = useCallback(
+    (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!user) return;
 
-    const fullPhone = user.countryCode + user.phone;
-    const storedOtp = localStorage.getItem(`otp_recovery_${fullPhone}`);
-
-    if (code !== storedOtp) {
-      setError('كود التحقق غير صحيح');
-      return;
-    }
-
-    setIsLoading(true);
-    setError('');
-    setTimeout(() => {
-      setIsLoading(false);
-      setPasswordModalStep('reset');
-      localStorage.removeItem(`otp_recovery_${fullPhone}`);
-    }, 800);
-  }, [recoveryOtp, user]);
-
-  const handleResetRecoveryPassword = useCallback(async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-
-    if (passwordData.newPassword.length < 6) {
-      setError('كلمة المرور يجب أن تكون 6 أحرف على الأقل');
-      return;
-    }
-
-    if (passwordData.newPassword !== passwordData.confirmPassword) {
-      setError('كلمات المرور غير متطابقة');
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      const response = await fetch('/api/reset-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          phone: user?.phone,
-          countryCode: user?.countryCode || '+967',
-          newPassword: passwordData.newPassword
-        })
-      });
-
-      const data = await response.json();
-      if (!response.ok || !data.success) {
-        throw new Error(data.error || 'فشل تحديث كلمة المرور');
+      const code = recoveryOtp.join("");
+      if (code.length < 4) {
+        setError("يرجى إدخال كود التحقق كاملاً");
+        return;
       }
-      
-      showToast('تم تحديث كلمة المرور بنجاح');
-      setShowPasswordModal(false);
-      setPasswordModalStep('change');
-      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
-      setRecoveryOtp(['', '', '', '']);
-    } catch (err: any) {
-      setError(err.message || 'حدث خطأ غير متوقع');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [passwordData, user, showToast]);
+
+      const fullPhone = user.countryCode + user.phone;
+      const storedOtp = localStorage.getItem(`otp_recovery_${fullPhone}`);
+
+      if (code !== storedOtp) {
+        setError("كود التحقق غير صحيح");
+        return;
+      }
+
+      setIsLoading(true);
+      setError("");
+      setTimeout(() => {
+        setIsLoading(false);
+        setPasswordModalStep("reset");
+        localStorage.removeItem(`otp_recovery_${fullPhone}`);
+      }, 800);
+    },
+    [recoveryOtp, user],
+  );
+
+  const handleResetRecoveryPassword = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+      setError("");
+
+      if (passwordData.newPassword.length < 6) {
+        setError("كلمة المرور يجب أن تكون 6 أحرف على الأقل");
+        return;
+      }
+
+      if (passwordData.newPassword !== passwordData.confirmPassword) {
+        setError("كلمات المرور غير متطابقة");
+        return;
+      }
+
+      setIsLoading(true);
+      try {
+        const response = await fetch("/api/reset-password", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            phone: user?.phone,
+            countryCode: user?.countryCode || "+967",
+            newPassword: passwordData.newPassword,
+          }),
+        });
+
+        const data = await response.json();
+        if (!response.ok || !data.success) {
+          throw new Error(data.error || "فشل تحديث كلمة المرور");
+        }
+
+        showToast("تم تحديث كلمة المرور بنجاح");
+        setShowPasswordModal(false);
+        setPasswordModalStep("change");
+        setPasswordData({
+          currentPassword: "",
+          newPassword: "",
+          confirmPassword: "",
+        });
+        setRecoveryOtp(["", "", "", ""]);
+      } catch (err: any) {
+        setError(err.message || "حدث خطأ غير متوقع");
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [passwordData, user, showToast],
+  );
 
   if (!isAuthReady && !user) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center px-4">
         <div className="w-16 h-16 border-4 border-slate-200 border-t-carbon rounded-full animate-spin mb-4"></div>
-        <p className="text-titanium/60 font-medium animate-pulse">جاري تحميل بيانات الحساب...</p>
+        <p className="text-titanium/60 font-medium animate-pulse">
+          جاري تحميل بيانات الحساب...
+        </p>
       </div>
     );
   }
 
   if (!user) {
     return (
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="min-h-[60vh] flex flex-col items-center justify-center px-4"
       >
-        <motion.div 
+        <motion.div
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ type: "spring", stiffness: 260, damping: 20 }}
@@ -697,12 +850,16 @@ export default function Profile() {
         >
           <User className="w-12 h-12 text-slate-400" />
         </motion.div>
-        <h2 className="text-xl font-bold text-carbon mb-2 text-center">يرجى تسجيل الدخول</h2>
-        <p className="text-titanium/60 mb-8 text-center max-w-sm">يجب عليك تسجيل الدخول للوصول إلى ملفك الشخصي وطلباتك.</p>
-        <motion.button 
+        <h2 className="text-xl font-bold text-carbon mb-2 text-center">
+          يرجى تسجيل الدخول
+        </h2>
+        <p className="text-titanium/60 mb-8 text-center max-w-sm">
+          يجب عليك تسجيل الدخول للوصول إلى ملفك الشخصي وطلباتك.
+        </p>
+        <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          onClick={() => navigate('/auth')}
+          onClick={() => navigate("/auth")}
           className="bg-gradient-to-r from-carbon to-solar hover:opacity-90 text-white px-8 py-3 rounded-xl font-bold transition-all shadow-lg shadow-solar/20"
         >
           تسجيل الدخول
@@ -711,49 +868,78 @@ export default function Profile() {
     );
   }
 
-  const Section = ({ title, children }: { title: string, children: React.ReactNode }) => (
+  const Section = ({
+    title,
+    children,
+  }: {
+    title: string;
+    children: React.ReactNode;
+  }) => (
     <div className="flex flex-col">
-      <h3 className="text-xs font-bold text-titanium/50 mb-3 px-2 uppercase tracking-wider">{title}</h3>
+      <h3 className="text-xs font-bold text-titanium/50 mb-3 px-2 uppercase tracking-wider">
+        {title}
+      </h3>
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
         {children}
       </div>
     </div>
   );
 
-  const MenuItem = ({ icon: Icon, label, onClick, color = "text-carbon", bg = "bg-slate-50", iconColor = "text-titanium/60", isDestructive = false, rightElement }: any) => (
-    <button 
+  const MenuItem = ({
+    icon: Icon,
+    label,
+    onClick,
+    color = "text-carbon",
+    bg = "bg-slate-50",
+    iconColor = "text-titanium/60",
+    isDestructive = false,
+    rightElement,
+  }: any) => (
+    <button
       onClick={onClick}
       className={`w-full flex items-center justify-between p-3 sm:p-4 hover:bg-slate-50 transition-all group border-b border-slate-50 last:border-0`}
     >
       <div className="flex items-center gap-3 sm:gap-4">
-        <div className={`w-10 h-10 shrink-0 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110 ${isDestructive ? 'bg-red-50' : bg}`}>
-          <Icon className={`w-5 h-5 ${isDestructive ? 'text-red-500' : iconColor}`} />
+        <div
+          className={`w-10 h-10 shrink-0 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110 ${isDestructive ? "bg-red-50" : bg}`}
+        >
+          <Icon
+            className={`w-5 h-5 ${isDestructive ? "text-red-500" : iconColor}`}
+          />
         </div>
-        <span className={`font-bold text-sm sm:text-base text-right ${isDestructive ? 'text-red-600' : color}`}>{label}</span>
+        <span
+          className={`font-bold text-sm sm:text-base text-right ${isDestructive ? "text-red-600" : color}`}
+        >
+          {label}
+        </span>
       </div>
-      {rightElement ? rightElement : <ChevronLeft className="w-5 h-5 shrink-0 text-slate-300 group-hover:-translate-x-1 transition-transform" />}
+      {rightElement ? (
+        rightElement
+      ) : (
+        <ChevronLeft className="w-5 h-5 shrink-0 text-slate-300 group-hover:-translate-x-1 transition-transform" />
+      )}
     </button>
   );
 
   const containerVariants = {
     hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
+    visible: { opacity: 1, transition: { staggerChildren: 0.1 } },
   };
 
   const menuVariants = {
     hidden: { opacity: 0, x: -20 },
     visible: { opacity: 1, x: 0, transition: { staggerChildren: 0.1 } },
-    exit: { opacity: 0, x: -20 }
+    exit: { opacity: 0, x: -20 },
   };
 
   const itemVariants = {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0 },
-    exit: { opacity: 0, y: -20 }
+    exit: { opacity: 0, y: -20 },
   };
 
   return (
-    <motion.div 
+    <motion.div
       variants={containerVariants}
       initial="hidden"
       animate="visible"
@@ -762,7 +948,7 @@ export default function Profile() {
       <AnimatePresence>
         {showPasswordModal && (
           <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: 100 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 100 }}
@@ -770,14 +956,17 @@ export default function Profile() {
             >
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-xl font-bold text-carbon">
-                  {passwordModalStep === 'change' ? 'تغيير كلمة المرور' : 
-                   passwordModalStep === 'otp' ? 'كود التحقق' : 'تعيين كلمة مرور جديدة'}
+                  {passwordModalStep === "change"
+                    ? "تغيير كلمة المرور"
+                    : passwordModalStep === "otp"
+                      ? "كود التحقق"
+                      : "تعيين كلمة مرور جديدة"}
                 </h3>
-                <button 
+                <button
                   onClick={() => {
                     setShowPasswordModal(false);
-                    setPasswordModalStep('change');
-                    setError('');
+                    setPasswordModalStep("change");
+                    setError("");
                   }}
                   className="p-2 hover:bg-slate-100 rounded-full transition-colors"
                 >
@@ -786,9 +975,9 @@ export default function Profile() {
               </div>
 
               {error && (
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
+                  animate={{ opacity: 1, height: "auto" }}
                   className="bg-red-50 border border-red-100 text-red-600 p-3 rounded-xl flex items-center gap-2 mb-4 text-sm font-bold"
                 >
                   <AlertCircle className="w-4 h-4 shrink-0" />
@@ -797,18 +986,18 @@ export default function Profile() {
               )}
 
               <AnimatePresence mode="wait">
-                {passwordModalStep === 'change' ? (
-                  <motion.form 
+                {passwordModalStep === "change" ? (
+                  <motion.form
                     key="change"
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: 20 }}
-                    onSubmit={handleChangePassword} 
+                    onSubmit={handleChangePassword}
                     className="space-y-4"
                   >
                     <div className="space-y-2">
                       <div className="flex items-center justify-between px-1">
-                        <button 
+                        <button
                           type="button"
                           onClick={handleForgotPasswordFromProfile}
                           className="text-xs font-bold text-carbon hover:underline mr-auto"
@@ -821,7 +1010,12 @@ export default function Profile() {
                         label="كلمة المرور الحالية"
                         type="password"
                         value={passwordData.currentPassword}
-                        onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
+                        onChange={(e) =>
+                          setPasswordData({
+                            ...passwordData,
+                            currentPassword: e.target.value,
+                          })
+                        }
                         dir="ltr"
                         className="text-left"
                       />
@@ -832,7 +1026,12 @@ export default function Profile() {
                         label="كلمة المرور الجديدة"
                         type="password"
                         value={passwordData.newPassword}
-                        onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                        onChange={(e) =>
+                          setPasswordData({
+                            ...passwordData,
+                            newPassword: e.target.value,
+                          })
+                        }
                         dir="ltr"
                         className="text-left"
                       />
@@ -843,30 +1042,38 @@ export default function Profile() {
                         label="تأكيد كلمة المرور الجديدة"
                         type="password"
                         value={passwordData.confirmPassword}
-                        onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                        onChange={(e) =>
+                          setPasswordData({
+                            ...passwordData,
+                            confirmPassword: e.target.value,
+                          })
+                        }
                         dir="ltr"
                         className="text-left"
                       />
                     </div>
-                    <button 
-                      type="submit" 
+                    <button
+                      type="submit"
                       disabled={isLoading}
                       className="w-full bg-carbon text-white h-14 rounded-2xl font-bold transition-all hover:bg-carbon mt-4 shadow-lg shadow-carbon/10 flex items-center justify-center"
                     >
-                      {isLoading ? 'جاري التحديث...' : 'تحديث كلمة المرور'}
+                      {isLoading ? "جاري التحديث..." : "تحديث كلمة المرور"}
                     </button>
                   </motion.form>
-                ) : passwordModalStep === 'otp' ? (
-                  <motion.form 
+                ) : passwordModalStep === "otp" ? (
+                  <motion.form
                     key="otp"
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: 20 }}
-                    onSubmit={handleVerifyRecoveryOtp} 
+                    onSubmit={handleVerifyRecoveryOtp}
                     className="space-y-6"
                   >
                     <p className="text-center text-sm text-titanium/60">
-                      تم إرسال كود التحقق إلى الرقم <span dir="ltr">{user.countryCode} {user.phone}</span>
+                      تم إرسال كود التحقق إلى الرقم{" "}
+                      <span dir="ltr">
+                        {user.countryCode} {user.phone}
+                      </span>
                     </p>
                     <div className="flex justify-center gap-3" dir="ltr">
                       {recoveryOtp.map((digit, index) => (
@@ -877,7 +1084,9 @@ export default function Profile() {
                           inputMode="numeric"
                           maxLength={1}
                           value={digit}
-                          onChange={(e) => handleRecoveryOtpChange(index, e.target.value)}
+                          onChange={(e) =>
+                            handleRecoveryOtpChange(index, e.target.value)
+                          }
                           onKeyDown={(e) => handleRecoveryOtpKeyDown(index, e)}
                           autoComplete={index === 0 ? "one-time-code" : "off"}
                           className="w-14 h-14 text-center text-2xl font-bold bg-slate-50 border-2 border-slate-100 rounded-xl focus:border-carbon focus:ring-4 focus:ring-carbon/10 outline-none transition-all"
@@ -887,7 +1096,11 @@ export default function Profile() {
                     <div className="text-center">
                       {recoveryTimer > 0 ? (
                         <p className="text-sm text-titanium/60">
-                          إعادة الإرسال خلال <span className="font-bold text-carbon">{recoveryTimer}</span> ثانية
+                          إعادة الإرسال خلال{" "}
+                          <span className="font-bold text-carbon">
+                            {recoveryTimer}
+                          </span>{" "}
+                          ثانية
                         </p>
                       ) : (
                         <button
@@ -896,51 +1109,62 @@ export default function Profile() {
                           disabled={isResending}
                           className="text-sm font-bold text-carbon hover:underline disabled:opacity-50"
                         >
-                          {isResending ? 'جاري الإرسال...' : 'إعادة إرسال الكود'}
+                          {isResending
+                            ? "جاري الإرسال..."
+                            : "إعادة إرسال الكود"}
                         </button>
                       )}
                     </div>
-                    <button 
-                      type="submit" 
+                    <button
+                      type="submit"
                       id="verify-recovery-btn"
                       disabled={isLoading}
                       className="w-full bg-carbon text-white h-14 rounded-2xl font-bold transition-all hover:bg-carbon shadow-lg shadow-carbon/10 flex items-center justify-center"
                     >
-                      {isLoading ? 'جاري التحقق...' : 'تحقق الآن'}
+                      {isLoading ? "جاري التحقق..." : "تحقق الآن"}
                     </button>
-                    <button 
+                    <button
                       type="button"
-                      onClick={() => setPasswordModalStep('change')}
+                      onClick={() => setPasswordModalStep("change")}
                       className="w-full text-sm font-bold text-titanium/60 hover:text-carbon transition-colors"
                     >
                       العودة لتغيير كلمة المرور
                     </button>
                   </motion.form>
                 ) : (
-                  <motion.form 
+                  <motion.form
                     key="reset"
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: 20 }}
-                    onSubmit={handleResetRecoveryPassword} 
+                    onSubmit={handleResetRecoveryPassword}
                     className="space-y-4"
                   >
                     <div className="space-y-2">
                       <FloatingInput
                         label="كلمة المرور الجديدة"
-                        required 
-                        type={showPassword ? "text" : "password"} 
+                        required
+                        type={showPassword ? "text" : "password"}
                         value={passwordData.newPassword}
-                        onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                        onChange={(e) =>
+                          setPasswordData({
+                            ...passwordData,
+                            newPassword: e.target.value,
+                          })
+                        }
                         dir="ltr"
                         className="text-left"
                         endElement={
-                          <button 
+                          <button
                             type="button"
                             onClick={() => setShowPassword(!showPassword)}
                             className="px-3 text-slate-400 hover:text-carbon h-full flex items-center justify-center z-10"
                           >
-                            {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                            {showPassword ? (
+                              <EyeOff className="w-5 h-5" />
+                            ) : (
+                              <Eye className="w-5 h-5" />
+                            )}
                           </button>
                         }
                       />
@@ -948,20 +1172,25 @@ export default function Profile() {
                     <div className="space-y-2">
                       <FloatingInput
                         label="تأكيد كلمة المرور الجديدة"
-                        required 
-                        type={showPassword ? "text" : "password"} 
+                        required
+                        type={showPassword ? "text" : "password"}
                         value={passwordData.confirmPassword}
-                        onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                        onChange={(e) =>
+                          setPasswordData({
+                            ...passwordData,
+                            confirmPassword: e.target.value,
+                          })
+                        }
                         dir="ltr"
                         className="text-left"
                       />
                     </div>
-                    <button 
-                      type="submit" 
+                    <button
+                      type="submit"
                       disabled={isLoading}
                       className="w-full bg-carbon text-white h-14 rounded-2xl font-bold transition-all hover:bg-carbon mt-4 shadow-lg shadow-carbon/10 flex items-center justify-center"
                     >
-                      {isLoading ? 'جاري التحديث...' : 'تحديث كلمة المرور'}
+                      {isLoading ? "جاري التحديث..." : "تحديث كلمة المرور"}
                     </button>
                   </motion.form>
                 )}
@@ -976,7 +1205,7 @@ export default function Profile() {
         onClose={() => setShowLogoutConfirm(false)}
         onConfirm={() => {
           logout();
-          navigate('/');
+          navigate("/");
           setShowLogoutConfirm(false);
         }}
         title="تسجيل الخروج"
@@ -994,9 +1223,11 @@ export default function Profile() {
         }}
         onConfirm={() => {
           if (addressToDelete && user) {
-            const newAddresses = user.addresses?.filter(a => a.id !== addressToDelete);
+            const newAddresses = user.addresses?.filter(
+              (a) => a.id !== addressToDelete,
+            );
             updateUser({ ...user, addresses: newAddresses } as any);
-            showToast('تم حذف العنوان بنجاح');
+            showToast("تم حذف العنوان بنجاح");
           }
           setShowAddressDeleteConfirm(false);
           setAddressToDelete(null);
@@ -1008,8 +1239,8 @@ export default function Profile() {
         type="danger"
       />
       <AnimatePresence mode="wait">
-        {currentView === 'menu' ? (
-          <motion.div 
+        {currentView === "menu" ? (
+          <motion.div
             key="menu"
             variants={menuVariants}
             initial="hidden"
@@ -1017,37 +1248,71 @@ export default function Profile() {
             exit="exit"
             className="max-w-4xl mx-auto"
           >
-            <motion.h1 variants={itemVariants} className="text-xl sm:text-2xl font-black text-carbon mb-6 px-1">حسابي</motion.h1>
-            
+            <motion.h1
+              variants={itemVariants}
+              className="text-xl sm:text-2xl font-black text-carbon mb-6 px-1"
+            >
+              حسابي
+            </motion.h1>
+
             {/* Minimal Profile Header */}
-            <motion.div variants={itemVariants} className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 mb-4 flex items-center gap-4">
+            <motion.div
+              variants={itemVariants}
+              className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 mb-4 flex items-center gap-4"
+            >
               <div className="relative group/avatar shrink-0">
                 <div className="w-12 h-12 sm:w-16 sm:h-16 bg-slate-50 rounded-full flex items-center justify-center border border-slate-100 overflow-hidden shadow-inner">
                   {(() => {
                     const img = user.avatar || user.photoURL;
-                    const isPlaceholder = img && (img.includes('ui-avatars.com') || img.includes('dicebear.com'));
+                    const isPlaceholder =
+                      img &&
+                      (img.includes("ui-avatars.com") ||
+                        img.includes("dicebear.com"));
                     if (img && !isPlaceholder) {
-                      return <img src={img} alt={user.name} className="w-full h-full object-cover" />;
+                      return (
+                        <img
+                          src={img}
+                          alt={user.name}
+                          className="w-full h-full object-cover"
+                        />
+                      );
                     }
-                    return <User className="w-6 h-6 sm:w-8 sm:h-8 text-slate-300" />;
+                    return (
+                      <User className="w-6 h-6 sm:w-8 sm:h-8 text-slate-300" />
+                    );
                   })()}
                 </div>
                 <label className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full opacity-0 group-hover/avatar:opacity-100 transition-all cursor-pointer backdrop-blur-[2px]">
                   <Camera className="w-5 h-5 text-white" />
-                  <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleImageUpload}
+                  />
                 </label>
               </div>
-              
+
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5 mb-1">
-                  <h2 className="text-lg font-black text-carbon truncate">{user.displayName || user.name || 'مستخدم جديد'}</h2>
+                  <h2 className="text-lg font-black text-carbon truncate">
+                    {user.displayName || user.name || "مستخدم جديد"}
+                  </h2>
                   <BadgeCheck className="w-4 h-4 text-solar shrink-0" />
                 </div>
-                <p className="text-xs sm:text-sm text-slate-500 font-bold tracking-wide truncate" dir="ltr">{user.countryCode || '+967'} {user.phone}</p>
+                <p
+                  className="text-xs sm:text-sm text-slate-500 font-bold tracking-wide truncate"
+                  dir="ltr"
+                >
+                  {user.countryCode || "+967"} {user.phone}
+                </p>
               </div>
             </motion.div>
 
-            <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
+            <motion.div
+              variants={itemVariants}
+              className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8"
+            >
               {/* Column 1 */}
               <div className="space-y-6 sm:space-y-8">
                 {/* Digital Wallet Section */}
@@ -1055,17 +1320,19 @@ export default function Profile() {
                   <div className="p-4 sm:p-6 bg-slate-900 relative overflow-hidden group">
                     {/* Background Glow */}
                     <div className="absolute top-0 right-0 w-32 h-32 bg-solar/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
-                    
+
                     <div className="relative z-10 flex items-center justify-between mb-4 sm:mb-6">
                       <div className="flex items-center gap-3 sm:gap-4">
                         <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-white/10 flex items-center justify-center border border-white/5 shadow-inner">
                           <Wallet className="w-5 h-5 sm:w-6 sm:h-6 text-solar" />
                         </div>
                         <div>
-                          <p className="text-[9px] sm:text-[10px] text-slate-400 font-black uppercase tracking-widest mb-0.5 sm:mb-1">الرصيد الحالي</p>
+                          <p className="text-[9px] sm:text-[10px] text-slate-400 font-black uppercase tracking-widest mb-0.5 sm:mb-1">
+                            الرصيد الحالي
+                          </p>
                           <div className="flex items-baseline gap-1">
-                            <PriceDisplay 
-                              price={user.walletBalance || 0} 
+                            <PriceDisplay
+                              price={user.walletBalance || 0}
                               numberClassName="text-xl sm:text-2xl font-black text-white tracking-tight"
                               currencyClassName="text-[10px] sm:text-sm text-solar font-bold"
                             />
@@ -1073,11 +1340,11 @@ export default function Profile() {
                         </div>
                       </div>
                     </div>
-                    
-                    <button 
+
+                    <button
                       onClick={() => {
                         window.scrollTo(0, 0);
-                        setCurrentView('wallet');
+                        setCurrentView("wallet");
                       }}
                       className="w-full bg-solar text-carbon py-2.5 sm:py-3.5 rounded-xl font-black transition-all flex items-center justify-center gap-2 text-[11px] sm:text-sm shadow-lg shadow-solar/20 hover:scale-[1.02] active:scale-[0.98]"
                     >
@@ -1088,23 +1355,53 @@ export default function Profile() {
                 </Section>
 
                 <Section title="النشاط">
-                  <MenuItem icon={Package} label="طلباتي" bg="bg-indigo-50" iconColor="text-indigo-600" onClick={() => navigate('/orders')} />
-                  <MenuItem icon={Clock} label="سجل العمليات" bg="bg-amber-50" iconColor="text-amber-600" onClick={() => {
-                    window.scrollTo(0, 0);
-                    setCurrentView('wallet');
-                  }} />
-                  <MenuItem icon={Heart} label="المفضلة" bg="bg-rose-50" iconColor="text-rose-600" onClick={() => navigate('/wishlist')} />
+                  <MenuItem
+                    icon={Package}
+                    label="طلباتي"
+                    bg="bg-indigo-50"
+                    iconColor="text-indigo-600"
+                    onClick={() => navigate("/orders")}
+                  />
+                  <MenuItem
+                    icon={Clock}
+                    label="سجل العمليات"
+                    bg="bg-amber-50"
+                    iconColor="text-amber-600"
+                    onClick={() => {
+                      window.scrollTo(0, 0);
+                      setCurrentView("wallet");
+                    }}
+                  />
+                  <MenuItem
+                    icon={Heart}
+                    label="المفضلة"
+                    bg="bg-rose-50"
+                    iconColor="text-rose-600"
+                    onClick={() => navigate("/wishlist")}
+                  />
                 </Section>
               </div>
 
               {/* Column 2 */}
               <div className="space-y-6 sm:space-y-8">
                 <Section title="المعلومات الشخصية">
-                  <MenuItem icon={Edit2} label="تعديل الحساب" bg="bg-slate-50" iconColor="text-carbon" onClick={() => {
-                    window.scrollTo(0, 0);
-                    setCurrentView('edit');
-                  }} />
-                  <MenuItem icon={Key} label="تغيير كلمة المرور" bg="bg-slate-50" iconColor="text-carbon" onClick={() => setShowPasswordModal(true)} />
+                  <MenuItem
+                    icon={Edit2}
+                    label="تعديل الحساب"
+                    bg="bg-slate-50"
+                    iconColor="text-carbon"
+                    onClick={() => {
+                      window.scrollTo(0, 0);
+                      setCurrentView("edit");
+                    }}
+                  />
+                  <MenuItem
+                    icon={Key}
+                    label="تغيير كلمة المرور"
+                    bg="bg-slate-50"
+                    iconColor="text-carbon"
+                    onClick={() => setShowPasswordModal(true)}
+                  />
                   {/* Passkey Setup Button */}
                   <div className="border-b border-slate-50 px-3 sm:px-4 py-3 sm:py-4 flex flex-col gap-2 hover:bg-slate-50 transition-colors">
                     <div className="flex items-center justify-between">
@@ -1112,24 +1409,33 @@ export default function Profile() {
                         <div className="w-10 h-10 shrink-0 rounded-xl bg-orange-50 flex items-center justify-center">
                           <Fingerprint className="w-5 h-5 text-orange-500" />
                         </div>
-                        <span className="font-bold text-sm sm:text-base text-carbon">الدخول بالبصمة (Passkey)</span>
+                        <span className="font-bold text-sm sm:text-base text-carbon">
+                          الدخول بالبصمة (Passkey)
+                        </span>
                       </div>
-                      <button 
-                         onClick={handleRegisterPasskey}
-                         disabled={isLoading || hasPasskey}
-                         className={`text-xs sm:text-sm font-bold py-1.5 px-3 rounded-lg transition-colors ${hasPasskey ? 'bg-green-500 text-white cursor-default opacity-100 hover:bg-green-500 disabled:opacity-100' : 'bg-carbon text-white hover:bg-black'}`}
+                      <button
+                        onClick={handleRegisterPasskey}
+                        disabled={isLoading || hasPasskey}
+                        className={`text-xs sm:text-sm font-bold py-1.5 px-3 rounded-lg transition-colors ${hasPasskey ? "bg-green-500 text-white cursor-default opacity-100 hover:bg-green-500 disabled:opacity-100" : "bg-carbon text-white hover:bg-black"}`}
                       >
-                         {hasPasskey ? 'تم التفعيل' : 'تفعيل'}
+                        {hasPasskey ? "تم التفعيل" : "تفعيل"}
                       </button>
                     </div>
                     <p className="text-xs text-titanium/60 pr-14 leading-relaxed">
-                      سجل دخولك لاحقاً بلمسة واحدة باستخدام مستشعر البصمة أو الوجه في جهازك.
+                      سجل دخولك لاحقاً بلمسة واحدة باستخدام مستشعر البصمة أو
+                      الوجه في جهازك.
                     </p>
                   </div>
-                  <MenuItem icon={MapPin} label="عناوين التوصيل" bg="bg-slate-50" iconColor="text-carbon" onClick={() => {
+                  <MenuItem
+                    icon={MapPin}
+                    label="عناوين التوصيل"
+                    bg="bg-slate-50"
+                    iconColor="text-carbon"
+                    onClick={() => {
                       window.scrollTo(0, 0);
-                      setCurrentView('addresses');
-                  }} />
+                      setCurrentView("addresses");
+                    }}
+                  />
                 </Section>
 
                 <Section title="الإعدادات والتنبيهات">
@@ -1139,67 +1445,113 @@ export default function Profile() {
                         <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center shadow-sm">
                           <BadgeCheck className="w-5 h-5 text-slate-500" />
                         </div>
-                        <span className="font-bold text-sm sm:text-base text-carbon">إشعارات التطبيق</span>
+                        <span className="font-bold text-sm sm:text-base text-carbon">
+                          إشعارات التطبيق
+                        </span>
                       </div>
-                      <button 
+                      <button
                         onClick={() => {
                           const isEnabling = !user.preferences?.notifications;
-                          const newPrefs = { ...user.preferences, notifications: isEnabling };
-                          
+                          const newPrefs = {
+                            ...user.preferences,
+                            notifications: isEnabling,
+                          };
+
                           // Optimistic local update to prevent "flickering" or "reverting"
                           updateUser({ ...user, preferences: newPrefs });
-                          
+
                           // If enabling, also try to register for push notifications
                           if (isEnabling) {
-                            import('../lib/notifications').then(m => {
-                              m.requestNotificationPermission().then(granted => {
-                                if (!granted) {
-                                  // If permission denied or failed, we keep the preference but show a notice
-                                  // Or we could revert it if we want strictness.
-                                  // For now, let's just make it work.
-                                }
-                              });
+                            import("../lib/notifications").then((m) => {
+                              m.requestNotificationPermission().then(
+                                (granted) => {
+                                  if (!granted) {
+                                    // If permission denied or failed, we keep the preference but show a notice
+                                    // Or we could revert it if we want strictness.
+                                    // For now, let's just make it work.
+                                  }
+                                },
+                              );
                             });
                           }
                         }}
-                        className={`w-12 h-6 rounded-full transition-all relative ${user.preferences?.notifications ? 'bg-solar' : 'bg-slate-200'}`}
+                        className={`w-12 h-6 rounded-full transition-all relative ${user.preferences?.notifications ? "bg-solar" : "bg-slate-200"}`}
                       >
-                        <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${user.preferences?.notifications ? 'left-1' : 'left-7'} shadow-sm`} />
+                        <div
+                          className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${user.preferences?.notifications ? "left-1" : "left-7"} shadow-sm`}
+                        />
                       </button>
                     </div>
                   </div>
                 </Section>
 
-                {user.role === 'admin' && (
+                {user.role === "admin" && (
                   <Section title="الإدارة">
-                    <MenuItem icon={Settings} label="لوحة تحكم المشرف" bg="bg-carbon text-white" iconColor="text-white" onClick={() => navigate('/admin')} />
+                    <MenuItem
+                      icon={Settings}
+                      label="لوحة تحكم المشرف"
+                      bg="bg-carbon text-white"
+                      iconColor="text-white"
+                      onClick={() => navigate("/admin")}
+                    />
                   </Section>
                 )}
               </div>
             </motion.div>
 
-            <motion.div variants={itemVariants} className="mt-8 space-y-6 sm:space-y-8">
-               <Section title="الدعم والقانونية">
-                  <MenuItem icon={MessageCircle} label="تواصل معنا" bg="bg-emerald-50" iconColor="text-emerald-600" onClick={() => navigate('/contact')} />
-                  <div className="grid grid-cols-1 sm:grid-cols-2">
-                    <MenuItem icon={FileText} label="الشروط والأحكام" bg="bg-slate-50" iconColor="text-slate-500" onClick={() => navigate('/terms')} />
-                    <MenuItem icon={Shield} label="سياسة الخصوصية" bg="bg-slate-50" iconColor="text-slate-500" onClick={() => navigate('/privacy')} />
-                  </div>
-                </Section>
+            <motion.div
+              variants={itemVariants}
+              className="mt-8 space-y-6 sm:space-y-8"
+            >
+              <Section title="الدعم والقانونية">
+                <MenuItem
+                  icon={MessageCircle}
+                  label="تواصل معنا"
+                  bg="bg-emerald-50"
+                  iconColor="text-emerald-600"
+                  onClick={() => navigate("/contact")}
+                />
+                <div className="grid grid-cols-1 sm:grid-cols-2">
+                  <MenuItem
+                    icon={FileText}
+                    label="الشروط والأحكام"
+                    bg="bg-slate-50"
+                    iconColor="text-slate-500"
+                    onClick={() => navigate("/terms")}
+                  />
+                  <MenuItem
+                    icon={Shield}
+                    label="سياسة الخصوصية"
+                    bg="bg-slate-50"
+                    iconColor="text-slate-500"
+                    onClick={() => navigate("/privacy")}
+                  />
+                </div>
+              </Section>
 
-                <Section title="إدارة الحساب">
-                  <div className="grid grid-cols-1 sm:grid-cols-2">
-                    <MenuItem icon={LogOut} label="تسجيل الخروج" isDestructive={true} onClick={() => setShowLogoutConfirm(true)} />
-                    <MenuItem icon={Trash2} label="حذف الحساب نهائياً" isDestructive={true} onClick={() => {
-                        setDeletionReason('');
-                        setShowDeleteAccountModal(true);
-                    }} />
-                  </div>
-                </Section>
+              <Section title="إدارة الحساب">
+                <div className="grid grid-cols-1 sm:grid-cols-2">
+                  <MenuItem
+                    icon={LogOut}
+                    label="تسجيل الخروج"
+                    isDestructive={true}
+                    onClick={() => setShowLogoutConfirm(true)}
+                  />
+                  <MenuItem
+                    icon={Trash2}
+                    label="حذف الحساب نهائياً"
+                    isDestructive={true}
+                    onClick={() => {
+                      setDeletionReason("");
+                      setShowDeleteAccountModal(true);
+                    }}
+                  />
+                </div>
+              </Section>
             </motion.div>
           </motion.div>
-        ) : currentView === 'wallet' ? (
-          <motion.div 
+        ) : currentView === "wallet" ? (
+          <motion.div
             key="wallet"
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -1207,11 +1559,11 @@ export default function Profile() {
             className="max-w-7xl mx-auto"
           >
             <div className="flex items-center gap-3 sm:gap-4 mb-6 sm:mb-8">
-              <button 
+              <button
                 onClick={() => {
                   window.scrollTo(0, 0);
-                  setCurrentView('menu');
-                  setTopUpAmount('');
+                  setCurrentView("menu");
+                  setTopUpAmount("");
                 }}
                 className="w-10 h-10 shrink-0 bg-white rounded-full flex items-center justify-center shadow-sm border border-slate-100 hover:bg-slate-50 transition-colors"
               >
@@ -1230,10 +1582,12 @@ export default function Profile() {
                       <Wallet className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-400" />
                     </div>
                     <div>
-                      <p className="text-[10px] sm:text-sm text-slate-400 font-bold mb-0.5 sm:mb-1">الرصيد الحالي</p>
+                      <p className="text-[10px] sm:text-sm text-slate-400 font-bold mb-0.5 sm:mb-1">
+                        الرصيد الحالي
+                      </p>
                       <div className="flex items-baseline gap-2">
-                        <PriceDisplay 
-                          price={user.walletBalance || 0} 
+                        <PriceDisplay
+                          price={user.walletBalance || 0}
                           numberClassName="text-xl sm:text-3xl md:text-4xl font-black text-white tracking-tight"
                           currencyClassName="text-xs sm:text-xl text-emerald-400 font-bold"
                         />
@@ -1249,16 +1603,16 @@ export default function Profile() {
                   <ArrowDownToLine className="w-5 h-5 text-carbon" />
                   إيداع رصيد
                 </h2>
-                
+
                 <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-6">
-                  {[5000, 10000, 20000].map(amount => (
+                  {[5000, 10000, 20000].map((amount) => (
                     <button
                       key={amount}
                       onClick={() => setTopUpAmount(amount.toString())}
                       className={`h-12 sm:h-16 rounded-xl font-bold text-base sm:text-xl transition-all border-2 ${
                         topUpAmount === amount.toString()
-                          ? 'border-carbon bg-carbon/5 text-carbon'
-                          : 'border-slate-100 bg-slate-50 text-carbon hover:border-slate-200'
+                          ? "border-carbon bg-carbon/5 text-carbon"
+                          : "border-slate-100 bg-slate-50 text-carbon hover:border-slate-200"
                       }`}
                     >
                       {amount}
@@ -1267,13 +1621,15 @@ export default function Profile() {
                 </div>
 
                 <div className="space-y-2 sm:space-y-3 mb-6 sm:mb-8">
-                  <FloatingInput 
+                  <FloatingInput
                     label="مبلغ مخصص"
-                    type="tel" 
+                    type="tel"
                     inputMode="numeric"
                     pattern="[0-9]*"
                     value={topUpAmount}
-                    onChange={(e) => setTopUpAmount(e.target.value.replace(/\D/g, ''))}
+                    onChange={(e) =>
+                      setTopUpAmount(e.target.value.replace(/\D/g, ""))
+                    }
                     bgClass="bg-slate-50"
                     className="font-black text-lg sm:text-2xl text-left"
                     dir="ltr"
@@ -1289,18 +1645,31 @@ export default function Profile() {
                 <div className="bg-[#0056b3]/5 p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-[#0056b3]/20 space-y-3 sm:space-y-4 mb-6 sm:mb-8">
                   <div className="flex items-center gap-3 sm:gap-4">
                     <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-white flex items-center justify-center font-bold text-lg sm:text-xl overflow-hidden shrink-0">
-                      <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSijsePxWivnhnEwZs8l0IU_JB9dNkgrIn7aHGPZvV9GjeeQKt7sqcm7eA&s=10" alt="الكريمي" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                      <img
+                        src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSijsePxWivnhnEwZs8l0IU_JB9dNkgrIn7aHGPZvV9GjeeQKt7sqcm7eA&s=10"
+                        alt="الكريمي"
+                        className="w-full h-full object-cover"
+                        referrerPolicy="no-referrer"
+                      />
                     </div>
                     <div>
-                      <h3 className="text-sm sm:text-base font-bold text-carbon">الدفع إلى نقطة حاسب</h3>
-                      <p className="text-[10px] sm:text-xs text-titanium/60">يرجى تحويل المبلغ وإرفاق رقم المرجع</p>
+                      <h3 className="text-sm sm:text-base font-bold text-carbon">
+                        الدفع إلى نقطة حاسب
+                      </h3>
+                      <p className="text-[10px] sm:text-xs text-titanium/60">
+                        يرجى تحويل المبلغ وإرفاق رقم المرجع
+                      </p>
                     </div>
                   </div>
-                  
+
                   <div className="p-3 sm:p-4 bg-white rounded-xl sm:rounded-2xl border border-slate-100 flex justify-between items-center">
                     <div>
-                      <div className="text-[9px] sm:text-[10px] text-titanium/40 font-bold mb-0.5 sm:mb-1">رقم نقطة حاسب</div>
-                      <div className="text-base sm:text-lg font-mono font-bold text-[#0056b3] tracking-wider">877107</div>
+                      <div className="text-[9px] sm:text-[10px] text-titanium/40 font-bold mb-0.5 sm:mb-1">
+                        رقم نقطة حاسب
+                      </div>
+                      <div className="text-base sm:text-lg font-mono font-bold text-[#0056b3] tracking-wider">
+                        877107
+                      </div>
                     </div>
                     <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#0056b3]/10 flex items-center justify-center">
                       <Check className="w-4 h-4 sm:w-5 sm:h-5 text-[#0056b3]" />
@@ -1309,54 +1678,68 @@ export default function Profile() {
 
                   <div className="bg-white p-4 rounded-2xl border border-slate-100 space-y-3">
                     <div className="flex items-center gap-2 text-sm font-bold text-carbon">
-                      <span className="w-6 h-6 rounded-full bg-[#0056b3] text-white flex items-center justify-center text-xs shrink-0">1</span>
+                      <span className="w-6 h-6 rounded-full bg-[#0056b3] text-white flex items-center justify-center text-xs shrink-0">
+                        1
+                      </span>
                       أولاً: قم بالدفع عبر تطبيق الكريمي
                     </div>
                     <div className="flex items-center gap-2 text-sm font-bold text-carbon">
-                      <span className="w-6 h-6 rounded-full bg-[#0056b3] text-white flex items-center justify-center text-xs shrink-0">2</span>
+                      <span className="w-6 h-6 rounded-full bg-[#0056b3] text-white flex items-center justify-center text-xs shrink-0">
+                        2
+                      </span>
                       ثانياً: أدخل رقم المرجع الموجود في الإشعار
                     </div>
                     <div className="mt-3 rounded-xl overflow-hidden border border-slate-100 relative group">
-                      <img 
-                        src="https://19vojde6sh.ucarecd.net/0c55446b-c036-4701-bedf-30bddabf07c8/noroot.jpg" 
-                        alt="مثال لرقم المرجع" 
-                        className="w-full object-cover transition-transform duration-300 group-hover:scale-105" 
-                        referrerPolicy="no-referrer" 
+                      <img
+                        src="https://19vojde6sh.ucarecd.net/0c55446b-c036-4701-bedf-30bddabf07c8/noroot.jpg"
+                        alt="مثال لرقم المرجع"
+                        className="w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                        referrerPolicy="no-referrer"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4">
-                        <span className="text-white text-xs font-bold">رقم المرجع يكون كما هو موضح في الصورة</span>
+                        <span className="text-white text-xs font-bold">
+                          رقم المرجع يكون كما هو موضح في الصورة
+                        </span>
                       </div>
                     </div>
                   </div>
 
                   <div className="space-y-1.5 sm:space-y-2">
-                    <FloatingInput 
+                    <FloatingInput
                       label="رقم المرجع"
-                      type="tel" 
+                      type="tel"
                       inputMode="numeric"
                       pattern="[0-9]*"
                       value={topUpRef}
                       onChange={(e) => {
-                        setTopUpRef(e.target.value.replace(/\D/g, ''));
+                        setTopUpRef(e.target.value.replace(/\D/g, ""));
                         setTopUpError(false);
                       }}
                       bgClass="bg-white"
-                      className={`text-left font-mono text-sm sm:text-base ${topUpError ? 'border-red-500 ring-4 ring-red-500/10' : ''}`} 
-                      dir="ltr" 
+                      className={`text-left font-mono text-sm sm:text-base ${topUpError ? "border-red-500 ring-4 ring-red-500/10" : ""}`}
+                      dir="ltr"
                     />
-                    {topUpError && <p className="text-[10px] sm:text-xs text-red-500 font-bold mt-1">يرجى إدخال رقم مرجع صحيح (أرقام فقط)</p>}
+                    {topUpError && (
+                      <p className="text-[10px] sm:text-xs text-red-500 font-bold mt-1">
+                        يرجى إدخال رقم مرجع صحيح (أرقام فقط)
+                      </p>
+                    )}
                   </div>
                 </div>
 
-                <button 
-                  disabled={!topUpAmount || Number(topUpAmount) <= 0 || isProcessingTopUp}
+                <button
+                  disabled={
+                    !topUpAmount ||
+                    Number(topUpAmount) <= 0 ||
+                    isProcessingTopUp
+                  }
                   onClick={() => {
                     const amountInBaseCurrency = Number(topUpAmount);
                     const cleanRef = topUpRef.trim();
-                    
+
                     if (!cleanRef || !/^\d{6,15}$/.test(cleanRef)) {
                       setTopUpError(true);
-                      showToast('يرجى إدخال رقم مرجع صحيح', 'error');
+                      showToast("يرجى إدخال رقم مرجع صحيح", "error");
                       return;
                     }
 
@@ -1364,29 +1747,39 @@ export default function Profile() {
                       setIsProcessingTopUp(true);
                       setTimeout(() => {
                         const newTransaction = {
-                          id: (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15)),
+                          id: crypto.randomUUID
+                            ? crypto.randomUUID()
+                            : Math.random().toString(36).substring(2, 15),
                           amount: amountInBaseCurrency,
-                          type: 'deposit' as const,
+                          type: "deposit" as const,
                           date: new Date().toISOString(),
-                          status: 'completed' as const,
-                          description: `إيداع رصيد (مرجع: ${cleanRef})`
+                          status: "completed" as const,
+                          description: `إيداع رصيد (مرجع: ${cleanRef})`,
                         };
                         updateUser({
                           ...user,
-                          walletBalance: (user.walletBalance || 0) + amountInBaseCurrency,
-                          transactions: [newTransaction, ...(user.transactions || [])]
+                          walletBalance:
+                            (user.walletBalance || 0) + amountInBaseCurrency,
+                          transactions: [
+                            newTransaction,
+                            ...(user.transactions || []),
+                          ],
                         } as any);
                         setIsProcessingTopUp(false);
-                        setTopUpAmount('');
-                        setTopUpRef('');
-                        showToast('تم إرسال طلب الإيداع للإدارة (تم إضافة الرصيد فوراً لغرض التجربة)');
+                        setTopUpAmount("");
+                        setTopUpRef("");
+                        showToast(
+                          "تم إرسال طلب الإيداع للإدارة (تم إضافة الرصيد فوراً لغرض التجربة)",
+                        );
                       }, 1500);
                     }
                   }}
                   className={`w-full h-14 sm:h-16 rounded-xl sm:rounded-2xl font-bold text-base sm:text-lg transition-all flex items-center justify-center gap-2 ${
-                    !topUpAmount || Number(topUpAmount) <= 0 || isProcessingTopUp
-                      ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                      : 'bg-carbon text-white hover:bg-carbon shadow-lg shadow-carbon/10'
+                    !topUpAmount ||
+                    Number(topUpAmount) <= 0 ||
+                    isProcessingTopUp
+                      ? "bg-slate-100 text-slate-400 cursor-not-allowed"
+                      : "bg-carbon text-white hover:bg-carbon shadow-lg shadow-carbon/10"
                   }`}
                 >
                   {isProcessingTopUp ? (
@@ -1406,36 +1799,67 @@ export default function Profile() {
                   <Clock className="w-5 h-5 text-solar" />
                   سجل العمليات
                 </h2>
-                
+
                 <div className="space-y-3 sm:space-y-4">
                   {user.transactions && user.transactions.length > 0 ? (
                     [...user.transactions].reverse().map((tx, idx) => (
-                      <div key={tx.id || `tx-${idx}`} className="flex items-start sm:items-center justify-between p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-slate-100 bg-slate-50/50 gap-2 sm:gap-4">
+                      <div
+                        key={tx.id || `tx-${idx}`}
+                        className="flex items-start sm:items-center justify-between p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-slate-100 bg-slate-50/50 gap-2 sm:gap-4"
+                      >
                         <div className="flex items-start sm:items-center gap-2.5 sm:gap-4 flex-1 min-w-0">
-                          <div className={`w-8 h-8 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl flex items-center justify-center shrink-0 mt-0.5 sm:mt-0 ${
-                            tx.type === 'deposit' ? 'bg-emerald-50 text-emerald-500' : 'bg-red-50 text-red-500'
-                          }`}>
-                            {tx.type === 'deposit' ? <ArrowDownLeft className="w-4 h-4 sm:w-6 sm:h-6" /> : <ArrowUpRight className="w-4 h-4 sm:w-6 sm:h-6" />}
+                          <div
+                            className={`w-8 h-8 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl flex items-center justify-center shrink-0 mt-0.5 sm:mt-0 ${
+                              tx.type === "deposit"
+                                ? "bg-emerald-50 text-emerald-500"
+                                : "bg-red-50 text-red-500"
+                            }`}
+                          >
+                            {tx.type === "deposit" ? (
+                              <ArrowDownLeft className="w-4 h-4 sm:w-6 sm:h-6" />
+                            ) : (
+                              <ArrowUpRight className="w-4 h-4 sm:w-6 sm:h-6" />
+                            )}
                           </div>
                           <div className="min-w-0 flex-1">
-                            <p className="font-bold text-xs sm:text-base text-carbon mb-0.5 sm:mb-1 leading-snug line-clamp-2">{tx.description}</p>
-                            <p className="text-[9px] sm:text-xs text-titanium/60" dir="ltr">
-                              {new Date(tx.date).toLocaleString('ar-u-nu-latn')}
+                            <p className="font-bold text-xs sm:text-base text-carbon mb-0.5 sm:mb-1 leading-snug line-clamp-2">
+                              {tx.description}
+                            </p>
+                            <p
+                              className="text-[9px] sm:text-xs text-titanium/60"
+                              dir="ltr"
+                            >
+                              {new Date(tx.date).toLocaleString("ar-u-nu-latn")}
                             </p>
                           </div>
                         </div>
                         <div className="text-left shrink-0 flex flex-col items-end">
-                          <div className={`font-bold text-sm sm:text-lg flex items-center gap-1 ${
-                            tx.type === 'deposit' ? 'text-emerald-500' : 'text-carbon'
-                          }`} dir="ltr">
-                            <span>{tx.type === 'deposit' ? '+' : '-'}</span>
-                            <PriceDisplay 
-                              price={tx.amount} 
-                              numberClassName={tx.type === 'deposit' ? 'text-emerald-500' : 'text-slate-900'}
-                              currencyClassName={tx.type === 'deposit' ? 'text-emerald-500/70' : 'text-slate-900/70'}
+                          <div
+                            className={`font-bold text-sm sm:text-lg flex items-center gap-1 ${
+                              tx.type === "deposit"
+                                ? "text-emerald-500"
+                                : "text-carbon"
+                            }`}
+                            dir="ltr"
+                          >
+                            <span>{tx.type === "deposit" ? "+" : "-"}</span>
+                            <PriceDisplay
+                              price={tx.amount}
+                              numberClassName={
+                                tx.type === "deposit"
+                                  ? "text-emerald-500"
+                                  : "text-slate-900"
+                              }
+                              currencyClassName={
+                                tx.type === "deposit"
+                                  ? "text-emerald-500/70"
+                                  : "text-slate-900/70"
+                              }
                             />
                           </div>
-                          <p className="text-[9px] sm:text-xs font-medium text-emerald-500 mt-0.5">مكتمل</p>
+                          <p className="text-[9px] sm:text-xs font-medium text-emerald-500 mt-0.5">
+                            مكتمل
+                          </p>
                         </div>
                       </div>
                     ))
@@ -1444,15 +1868,17 @@ export default function Profile() {
                       <div className="w-12 h-12 sm:w-16 sm:h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
                         <Clock className="w-6 h-6 sm:w-8 sm:h-8 text-slate-300" />
                       </div>
-                      <p className="text-sm sm:text-base text-titanium/60 font-medium">لا توجد عمليات سابقة</p>
+                      <p className="text-sm sm:text-base text-titanium/60 font-medium">
+                        لا توجد عمليات سابقة
+                      </p>
                     </div>
                   )}
                 </div>
               </div>
             </div>
           </motion.div>
-        ) : currentView === 'addresses' ? (
-          <motion.div 
+        ) : currentView === "addresses" ? (
+          <motion.div
             key="addresses"
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -1460,10 +1886,10 @@ export default function Profile() {
             className="max-w-7xl mx-auto"
           >
             <div className="flex items-center gap-3 sm:gap-4 mb-6 sm:mb-8">
-              <button 
+              <button
                 onClick={() => {
                   window.scrollTo(0, 0);
-                  setCurrentView('menu');
+                  setCurrentView("menu");
                   setShowAddAddress(false);
                 }}
                 className="w-10 h-10 shrink-0 bg-white rounded-full flex items-center justify-center shadow-sm border border-slate-100 hover:bg-slate-50 transition-colors"
@@ -1478,65 +1904,104 @@ export default function Profile() {
                 <motion.div
                   key="add-address"
                   initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
+                  animate={{ opacity: 1, height: "auto" }}
                   exit={{ opacity: 0, height: 0 }}
                   className="bg-white rounded-2xl p-5 sm:p-6 shadow-sm border border-slate-100"
                 >
-                  <h3 className="font-bold text-carbon mb-4">إضافة عنوان جديد</h3>
+                  <h3 className="font-bold text-carbon mb-4">
+                    إضافة عنوان جديد
+                  </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
                     <div className="space-y-2">
-                      <FloatingInput 
+                      <FloatingInput
                         label="الاسم الأول"
-                        type="text" 
-                        value={newAddress.firstName} 
-                        onChange={e => setNewAddress({...newAddress, firstName: e.target.value})} 
-                        bgClass="bg-slate-50" 
+                        type="text"
+                        value={newAddress.firstName}
+                        onChange={(e) =>
+                          setNewAddress({
+                            ...newAddress,
+                            firstName: e.target.value,
+                          })
+                        }
+                        bgClass="bg-slate-50"
                       />
                     </div>
                     <div className="space-y-2">
-                      <FloatingInput 
+                      <FloatingInput
                         label="الاسم الأخير"
-                        type="text" 
-                        value={newAddress.lastName} 
-                        onChange={e => setNewAddress({...newAddress, lastName: e.target.value})} 
-                        bgClass="bg-slate-50" 
+                        type="text"
+                        value={newAddress.lastName}
+                        onChange={(e) =>
+                          setNewAddress({
+                            ...newAddress,
+                            lastName: e.target.value,
+                          })
+                        }
+                        bgClass="bg-slate-50"
                       />
                     </div>
                     <div className="space-y-2 sm:col-span-2">
-                      <FloatingInput 
+                      <FloatingInput
                         label="العنوان بالتفصيل"
-                        type="text" 
-                        value={newAddress.address} 
-                        onChange={e => setNewAddress({...newAddress, address: e.target.value})} 
-                        bgClass="bg-slate-50" 
+                        type="text"
+                        value={newAddress.address}
+                        onChange={(e) =>
+                          setNewAddress({
+                            ...newAddress,
+                            address: e.target.value,
+                          })
+                        }
+                        bgClass="bg-slate-50"
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-xs font-bold text-titanium/80">المدينة</label>
-                      <select 
-                        value={newAddress.city} 
-                        onChange={e => setNewAddress({...newAddress, city: e.target.value})} 
+                      <label className="text-xs font-bold text-titanium/80">
+                        المدينة
+                      </label>
+                      <select
+                        value={newAddress.city}
+                        onChange={(e) =>
+                          setNewAddress({ ...newAddress, city: e.target.value })
+                        }
                         className="w-full h-12 px-4 rounded-xl border border-slate-200 bg-slate-50 focus:ring-2 focus:ring-carbon outline-none appearance-none"
-                        style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'%236B7280\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\'%3E%3C/path%3E%3C/svg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'left 1rem center', backgroundSize: '1.5rem' }}
+                        style={{
+                          backgroundImage:
+                            "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236B7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E\")",
+                          backgroundRepeat: "no-repeat",
+                          backgroundPosition: "left 1rem center",
+                          backgroundSize: "1.5rem",
+                        }}
                       >
-                        {allCities.map(city => (
-                          <option key={city} value={city}>{city}</option>
+                        {allCities.map((city) => (
+                          <option key={city} value={city}>
+                            {city}
+                          </option>
                         ))}
                       </select>
                     </div>
                     <div className="space-y-2">
-                      <FloatingInput 
+                      <FloatingInput
                         label="رقم الجوال"
-                        type="tel" 
-                        dir="ltr" 
-                        value={newAddress.phone} 
-                        onChange={e => setNewAddress({...newAddress, phone: e.target.value.replace(/\D/g, '')})} 
+                        type="tel"
+                        dir="ltr"
+                        value={newAddress.phone}
+                        onChange={(e) =>
+                          setNewAddress({
+                            ...newAddress,
+                            phone: e.target.value.replace(/\D/g, ""),
+                          })
+                        }
                         bgClass="bg-slate-50"
                         startElement={
                           <div className="flex items-center justify-center bg-slate-100 border-r border-slate-200 h-full text-slate-700 font-bold px-2 relative group/select">
-                            <select 
+                            <select
                               value={newAddress.countryCode}
-                              onChange={(e) => setNewAddress({...newAddress, countryCode: e.target.value})}
+                              onChange={(e) =>
+                                setNewAddress({
+                                  ...newAddress,
+                                  countryCode: e.target.value,
+                                })
+                              }
                               className="bg-transparent border-none outline-none text-xs sm:text-sm cursor-pointer appearance-none text-center pr-6 pl-2 h-full"
                               dir="ltr"
                             >
@@ -1549,34 +2014,48 @@ export default function Profile() {
                     </div>
                   </div>
                   <div className="flex gap-3">
-                    <button 
+                    <button
                       onClick={() => {
-                        if (!newAddress.firstName || !newAddress.lastName || !newAddress.address || !newAddress.phone) {
-                          showToast('يرجى تعبئة جميع الحقول', 'error');
+                        if (
+                          !newAddress.firstName ||
+                          !newAddress.lastName ||
+                          !newAddress.address ||
+                          !newAddress.phone
+                        ) {
+                          showToast("يرجى تعبئة جميع الحقول", "error");
                           return;
                         }
                         const addr: Address = {
-                          id: (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15)),
+                          id: crypto.randomUUID
+                            ? crypto.randomUUID()
+                            : Math.random().toString(36).substring(2, 15),
                           firstName: newAddress.firstName!,
                           lastName: newAddress.lastName!,
                           address: newAddress.address!,
-                          city: newAddress.city || 'صنعاء',
+                          city: newAddress.city || "صنعاء",
                           phone: newAddress.phone!,
-                          countryCode: newAddress.countryCode || '+967'
+                          countryCode: newAddress.countryCode || "+967",
                         };
                         updateUser({
                           ...user,
-                          addresses: [...(user?.addresses || []), addr]
+                          addresses: [...(user?.addresses || []), addr],
                         } as any);
                         setShowAddAddress(false);
-                        setNewAddress({ firstName: '', lastName: '', address: '', city: allCities[0] || 'صنعاء', phone: '', countryCode: '+967' });
-                        showToast('تم إضافة العنوان بنجاح');
+                        setNewAddress({
+                          firstName: "",
+                          lastName: "",
+                          address: "",
+                          city: allCities[0] || "صنعاء",
+                          phone: "",
+                          countryCode: "+967",
+                        });
+                        showToast("تم إضافة العنوان بنجاح");
                       }}
                       className="flex-1 bg-carbon text-white h-12 rounded-xl font-bold hover:bg-carbon transition-colors"
                     >
                       حفظ العنوان
                     </button>
-                    <button 
+                    <button
                       onClick={() => setShowAddAddress(false)}
                       className="flex-1 bg-slate-100 text-carbon h-12 rounded-xl font-bold hover:bg-slate-200 transition-colors"
                     >
@@ -1594,13 +2073,25 @@ export default function Profile() {
                 >
                   {user?.addresses && user.addresses.length > 0 ? (
                     user.addresses.map((addr, idx) => (
-                      <div key={addr.id || `addr-${idx}`} className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-100 shadow-sm flex gap-4 justify-between items-start">
+                      <div
+                        key={addr.id || `addr-${idx}`}
+                        className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-100 shadow-sm flex gap-4 justify-between items-start"
+                      >
                         <div className="flex-1 min-w-0">
-                          <h3 className="font-bold text-carbon mb-1 truncate">{addr.firstName} {addr.lastName}</h3>
-                          <p className="text-xs sm:text-sm text-titanium/80 mb-1 truncate">{addr.address}, {addr.city}</p>
-                          <p className="text-xs sm:text-sm text-titanium/80" dir="ltr">{addr.countryCode || '+967'} {addr.phone}</p>
+                          <h3 className="font-bold text-carbon mb-1 truncate">
+                            {addr.firstName} {addr.lastName}
+                          </h3>
+                          <p className="text-xs sm:text-sm text-titanium/80 mb-1 truncate">
+                            {addr.address}, {addr.city}
+                          </p>
+                          <p
+                            className="text-xs sm:text-sm text-titanium/80"
+                            dir="ltr"
+                          >
+                            {addr.countryCode || "+967"} {addr.phone}
+                          </p>
                         </div>
-                        <button 
+                        <button
                           onClick={() => {
                             setAddressToDelete(addr.id);
                             setShowAddressDeleteConfirm(true);
@@ -1614,11 +2105,13 @@ export default function Profile() {
                   ) : (
                     <div className="bg-slate-50 p-6 sm:p-8 rounded-2xl border border-slate-100 text-center">
                       <MapPin className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-                      <p className="text-titanium/60 font-medium">لا توجد عناوين محفوظة حالياً</p>
+                      <p className="text-titanium/60 font-medium">
+                        لا توجد عناوين محفوظة حالياً
+                      </p>
                     </div>
                   )}
-                  
-                  <button 
+
+                  <button
                     onClick={() => setShowAddAddress(true)}
                     className="w-full bg-carbon/10 text-carbon hover:bg-carbon/20 h-14 rounded-2xl font-bold transition-all flex items-center justify-center gap-2 border border-carbon/20"
                   >
@@ -1630,7 +2123,7 @@ export default function Profile() {
             </AnimatePresence>
           </motion.div>
         ) : (
-          <motion.div 
+          <motion.div
             key="edit"
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -1638,10 +2131,10 @@ export default function Profile() {
             className="max-w-7xl mx-auto"
           >
             <div className="flex items-center gap-3 sm:gap-4 mb-6 sm:mb-8">
-              <button 
+              <button
                 onClick={() => {
                   window.scrollTo(0, 0);
-                  setCurrentView('menu');
+                  setCurrentView("menu");
                 }}
                 className="w-10 h-10 shrink-0 bg-white rounded-full flex items-center justify-center shadow-sm border border-slate-100 hover:bg-slate-50 transition-colors"
               >
@@ -1652,7 +2145,7 @@ export default function Profile() {
 
             <div className="bg-white rounded-3xl sm:rounded-[2.5rem] p-4 sm:p-10 shadow-xl border border-slate-100 relative overflow-hidden">
               <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-carbon via-purple-500 to-solar"></div>
-              
+
               <div className="space-y-6 sm:space-y-8 mt-2 sm:mt-4">
                 {/* Avatar Edit Section */}
                 <div className="flex flex-col items-center justify-center mb-6 sm:mb-8">
@@ -1660,44 +2153,67 @@ export default function Profile() {
                     <div className="absolute -inset-1 bg-gradient-to-tr from-carbon to-solar rounded-full blur opacity-30 group-hover:opacity-60 transition duration-500"></div>
                     <div className="relative w-24 h-24 sm:w-32 sm:h-32 bg-slate-50 rounded-full flex items-center justify-center border-4 border-white shadow-xl overflow-hidden z-10">
                       {formData.avatar ? (
-                        <img src={formData.avatar || undefined} alt="Profile" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                        <img
+                          src={formData.avatar || undefined}
+                          alt="Profile"
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                        />
                       ) : (
                         <User className="w-10 h-10 sm:w-12 sm:h-12 text-slate-300" />
                       )}
                     </div>
                     <label className="absolute bottom-1 right-1 w-9 h-9 sm:w-11 sm:h-11 bg-carbon text-white rounded-full flex items-center justify-center shadow-lg cursor-pointer hover:bg-carbon transition-colors border-4 border-white z-20 hover:scale-110 transform duration-200">
                       <Camera className="w-4 h-4 sm:w-5 sm:h-5" />
-                      <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleImageUpload}
+                      />
                     </label>
                   </div>
-                  <span className="text-[10px] sm:text-sm text-slate-500 font-medium mt-3 sm:mt-4">الحد الأقصى للصورة 5 ميجابايت</span>
+                  <span className="text-[10px] sm:text-sm text-slate-500 font-medium mt-3 sm:mt-4">
+                    الحد الأقصى للصورة 5 ميجابايت
+                  </span>
                 </div>
 
                 <div className="grid grid-cols-1 gap-4 sm:gap-6">
                   <div className="space-y-2">
-                    <FloatingInput 
+                    <FloatingInput
                       label="الاسم الكامل"
-                      type="text" 
+                      type="text"
                       value={formData.name}
-                      onChange={(e) => setFormData({...formData, name: e.target.value})}
+                      onChange={(e) =>
+                        setFormData({ ...formData, name: e.target.value })
+                      }
                       bgClass="bg-slate-50"
                       icon={<User className="w-5 h-5" />}
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <FloatingInput 
+                    <FloatingInput
                       label="رقم الجوال"
-                      type="tel" 
+                      type="tel"
                       value={formData.phone}
-                      onChange={(e) => setFormData({...formData, phone: e.target.value.replace(/\D/g, '')})}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          phone: e.target.value.replace(/\D/g, ""),
+                        })
+                      }
                       bgClass="bg-slate-50"
                       dir="ltr"
                       startElement={
                         <div className="flex items-center justify-center bg-slate-100 border-r border-slate-200 h-full text-slate-700 font-bold px-2 relative group/select">
-                          <select 
+                          <select
                             value={formData.countryCode}
-                            onChange={(e) => setFormData({...formData, countryCode: e.target.value})}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                countryCode: e.target.value,
+                              })
+                            }
                             className="bg-transparent border-none outline-none text-sm cursor-pointer appearance-none text-center font-bold text-titanium/60 pr-6 pl-2 h-full"
                             dir="ltr"
                           >
@@ -1710,15 +2226,21 @@ export default function Profile() {
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-titanium/80 mr-1">المدينة</label>
+                    <label className="text-xs font-bold text-titanium/80 mr-1">
+                      المدينة
+                    </label>
                     <div className="relative group/select">
-                      <select 
+                      <select
                         value={formData.address}
-                        onChange={(e) => setFormData({...formData, address: e.target.value})}
+                        onChange={(e) =>
+                          setFormData({ ...formData, address: e.target.value })
+                        }
                         className="w-full h-14 px-5 rounded-2xl border border-slate-100 bg-slate-50 focus:ring-4 focus:ring-slate-900/10 focus:bg-white focus:border-slate-900 outline-none transition-all duration-300 appearance-none font-bold text-carbon"
                       >
-                        {allCities.map(city => (
-                          <option key={city} value={city}>{city}</option>
+                        {allCities.map((city) => (
+                          <option key={city} value={city}>
+                            {city}
+                          </option>
                         ))}
                       </select>
                       <ChevronDown className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none group-hover/select:text-carbon transition-colors" />
@@ -1728,7 +2250,7 @@ export default function Profile() {
                 </div>
 
                 <div className="pt-4 sm:pt-8">
-                  <motion.button 
+                  <motion.button
                     whileHover={{ scale: 1.01, translateY: -2 }}
                     whileTap={{ scale: 0.98 }}
                     onClick={handleSave}
@@ -1755,19 +2277,27 @@ export default function Profile() {
               className="fixed inset-0 bg-carbon/60 backdrop-blur-sm z-[100]"
             />
             <motion.div
-              initial={{ opacity: 0, y: '100%' }}
+              initial={{ opacity: 0, y: "100%" }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: '100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              exit={{ opacity: 0, y: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 200 }}
               className="fixed bottom-0 left-0 right-0 sm:inset-0 sm:m-auto sm:h-fit sm:max-w-md bg-white rounded-t-[2rem] sm:rounded-[2.5rem] p-5 sm:p-8 z-[101] shadow-2xl overflow-hidden text-center"
             >
               <div className="w-14 h-14 bg-solar/10 rounded-2xl flex items-center justify-center mx-auto mb-4 text-solar rotate-3">
-                 <Smartphone className="w-7 h-7" />
+                <Smartphone className="w-7 h-7" />
               </div>
-              <h2 className="text-xl font-black text-carbon mb-2">تأكيد رقم الجوال الجديد</h2>
-              <p className="text-sm text-slate-500 mb-6">أدخل كود التحقق المرسل إلى {formData.countryCode}{formData.phone}</p>
-              
-              <div className="flex justify-center gap-3 md:gap-4 mb-6" dir="ltr">
+              <h2 className="text-xl font-black text-carbon mb-2">
+                تأكيد رقم الجوال الجديد
+              </h2>
+              <p className="text-sm text-slate-500 mb-6">
+                أدخل كود التحقق المرسل إلى {formData.countryCode}
+                {formData.phone}
+              </p>
+
+              <div
+                className="flex justify-center gap-3 md:gap-4 mb-6"
+                dir="ltr"
+              >
                 {changePhoneOtp.map((digit, index) => (
                   <input
                     key={index}
@@ -1777,19 +2307,27 @@ export default function Profile() {
                     maxLength={1}
                     value={digit}
                     onChange={(e) => {
-                       const value = e.target.value;
-                       if (value && !/^\d+$/.test(value)) return;
-                       const newOtp = [...changePhoneOtp];
-                       newOtp[index] = value;
-                       setChangePhoneOtp(newOtp);
-                       if (value && index < 3) {
-                         document.getElementById(`change-phone-otp-${index + 1}`)?.focus();
-                       }
+                      const value = e.target.value;
+                      if (value && !/^\d+$/.test(value)) return;
+                      const newOtp = [...changePhoneOtp];
+                      newOtp[index] = value;
+                      setChangePhoneOtp(newOtp);
+                      if (value && index < 3) {
+                        document
+                          .getElementById(`change-phone-otp-${index + 1}`)
+                          ?.focus();
+                      }
                     }}
                     onKeyDown={(e) => {
-                       if (e.key === 'Backspace' && !changePhoneOtp[index] && index > 0) {
-                         document.getElementById(`change-phone-otp-${index - 1}`)?.focus();
-                       }
+                      if (
+                        e.key === "Backspace" &&
+                        !changePhoneOtp[index] &&
+                        index > 0
+                      ) {
+                        document
+                          .getElementById(`change-phone-otp-${index - 1}`)
+                          ?.focus();
+                      }
                     }}
                     autoComplete={index === 0 ? "one-time-code" : "off"}
                     className="w-14 h-14 text-center text-2xl font-bold bg-slate-50 border-2 border-slate-100 rounded-xl focus:border-carbon focus:ring-4 focus:ring-carbon/10 outline-none transition-all"
@@ -1800,10 +2338,10 @@ export default function Profile() {
               <div className="space-y-3">
                 <button
                   onClick={verifyPhoneChangeAndSave}
-                  disabled={isLoading || changePhoneOtp.join('').length < 4}
+                  disabled={isLoading || changePhoneOtp.join("").length < 4}
                   className="w-full bg-carbon text-white h-14 rounded-2xl font-bold transition-all shadow-lg flex items-center justify-center disabled:opacity-50"
                 >
-                  {isLoading ? 'جاري التأكيد...' : 'تأكيد الحفظ'}
+                  {isLoading ? "جاري التأكيد..." : "تأكيد الحفظ"}
                 </button>
                 <button
                   onClick={() => setIsChangingPhone(false)}
@@ -1830,18 +2368,18 @@ export default function Profile() {
               className="fixed inset-0 bg-carbon/60 backdrop-blur-sm z-[100]"
             />
             <motion.div
-              initial={{ opacity: 0, y: '100%' }}
+              initial={{ opacity: 0, y: "100%" }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: '100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              exit={{ opacity: 0, y: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 200 }}
               className="fixed bottom-0 left-0 right-0 sm:inset-0 sm:m-auto sm:h-fit sm:max-w-md bg-white rounded-t-[2rem] sm:rounded-[2.5rem] p-5 sm:p-8 z-[101] shadow-2xl overflow-hidden"
             >
               <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-red-500/20 via-red-500 to-red-500/20"></div>
-              
+
               <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mb-4 sm:hidden" />
-              
+
               <AnimatePresence mode="wait">
-                {deleteModalStep === 'reason' ? (
+                {deleteModalStep === "reason" ? (
                   <motion.div
                     key="reason"
                     initial={{ opacity: 0, x: -20 }}
@@ -1852,41 +2390,65 @@ export default function Profile() {
                       <div className="w-14 h-14 bg-red-50 rounded-2xl flex items-center justify-center mb-4 shadow-inner rotate-3">
                         <Trash2 className="w-7 h-7 text-red-500" />
                       </div>
-                      <h2 className="text-xl sm:text-2xl font-black text-carbon mb-2">حذف الحساب نهائياً</h2>
+                      <h2 className="text-xl sm:text-2xl font-black text-carbon mb-2">
+                        حذف الحساب نهائياً
+                      </h2>
                       <p className="text-titanium/70 leading-relaxed text-xs sm:text-sm px-4">
                         نأسف لرحيلك. يرجى إخبارنا بالسبب لمساعدتنا على التحسين.
                       </p>
                     </div>
-                    
+
                     <div className="mb-5 max-h-[35vh] overflow-y-auto pr-2 custom-scrollbar">
                       <div className="flex flex-col gap-2">
                         {[
-                          'الأسعار مرتفعة جداً',
-                          'لم أجد ما أبحث عنه',
-                          'تجربة التطبيق صعبة',
-                          'تأخر في التوصيل',
-                          'أريد إنشاء حساب جديد',
-                          'أسباب أخرى'
+                          "الأسعار مرتفعة جداً",
+                          "لم أجد ما أبحث عنه",
+                          "تجربة التطبيق صعبة",
+                          "تأخر في التوصيل",
+                          "أريد إنشاء حساب جديد",
+                          "أسباب أخرى",
                         ].map((reason) => {
-                          const isSelected = deletionReason === reason || (reason === 'أسباب أخرى' && !['الأسعار مرتفعة جداً', 'لم أجد ما أبحث عنه', 'تجربة التطبيق صعبة', 'تأخر في التوصيل', 'أريد إنشاء حساب جديد', ''].includes(deletionReason));
+                          const isSelected =
+                            deletionReason === reason ||
+                            (reason === "أسباب أخرى" &&
+                              ![
+                                "الأسعار مرتفعة جداً",
+                                "لم أجد ما أبحث عنه",
+                                "تجربة التطبيق صعبة",
+                                "تأخر في التوصيل",
+                                "أريد إنشاء حساب جديد",
+                                "",
+                              ].includes(deletionReason));
                           return (
                             <label
                               key={reason}
-                              onClick={() => setDeletionReason(reason === 'أسباب أخرى' ? ' ' : reason)}
+                              onClick={() =>
+                                setDeletionReason(
+                                  reason === "أسباب أخرى" ? " " : reason,
+                                )
+                              }
                               className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
                                 isSelected
-                                  ? 'border-red-500 bg-red-50/50'
-                                  : 'border-slate-100 bg-slate-50 hover:bg-slate-100/50'
+                                  ? "border-red-500 bg-red-50/50"
+                                  : "border-slate-100 bg-slate-50 hover:bg-slate-100/50"
                               }`}
                             >
-                              <div className={`w-4 h-4 sm:w-5 sm:h-5 rounded-full border-2 flex items-center justify-center transition-colors shrink-0 ${
-                                isSelected ? 'border-red-500' : 'border-slate-300'
-                              }`}>
-                                {isSelected && <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-red-500" />}
+                              <div
+                                className={`w-4 h-4 sm:w-5 sm:h-5 rounded-full border-2 flex items-center justify-center transition-colors shrink-0 ${
+                                  isSelected
+                                    ? "border-red-500"
+                                    : "border-slate-300"
+                                }`}
+                              >
+                                {isSelected && (
+                                  <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-red-500" />
+                                )}
                               </div>
-                              <span className={`font-bold text-xs sm:text-sm ${
-                                isSelected ? 'text-red-600' : 'text-carbon'
-                              }`}>
+                              <span
+                                className={`font-bold text-xs sm:text-sm ${
+                                  isSelected ? "text-red-600" : "text-carbon"
+                                }`}
+                              >
                                 {reason}
                               </span>
                             </label>
@@ -1894,26 +2456,35 @@ export default function Profile() {
                         })}
                       </div>
 
-                      {!['الأسعار مرتفعة جداً', 'لم أجد ما أبحث عنه', 'تجربة التطبيق صعبة', 'تأخر في التوصيل', 'أريد إنشاء حساب جديد', ''].includes(deletionReason) && (
-                        <motion.textarea 
+                      {![
+                        "الأسعار مرتفعة جداً",
+                        "لم أجد ما أبحث عنه",
+                        "تجربة التطبيق صعبة",
+                        "تأخر في التوصيل",
+                        "أريد إنشاء حساب جديد",
+                        "",
+                      ].includes(deletionReason) && (
+                        <motion.textarea
                           initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: 'auto' }}
+                          animate={{ opacity: 1, height: "auto" }}
                           value={deletionReason.trim()}
-                          onChange={(e) => setDeletionReason(e.target.value || ' ')}
+                          onChange={(e) =>
+                            setDeletionReason(e.target.value || " ")
+                          }
                           placeholder="يرجى كتابة السبب هنا..."
                           className="w-full p-3 sm:p-4 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none transition-all min-h-[80px] text-carbon font-medium mt-2 text-xs sm:text-sm"
                         />
                       )}
                     </div>
-                    
+
                     <div className="flex flex-col gap-2 sm:gap-3">
-                      <button 
+                      <button
                         onClick={handleInitiateDelete}
                         disabled={isLoading}
                         className={`w-full h-12 sm:h-14 rounded-xl sm:rounded-2xl font-black transition-all shadow-xl flex items-center justify-center gap-2 text-sm sm:text-base ${
-                          isLoading 
-                            ? 'bg-slate-200 text-slate-400 cursor-not-allowed' 
-                            : 'bg-red-500 hover:bg-red-600 text-white shadow-red-500/20'
+                          isLoading
+                            ? "bg-slate-200 text-slate-400 cursor-not-allowed"
+                            : "bg-red-500 hover:bg-red-600 text-white shadow-red-500/20"
                         }`}
                       >
                         {isLoading ? (
@@ -1925,7 +2496,7 @@ export default function Profile() {
                           </>
                         )}
                       </button>
-                      <button 
+                      <button
                         onClick={() => setShowDeleteAccountModal(false)}
                         disabled={isLoading}
                         className="w-full bg-slate-100 hover:bg-slate-200 text-carbon h-12 sm:h-14 rounded-xl sm:rounded-2xl font-black transition-all text-sm sm:text-base disabled:opacity-50"
@@ -1945,9 +2516,14 @@ export default function Profile() {
                       <div className="w-14 h-14 bg-red-50 rounded-2xl flex items-center justify-center mb-4 shadow-inner">
                         <ShieldAlert className="w-7 h-7 text-red-500" />
                       </div>
-                      <h2 className="text-xl sm:text-2xl font-black text-carbon mb-2">تأكيد الهوية</h2>
+                      <h2 className="text-xl sm:text-2xl font-black text-carbon mb-2">
+                        تأكيد الهوية
+                      </h2>
                       <p className="text-titanium/70 leading-relaxed text-xs sm:text-sm px-4">
-                        لحماية بياناتك، أرسلنا كود تحقق إلى رقمك المنتهي بـ <span className="font-bold text-carbon" dir="ltr">{user?.phone?.slice(-4) || '****'}</span>
+                        لحماية بياناتك، أرسلنا كود تحقق إلى رقمك المنتهي بـ{" "}
+                        <span className="font-bold text-carbon" dir="ltr">
+                          {user?.phone?.slice(-4) || "****"}
+                        </span>
                       </p>
                     </div>
 
@@ -1960,7 +2536,9 @@ export default function Profile() {
                           inputMode="numeric"
                           maxLength={1}
                           value={digit}
-                          onChange={(e) => handleDeleteOtpChange(index, e.target.value)}
+                          onChange={(e) =>
+                            handleDeleteOtpChange(index, e.target.value)
+                          }
                           onKeyDown={(e) => handleDeleteOtpKeyDown(index, e)}
                           className="w-12 h-14 sm:w-14 sm:h-16 text-center text-2xl font-black bg-slate-50 border-2 border-slate-200 rounded-xl sm:rounded-2xl focus:bg-white focus:border-red-500 focus:ring-4 focus:ring-red-500/10 outline-none transition-all"
                         />
@@ -1968,13 +2546,13 @@ export default function Profile() {
                     </div>
 
                     <div className="flex flex-col gap-2 sm:gap-3">
-                      <button 
+                      <button
                         onClick={handleDeleteAccount}
-                        disabled={deleteOtp.join('').length < 4 || isLoading}
+                        disabled={deleteOtp.join("").length < 4 || isLoading}
                         className={`w-full h-12 sm:h-14 rounded-xl sm:rounded-2xl font-black transition-all shadow-xl flex items-center justify-center gap-2 text-sm sm:text-base ${
-                          deleteOtp.join('').length === 4 && !isLoading
-                            ? 'bg-red-500 hover:bg-red-600 text-white shadow-red-500/20'
-                            : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                          deleteOtp.join("").length === 4 && !isLoading
+                            ? "bg-red-500 hover:bg-red-600 text-white shadow-red-500/20"
+                            : "bg-slate-200 text-slate-400 cursor-not-allowed"
                         }`}
                       >
                         {isLoading ? (
@@ -1986,10 +2564,10 @@ export default function Profile() {
                           </>
                         )}
                       </button>
-                      <button 
+                      <button
                         onClick={() => {
-                          setDeleteModalStep('reason');
-                          setDeleteOtp(['', '', '', '']);
+                          setDeleteModalStep("reason");
+                          setDeleteOtp(["", "", "", ""]);
                         }}
                         disabled={isLoading}
                         className="w-full bg-slate-100 hover:bg-slate-200 text-carbon h-12 sm:h-14 rounded-xl sm:rounded-2xl font-black transition-all text-sm sm:text-base disabled:opacity-50"

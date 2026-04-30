@@ -1,6 +1,6 @@
-import React from 'react';
-import { Link, LinkProps, useNavigate } from 'react-router-dom';
-import { prefetch } from '../App';
+import React from "react";
+import { Link, LinkProps, useNavigate } from "react-router-dom";
+import { prefetch } from "../App";
 
 interface FastLinkProps extends LinkProps {
   prefetchPage?: string;
@@ -11,14 +11,14 @@ interface FastLinkProps extends LinkProps {
  * A high-performance Link component that prefetches the target page on hover
  * and can trigger instant navigation.
  */
-export const FastLink: React.FC<FastLinkProps> = ({ 
-  children, 
-  prefetchPage, 
+export const FastLink: React.FC<FastLinkProps> = ({
+  children,
+  prefetchPage,
   instant = false,
   onMouseEnter,
   onClick,
   to,
-  ...props 
+  ...props
 }) => {
   const navigate = useNavigate();
 
@@ -38,9 +38,9 @@ export const FastLink: React.FC<FastLinkProps> = ({
   };
 
   return (
-    <Link 
-      to={to} 
-      onMouseEnter={handleMouseEnter} 
+    <Link
+      to={to}
+      onMouseEnter={handleMouseEnter}
       onClick={handleClick}
       {...props}
     >

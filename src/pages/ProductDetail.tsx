@@ -226,7 +226,7 @@ export default function ProductDetail() {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="max-w-screen-2xl mx-auto px-4 sm:px-6 py-4 sm:py-8 pb-8 sm:pb-12"
+      className="max-w-screen-2xl mx-auto px-4 sm:px-6 py-4 sm:py-8 pb-28 sm:pb-12"
     >
       {/* Top Navigation & Breadcrumbs */}
       <div className="flex items-center justify-between mb-6 gap-2 sm:gap-4">
@@ -629,7 +629,7 @@ export default function ProductDetail() {
               </div>
 
               {/* Desktop Total Price & Purchase Actions */}
-              <div className="flex flex-col gap-6 pt-6 border-t border-slate-100">
+              <div className="hidden sm:flex flex-col gap-6 pt-6 border-t border-slate-100">
                 <div className="flex items-end justify-between">
                   <div className="flex flex-col">
                     <span className="text-[10px] font-black text-carbon/40 uppercase tracking-widest mb-1">
@@ -930,6 +930,86 @@ export default function ProductDetail() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Mobile Fixed Bottom Action Bar (Floating & Compact) */}
+      <div className="fixed bottom-4 left-4 right-4 z-50 sm:hidden pb-safe pointer-events-none">
+        <div className="pointer-events-auto">
+          {product.inStock !== false ? (
+            <button
+              onClick={isAdded ? () => navigate('/cart') : handleAddToCart}
+              className={`w-full h-[52px] rounded-2xl font-black text-sm transition-all flex items-center justify-between px-5 shadow-2xl backdrop-blur-md border border-white/20 ${
+                isAdded
+                  ? "bg-emerald-600 text-white shadow-emerald-500/30"
+                  : "bg-solar text-carbon shadow-solar/40 hover:bg-white active:scale-95"
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                {isAdded ? (
+                  <div className="flex items-center justify-center w-6 h-6 rounded-full bg-white/20">
+                    <ArrowRight className="w-4 h-4 rotate-180" />
+                  </div>
+                ) : (
+                  <ShoppingCart className="w-5 h-5" />
+                )}
+                <span className="text-[13px]">
+                  {isAdded ? "إتمام الطلب الآن" : "أضف إلى السلة"}
+                </span>
+              </div>
+              <div className="flex items-center gap-3">
+                <div
+                  className={`w-px h-5 ${isAdded ? "bg-white/20" : "bg-carbon/20"}`}
+                />
+                <span className="font-black tracking-wide text-sm">
+                  {formatPrice(product.price * quantity)}
+                </span>
+              </div>
+            </button>
+          ) : (
+            <motion.button
+              whileTap={!isNotified && !isNotifying ? { scale: 0.95 } : {}}
+              animate={
+                isNotified
+                  ? {
+                      scale: [1, 1.05, 0.95, 1.05, 1],
+                      transition: { duration: 0.4 },
+                    }
+                  : {}
+              }
+              onClick={handleAddToCart}
+              className={`w-full h-[52px] rounded-2xl font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-2xl backdrop-blur-md ${
+                isNotified
+                  ? "bg-solar text-black shadow-solar/30"
+                  : "bg-white/95 text-slate-600 border border-slate-200/50"
+              }`}
+            >
+              {isNotifying ? (
+                <>
+                  <div className="w-5 h-5 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
+                  جاري التفعيل...
+                </>
+              ) : isNotified ? (
+                <>
+                  <Check className="w-5 h-5" /> تم تفعيل التنبيه
+                </>
+              ) : (
+                <>
+                  <motion.div
+                    animate={{ rotate: [0, -15, 15, -15, 15, 0] }}
+                    transition={{
+                      repeat: Infinity,
+                      duration: 1.5,
+                      repeatDelay: 3,
+                    }}
+                  >
+                    <Bell className="w-5 h-5" />
+                  </motion.div>
+                  أعلمني عند التوفر
+                </>
+              )}
+            </motion.button>
+          )}
+        </div>
+      </div>
 
       {/* Lightbox / Image Zoom */}
 

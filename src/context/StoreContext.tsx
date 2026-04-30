@@ -895,6 +895,30 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     };
   }, [user]);
 
+  // Sanitize local states against actual products list to remove deleted items
+  useEffect(() => {
+    if (!isLoading && products.length > 0) {
+      const productIds = new Set(products.map((p) => p.id));
+
+      setRecentlyViewed((prev) => {
+        const filtered = prev.filter((p) => productIds.has(p.id));
+        return filtered.length !== prev.length ? filtered : prev;
+      });
+
+      setWishlist((prev) => {
+        const filtered = prev.filter((p) => productIds.has(p.id));
+        return filtered.length !== prev.length ? filtered : prev;
+      });
+
+      setCart((prev) => {
+        const filtered = prev.filter((item) =>
+          productIds.has(item.product.id),
+        );
+        return filtered.length !== prev.length ? filtered : prev;
+      });
+    }
+  }, [products, isLoading]);
+
   // Sync Orders from Firestore
   useEffect(() => {
     const activeAdmin =
@@ -4422,6 +4446,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
       // Optimistic UI update
       setProducts((prev) => prev.filter((p) => p.id !== id));
+      setRecentlyViewed((prev) => prev.filter((p) => p.id !== id));
+      setWishlist((prev) => prev.filter((p) => p.id !== id));
+      setCart((prev) => prev.filter((item) => item.product.id !== id));
 
       try {
         // Automatic Cloud Cleanup

@@ -36,6 +36,7 @@ export interface Product {
   metaDescription?: string;
   sku?: string;
   status?: "active" | "draft";
+  sizePrices?: Record<string, number>;
   kitProductIds?: string[];
 }
 

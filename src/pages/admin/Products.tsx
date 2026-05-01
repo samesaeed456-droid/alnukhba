@@ -98,6 +98,7 @@ export default function Products() {
         reviews: 0,
         colors: [],
         sizes: [],
+        sizePrices: {},
         specs: {},
         sku: "",
         status: "active",
@@ -176,6 +177,7 @@ export default function Products() {
     reviews: 0,
     colors: [],
     sizes: [],
+    sizePrices: {},
     specs: {},
     sku: "",
     status: "active",
@@ -306,6 +308,7 @@ export default function Products() {
         reviews: 0,
         colors: [],
         sizes: [],
+        sizePrices: {},
         specs: {},
         sku: "",
         status: "active",
@@ -1519,76 +1522,102 @@ export default function Products() {
                         </div>
                       </div>
 
-                      <div>
+                      {/* Sizes and Prices Management */}
+                      <div className="col-span-full">
                         <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-2">
-                          الأحجام / المقاسات
+                          إدارة المقاسات والأسعار
                         </label>
-
-                        {/* Display existing sizes as tags */}
-                        <div className="flex flex-wrap gap-2 mb-3 min-h-[32px]">
-                          {formData.sizes?.map((size, index) => (
-                            <span
-                              key={index}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 text-carbon text-sm font-bold border border-slate-200"
-                            >
-                              {size}
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const newSizes = formData.sizes?.filter(
-                                    (_, i) => i !== index,
-                                  );
-                                  setFormData({ ...formData, sizes: newSizes });
-                                }}
-                                className="text-slate-400 hover:text-red-500 transition-colors"
-                              >
-                                <X className="w-3.5 h-3.5" />
-                              </button>
-                            </span>
-                          ))}
-                          {(!formData.sizes || formData.sizes.length === 0) && (
-                            <span className="text-xs text-slate-400 font-medium py-1">
-                              لم يتم إضافة مقاسات
-                            </span>
+                        <div className="space-y-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                          {/* Added sizes list */}
+                          {(formData.sizes?.length ?? 0) > 0 && (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                              {formData.sizes?.map((size) => (
+                                <div
+                                  key={size}
+                                  className="flex items-center justify-between bg-white p-3 rounded-lg border border-slate-200 shadow-sm group"
+                                >
+                                  <div className="flex flex-col gap-0.5">
+                                    <span className="text-xs font-black text-carbon">{size}</span>
+                                    <span className="text-[10px] font-bold text-solar">
+                                      {formData.sizePrices?.[size] 
+                                        ? formatPrice(formData.sizePrices[size]) 
+                                        : "السعر الأساسي"}
+                                    </span>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const newSizes = formData.sizes?.filter((s) => s !== size);
+                                      const newPrices = { ...(formData.sizePrices || {}) };
+                                      delete newPrices[size];
+                                      setFormData({ 
+                                        ...formData, 
+                                        sizes: newSizes,
+                                        sizePrices: newPrices
+                                      });
+                                    }}
+                                    className="text-slate-400 hover:text-red-500 p-1 rounded-md transition-colors"
+                                  >
+                                    <X className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
                           )}
-                        </div>
 
-                        {/* Input for new size */}
-                        <div className="flex gap-2">
-                          <input
-                            type="text"
-                            id="customSizeInput"
-                            className="flex-1 px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-solar/20 focus:border-solar outline-none transition-all font-bold text-carbon text-sm"
-                            placeholder="إضافة مقاس (مثال: XL)"
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") {
-                                e.preventDefault();
-                                document
-                                  .getElementById("add-size-btn")
-                                  ?.click();
-                              }
-                            }}
-                          />
-                          <button
-                            id="add-size-btn"
-                            type="button"
-                            onClick={() => {
-                              const input = document.getElementById(
-                                "customSizeInput",
-                              ) as HTMLInputElement;
-                              const val = input.value.trim();
-                              if (val && !formData.sizes?.includes(val)) {
-                                setFormData({
-                                  ...formData,
-                                  sizes: [...(formData.sizes || []), val],
-                                });
-                                input.value = "";
-                              }
-                            }}
-                            className="bg-carbon text-white px-4 py-2.5 rounded-xl hover:bg-carbon/90 transition-colors flex items-center justify-center shadow-md shrink-0"
-                          >
-                            <Plus className="w-4 h-4" />
-                          </button>
+                          {/* Add new size and price input row */}
+                          <div className="flex flex-col sm:flex-row gap-2">
+                            <div className="flex-1 relative">
+                              <input
+                                id="new-size-name"
+                                type="text"
+                                placeholder="اسم المقاس (مثل: XL)"
+                                className="w-full px-3 py-2.5 rounded-lg bg-white border border-slate-200 focus:ring-2 focus:ring-solar/20 focus:border-solar outline-none transition-all text-sm font-bold"
+                              />
+                            </div>
+                            <div className="flex-1 relative">
+                              <input
+                                id="new-size-price"
+                                type="number"
+                                placeholder="السعر (اختياري)"
+                                className="w-full px-3 py-2.5 rounded-lg bg-white border border-slate-200 focus:ring-2 focus:ring-solar/20 focus:border-solar outline-none transition-all text-sm font-bold"
+                              />
+                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 font-bold uppercase">ر.س</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const sizeInput = document.getElementById("new-size-name") as HTMLInputElement;
+                                const priceInput = document.getElementById("new-size-price") as HTMLInputElement;
+                                const sizeVal = sizeInput?.value.trim();
+                                const priceVal = priceInput?.value.trim();
+
+                                if (sizeVal && !formData.sizes?.includes(sizeVal)) {
+                                  const newSizes = [...(formData.sizes || []), sizeVal];
+                                  const newPrices = { ...(formData.sizePrices || {}) };
+                                  if (priceVal) {
+                                    newPrices[sizeVal] = Number(priceVal);
+                                  }
+                                  
+                                  setFormData({
+                                    ...formData,
+                                    sizes: newSizes,
+                                    sizePrices: newPrices
+                                  });
+                                  
+                                  sizeInput.value = "";
+                                  priceInput.value = "";
+                                  sizeInput.focus();
+                                }
+                              }}
+                              className="bg-solar text-white px-6 py-2.5 rounded-lg hover:bg-solar/90 transition-colors text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-md shrink-0"
+                            >
+                              <Plus className="w-4 h-4" /> إضافة حجم
+                            </button>
+                          </div>
+                          <p className="text-[9px] text-slate-400 font-medium italic">
+                            * إذا لم يتم تحديد سعر للحجم، فسيتم استخدام السعر الأساسي للمنتج تلقائياً.
+                          </p>
                         </div>
                       </div>
                     </div>

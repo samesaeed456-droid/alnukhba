@@ -101,6 +101,14 @@ export default function ProductDetail() {
   const [isDescExpanded, setIsDescExpanded] = useState(false);
   const [isSpecsExpanded, setIsSpecsExpanded] = useState(true);
 
+  const currentPrice = useMemo(() => {
+    if (!product) return 0;
+    if (selectedSize && product.sizePrices && product.sizePrices[selectedSize]) {
+      return product.sizePrices[selectedSize];
+    }
+    return product.price;
+  }, [product, selectedSize]);
+
   const isNotified = product
     ? subscriptions.some(
         (s) => s.productId === product.id && s.type === "back_in_stock",
@@ -415,10 +423,10 @@ export default function ProductDetail() {
                 <div className="flex items-center gap-3 mb-1">
                   <div className="flex items-baseline gap-1.5">
                     <span className="text-2xl sm:text-4xl font-black text-slate-900">
-                      {formatPrice(product.price).split(" ")[0]}
+                      {formatPrice(currentPrice).split(" ")[0]}
                     </span>
                     <span className="text-lg sm:text-xl font-bold text-slate-900/70">
-                      {formatPrice(product.price).split(" ").slice(1).join(" ")}
+                      {formatPrice(currentPrice).split(" ").slice(1).join(" ")}
                     </span>
                   </div>
                   {product.originalPrice && (
@@ -964,7 +972,7 @@ export default function ProductDetail() {
                   className={`w-px h-5 ${isAdded ? "bg-white/20" : "bg-carbon/20"}`}
                 />
                 <span className="font-black tracking-wide text-sm">
-                  {formatPrice(product.price * quantity)}
+                  {formatPrice(currentPrice * quantity)}
                 </span>
               </div>
             </button>
@@ -1040,7 +1048,7 @@ export default function ProductDetail() {
                     تمت إضافة المنتج بنجاح!
                   </p>
                   <p className="text-[10px] font-bold text-solar">
-                    {quantity} قطعة • {formatPrice(product.price * quantity)}
+                    {quantity} قطعة • {formatPrice(currentPrice * quantity)}
                   </p>
                 </div>
                 <button

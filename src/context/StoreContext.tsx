@@ -2776,20 +2776,27 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         const cartItemId = `${product.id}-${color || "default"}-${size || "default"}`;
         const existing = prev.find((item) => item.id === cartItemId);
 
+        // Determine correct price for this variant
+        const priceToUse = (size && product.sizePrices && product.sizePrices[size]) 
+          ? product.sizePrices[size] 
+          : product.price;
+        
+        const cartProduct = { ...product, price: priceToUse };
+
         if (existing) {
           const newQuantity = Math.min(
             maxQuantity,
             existing.quantity + quantity,
           );
           return prev.map((item) =>
-            item.id === cartItemId ? { ...item, quantity: newQuantity } : item,
+            item.id === cartItemId ? { ...item, product: cartProduct, quantity: newQuantity } : item,
           );
         }
         return [
           ...prev,
           {
             id: cartItemId,
-            product,
+            product: cartProduct,
             quantity,
             selectedColor: color,
             selectedSize: size,

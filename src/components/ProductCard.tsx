@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import {
   ShoppingCart,
   Heart,
@@ -7,8 +7,6 @@ import {
   Check,
   Tag,
   Zap,
-  Eye,
-  Plus,
   Bell,
   Flame,
   Users,
@@ -57,7 +55,6 @@ const ProductCardInner = React.memo(function ProductCardInner({
   showToast,
   subscriptions,
 }: ProductCardInnerProps) {
-  const navigate = useNavigate();
   const [isAdded, setIsAdded] = useState(false);
   const [isNotifying, setIsNotifying] = useState(false);
 
@@ -201,35 +198,6 @@ const ProductCardInner = React.memo(function ProductCardInner({
               decoding="async"
               className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-in-out"
             />
-            {/* Quick View Overlay - Professional Touch */}
-            <div className="absolute inset-0 bg-carbon/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-2 backdrop-blur-[2px]">
-              <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                className="w-10 h-10 bg-carbon/80 backdrop-blur-md rounded-full flex items-center justify-center text-solar shadow-xl hover:bg-solar hover:text-white transition-colors border border-solar/30"
-                title="عرض سريع"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  navigate(`/product/${p.id}`);
-                }}
-              >
-                <Eye className="w-5 h-5" />
-              </motion.button>
-              <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                className="w-10 h-10 bg-carbon/80 backdrop-blur-md rounded-full flex items-center justify-center text-solar shadow-xl hover:bg-solar hover:text-white transition-colors border border-solar/30"
-                title="إضافة للسلة"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  addToCart(p);
-                }}
-              >
-                <Plus className="w-5 h-5" />
-              </motion.button>
-            </div>
           </FastLink>
         </div>
 

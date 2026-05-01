@@ -286,7 +286,7 @@ export default function AdminLayout() {
             permission: "manage_logistics",
           },
           {
-            name: "رسائل اتصل بنا",
+            name: "الرسائل والتقييمات",
             path: "/admin/messages",
             icon: Inbox,
             permission: "manage_messages",

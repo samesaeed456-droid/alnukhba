@@ -366,7 +366,7 @@ export default function ProductDetail() {
                     >
                       وفر{" "}
                       {Math.round(
-                        ((product.originalPrice - product.price) /
+                        ((product.originalPrice - currentPrice) /
                           product.originalPrice) *
                           100,
                       )}
@@ -440,7 +440,7 @@ export default function ProductDetail() {
                       <span className="text-[10px] font-black text-rose-500 bg-rose-50 px-2 py-0.5 rounded border border-rose-100/50 text-center self-start">
                         خصم{" "}
                         {Math.round(
-                          ((product.originalPrice - product.price) /
+                          ((product.originalPrice - currentPrice) /
                             product.originalPrice) *
                             100,
                         )}
@@ -586,17 +586,23 @@ export default function ProductDetail() {
                   <div className="flex flex-wrap gap-3">
                     {product.sizes.map((size, index) => {
                       if (!size || typeof size !== "string") return null;
+                      const hasCustomPrice = product.sizePrices && product.sizePrices[size];
                       return (
                         <button
                           key={`${size}-${index}`}
                           onClick={() => setSelectedSize(size)}
-                          className={`min-w-[60px] sm:min-w-[70px] h-10 sm:h-12 rounded-xl border-2 font-black text-xs transition-all duration-300 ${
+                          className={`min-w-[80px] sm:min-w-[100px] px-3 py-2 rounded-xl border-2 font-black transition-all duration-300 flex flex-col items-center justify-center gap-0.5 ${
                             selectedSize === size
                               ? "border-carbon bg-carbon text-white shadow-lg scale-105"
                               : "border-slate-100 text-titanium/60 hover:border-slate-300 bg-slate-50/30"
                           }`}
                         >
-                          {size}
+                          <span className="text-xs">{size}</span>
+                          {hasCustomPrice && (
+                            <span className={`text-[9px] ${selectedSize === size ? "text-solar" : "text-solar"}`}>
+                              {formatPrice(product.sizePrices[size])}
+                            </span>
+                          )}
                         </button>
                       );
                     })}
@@ -646,7 +652,7 @@ export default function ProductDetail() {
                     </span>
                     <div className="flex items-baseline gap-2">
                       <span className="text-2xl font-black text-slate-900">
-                        {formatPrice(product.price * quantity)}
+                        {formatPrice(currentPrice * quantity)}
                       </span>
                     </div>
                   </div>

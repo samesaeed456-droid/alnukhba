@@ -825,74 +825,41 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }
   }, [user, isAuthReady]);
 
-  // Sync Products from Firestore
+  // Sync Products from Firestore with Real-time Support
   useEffect(() => {
-    // Basic loading timeout to ensure we don't hang if Firestore is slow but we have cached data
-    const loadingTimeout = setTimeout(() => {
-      setIsLoading(false);
-    }, 1200);
-
+    setIsLoading(true);
     const isAdmin = !!adminAuth.currentUser || user?.role === "admin";
     const activeDb = adminAuth.currentUser ? adminDb : db;
+    const productsRef = collection(activeDb, "products");
+    
+    // We use a high limit to ensure all products are visible while guarding against massive reads
+    const q = query(productsRef, orderBy("createdAt", "desc"), limit(300));
 
-    // Check global products cache for all users (including admins)
-    const cached = localStorage.getItem("store_products");
-    const cacheTime = localStorage.getItem("store_products_time");
-    const now = Date.now();
-
-    if (
-      cached &&
-      cacheTime &&
-      now - parseInt(cacheTime) < (isAdmin ? 5 : 15) * 60 * 1000
-    ) {
-      try {
-        const parsed = JSON.parse(cached);
-        setProducts(parsed);
-        setIsLoading(false);
-        clearTimeout(loadingTimeout);
-        return;
-      } catch (e) {
-        console.error("Failed to parse cached products", e);
-        // If it fails, fall through and fetch fresh
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const productsData = snapshot.docs.map((doc) => ({
+        ...doc.data(),
+        id: String(doc.id),
+      })) as unknown as Product[];
+      
+      setProducts(productsData);
+      localStorage.setItem("store_products", JSON.stringify(productsData));
+      localStorage.setItem("store_products_time", Date.now().toString());
+      setIsLoading(false);
+    }, (error: any) => {
+      console.error("Products real-time sync error:", error);
+      setIsLoading(false);
+      // Fallback to cache if exists
+      const cached = localStorage.getItem("store_products");
+      if (cached) {
+        try {
+          setProducts(JSON.parse(cached));
+        } catch (e) {
+          setProducts(initialProducts);
+        }
       }
-    }
+    });
 
-    // Fetch fresh data with a generous limit to prevent total quota exhaustion
-    getDocs(query(collection(activeDb, "products"), limit(300)))
-      .then((snapshot) => {
-        clearTimeout(loadingTimeout);
-        const productsData = snapshot.docs.map((doc) => ({
-          ...doc.data(),
-          id: String(doc.id),
-        })) as unknown as Product[];
-        setProducts(productsData);
-        localStorage.setItem("store_products", JSON.stringify(productsData));
-        localStorage.setItem("store_products_time", now.toString());
-        setIsLoading(false);
-      })
-      .catch((error: any) => {
-        clearTimeout(loadingTimeout);
-        if (
-          error.code === "resource-exhausted" ||
-          error?.message?.includes("Quota")
-        ) {
-          console.warn("Products sync alert: Quota exceeded, using cache.");
-        } else {
-          console.error("Products fetch error:", error);
-        }
-        if (cached) {
-          try {
-            setProducts(JSON.parse(cached));
-          } catch (e) {}
-        } else {
-          setProducts(initialProducts); // Fallback
-        }
-        setIsLoading(false);
-      });
-
-    return () => {
-      clearTimeout(loadingTimeout);
-    };
+    return () => unsubscribe();
   }, [user]);
 
   // Sanitize local states against actual products list to remove deleted items
@@ -919,7 +886,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }
   }, [products, isLoading]);
 
-  // Sync Orders from Firestore
+  // Sync Orders from Firestore with Real-time Support
   useEffect(() => {
     const activeAdmin =
       adminUser?.role === "admin" || adminUser?.isAdmin
@@ -933,56 +900,32 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    // If admin, sync ALL orders. If user, sync only THEIR orders.
     const activeDb = adminAuth.currentUser ? adminDb : db;
     const ordersRef = collection(activeDb, "orders");
+    
+    // Determine query based on role
     const q = activeAdmin
-      ? query(ordersRef)
+      ? query(ordersRef, orderBy("date", "desc"), limit(50))
       : query(
-          ordersRef,
-          where("userId", "==", auth.currentUser?.uid || "guest"),
-        );
-
-    if (activeAdmin) {
-      // Use getDocs for Admins to avoid massive continuous read quota leaks
-      getDocs(query(ordersRef, orderBy("date", "desc"), limit(50)))
-        .then((snapshot) => {
-          const ordersData = snapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          })) as unknown as Order[];
-          setOrders(ordersData);
-          localStorage.setItem("store_orders", JSON.stringify(ordersData));
-        })
-        .catch((error) => {
-          if (error.code === "permission-denied") return;
-          console.error("Orders sync error:", error);
-        });
-      return () => {};
-    } else {
-      // Use getDocs instead of onSnapshot for normal users as well
-      getDocs(
-        query(
           ordersRef,
           where("userId", "==", auth.currentUser?.uid || "guest"),
           orderBy("date", "desc"),
           limit(50),
-        ),
-      )
-        .then((snapshot) => {
-          const ordersData = snapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          })) as unknown as Order[];
-          setOrders(ordersData);
-          localStorage.setItem("store_orders", JSON.stringify(ordersData));
-        })
-        .catch((error) => {
-          if (error.code === "permission-denied") return;
-          console.error("Orders sync error:", error);
-        });
-      return () => {};
-    }
+        );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const ordersData = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as unknown as Order[];
+      setOrders(ordersData);
+      localStorage.setItem("store_orders", JSON.stringify(ordersData));
+    }, (error) => {
+      if (error.code === "permission-denied") return;
+      console.error("Orders real-time sync error:", error);
+    });
+
+    return () => unsubscribe();
   }, [user, adminUser]);
 
   // Sync Admin-only Data
@@ -1217,316 +1160,117 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const now = Date.now();
     let isInitialMarketingSync = true;
 
-    const fetchCollection = async (
+    const syncCollection = (
       colName: string,
       setter: (data: any) => void,
-      storageKey: string,
-      cacheMinutes: number = 30,
+      storageKey: string
     ) => {
-      let hasValidCache = false;
-      const cached = localStorage.getItem(storageKey);
-      if (cached) {
-        try {
-          setter(JSON.parse(cached));
-          hasValidCache = true;
-        } catch (e) {
-          console.error(`Cache parse failed for ${storageKey}`);
-        }
-      }
-
-      if (isAdmin) {
-        // Use getDocs instead of onSnapshot for admin to save massive continuous read costs
-        // Also check cache for admins to prevent re-fetch loop
-        const cacheTime = localStorage.getItem(`${storageKey}_time`);
-        if (
-          hasValidCache &&
-          cacheTime &&
-          Date.now() - parseInt(cacheTime) < 5 * 60 * 1000
-        ) {
-          return () => {}; // Admin cache valid for 5 mins
-        }
-        try {
-          const snapshot = await getDocs(
-            query(collection(activeDb, colName), limit(300)),
-          );
-          const data = snapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          }));
-          setter(data);
-          localStorage.setItem(storageKey, JSON.stringify(data));
-          localStorage.setItem(`${storageKey}_time`, Date.now().toString());
-        } catch (error: any) {
-          if (
-            error.code === "resource-exhausted" ||
-            error?.message?.includes("Quota")
-          ) {
-            console.warn(`Error fetching ${colName}: Quota limit exceeded.`);
-          } else {
-            console.error(`Error fetching ${colName}:`, error);
-          }
-        }
-        return () => {};
-      } else {
-        const cacheTime = localStorage.getItem(`${storageKey}_time`);
-
-        if (
-          hasValidCache &&
-          cacheTime &&
-          Date.now() - parseInt(cacheTime) < cacheMinutes * 60 * 1000
-        ) {
-          return () => {};
-        }
-
-        try {
-          const snapshot = await getDocs(
-            query(collection(activeDb, colName), limit(300)),
-          );
-          const data = snapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          }));
-          setter(data);
-          localStorage.setItem(storageKey, JSON.stringify(data));
-          localStorage.setItem(`${storageKey}_time`, Date.now().toString());
-        } catch (error: any) {
-          if (
-            error.code === "resource-exhausted" ||
-            error?.message?.includes("Quota")
-          ) {
-            console.warn(`Error fetching ${colName}: Quota limit exceeded.`);
-          } else {
-            console.error(`Error fetching ${colName}:`, error);
-          }
-          if (cached) {
-            try {
-              setter(JSON.parse(cached));
-            } catch (e) {}
-          }
-        }
-        return () => {};
-      }
-    };
-
-    let unsubCategories = () => {};
-    let unsubCoupons = () => {};
-    let unsubPosts = () => {};
-    let unsubPages = () => {};
-    let unsubZones = () => {};
-    let unsubBanners = () => {};
-    let unsubSettings = () => {};
-
-    // Wrapper to handle async results and extract unsubscribe functions
-    const setupSubscriptions = async () => {
-      unsubCategories = await fetchCollection(
-        "categories",
-        setCategories,
-        "store_categories",
-      );
-      unsubCoupons = await fetchCollection(
-        "coupons",
-        setCoupons,
-        "store_coupons",
-      );
-      unsubPosts = await fetchCollection(
-        "blog_posts",
-        setBlogPosts,
-        "store_blog",
-      );
-      unsubPages = await fetchCollection(
-        "static_pages",
-        setStaticPages,
-        "store_pages",
-      );
-      unsubZones = await fetchCollection(
-        "shipping_zones",
-        setShippingZones,
-        "store_shipping_zones",
-        60,
-      );
-      unsubBanners = await fetchCollection(
-        "banners",
-        setBanners,
-        "store_banners",
-      );
-
-      // Settings is a single document, not a collection
-      if (isAdmin) {
-        getDoc(doc(activeDb, "settings", "store"))
-          .then((docSnap) => {
-            if (docSnap.exists()) {
-              const data = docSnap.data() as StoreSettings;
-              setSettings(data);
-              localStorage.setItem("store_settings", JSON.stringify(data));
-            }
-          })
-          .catch((e) => console.error(e));
-      } else {
-        const cached = localStorage.getItem("store_settings");
-        const cacheTime = localStorage.getItem("store_settings_time");
-
-        if (cached && cacheTime && now - parseInt(cacheTime) < 60 * 60 * 1000) {
+      const q = query(collection(activeDb, colName), limit(300));
+      return onSnapshot(q, (snapshot) => {
+        const data = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setter(data);
+        localStorage.setItem(storageKey, JSON.stringify(data));
+        localStorage.setItem(`${storageKey}_time`, Date.now().toString());
+      }, (error: any) => {
+        if (error.code === "permission-denied") return;
+        console.error(`Real-time sync error for ${colName}:`, error);
+        const cached = localStorage.getItem(storageKey);
+        if (cached) {
           try {
-            setSettings(JSON.parse(cached));
+            setter(JSON.parse(cached));
           } catch (e) {}
-        } else {
-          getDoc(doc(activeDb, "settings", "store"))
-            .then((docSnap) => {
-              if (docSnap.exists()) {
-                const data = docSnap.data() as StoreSettings;
-                setSettings(data);
-                localStorage.setItem("store_settings", JSON.stringify(data));
-                localStorage.setItem("store_settings_time", now.toString());
-              }
-            })
-            .catch((err) => {
-              if (cached)
-                try {
-                  setSettings(JSON.parse(cached));
-                } catch (e) {}
-            });
         }
-      }
+      });
     };
 
-    setupSubscriptions();
-
-    // Use getDocs instead of onSnapshot for marketing notifications to prevent massive read quota drains across all connected users
-    getDocs(
-      query(
-        collection(activeDb, "marketing_notifications"),
-        orderBy("date", "desc"),
-        limit(50),
-      ),
-    ).then((snapshot) => {
-      // Filter notifications to only show what was created after the user registered
-      const rawUser = localStorage.getItem("store_user");
-      let userRegistrationTime = 0;
-      if (rawUser) {
-        try {
-          const u = JSON.parse(rawUser);
-          if (u.createdAt)
-            userRegistrationTime = new Date(u.createdAt).getTime();
-        } catch (e) {}
+    const unsubCategories = syncCollection("categories", setCategories, "store_categories");
+    const unsubCoupons = syncCollection("coupons", setCoupons, "store_coupons");
+    const unsubPosts = syncCollection("blog_posts", setBlogPosts, "store_blog");
+    const unsubPages = syncCollection("static_pages", setStaticPages, "store_pages");
+    const unsubZones = syncCollection("shipping_zones", setShippingZones, "store_shipping_zones");
+    const unsubBanners = syncCollection("banners", setBanners, "store_banners");
+    
+    const unsubSettings = onSnapshot(doc(activeDb, "settings", "store"), (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data() as StoreSettings;
+        setSettings(data);
+        localStorage.setItem("store_settings", JSON.stringify(data));
+        localStorage.setItem("store_settings_time", Date.now().toString());
       }
-
-      const allData = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as unknown as MarketingNotification[];
-      const filteredData = allData.filter((notif) => {
-        if (userRegistrationTime === 0) return true;
-        const notifDate = new Date(
-          notif.date || new Date().toISOString(),
-        ).getTime();
-        return notifDate >= userRegistrationTime;
-      });
-
-      setMarketingNotifications(filteredData);
-      localStorage.setItem(
-        "store_marketing_notifications",
-        JSON.stringify(filteredData),
-      );
-
-      // Process newly fetched notifications for the bell
-      snapshot.docs.forEach((docSnap) => {
-        const docData = {
-          id: docSnap.id,
-          ...docSnap.data(),
-        } as MarketingNotification;
-
-        // Apply same registration time filter for real-time notifications
-        if (userRegistrationTime > 0) {
-          const notifDate = new Date(
-            docData.date || new Date().toISOString(),
-          ).getTime();
-          if (notifDate < userRegistrationTime) return;
-        }
-
-        // Keep notifications from the last 7 days in the bell
-        const isRecent =
-          new Date(docData.date || new Date().toISOString()).getTime() >
-          Date.now() - 7 * 24 * 3600000;
-
-        if (isRecent) {
-          // Only process notifications if the user is authenticated OR is a guest looking at the store
-          const currentUser = auth.currentUser;
-          const hasLocalUser = localStorage.getItem("store_user");
-
-          // Allow notifications for everyone (including guests) unless specifically targeted
-          // Do not show marketing notifications to admins to avoid cluttering their dashboard
-          const isAdminPath =
-            typeof window !== "undefined" &&
-            window.location.pathname.startsWith("/admin");
-          const isAdminAuth =
-            typeof window !== "undefined" &&
-            window.localStorage.getItem("admin_auth") === "true";
-
-          let isUserAdmin = isAdminPath || isAdminAuth;
-          if (hasLocalUser && !isUserAdmin) {
-            try {
-              const localUser = JSON.parse(hasLocalUser);
-              if (localUser.role === "admin") isUserAdmin = true;
-            } catch (e) {}
-          }
-          if (isUserAdmin) return;
-
-          // If the notification targets a specific user, strictly ensure the current user matches
-          if (docData.target === "specific_user") {
-            const currentUid =
-              currentUser?.uid ||
-              (hasLocalUser ? JSON.parse(hasLocalUser).uid : null);
-            if (!currentUid) return;
-            if (
-              docData.targetUserId !== currentUid &&
-              docData.targetUserId !== currentUser?.phoneNumber
-            ) {
-              return; // Exclude, this is not meant for them
-            }
-          }
-
-          // Prevent resurrecting deleted marketing notifications
-          const deletedIds = JSON.parse(
-            localStorage.getItem("store_deleted_notif_ids") || "[]",
-          );
-          if (deletedIds.includes(docSnap.id)) return;
-
-          setNotifications((prev) => {
-            // Prevent duplicates
-            if (prev.some((n) => n.id === docSnap.id)) return prev;
-
-            const appNotif: AppNotification = {
-              id: docSnap.id,
-              title: docData.title,
-              message: docData.message,
-              date: docData.date || new Date().toISOString(),
-              isRead: false,
-              type: "sale",
-            };
-
-            // Show a pop-up toast if this is a truly new notification arriving in real-time
-            // OR if it was sent less than 2 minutes ago (so if the user just opened the app/tab to check)
-            const timeSinceSent =
-              Date.now() -
-              new Date(docData.date || new Date().toISOString()).getTime();
-            if (!isInitialMarketingSync || timeSinceSent < 120000) {
-              setTimeout(
-                () =>
-                  sonnerToast.success(`رسالة جديدة: ${docData.title}`, {
-                    description: docData.message,
-                    duration: 6000,
-                    position: "top-center",
-                  }),
-                100,
-              );
-            }
-
-            return [appNotif, ...prev];
-          });
-        }
-      });
-      isInitialMarketingSync = false;
     });
+
+    const unsubMarketing = onSnapshot(
+      query(collection(activeDb, "marketing_notifications"), orderBy("date", "desc"), limit(50)),
+      (snapshot) => {
+        const rawUser = localStorage.getItem("store_user");
+        let userRegistrationTime = 0;
+        if (rawUser) {
+          try {
+            const u = JSON.parse(rawUser);
+            if (u.createdAt) userRegistrationTime = new Date(u.createdAt).getTime();
+          } catch (e) {}
+        }
+
+        const allData = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as unknown as MarketingNotification[];
+        
+        const filteredData = allData.filter((notif) => {
+          if (userRegistrationTime === 0) return true;
+          const notifDate = new Date(notif.date || new Date().toISOString()).getTime();
+          return notifDate >= userRegistrationTime;
+        });
+
+        setMarketingNotifications(filteredData);
+        localStorage.setItem("store_marketing_notifications", JSON.stringify(filteredData));
+
+        snapshot.docChanges().forEach((change) => {
+          if (change.type === "added") {
+            const docData = { id: change.doc.id, ...change.doc.data() } as MarketingNotification;
+            if (userRegistrationTime > 0) {
+              const notifDate = new Date(docData.date || new Date().toISOString()).getTime();
+              if (notifDate < userRegistrationTime) return;
+            }
+            if (new Date(docData.date || new Date().toISOString()).getTime() < Date.now() - 7 * 24 * 3600000) return;
+
+            const isAdminPath = typeof window !== "undefined" && window.location.pathname.startsWith("/admin");
+            if (isAdminPath) return;
+
+            if (docData.target === "specific_user") {
+               const currentUid = auth.currentUser?.uid || (rawUser ? JSON.parse(rawUser).uid : null);
+               if (!currentUid || (docData.targetUserId !== currentUid && docData.targetUserId !== auth.currentUser?.phoneNumber)) return;
+            }
+
+            if (JSON.parse(localStorage.getItem("store_deleted_notif_ids") || "[]").includes(change.doc.id)) return;
+
+            setNotifications((prev) => {
+              if (prev.some((n) => n.id === change.doc.id)) return prev;
+              const appNotif: AppNotification = {
+                id: change.doc.id,
+                title: docData.title,
+                message: docData.message,
+                date: docData.date || new Date().toISOString(),
+                isRead: false,
+                type: "sale",
+              };
+              if (!isInitialMarketingSync || (Date.now() - new Date(docData.date || new Date().toISOString()).getTime() < 60000)) {
+                sonnerToast.success(`رسالة جديدة: ${docData.title}`, {
+                  description: docData.message,
+                  duration: 6000,
+                  position: "top-center",
+                });
+              }
+              return [appNotif, ...prev];
+            });
+          }
+        });
+        isInitialMarketingSync = false;
+      }
+    );
 
     return () => {
       unsubCategories();
@@ -1535,8 +1279,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       unsubPages();
       unsubZones();
       unsubBanners();
+      unsubSettings();
+      unsubMarketing();
     };
-  }, [isAuthReady, user, adminAuth.currentUser]);
+  }, [isAuthReady, user, adminUser]);
 
   // Sync cart to abandonedCarts for abandoned cart notifications
   useEffect(() => {

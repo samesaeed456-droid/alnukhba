@@ -66,6 +66,14 @@ const ProductCardInner = React.memo(function ProductCardInner({
     [subscriptions, p.id],
   );
 
+  const displayPrice = useMemo(() => {
+    if (!p.sizePrices || Object.keys(p.sizePrices).length === 0) {
+      return p.price;
+    }
+    const prices = [p.price, ...Object.values(p.sizePrices)];
+    return Math.min(...prices);
+  }, [p.price, p.sizePrices]);
+
   const handleWishlistToggle = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault();
@@ -155,14 +163,14 @@ const ProductCardInner = React.memo(function ProductCardInner({
                 <span className="hidden sm:inline">
                   وفر{" "}
                   {Math.round(
-                    ((p.originalPrice - p.price) / p.originalPrice) * 100,
+                    ((p.originalPrice - displayPrice) / p.originalPrice) * 100,
                   )}
                   %
                 </span>
                 <span className="sm:hidden">
                   -
                   {Math.round(
-                    ((p.originalPrice - p.price) / p.originalPrice) * 100,
+                    ((p.originalPrice - displayPrice) / p.originalPrice) * 100,
                   )}
                   %
                 </span>
@@ -232,10 +240,10 @@ const ProductCardInner = React.memo(function ProductCardInner({
             <div className="flex flex-col items-center mb-0.5 sm:mb-1 mt-auto">
               <div className="flex items-baseline gap-1">
                 <span className="font-black text-base sm:text-lg text-slate-900 leading-none">
-                  {formatPrice(p.price).split(" ")[0]}
+                  {formatPrice(displayPrice).split(" ")[0]}
                 </span>
                 <span className="font-bold text-[10px] sm:text-xs text-solar leading-none">
-                  {formatPrice(p.price).split(" ").slice(1).join(" ")}
+                  {formatPrice(displayPrice).split(" ").slice(1).join(" ")}
                 </span>
               </div>
               {p.originalPrice && (

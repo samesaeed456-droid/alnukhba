@@ -666,15 +666,32 @@ function verifyChallengeSignature(challenge: string, type: 'reg' | 'auth', id: s
   return sig === expectedSig;
 }
 
+function getRpInfo(req: express.Request) {
+  // Try to get the real host from headers since we are behind a proxy
+  const forwardedHost = req.headers['x-forwarded-host'] as string;
+  const hostHeader = req.get('host') || 'localhost';
+  const fullHost = forwardedHost || hostHeader;
+  
+  // rpID is the domain (no port, no protocol)
+  const rpID = fullHost.split(':')[0];
+  
+  // Origin for verification
+  const forwardedProto = req.headers['x-forwarded-proto'] as string || (req.secure ? 'https' : 'http');
+  const origin = `${forwardedProto}://${fullHost}`;
+  
+  return { rpID, origin };
+}
+
 app.post('/api/webauthn/register/generate', async (req, res) => {
   const { uid, email } = req.body;
   if (!uid || !email) return res.status(400).json({ error: 'Missing uid or email' });
   
   try {
-    const host = req.get('host') || 'localhost';
-    const rpID = host.split(':')[0];
+    const { rpID } = getRpInfo(req);
     const rpName = 'Elite Store';
     
+    console.log(`[WebAuthn] Generating Reg Options for ${email} on ${rpID}`);
+
     const options = await generateRegistrationOptions({
       rpName,
       rpID,
@@ -682,7 +699,7 @@ app.post('/api/webauthn/register/generate', async (req, res) => {
       userName: email,
       attestationType: 'none',
       authenticatorSelection: {
-        residentKey: 'preferred',
+        residentKey: 'required', // Force discoverable credential
         userVerification: 'preferred',
       }
     });
@@ -706,9 +723,7 @@ app.post('/api/webauthn/register/verify', async (req, res) => {
   }
 
   try {
-    const host = req.get('host') || 'localhost';
-    const rpID = host.split(':')[0];
-    const origin = req.headers.origin || (req.secure ? 'https://' : 'http://') + host;
+    const { rpID, origin } = getRpInfo(req);
     
     const verification = await verifyRegistrationResponse({
       response,
@@ -755,8 +770,7 @@ app.post('/api/webauthn/register/verify', async (req, res) => {
 
 app.post('/api/webauthn/login/generate', async (req, res) => {
   try {
-    const host = req.get('host') || 'localhost';
-    const rpID = host.split(':')[0];
+    const { rpID } = getRpInfo(req);
     const sessionId = req.headers['x-session-id'] as string || "anonymous";
     const options = await generateAuthenticationOptions({
       rpID,
@@ -796,10 +810,8 @@ app.post('/api/webauthn/login/verify', async (req, res) => {
     }
     
     const passkeyData = passkeyDoc.data()!;
-    const host = req.get('host') || 'localhost';
-    const rpID = host.split(':')[0];
-    const origin = req.headers.origin || (req.secure ? 'https://' : 'http://') + host;
-
+    const { rpID, origin } = getRpInfo(req);
+    
     const verification = await verifyAuthenticationResponse({
       response,
       expectedChallenge: challenge,
@@ -813,8 +825,9 @@ app.post('/api/webauthn/login/verify', async (req, res) => {
     });
 
     if (verification.verified) {
+      const { authenticationInfo } = verification;
       await db.collection('passkeys').doc(passkeyId).update({ 
-        counter: verification.authenticationInfo.newCounter,
+        counter: authenticationInfo.newCounter,
         lastUsedAt: new Date().toISOString()
       });
       

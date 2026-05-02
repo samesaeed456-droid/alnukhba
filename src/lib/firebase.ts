@@ -114,6 +114,19 @@ export const adminDb = initializeFirestore(
   firebaseConfig.firestoreDatabaseId,
 );
 
+// Enable offline persistence immediately after initialization
+if (typeof window !== "undefined") {
+  enableIndexedDbPersistence(db).catch((err) => {
+    if (err.code === "failed-precondition") {
+      console.warn("Firestore persistence info: Multiple tabs open");
+    } else if (err.code === "unimplemented") {
+      console.warn("Firestore persistence info: Not supported");
+    }
+  });
+
+  enableIndexedDbPersistence(adminDb).catch(() => {});
+}
+
 export let messaging: Messaging | null = null;
 
 // Initialize messaging only in browser
@@ -126,21 +139,6 @@ if (typeof window !== "undefined") {
       err,
     );
   }
-}
-
-// Enable offline persistence - this helps when the backend is intermittently reachable
-if (typeof window !== "undefined") {
-  setTimeout(() => {
-    enableIndexedDbPersistence(db).catch((err) => {
-      if (err.code === "failed-precondition") {
-        console.warn("Firestore persistence info: Multiple tabs open");
-      } else if (err.code === "unimplemented") {
-        console.warn("Firestore persistence info: Not supported");
-      }
-    });
-
-    enableIndexedDbPersistence(adminDb).catch(() => {});
-  }, 1000);
 }
 
 export const googleProvider = new GoogleAuthProvider();
@@ -285,10 +283,13 @@ export function handleFirestoreError(
 // Silent Connection Test
 async function testConnection() {
   if (typeof window === "undefined") return;
-  try {
-    // Silent probe
-    await getDocFromServer(doc(db, "system", "probe")).catch(() => {});
-  } catch (e) {}
+  // Delay a bit to ensure persistence has had a chance to initialize
+  setTimeout(async () => {
+    try {
+      // Silent probe
+      await getDocFromServer(doc(db, "system", "probe")).catch(() => {});
+    } catch (e) {}
+  }, 2000);
 }
 testConnection();
 

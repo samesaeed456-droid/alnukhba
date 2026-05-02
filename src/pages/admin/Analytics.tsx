@@ -225,11 +225,9 @@ const Analytics = () => {
         : 0;
 
     // Avg Session Duration
+    const totalDuration = filteredVisits.reduce((sum, v) => sum + (Number(v.duration) || 0), 0);
     const avgDuration =
-      filteredVisits.length > 0
-        ? filteredVisits.reduce((sum, v) => sum + (v.duration || 0), 0) /
-          filteredVisits.length
-        : 0;
+      filteredVisits.length > 0 ? totalDuration / filteredVisits.length : 0;
 
     // Top Products
     const productSales: Record<string, { quantity: number; revenue: number }> =
@@ -409,7 +407,9 @@ const Analytics = () => {
   const locationData = useMemo(() => {
     const locations: Record<string, number> = {};
     visits.forEach((v) => {
-      const key = `${v.country} - ${v.city}`;
+      const country = v.country || "غير معروف";
+      const city = v.city || "";
+      const key = city ? `${country} - ${city}` : country;
       locations[key] = (locations[key] || 0) + 1;
     });
     return Object.entries(locations)

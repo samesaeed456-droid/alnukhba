@@ -1809,7 +1809,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const subtotal = useMemo(
     () =>
       cart.reduce(
-        (sum, item) => roundMoney(sum + item.product.price * item.quantity),
+        (sum, item) => {
+          const price = Number(item.product.price) || 0;
+          const quantity = Number(item.quantity) || 0;
+          return roundMoney(sum + price * quantity);
+        },
         0,
       ),
     [cart],

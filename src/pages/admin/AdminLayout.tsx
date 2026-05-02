@@ -31,9 +31,11 @@ import {
   MessageSquare,
   Clock,
   CheckCircle2,
+  Fingerprint,
 } from "lucide-react";
 import { motion, AnimatePresence, Variants } from "framer-motion";
 import { Toaster, toast } from "sonner";
+import { startRegistration } from "@simplewebauthn/browser";
 import Logo from "@/components/Logo";
 import { useStore } from "@/context/StoreContext";
 import { FloatingInput } from "@/components/FloatingInput";
@@ -150,6 +152,76 @@ export default function AdminLayout() {
   }, [orders, products, supportTickets, formatPrice, readNotifications]);
 
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isRegisteringPasskey, setIsRegisteringPasskey] = useState(false);
+
+  const handleRegisterPasskey = async () => {
+    setIsRegisteringPasskey(true);
+    setIsProfileOpen(false);
+    try {
+      const { adminAuth } = await import("@/lib/firebase");
+      const user = adminAuth.currentUser;
+      if (!user) throw new Error("غير مسجل دخول كإدارة");
+
+      const res = await fetch("/api/webauthn/register/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          uid: user.uid,
+          email: user.email || "admin",
+        }),
+      });
+
+      const resText = await res.text();
+      if (!res.ok) throw new Error(`Server returned ${res.status}: ${resText}`);
+
+      const options = JSON.parse(resText);
+      if (options.error) throw new Error(options.error);
+
+      const sessionToken = options.sessionToken;
+      const expectedChallenge = options.challenge;
+
+      let response;
+      try {
+        response = await startRegistration({ optionsJSON: options });
+      } catch (authErr: any) {
+        if (authErr.name === "NotAllowedError") {
+          setIsRegisteringPasskey(false);
+          return;
+        }
+        throw authErr;
+      }
+
+      const verifyRes = await fetch("/api/webauthn/register/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          uid: user.uid,
+          response,
+          challenge: expectedChallenge,
+          sessionToken,
+        }),
+      });
+      const verifyText = await verifyRes.text();
+      if (!verifyRes.ok) throw new Error(`Server returned ${verifyRes.status}: ${verifyText}`);
+      
+      const verifyData = JSON.parse(verifyText);
+
+      if (verifyData.success) {
+        toast.success("تم إعداد وتسجيل بصمة الدخول بنجاح!");
+      } else {
+        throw new Error(verifyData.error || "فشل التحقق");
+      }
+    } catch (err: any) {
+      console.error("[Admin Passkey Register Error]:", err);
+      if (err.name === "NotSupportedError") {
+        toast.error("المتصفح أو الجهاز لا يدعم هذه الميزة");
+      } else {
+        toast.error(err.message || "حدث خطأ أثناء تسجيل البصمة");
+      }
+    } finally {
+      setIsRegisteringPasskey(false);
+    }
+  };
 
   // Mark all as read function
   const markAllAsRead = () => {
@@ -812,6 +884,14 @@ export default function AdminLayout() {
                           <SettingsIcon className="w-4 h-4 text-slate-400" />
                           الإعدادات
                         </Link>
+                        <button
+                          onClick={handleRegisterPasskey}
+                          disabled={isRegisteringPasskey}
+                          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-orange-50 text-sm font-bold text-orange-600 transition-colors disabled:opacity-50"
+                        >
+                          <Fingerprint className="w-4 h-4" />
+                          {isRegisteringPasskey ? "جاري الإعداد..." : "إعداد البصمة للإدارة"}
+                        </button>
                         <button
                           onClick={handleLogout}
                           className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-rose-50 text-sm font-bold text-rose-600 transition-colors"

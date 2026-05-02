@@ -35,6 +35,7 @@ import {
   signInWithCustomToken,
 } from "firebase/auth";
 import { getAdminDummyEmail } from "../../lib/adminAuth";
+import { parseSmartError } from "../../lib/errorUtils";
 import Logo from "../../components/Logo";
 
 export default function AdminLogin() {
@@ -233,22 +234,24 @@ export default function AdminLogin() {
     localStorage.setItem("admin_attempt", "true");
 
     try {
-      await signInWithEmailAndPassword(adminAuth, email, password);
+      // Auto-detect if input is a phone number and convert to dummy email
+      let loginEmail = email.trim();
+      // Remove common separators for cleaner check, but keep the original for getAdminDummyEmail if needed
+      const cleanInput = loginEmail.replace(/[\s\-()]/g, "");
+      const isPhone = /^\+?\d+$/.test(cleanInput) && cleanInput.length >= 7;
+
+      if (isPhone) {
+        // We assume default country code +967 if not explicitly provided in the start
+        const countryCode = cleanInput.startsWith("+") ? "" : "+967";
+        loginEmail = getAdminDummyEmail(cleanInput, countryCode);
+      }
+
+      await signInWithEmailAndPassword(adminAuth, loginEmail, password);
       // If login successful, the useEffect Auth listener handles the redirection logic
     } catch (error: any) {
       console.error("Login error:", error);
-      let message = "حدث خطأ أثناء تسجيل الدخول";
-      if (
-        error.code === "auth/user-not-found" ||
-        error.code === "auth/invalid-credential"
-      )
-        message = "البيانات غير صحيحة أو غير متوفرة";
-      if (error.code === "auth/wrong-password") message = "كلمة المرور خاطئة";
-      if (error.code === "auth/too-many-requests")
-        message = "تم حظر المحاولات مؤقتاً، حاول لاحقاً";
-      if (error.message && !error.code) message = error.message;
-
-      toast.error(message);
+      const smartError = parseSmartError(error);
+      toast.error(smartError.message);
     } finally {
       setIsLoading(false);
     }
@@ -385,7 +388,7 @@ export default function AdminLogin() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@elite.com"
+                  placeholder="admin@elite.com أو رقم الجوال"
                   dir="ltr"
                   className="text-left"
                   required

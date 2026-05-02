@@ -31,6 +31,7 @@ import { FloatingInput } from "../../components/FloatingInput";
 import { ImageUploadField } from "../../components/ImageUploadField";
 import ConfirmationModal from "../../components/ConfirmationModal";
 import { toast } from "sonner";
+import { deleteImagesFromCloudinary } from "@/lib/cloudinary";
 
 type TabType = "banners" | "notifications";
 
@@ -91,6 +92,14 @@ export default function Marketing() {
   const handleBannerSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (editingBanner) {
+      // Cleanup removed images from Cloudinary
+      const oldImages = [editingBanner.image, ...(editingBanner.images || [])].filter(Boolean) as string[];
+      const newImages = [bannerForm.image, ...(bannerForm.images || [])].filter(Boolean) as string[];
+      const removedImages = oldImages.filter(img => !newImages.includes(img));
+
+      if (removedImages.length > 0) {
+        deleteImagesFromCloudinary(removedImages);
+      }
       updateBanner(editingBanner.id, bannerForm);
     } else {
       addBanner(bannerForm);
@@ -306,14 +315,23 @@ export default function Marketing() {
                         <Edit2 className="w-4 h-4" />
                       </button>
                       <button
-                        onClick={() =>
+                        onClick={() => {
+                          const imagesToDelete: string[] = [];
+                          if (banner.image) imagesToDelete.push(banner.image);
+                          if (banner.images) imagesToDelete.push(...banner.images);
+
                           setConfirmModal({
                             isOpen: true,
                             title: "حذف البنر",
                             message: `هل أنت متأكد من حذف البنر "${banner.title || "بدون اسم"}"؟`,
-                            onConfirm: () => deleteBanner(banner.id),
-                          })
-                        }
+                            onConfirm: () => {
+                              if (imagesToDelete.length > 0) {
+                                deleteImagesFromCloudinary(imagesToDelete);
+                              }
+                              deleteBanner(banner.id);
+                            },
+                          });
+                        }}
                         className="p-2 bg-red-50/90 backdrop-blur-md rounded-xl text-red-600 hover:bg-red-500 hover:text-white shadow-sm transition-all"
                       >
                         <Trash2 className="w-4 h-4" />

@@ -15,7 +15,7 @@ export function parseSmartError(error: any): SmartError {
       case "auth/wrong-password":
       case "auth/invalid-credential":
         return {
-          message: "رقم الجوال أو كلمة المرور غير صحيحة",
+          message: "بيانات الدخول غير صحيحة. يرجى التأكد من رقم الجوال/البريد وكلمة المرور.",
           code: error.code,
         };
       case "auth/email-already-in-use":

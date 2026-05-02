@@ -70,6 +70,11 @@ export default function Dashboard() {
     "today" | "week" | "all"
   >("all");
 
+  const safeToFixed = (val: any, dec: number = 0) => {
+    const num = parseFloat(val);
+    return isNaN(num) ? "0" : num.toFixed(dec);
+  };
+
   // Real Stats Calculations
   const stats = useMemo(() => {
     const now = new Date();
@@ -81,14 +86,14 @@ export default function Dashboard() {
         : new Date(o.date);
       return orderDate.toISOString().split("T")[0] === todayStr;
     });
-    const salesToday = ordersToday.reduce((sum, o) => sum + o.total, 0);
+    const salesToday = ordersToday.reduce((sum, o) => sum + (o.total || 0), 0);
 
-    const totalSales = orders.reduce((sum, o) => sum + o.total, 0);
+    const totalSales = orders.reduce((sum, o) => sum + (o.total || 0), 0);
     const activeOrders = orders.filter((o) =>
       ["pending", "processing", "shipped"].includes(o.status),
     ).length;
 
-    const aov = orders.length > 0 ? totalSales / orders.length : 0;
+    const aov = orders.length > 0 ? (totalSales || 0) / orders.length : 0;
 
     // Calculate growth (comparing to previous period - simplified for now)
     const yesterday = new Date(now);
@@ -100,13 +105,18 @@ export default function Dashboard() {
         : new Date(o.date);
       return orderDate.toISOString().split("T")[0] === yesterdayStr;
     });
-    const salesYesterday = ordersYesterday.reduce((sum, o) => sum + o.total, 0);
+    const salesYesterday = ordersYesterday.reduce(
+      (sum, o) => sum + (o.total || 0),
+      0,
+    );
     const aovYesterday =
-      ordersYesterday.length > 0 ? salesYesterday / ordersYesterday.length : 0;
+      ordersYesterday.length > 0
+        ? (salesYesterday || 0) / ordersYesterday.length
+        : 0;
 
     const salesGrowth =
       salesYesterday > 0
-        ? ((salesToday - salesYesterday) / salesYesterday) * 100
+        ? (((salesToday || 0) - (salesYesterday || 0)) / salesYesterday) * 100
         : 0;
     const ordersGrowth =
       ordersYesterday.length > 0
@@ -115,18 +125,20 @@ export default function Dashboard() {
           100
         : 0;
     const aovGrowth =
-      aovYesterday > 0 ? ((aov - aovYesterday) / aovYesterday) * 100 : 0;
+      aovYesterday > 0
+        ? (((aov || 0) - (aovYesterday || 0)) / aovYesterday) * 100
+        : 0;
 
     return {
-      salesToday,
+      salesToday: salesToday || 0,
       ordersToday: ordersToday.length,
-      totalSales,
+      totalSales: totalSales || 0,
       activeOrders,
-      aov,
+      aov: aov || 0,
       abandonedCarts: abandonedCarts?.length || 0,
-      salesGrowth: salesGrowth.toFixed(0),
-      ordersGrowth: ordersGrowth.toFixed(0),
-      aovGrowth: aovGrowth.toFixed(0),
+      salesGrowth: safeToFixed(salesGrowth),
+      ordersGrowth: safeToFixed(ordersGrowth),
+      aovGrowth: safeToFixed(aovGrowth),
     };
   }, [orders, abandonedCarts]);
 
@@ -158,14 +170,14 @@ export default function Dashboard() {
           : new Date(o.date);
         return orderDate.toISOString().split("T")[0] === dateStr;
       });
-      const value = dayOrders.reduce((sum, o) => sum + o.total, 0);
+      const value = dayOrders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
       return {
         label:
           salesTimeRange === "weekly"
             ? shortDays[date.getDay()]
             : (i + 1).toString(),
         fullLabel: days[date.getDay()],
-        value: Math.round(value),
+        value: Math.round(value) || 0,
       };
     });
   }, [orders, salesTimeRange]);
@@ -280,8 +292,10 @@ export default function Dashboard() {
         let growth = "جديد";
 
         if (prevSales > 0) {
-          const growthPct = ((currentSales - prevSales) / prevSales) * 100;
-          growth = `${growthPct >= 0 ? "+" : ""}${growthPct.toFixed(0)}%`;
+          const growthPct =
+            ((Number(currentSales) - Number(prevSales)) / Number(prevSales)) *
+            100;
+          growth = `${growthPct >= 0 ? "+" : ""}${safeToFixed(growthPct)}%`;
         } else if (currentSales > 0 && topSellingRange !== "all") {
           growth = "جديد";
         } else {
@@ -309,7 +323,7 @@ export default function Dashboard() {
           hour: "2-digit",
           minute: "2-digit",
         }),
-        amount: `+${o.total} ${BASE_CURRENCY_SYMBOL}`,
+        amount: `+${Number(o.total) || 0} ${BASE_CURRENCY_SYMBOL}`,
         icon: ShoppingCart,
         color: "text-solar",
         bg: "bg-solar/10",

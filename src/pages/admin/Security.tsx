@@ -12,6 +12,7 @@ import {
   ChevronDown,
   ChevronUp,
   Settings2,
+  Mail,
 } from "lucide-react";
 import { useStore } from "../../context/StoreContext";
 import { motion, AnimatePresence } from "motion/react";
@@ -168,18 +169,24 @@ export default function Security() {
   const handleAddAdmin = (e: React.FormEvent) => {
     e.preventDefault();
 
+    const trimmedIdentifier = adminForm.email.trim();
+    const cleanIdentifier = trimmedIdentifier.replace(/[\s\-()]/g, "");
+    const isPhone = /^\+?\d+$/.test(cleanIdentifier) && cleanIdentifier.length >= 7;
+    
+    if (!isPhone) {
+      // Basic email validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(trimmedIdentifier)) {
+        showToast("يرجى إدخال بريد إلكتروني صحيح أو رقم جوال", "error");
+        return;
+      }
+    }
+
     const trimmedAdminForm = {
       ...adminForm,
       name: adminForm.name.trim(),
-      email: adminForm.email.trim(),
+      email: trimmedIdentifier,
     };
-
-    // Basic email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(trimmedAdminForm.email)) {
-      showToast("يرجى إدخال بريد إلكتروني صحيح", "error");
-      return;
-    }
 
     if (trimmedAdminForm.password && trimmedAdminForm.password.length < 6) {
       showToast("كلمة المرور يجب أن لا تقل عن 6 أحرف", "error");
@@ -526,6 +533,8 @@ export default function Security() {
                       placeholder="admin@elite.com"
                       dir="ltr"
                       className="text-left"
+                      icon={<Mail className="w-4 h-4" />}
+                      iconPosition="start"
                     />
 
                     <FloatingInput
@@ -542,22 +551,6 @@ export default function Security() {
                       placeholder="77x xxx xxx"
                       dir="ltr"
                       className="tracking-widest text-left"
-                      startElement={
-                        <div className="flex items-center justify-center h-full text-slate-400 font-bold px-4 border-r border-slate-200">
-                          <select
-                            value={adminForm.countryCode}
-                            onChange={(e) =>
-                              setAdminForm({
-                                ...adminForm,
-                                countryCode: e.target.value,
-                              })
-                            }
-                            className="bg-transparent border-none outline-none text-[10px] cursor-pointer appearance-none text-center"
-                          >
-                            <option value="+967">🇾🇪 +967</option>
-                          </select>
-                        </div>
-                      }
                     />
 
                     <FloatingInput
@@ -790,6 +783,8 @@ export default function Security() {
                       placeholder="admin@elite.com"
                       dir="ltr"
                       className="text-left"
+                      icon={<Mail className="w-4 h-4" />}
+                      iconPosition="start"
                     />
 
                     <FloatingInput
@@ -806,22 +801,6 @@ export default function Security() {
                       placeholder="77x xxx xxx"
                       dir="ltr"
                       className="tracking-widest text-left"
-                      startElement={
-                        <div className="flex items-center justify-center h-full text-slate-400 font-bold px-4 border-r border-slate-200">
-                          <select
-                            value={adminForm.countryCode}
-                            onChange={(e) =>
-                              setAdminForm({
-                                ...adminForm,
-                                countryCode: e.target.value,
-                              })
-                            }
-                            className="bg-transparent border-none outline-none text-[10px] cursor-pointer appearance-none text-center"
-                          >
-                            <option value="+967">🇾🇪 +967</option>
-                          </select>
-                        </div>
-                      }
                     />
 
                     <div className="space-y-1">

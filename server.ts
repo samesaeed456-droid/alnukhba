@@ -849,11 +849,6 @@ async function startLocalServer() {
       maxAge: '1d',
       etag: true
     }));
-    
-    // API 404 handler
-    app.all("/api/*", (req, res) => {
-      res.status(404).json({ error: "API route not found" });
-    });
 
     // SPA Fallback - ensure we don't return index.html for missing static files
     app.get("*", (req, res) => {
@@ -863,6 +858,26 @@ async function startLocalServer() {
       res.sendFile(path.join(distPath, "index.html"));
     });
   }
+
+  // Global API Error Handler
+  app.use("/api/*", (err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+    console.error(`[API Error] ${req.method} ${req.url}:`, err);
+    res.status(err.status || 500).json({
+      error: "حدث خطأ في الخادم المستضيف",
+      message: err.message,
+      path: req.url
+    });
+  });
+
+  // Fallback for any other /api/* routes that weren't matched above
+  // This ensures we always return JSON for API calls instead of falling back to SPA HTML
+  app.all("/api/*", (req, res) => {
+    res.status(404).json({
+      error: "المسار غير موجود في الخادم",
+      message: `API route ${req.method} ${req.url} not found`,
+      path: req.url
+    });
+  });
 
   const PORT = 3000;
   app.listen(PORT, "0.0.0.0", () => {

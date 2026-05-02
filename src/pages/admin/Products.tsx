@@ -44,6 +44,7 @@ import { useStore } from "@/context/StoreContext";
 import { Product } from "@/types";
 import ConfirmationModal from "@/components/ConfirmationModal";
 import { FloatingInput } from "@/components/FloatingInput";
+import { deleteImagesFromCloudinary } from "@/lib/cloudinary";
 
 const PREDEFINED_COLORS = [
   { name: "أسود", value: "#000000" },
@@ -336,6 +337,15 @@ export default function Products() {
     }
 
     if (editingProduct) {
+      // Cleanup removed images from Cloudinary
+      const oldImages = [editingProduct.image, ...(editingProduct.images || [])].filter(Boolean) as string[];
+      const newImages = [finalFormData.image, ...(finalFormData.images || [])].filter(Boolean) as string[];
+      const removedImages = oldImages.filter(img => !newImages.includes(img));
+
+      if (removedImages.length > 0) {
+        deleteImagesFromCloudinary(removedImages);
+      }
+
       updateProduct(editingProduct.id, finalFormData);
     } else {
       addProduct(finalFormData as Omit<Product, "id">);
@@ -1204,14 +1214,14 @@ export default function Products() {
                               />
                               <button
                                 type="button"
-                                onClick={() =>
+                                onClick={() => {
                                   setFormData((prev) => ({
                                     ...prev,
                                     images: prev.images?.filter(
                                       (_, i) => i !== idx,
                                     ),
-                                  }))
-                                }
+                                  }));
+                                }}
                                 className="absolute inset-0 bg-red-500/80 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                               >
                                 <X className="w-4 h-4" />
@@ -1754,6 +1764,18 @@ export default function Products() {
         onClose={() => setItemToDelete(null)}
         onConfirm={async () => {
           if (itemToDelete) {
+            // Find images to delete
+            const product = products.find((p) => p.id === itemToDelete);
+            if (product) {
+              const imagesToDelete: string[] = [];
+              if (product.image) imagesToDelete.push(product.image);
+              if (product.images) imagesToDelete.push(...product.images);
+
+              if (imagesToDelete.length > 0) {
+                // Call Cloudinary delete API (background)
+                deleteImagesFromCloudinary(imagesToDelete);
+              }
+            }
             deleteProduct(itemToDelete);
             setItemToDelete(null);
           }
@@ -1769,6 +1791,18 @@ export default function Products() {
         isOpen={isBulkDeleteModalOpen}
         onClose={() => setIsBulkDeleteModalOpen(false)}
         onConfirm={async () => {
+          const allImagesToDelete: string[] = [];
+          selectedProducts.forEach((id) => {
+            const product = products.find((p) => p.id === id);
+            if (product) {
+              if (product.image) allImagesToDelete.push(product.image);
+              if (product.images) allImagesToDelete.push(...product.images);
+            }
+          });
+          if (allImagesToDelete.length > 0) {
+            deleteImagesFromCloudinary(allImagesToDelete);
+          }
+
           selectedProducts.forEach((id) => deleteProduct(id));
           setSelectedProducts([]);
           setIsBulkDeleteModalOpen(false);

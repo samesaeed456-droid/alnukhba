@@ -25,7 +25,7 @@ export async function getAIRecommendations(
       .join("\n");
 
     const prompt = `
-      You are an expert e-commerce recommendation engine for a store called "HORIZON" (The Elite) in Yemen.
+      You are an expert e-commerce recommendation engine for a store called "النخبة" in Yemen.
       Based on the following user data, suggest 4-6 products from our catalog that the user is most likely to be interested in.
       
       User Data:

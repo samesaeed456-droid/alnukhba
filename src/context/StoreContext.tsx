@@ -47,6 +47,9 @@ import { notificationService } from "../services/notificationService";
 import { smsService } from "../services/smsService";
 
 import {
+  deleteImagesFromCloudinary,
+} from "../lib/cloudinary";
+import {
   auth,
   adminAuth,
   db,
@@ -827,15 +830,40 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   // Sync Products from Firestore with Real-time Support
   useEffect(() => {
-    setIsLoading(true);
-    const isAdmin = !!adminAuth.currentUser || user?.role === "admin";
-    const activeDb = adminAuth.currentUser ? adminDb : db;
+    // Only set loading if we don't have products yet (initial load only)
+    const startedLoading = products.length === 0;
+    if (startedLoading) {
+      setIsLoading(true);
+    }
+
+    // Safety timeout: if Firestore doesn't respond within 30 seconds, stop loading and use cache
+    const loadingTimeout = startedLoading ? setTimeout(() => {
+      if (products.length === 0) {
+        setIsLoading(false);
+        const cached = localStorage.getItem("store_products");
+        if (cached) {
+          try {
+            const data = JSON.parse(cached);
+            setProducts(data);
+            showToast("تعذر الاتصال بقاعدة البيانات، تم تحميل البيانات المخزنة مؤقتاً", "info");
+          } catch (e) {
+            setProducts(initialProducts);
+          }
+        } else {
+          setSystemError("تعذر الاتصال بقاعدة البيانات. يرجى التحقق من اتصالك بالإنترنت.");
+        }
+      }
+    }, 30000) : null;
+    
+    // Determine admin status stably to avoid listener churn
+    const currentAdminUid = adminAuth.currentUser?.uid;
+    const activeDb = currentAdminUid ? adminDb : db;
     const productsRef = collection(activeDb, "products");
     
-    // We use a high limit to ensure all products are visible while guarding against massive reads
     const q = query(productsRef, orderBy("createdAt", "desc"), limit(300));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
+      if (loadingTimeout) clearTimeout(loadingTimeout);
       const productsData = snapshot.docs.map((doc) => ({
         ...doc.data(),
         id: String(doc.id),
@@ -844,13 +872,20 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setProducts(productsData);
       localStorage.setItem("store_products", JSON.stringify(productsData));
       localStorage.setItem("store_products_time", Date.now().toString());
-      setIsLoading(false);
+      
+      if (startedLoading) {
+        setIsLoading(false);
+      }
     }, (error: any) => {
+      if (loadingTimeout) clearTimeout(loadingTimeout);
       console.error("Products real-time sync error:", error);
-      setIsLoading(false);
+      if (startedLoading) {
+        setIsLoading(false);
+      }
+      
       // Fallback to cache if exists
       const cached = localStorage.getItem("store_products");
-      if (cached) {
+      if (cached && products.length === 0) {
         try {
           setProducts(JSON.parse(cached));
         } catch (e) {
@@ -859,8 +894,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       }
     });
 
-    return () => unsubscribe();
-  }, [user]);
+    return () => {
+      if (loadingTimeout) clearTimeout(loadingTimeout);
+      unsubscribe();
+    };
+    // Only re-run if role changes or admin identity changes
+  }, [user?.role, adminAuth.currentUser?.uid]);
 
   // Sanitize local states against actual products list to remove deleted items
   useEffect(() => {
@@ -926,7 +965,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     });
 
     return () => unsubscribe();
-  }, [user, adminUser]);
+    // Only re-run if roles or user identity change, or admin login status changes
+  }, [user?.role, user?.uid, adminUser?.role, adminUser?.uid, adminAuth.currentUser?.uid]);
 
   // Sync Admin-only Data
   useEffect(() => {
@@ -1282,7 +1322,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       unsubSettings();
       unsubMarketing();
     };
-  }, [isAuthReady, user, adminUser]);
+    // Only re-run on authentication state or environment change
+  }, [isAuthReady, user?.role, adminUser?.role, adminAuth.currentUser?.uid]);
 
   // Sync cart to abandonedCarts for abandoned cart notifications
   useEffect(() => {
@@ -1819,6 +1860,56 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         const updated = { ...settings, ...newSettings };
         const activeDb = adminAuth.currentUser ? adminDb : db;
 
+        const removedImages: string[] = [];
+
+        // Cleanup old logo
+        if (
+          newSettings.storeLogo &&
+          settings.storeLogo &&
+          newSettings.storeLogo !== settings.storeLogo
+        ) {
+          removedImages.push(settings.storeLogo);
+        }
+
+        // Cleanup favicon
+        if (
+          newSettings.seo?.favicon &&
+          settings.seo?.favicon &&
+          newSettings.seo.favicon !== settings.seo.favicon
+        ) {
+          removedImages.push(settings.seo.favicon);
+        }
+
+        // Cleanup ogImage
+        if (
+          newSettings.seo?.ogImage &&
+          settings.seo?.ogImage &&
+          newSettings.seo.ogImage !== settings.seo.ogImage
+        ) {
+          removedImages.push(settings.seo.ogImage);
+        }
+
+        // Cleanup payment method logos
+        if (newSettings.paymentMethods && settings.paymentMethods) {
+          settings.paymentMethods.forEach((oldMethod) => {
+            const newMethod = newSettings.paymentMethods?.find(
+              (m) => m.id === oldMethod.id,
+            );
+            if (
+              oldMethod.logo &&
+              newMethod &&
+              newMethod.logo &&
+              oldMethod.logo !== newMethod.logo
+            ) {
+              removedImages.push(oldMethod.logo);
+            }
+          });
+        }
+
+        if (removedImages.length > 0) {
+          deleteImagesFromCloudinary(removedImages);
+        }
+
         await setDoc(
           doc(activeDb, "settings", "store"),
           {
@@ -1956,6 +2047,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const updateBlogPost = React.useCallback(
     async (id: string, post: Partial<BlogPost>) => {
       try {
+        const oldPost = blogPosts.find((p) => p.id === id);
+        if (oldPost && post.image && oldPost.image !== post.image) {
+          deleteImagesFromCloudinary([oldPost.image]);
+        }
+
         await updateDoc(doc(db, "blog_posts", id), {
           ...post,
           updatedAt: serverTimestamp(),
@@ -1965,19 +2061,24 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         handleFirestoreError(error, OperationType.UPDATE, `blog_posts/${id}`);
       }
     },
-    [logActivity],
+    [blogPosts, logActivity],
   );
 
   const deleteBlogPost = React.useCallback(
     async (id: string) => {
       try {
+        const postToDelete = blogPosts.find((p) => p.id === id);
+        if (postToDelete && postToDelete.image) {
+          deleteImagesFromCloudinary([postToDelete.image]);
+        }
+
         await deleteDoc(doc(db, "blog_posts", id));
         logActivity("حذف مقال", `تم حذف المقال ${id}`);
       } catch (error) {
         handleFirestoreError(error, OperationType.DELETE, `blog_posts/${id}`);
       }
     },
-    [logActivity],
+    [blogPosts, logActivity],
   );
 
   const updateStaticPage = React.useCallback(
@@ -2224,8 +2325,22 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           oldBanner &&
           oldBanner.image !== updatedData.image
         ) {
-          deleteCloudinaryImages([oldBanner.image]);
+          deleteImagesFromCloudinary([oldBanner.image]);
         }
+
+        if (
+          updatedData.images &&
+          oldBanner &&
+          JSON.stringify(oldBanner.images) !== JSON.stringify(updatedData.images)
+        ) {
+          const removedImages = (oldBanner.images || []).filter(
+            (img) => !updatedData.images?.includes(img),
+          );
+          if (removedImages.length > 0) {
+            deleteImagesFromCloudinary(removedImages);
+          }
+        }
+
         const activeDb = adminAuth.currentUser ? adminDb : db;
         await updateDoc(doc(activeDb, "banners", id), {
           ...updatedData,
@@ -2247,7 +2362,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
       try {
         if (bannerToDelete) {
-          deleteCloudinaryImages([bannerToDelete.image]);
+          const imagesToDelete = [
+            bannerToDelete.image,
+            ...(bannerToDelete.images || []),
+          ].filter(Boolean) as string[];
+
+          if (imagesToDelete.length > 0) {
+            deleteImagesFromCloudinary(imagesToDelete);
+          }
         }
         const activeDb = adminAuth.currentUser ? adminDb : db;
         await deleteDoc(doc(activeDb, "banners", id));
@@ -2346,16 +2468,24 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const addAdminUser = React.useCallback(
     async (admin: Omit<AdminUser, "id">) => {
       try {
-        const trimmedEmail = (admin.email || "").trim();
+        const trimmedIdentifier = (admin.email || "").trim();
+        const cleanIdentifier = trimmedIdentifier.replace(/[\s\-()]/g, "");
+        const isPhone = /^\+?\d+$/.test(cleanIdentifier) && cleanIdentifier.length >= 7;
+        let finalEmail = trimmedIdentifier;
 
-        // Basic email validation
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(trimmedEmail)) {
-          showToast("يرجى إدخال بريد إلكتروني صحيح", "error");
-          return;
+        if (isPhone) {
+          const countryCode = cleanIdentifier.startsWith("+") ? "" : (admin.countryCode || "+967");
+          finalEmail = getAdminDummyEmail(cleanIdentifier, countryCode);
+        } else {
+          // Basic email validation for non-phone identifiers
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          if (!emailRegex.test(trimmedIdentifier)) {
+            showToast("يرجى إدخال بريد إلكتروني صحيح أو رقم جوال", "error");
+            return;
+          }
         }
 
-        let finalAdmin = { ...admin, email: trimmedEmail };
+        let finalAdmin = { ...admin, email: finalEmail };
         const activeDb = adminAuth.currentUser ? adminDb : db;
         let createdUid = doc(collection(activeDb, "users")).id;
 
@@ -2371,9 +2501,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             console.error("Auth user creation failed:", pwError);
             let errorMsg = "فشل إنشاء حساب الدخول";
             if (pwError.code === "auth/invalid-email")
-              errorMsg = "البريد الإلكتروني غير صالح";
+              errorMsg = "رقم الجوال غير صالح";
             if (pwError.code === "auth/email-already-in-use")
-              errorMsg = "هذا البريد مستخدم بالفعل";
+              errorMsg = "هذا الرقم مسجل مسبقاً";
             if (pwError.code === "auth/weak-password")
               errorMsg = "كلمة المرور ضعيفة جداً";
 
@@ -3192,36 +3322,36 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const toggleWishlist = React.useCallback(
     (product: Product) => {
-      setWishlist((prev) => {
-        const exists = prev.some((p) => String(p.id) === String(product.id));
-        let newWishlist: Product[];
+      const exists = wishlist.some((p) => String(p.id) === String(product.id));
+      let newWishlist: Product[];
 
-        if (exists) {
-          showToast(`تم إزالة ${product.name} من المفضلة`);
-          newWishlist = prev.filter((p) => String(p.id) !== String(product.id));
-        } else {
-          showToast(`تم إضافة ${product.name} إلى المفضلة`);
-          newWishlist = [...prev, product];
-        }
+      if (exists) {
+        showToast(`تم إزالة ${product.name} من المفضلة`);
+        newWishlist = wishlist.filter((p) => String(p.id) !== String(product.id));
+      } else {
+        showToast(`تم إضافة ${product.name} إلى المفضلة`);
+        newWishlist = [...wishlist, product];
+      }
+      
+      setWishlist(newWishlist);
 
-        // Update customers state
-        if (user) {
-          setCustomers((prevCustomers) =>
-            prevCustomers.map((c) => {
-              if (c.phone === user.phone) {
-                const updated = { ...c, wishlist: newWishlist };
-                setUser(updated);
-                return updated;
-              }
-              return c;
-            }),
-          );
-        }
-
-        return newWishlist;
-      });
+      // Handle user state update
+      if (user) {
+        const updatedUser = { ...user, wishlist: newWishlist };
+        setUser(updatedUser);
+        
+        // Update customers list if applicable (sync local state)
+        setCustomers((prevCustomers) =>
+          prevCustomers.map((c) => {
+            if (c.phone === user.phone) {
+              return { ...c, wishlist: newWishlist };
+            }
+            return c;
+          }),
+        );
+      }
     },
-    [showToast, user],
+    [showToast, user, wishlist],
   );
 
   const isInWishlist = React.useCallback(
@@ -4087,35 +4217,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     [products, user, showToast, logActivity],
   );
 
-  const deleteCloudinaryImages = async (urls: (string | undefined)[]) => {
-    const publicIds = urls
-      .filter((url) => url && url.includes("cloudinary.com"))
-      .map((url) => {
-        try {
-          const parts = url!.split("/");
-          const fileName = parts[parts.length - 1];
-          const publicId = fileName.split(".")[0];
-          // If it's in a folder, we might need more parts, but usually it's just the last part
-          return publicId;
-        } catch (e) {
-          return null;
-        }
-      })
-      .filter((id) => id !== null) as string[];
-
-    if (publicIds.length === 0) return;
-
-    try {
-      await fetch("/api/cloudinary?action=bulk-delete", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ public_ids: publicIds }),
-      });
-    } catch (error) {
-      console.error("Failed to cleanup cloud images:", error);
-    }
-  };
-
   const addProduct = React.useCallback(
     async (product: Omit<Product, "id">) => {
       const tempId = String(Date.now());
@@ -4162,7 +4263,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           oldProduct &&
           oldProduct.image !== updatedData.image
         ) {
-          deleteCloudinaryImages([oldProduct.image]);
+          deleteImagesFromCloudinary([oldProduct.image]);
         }
         if (
           updatedData.images &&
@@ -4173,7 +4274,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           const removedImages = (oldProduct.images || []).filter(
             (img) => !updatedData.images?.includes(img),
           );
-          if (removedImages.length > 0) deleteCloudinaryImages(removedImages);
+          if (removedImages.length > 0)
+            deleteImagesFromCloudinary(removedImages);
         }
 
         const activeDb = adminAuth.currentUser ? adminDb : db;
@@ -4206,7 +4308,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       try {
         // Automatic Cloud Cleanup
         if (productToDelete) {
-          deleteCloudinaryImages([
+          deleteImagesFromCloudinary([
             productToDelete.image,
             ...(productToDelete.images || []),
           ]);
@@ -4258,7 +4360,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           oldCategory &&
           oldCategory.image !== updatedData.image
         ) {
-          deleteCloudinaryImages([oldCategory.image]);
+          deleteImagesFromCloudinary([oldCategory.image]);
         }
         const activeDb = adminAuth.currentUser ? adminDb : db;
         await updateDoc(doc(activeDb, "categories", id), {
@@ -4282,7 +4384,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
       try {
         if (categoryToDelete) {
-          deleteCloudinaryImages([categoryToDelete.image]);
+          deleteImagesFromCloudinary([categoryToDelete.image]);
         }
         const activeDb = adminAuth.currentUser ? adminDb : db;
         await deleteDoc(doc(activeDb, "categories", id));

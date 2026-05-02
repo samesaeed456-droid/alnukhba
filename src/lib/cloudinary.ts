@@ -78,3 +78,65 @@ export const uploadToCloudinary = async (file: File): Promise<string> => {
   const data = await response.json();
   return data.secure_url;
 };
+
+/**
+ * Extracts the Public ID from a Cloudinary URL
+ */
+export const getPublicIdFromUrl = (url: string): string | null => {
+  if (!url || !url.includes("res.cloudinary.com")) return null;
+  const parts = url.split("/");
+  const uploadIndex = parts.indexOf("upload");
+  if (uploadIndex === -1) return null;
+
+  // Parts after "upload"
+  const remainingParts = parts.slice(uploadIndex + 1);
+
+  // If the first part starts with 'v' followed by digits, it's a version number - skip it
+  if (remainingParts[0] && /^v\d+$/.test(remainingParts[0])) {
+    remainingParts.shift();
+  }
+
+  // Join back and remove extension
+  const publicIdWithExt = remainingParts.join("/");
+  const lastDotIndex = publicIdWithExt.lastIndexOf(".");
+
+  if (lastDotIndex === -1) return publicIdWithExt;
+  return publicIdWithExt.substring(0, lastDotIndex);
+};
+
+/**
+ * Deletes images from Cloudinary via our backend API
+ */
+export const deleteImagesFromCloudinary = async (
+  urls: string[],
+): Promise<boolean> => {
+  try {
+    const publicIds = urls
+      .map(getPublicIdFromUrl)
+      .filter((id) => id !== null) as string[];
+
+    if (publicIds.length === 0) return true;
+
+    const response = await fetch("/api/cloudinary/bulk-delete", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ public_ids: publicIds }),
+    });
+
+    const contentType = response.headers.get("content-type");
+    if (!response.ok) {
+      const errorText = contentType?.includes("application/json") 
+        ? (await response.json()).error 
+        : await response.text();
+      console.warn("Failed to delete images from Cloudinary server:", errorText);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error("Error calling Cloudinary delete API:", error);
+    return false;
+  }
+};

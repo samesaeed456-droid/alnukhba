@@ -543,8 +543,8 @@ export default function AdminLayout() {
             <div className="w-10 h-10 rounded-2xl bg-solar flex items-center justify-center text-carbon shadow-lg shadow-gold">
               <Zap className="w-6 h-6 fill-current" />
             </div>
-            <span className="text-xl font-black tracking-tighter text-slate-900">
-              HORIZON
+            <span className="text-lg font-black tracking-tighter text-slate-900">
+              النخبة
             </span>
           </Link>
           <button
@@ -576,21 +576,27 @@ export default function AdminLayout() {
                   (item.path !== "/admin" &&
                     location.pathname.startsWith(item.path));
                 return (
-                  <Link
+                  <motion.div
                     key={item.name}
-                    to={item.path}
-                    onClick={closeMobileMenu}
-                    className={`flex items-center gap-4 px-4 py-3 rounded-2xl transition-all duration-300 group relative ${
-                      isActive
-                        ? "bg-solar text-carbon font-bold shadow-xl shadow-gold"
-                        : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
-                    }`}
+                    variants={itemVariants}
+                    whileHover={{ scale: 1.02, x: -4 }}
+                    whileTap={{ scale: 0.98 }}
                   >
-                    <item.icon
-                      className={`w-5 h-5 transition-transform duration-300 ${isActive ? "scale-110" : "group-hover:scale-110"}`}
-                    />
-                    <span className="text-sm">{item.name}</span>
-                  </Link>
+                    <Link
+                      to={item.path}
+                      onClick={closeMobileMenu}
+                      className={`flex items-center gap-4 px-4 py-3 rounded-2xl transition-all duration-300 group relative ${
+                        isActive
+                          ? "bg-solar text-carbon font-bold shadow-xl shadow-gold"
+                          : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
+                      }`}
+                    >
+                      <item.icon
+                        className={`w-5 h-5 transition-transform duration-300 ${isActive ? "scale-110" : "group-hover:scale-110"}`}
+                      />
+                      <span className="text-sm">{item.name}</span>
+                    </Link>
+                  </motion.div>
                 );
               })}
             </motion.div>

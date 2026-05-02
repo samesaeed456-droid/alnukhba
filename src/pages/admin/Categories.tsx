@@ -14,6 +14,7 @@ import {
 import { useStore } from "@/context/StoreContext";
 import ConfirmationModal from "@/components/ConfirmationModal";
 import { toast } from "sonner";
+import { deleteImagesFromCloudinary } from "@/lib/cloudinary";
 
 export default function AdminCategories() {
   const { categories, addCategory, updateCategory, deleteCategory } =
@@ -74,6 +75,10 @@ export default function AdminCategories() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (editingCategory) {
+      // Cleanup old image if changed
+      if (editingCategory.image && editingCategory.image !== formData.image) {
+        deleteImagesFromCloudinary([editingCategory.image]);
+      }
       updateCategory(editingCategory.id, formData);
     } else {
       addCategory(formData);
@@ -331,7 +336,13 @@ export default function AdminCategories() {
         isOpen={deleteModalOpen}
         onClose={() => setDeleteModalOpen(false)}
         onConfirm={() => {
-          if (categoryToDelete) deleteCategory(categoryToDelete);
+          if (categoryToDelete) {
+            const category = categories.find((c) => c.id === categoryToDelete);
+            if (category?.image) {
+              deleteImagesFromCloudinary([category.image]);
+            }
+            deleteCategory(categoryToDelete);
+          }
           setDeleteModalOpen(false);
           setCategoryToDelete(null);
         }}

@@ -100,6 +100,7 @@ export const db = initializeFirestore(
   app,
   {
     experimentalForceLongPolling: true,
+    ignoreUndefinedProperties: true,
   },
   firebaseConfig.firestoreDatabaseId,
 );
@@ -108,6 +109,7 @@ export const adminDb = initializeFirestore(
   adminApp,
   {
     experimentalForceLongPolling: true,
+    ignoreUndefinedProperties: true,
   },
   firebaseConfig.firestoreDatabaseId,
 );
@@ -126,21 +128,19 @@ if (typeof window !== "undefined") {
   }
 }
 
-// Enable offline persistence
+// Enable offline persistence - this helps when the backend is intermittently reachable
 if (typeof window !== "undefined") {
-  enableIndexedDbPersistence(db).catch((err) => {
-    if (err.code === "failed-precondition") {
-      console.warn("Firestore persistence failed: Multiple tabs open");
-    } else if (err.code === "unimplemented") {
-      console.warn("Firestore persistence is not supported in this browser");
-    }
-  });
+  setTimeout(() => {
+    enableIndexedDbPersistence(db).catch((err) => {
+      if (err.code === "failed-precondition") {
+        console.warn("Firestore persistence info: Multiple tabs open");
+      } else if (err.code === "unimplemented") {
+        console.warn("Firestore persistence info: Not supported");
+      }
+    });
 
-  enableIndexedDbPersistence(adminDb).catch((err) => {
-    if (err.code === "failed-precondition") {
-      console.warn("Admin Firestore persistence failed: Multiple tabs open");
-    }
-  });
+    enableIndexedDbPersistence(adminDb).catch(() => {});
+  }, 1000);
 }
 
 export const googleProvider = new GoogleAuthProvider();
@@ -154,15 +154,19 @@ export const getGoogleRedirectResult = () => getRedirectResult(auth);
 // Retry wrapper for auth functions to handle transient network errors
 const withRetry = <T extends (...args: any[]) => Promise<any>>(fn: T): T => {
   return (async (...args: Parameters<T>) => {
-    try {
-      return await fn(...args);
-    } catch (error: any) {
-      if (error.code === "auth/network-request-failed") {
-        console.warn("Network request failed in Auth. Retrying...");
-        await new Promise((r) => setTimeout(r, 1000));
+    let attempts = 0;
+    while (attempts < 3) {
+      try {
         return await fn(...args);
+      } catch (error: any) {
+        attempts++;
+        if (error.code === "auth/network-request-failed" && attempts < 3) {
+          console.warn(`Network request failed in Auth. Retrying (attempt ${attempts})...`);
+          await new Promise((r) => setTimeout(r, 1000 * attempts));
+        } else {
+          throw error;
+        }
       }
-      throw error;
     }
   }) as T;
 };
@@ -278,14 +282,13 @@ export function handleFirestoreError(
   throw new Error(JSON.stringify(errInfo));
 }
 
-// Critical: Connection Test per baseline guidelines
+// Silent Connection Test
 async function testConnection() {
+  if (typeof window === "undefined") return;
   try {
-    await getDocFromServer(doc(db, "system", "connection_test"));
-    console.log("Firestore connection verified");
-  } catch (error) {
-    console.warn("Firestore connection check info:", error);
-  }
+    // Silent probe
+    await getDocFromServer(doc(db, "system", "probe")).catch(() => {});
+  } catch (e) {}
 }
 testConnection();
 

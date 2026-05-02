@@ -55,6 +55,11 @@ import { motion, AnimatePresence } from "motion/react";
 
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
+    const safeToFixed = (val: any, dec: number = 0) => {
+      const num = parseFloat(val);
+      return isNaN(num) ? "0" : num.toFixed(dec);
+    };
+
     return (
       <div className="bg-white/95 backdrop-blur-md p-4 rounded-2xl shadow-gold-lg border border-solar/20 min-w-[150px]">
         <p className="text-xs font-bold text-slate-400 mb-2 uppercase tracking-widest">
@@ -100,6 +105,11 @@ const Analytics = () => {
   const [timeRange, setTimeRange] = useState("30d");
   const [chartView, setChartView] = useState<"visits" | "sales">("sales");
   const [isExporting, setIsExporting] = useState(false);
+
+  const safeToFixed = (val: any, dec: number = 0) => {
+    const num = parseFloat(val);
+    return isNaN(num) ? "0" : num.toFixed(dec);
+  };
 
   const handleSendReminder = async (cart: any) => {
     // In a real app, this would call an API to send a reminder (SMS/Email/WhatsApp)
@@ -163,9 +173,13 @@ const Analytics = () => {
 
     // Orders Metrics
     const filteredOrders = orders.filter((o) => new Date(o.date) >= startDate);
-    const totalRevenue = filteredOrders.reduce((sum, o) => sum + o.total, 0);
+    const totalOrders = filteredOrders.length;
+    const totalRevenue = filteredOrders.reduce(
+      (sum, o) => sum + (Number(o.total) || 0),
+      0,
+    );
     const averageOrderValue =
-      filteredOrders.length > 0 ? totalRevenue / filteredOrders.length : 0;
+      totalOrders > 0 ? (totalRevenue || 0) / totalOrders : 0;
 
     // Visits Metrics
     const filteredVisits = visits.filter(
@@ -213,7 +227,7 @@ const Analytics = () => {
     // Avg Session Duration
     const avgDuration =
       filteredVisits.length > 0
-        ? filteredVisits.reduce((sum, v) => sum + v.duration, 0) /
+        ? filteredVisits.reduce((sum, v) => sum + (v.duration || 0), 0) /
           filteredVisits.length
         : 0;
 
@@ -302,7 +316,10 @@ const Analytics = () => {
         return d.toDateString() === date.toDateString();
       });
 
-      const dayRevenue = dayOrders.reduce((sum, o) => sum + o.total, 0);
+      const dayRevenue = dayOrders.reduce(
+        (sum, o) => sum + (Number(o.total) || 0),
+        0,
+      );
 
       data.push({
         name: dateStr,
@@ -330,10 +347,11 @@ const Analytics = () => {
       sources[source] = (sources[source] || 0) + 1;
     });
 
+    const totalLength = (visits.length || 1) as number;
     return Object.entries(sources)
       .map(([name, value]) => ({
         name,
-        value: Math.round((value / visits.length) * 100),
+        value: Math.round(((Number(value) || 0) / totalLength) * 100) || 0,
         color:
           name === "مباشر"
             ? "#0F1115"
@@ -356,19 +374,19 @@ const Analytics = () => {
     return [
       {
         name: "جوال",
-        value: Math.round((counts.mobile / total) * 100),
+        value: Math.round(((Number(counts.mobile) || 0) / total) * 100) || 0,
         icon: Smartphone,
         color: "#E5C76B",
       },
       {
         name: "حاسوب",
-        value: Math.round((counts.desktop / total) * 100),
+        value: Math.round(((Number(counts.desktop) || 0) / total) * 100) || 0,
         icon: Monitor,
         color: "#0F1115",
       },
       {
         name: "تابلت",
-        value: Math.round((counts.tablet / total) * 100),
+        value: Math.round(((Number(counts.tablet) || 0) / total) * 100) || 0,
         icon: Globe,
         color: "#64748B",
       },
@@ -507,7 +525,7 @@ const Analytics = () => {
           },
           {
             label: "نسبة التحويل",
-            value: `${metrics.conversionRate.toFixed(1)}%`,
+            value: `${safeToFixed(metrics.conversionRate, 1)}%`,
             icon: Target,
             color: "bg-solar/10 text-solar",
             desc: "Conversion",
@@ -528,7 +546,7 @@ const Analytics = () => {
           },
           {
             label: "معدل الارتداد",
-            value: `${metrics.bounceRate.toFixed(1)}%`,
+            value: `${safeToFixed(metrics.bounceRate, 1)}%`,
             icon: MousePointer2,
             color: "bg-slate-50 text-slate-600",
             desc: "Bounce Rate",
@@ -946,11 +964,14 @@ const Analytics = () => {
               <span className="text-xs font-bold text-rose-500 uppercase tracking-widest block mb-1">
                 القيمة المهدرة
               </span>
-              <span className="text-xl font-black text-rose-700">
-                {formatPrice(
-                  abandonedCarts.reduce((sum, c) => sum + c.total, 0),
-                )}
-              </span>
+            <span className="text-xl font-black text-rose-700">
+              {formatPrice(
+                abandonedCarts.reduce(
+                  (sum, c) => sum + (Number(c.total) || 0),
+                  0,
+                ),
+              )}
+            </span>
             </div>
           </div>
 
@@ -972,9 +993,9 @@ const Analytics = () => {
                   </div>
                 </div>
                 <div className="text-right">
-                  <span className="text-sm font-black text-carbon block">
-                    {formatPrice(cart.value)}
-                  </span>
+                    <span className="text-sm font-black text-carbon block">
+                      {formatPrice(Number(cart.value) || 0)}
+                    </span>
                   <button
                     onClick={() => handleSendReminder(cart)}
                     className="text-[10px] font-bold text-solar hover:underline mt-1"
@@ -1050,9 +1071,9 @@ const Analytics = () => {
                   </span>
                 </div>
                 <div className="text-right">
-                  <span className="text-sm font-black text-carbon">
-                    {page.count}
-                  </span>
+                    <span className="text-sm font-black text-carbon">
+                      {page.count || 0}
+                    </span>
                   <p className="text-[10px] text-slate-400">مشاهدة</p>
                 </div>
               </div>

@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { useStore } from "../../context/StoreContext";
 import { db, collectionGroup, getDocs, deleteDoc, doc, handleFirestoreError, OperationType } from "../../lib/firebase";
+import { deleteImagesFromCloudinary } from "../../lib/cloudinary";
 import { Review } from "../../types";
 import {
   Search,
@@ -96,6 +97,11 @@ const Messages = () => {
       message: "هل أنت متأكد من حذف هذا التقييم؟ لا يمكن التراجع عن هذا الإجراء.",
       onConfirm: async () => {
         try {
+          // Cleanup review images
+          if (review.images && review.images.length > 0) {
+            deleteImagesFromCloudinary(review.images);
+          }
+
           // Identify product reference
           await deleteDoc(doc(db, "products", review.productId, "reviews", review.id));
           setAllReviews((prev) => prev.filter((r) => r.id !== review.id));

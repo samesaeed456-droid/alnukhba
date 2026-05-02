@@ -2013,7 +2013,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const deleteTicket = React.useCallback(
     async (id: string) => {
       try {
-        await deleteDoc(doc(db, "support_tickets", id));
+        const ticketRef = doc(db, "support_tickets", id);
+        const ticketSnap = await getDoc(ticketRef);
+        
+        if (ticketSnap.exists()) {
+          const ticketData = ticketSnap.data();
+          if (ticketData.attachments && Array.isArray(ticketData.attachments) && ticketData.attachments.length > 0) {
+            deleteImagesFromCloudinary(ticketData.attachments);
+          }
+        }
+
+        await deleteDoc(ticketRef);
         logActivity("حذف تذكرة", `تم حذف التذكرة ${id}`);
         showToast("تم حذف الرسالة بنجاح");
       } catch (error) {
@@ -3309,6 +3319,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const deleteOrder = React.useCallback(
     async (id: string) => {
       try {
+        const orderToDelete = orders.find((o) => o.id === id);
+        if (orderToDelete && orderToDelete.paymentProof) {
+          deleteImagesFromCloudinary([orderToDelete.paymentProof]);
+        }
+
         const activeDb = adminAuth.currentUser ? adminDb : db;
         await deleteDoc(doc(activeDb, "orders", id));
         showToast("تم حذف الطلب بنجاح", "success");
@@ -3317,7 +3332,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         handleFirestoreError(error, OperationType.DELETE, `orders/${id}`);
       }
     },
-    [showToast, logActivity],
+    [orders, showToast, logActivity],
   );
 
   const toggleWishlist = React.useCallback(
@@ -3367,6 +3382,26 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
       // Save current user for error reversal if needed
       const prevUser = user;
+
+      // Cleanup old avatar if changed
+      if (
+        prevUser &&
+        newUser.avatar &&
+        prevUser.avatar &&
+        prevUser.avatar !== newUser.avatar
+      ) {
+        deleteImagesFromCloudinary([prevUser.avatar]);
+      }
+
+      // Cleanup old photoURL if changed
+      if (
+        prevUser &&
+        newUser.photoURL &&
+        prevUser.photoURL &&
+        prevUser.photoURL !== newUser.photoURL
+      ) {
+        deleteImagesFromCloudinary([prevUser.photoURL]);
+      }
 
       const prevPhone = prevUser?.phone || "";
       const newPhone = newUser.phone || "";
@@ -3451,6 +3486,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
     try {
       const uid = auth.currentUser.uid;
+      
+      // Cleanup user images
+      if (user) {
+        const imagesToDelete = [user.avatar, user.photoURL].filter(
+          Boolean,
+        ) as string[];
+        if (imagesToDelete.length > 0) {
+          deleteImagesFromCloudinary(imagesToDelete);
+        }
+      }
+
       // 1. Delete user data from Firestore
       await deleteDoc(doc(db, "users", uid));
 
@@ -3837,6 +3883,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         if (!docRef) {
           showToast("العميل غير موجود", "error");
           return;
+        }
+
+        const customerToDelete = customers.find(
+          (c) => c.uid === identifier || c.phone === identifier,
+        );
+        if (customerToDelete) {
+          const imagesToDelete = [
+            customerToDelete.avatar,
+            customerToDelete.photoURL,
+          ].filter(Boolean) as string[];
+          if (imagesToDelete.length > 0) {
+            deleteImagesFromCloudinary(imagesToDelete);
+          }
         }
 
         await deleteDoc(docRef);

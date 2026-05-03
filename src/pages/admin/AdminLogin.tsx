@@ -277,172 +277,142 @@ export default function AdminLogin() {
 
   return (
     <div
-      className="min-h-screen bg-slate-50 flex items-center justify-center p-0 sm:p-6 font-sans relative overflow-hidden"
+      className="min-h-screen bg-carbon flex items-center justify-center p-4 sm:p-8 font-sans relative overflow-hidden"
       dir="rtl"
     >
-      {/* Background Decorative Elements */}
-      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-        <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] bg-solar/5 rounded-full blur-[120px]" />
-        <div className="absolute bottom-[-10%] left-[-10%] w-[40%] h-[40%] bg-carbon/5 rounded-full blur-[120px]" />
+      {/* Cinematic Background Layer */}
+      <div className="absolute inset-0 z-0">
+        <motion.img
+          initial={{ scale: 1.2, opacity: 0 }}
+          animate={{ scale: 1, opacity: 0.4 }}
+          transition={{ duration: 2, ease: "easeOut" }}
+          src="https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=2000"
+          alt="Background"
+          className="w-full h-full object-cover"
+          referrerPolicy="no-referrer"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-carbon/80 via-carbon/90 to-carbon" />
+        
+        {/* Animated Mesh Gradients */}
+        <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] bg-solar/10 rounded-full blur-[120px] animate-pulse" />
+        <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] bg-blue-500/10 rounded-full blur-[120px] animate-pulse" style={{ animationDelay: '1s' }} />
       </div>
 
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-6xl flex flex-col md:flex-row bg-white rounded-none sm:rounded-[40px] shadow-2xl shadow-slate-200/50 border-0 sm:border border-slate-100 overflow-hidden relative z-10 min-h-screen sm:min-h-0"
+        initial={{ opacity: 0, y: 20, scale: 0.95 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+        className="w-full max-w-[480px] relative z-10"
       >
-        {/* Left Side: Branding & Info */}
-        <div className="hidden md:flex md:w-1/2 bg-carbon relative overflow-hidden">
-          <div className="absolute inset-0">
-            <img
-              src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&q=80&w=2000"
-              alt="Admin Experience"
-              className="w-full h-full object-cover opacity-30 mix-blend-overlay"
-              referrerPolicy="no-referrer"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-carbon via-carbon/50 to-transparent" />
-          </div>
-
-          <div className="relative z-10 p-12 flex flex-col justify-between h-full text-white">
-            <div>
-              <Logo variant="light" className="h-12" />
-            </div>
-
-            <div className="space-y-6">
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.3 }}
-              >
-                <div className="w-16 h-16 bg-solar/20 backdrop-blur-md rounded-2xl border border-solar/30 flex items-center justify-center mb-6">
-                  <Zap className="w-8 h-8 text-solar fill-solar" />
-                </div>
-                <h2 className="text-4xl font-black leading-tight mb-4 tracking-tight">
-                  نظام الإدارة المتطور
-                  <br /> لمتجر النخبة
-                </h2>
-                <p className="text-slate-400 text-lg font-medium leading-relaxed">
-                  تحكم كامل بمتجرك، منتجاتك، وعملائك في منصة واحدة ذكية وسريعة.
-                </p>
-              </motion.div>
-
-              <div className="flex items-center gap-8 pt-8 border-t border-white/10">
-                <div className="flex flex-col">
-                  <span className="text-2xl font-black text-white">100%</span>
-                  <span className="text-[10px] text-slate-400 font-black uppercase tracking-wider">
-                    تحكم آمن
-                  </span>
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-2xl font-black text-white">Live</span>
-                  <span className="text-[10px] text-slate-400 font-black uppercase tracking-wider">
-                    مراقبة فورية
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="text-[10px] text-slate-500 font-bold tracking-widest uppercase">
-              إدارة النخبة الذكية • الإصدار 4.2.0
-            </div>
-          </div>
+        {/* Logo Section */}
+        <div className="flex justify-center mb-10">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.5 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+          >
+            <Logo variant="light" className="h-12" />
+          </motion.div>
         </div>
 
-        {/* Right Side: Form */}
-        <div className="w-full md:w-1/2 p-8 sm:p-12 lg:p-16 flex flex-col justify-center bg-white relative">
-          <button
-            onClick={() => navigate("/")}
-            className="absolute top-8 right-8 p-2.5 text-slate-400 hover:text-carbon hover:bg-slate-50 rounded-2xl transition-all border border-slate-50 flex items-center gap-2 text-[10px] font-black uppercase tracking-tighter"
-          >
-            <Home className="w-4 h-4" />
-            <span>الرجوع للمتجر</span>
-          </button>
-
-          <div className="md:hidden flex justify-center mb-10">
-            <Logo variant="dark" className="h-12" />
-          </div>
-
-          <div className="mb-10 text-center md:text-right">
-            <h1 className="text-3xl font-black text-carbon mb-2 tracking-tight">
-              تسجيل دخول الإدارة
+        {/* Main Card */}
+        <div className="bg-white/[0.03] backdrop-blur-2xl rounded-[40px] border border-white/10 p-8 sm:p-12 shadow-[0_40px_80px_-20px_rgba(0,0,0,0.5)] overflow-hidden relative">
+          {/* Subtle Inner Glow */}
+          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+          
+          <div className="text-center mb-10">
+            <h1 className="text-3xl font-black text-white mb-2 tracking-tighter">
+              بوابة الإدارة
             </h1>
-            <p className="text-slate-500 font-bold text-sm leading-relaxed flex items-center justify-center md:justify-start gap-2">
-              <ShieldCheck className="w-4 h-4 text-emerald-500" />
-              يرجى إدخال بياناتك للوصول للوحة التحكم
-            </p>
+            <div className="flex items-center justify-center gap-2 text-slate-400 font-bold text-xs">
+              <ShieldCheck className="w-4 h-4 text-solar" />
+              <span>نظام الدخول الآمن لمتجر النخبة</span>
+            </div>
           </div>
 
           <AnimatePresence mode="wait">
             <motion.form
-              key="login"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
+              key="login-form-centered"
               onSubmit={handleLogin}
-              className="space-y-6"
+              className="space-y-8"
             >
-              <div className="space-y-5">
-                <FloatingInput
-                  label="البريد الإلكتروني للإدارة"
-                  id="adminEmail"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@elite.com أو رقم الجوال"
-                  dir="ltr"
-                  className="text-left"
-                  required
-                />
-
-                <div className="relative">
-                  <FloatingInput
-                    id="adminPassword"
-                    label="كلمة المرور"
-                    type={showPassword ? "text" : "password"}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    icon={<Lock className="w-5 h-5" />}
-                    iconPosition="start"
-                    required
-                    dir="ltr"
-                    className="text-left"
-                  />
-                  <div className="absolute left-1 top-1 bottom-1 flex items-center gap-1">
-                    {!password && (
-                      <button
-                        type="button"
-                        onClick={handlePasskeyLogin}
-                        disabled={isLoading}
-                        className="px-3 h-full flex items-center justify-center text-orange-500 hover:text-orange-600 transition-all hover:scale-110 active:scale-95"
-                        title="دخول سريع بالبصمة"
-                      >
-                        <Fingerprint className="w-5 h-5" />
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="px-3 h-full flex items-center justify-center text-slate-400 hover:text-carbon transition-colors"
-                    >
-                      {showPassword ? (
-                        <EyeOff className="w-4 h-4" />
-                      ) : (
-                        <Eye className="w-4 h-4" />
-                      )}
-                    </button>
+                <div className="space-y-6">
+                  {/* Email Field with modern dark style */}
+                  <div className="group">
+                    <FloatingInput
+                      label="البريد الإلكتروني للإدارة"
+                      id="adminEmail"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="admin@elite.com"
+                      dir="ltr"
+                      className="text-left font-sans !bg-white/[0.04] !border-white/10 !text-solar focus:!border-solar/60 transition-all"
+                      startElement={
+                        <div className="flex items-center justify-center w-10 h-10 ml-1 rounded-xl bg-white/5 border border-white/10 text-slate-500 group-focus-within:text-solar transition-colors">
+                          <ShieldCheck className="w-5 h-5" />
+                        </div>
+                      }
+                      required
+                    />
                   </div>
-                </div>
+
+                  <div className="group">
+                    <FloatingInput
+                      id="adminPassword"
+                      label="كلمة المرور"
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      dir="ltr"
+                      className="text-left font-sans !bg-white/[0.04] !border-white/10 !text-solar focus:!border-solar/60 transition-all"
+                      startElement={
+                        <div className="flex items-center px-1">
+                          {!password ? (
+                            <motion.button
+                              initial={{ scale: 0, opacity: 0 }}
+                              animate={{ scale: 1, opacity: 1 }}
+                              type="button"
+                              onClick={handlePasskeyLogin}
+                              disabled={isLoading}
+                              className="w-10 h-10 flex items-center justify-center text-solar hover:text-solar/80 transition-all hover:scale-110 active:scale-95 bg-white/5 rounded-xl border border-white/10"
+                              title="دخول سريع بالبصمة"
+                            >
+                              <Fingerprint className="w-5 h-5" />
+                            </motion.button>
+                          ) : (
+                            <motion.button
+                              initial={{ scale: 0, opacity: 0 }}
+                              animate={{ scale: 1, opacity: 1 }}
+                              type="button"
+                              onClick={() => setShowPassword(!showPassword)}
+                              className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-white transition-colors bg-white/5 rounded-xl border border-white/10"
+                            >
+                              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </motion.button>
+                          )}
+                        </div>
+                      }
+                      icon={<Lock className="w-5 h-5 text-slate-500 group-focus-within:text-solar transition-colors" />}
+                      iconPosition="end"
+                      required
+                    />
+                  </div>
               </div>
 
-              <div className="flex items-center justify-between">
-                <label className="flex items-center gap-2 cursor-pointer group">
+              <div className="flex items-center justify-between px-1">
+                <label className="flex items-center gap-2.5 cursor-pointer group select-none">
                   <div
-                    className={`w-5 h-5 rounded-lg border-2 flex items-center justify-center transition-all ${rememberMe ? "bg-carbon border-carbon text-white shadow-lg shadow-carbon/20" : "border-slate-200 group-hover:border-slate-300"}`}
+                    className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${
+                      rememberMe 
+                        ? "bg-solar border-solar text-carbon" 
+                        : "border-white/10 group-hover:border-white/30"
+                    }`}
                   >
-                    {rememberMe && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                    {rememberMe && <Check className="w-3.5 h-3.5 stroke-[4]" />}
                   </div>
-                  <span className="font-bold text-xs text-slate-500 select-none">
-                    تذكر حذائي الإداري
+                  <span className="font-black text-[11px] text-slate-400 group-hover:text-slate-300 transition-colors uppercase tracking-tight">
+                    تذكر الجلسة الإدارية
                   </span>
                   <input
                     type="checkbox"
@@ -456,26 +426,41 @@ export default function AdminLogin() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full h-14 bg-carbon text-white rounded-2xl font-black text-sm flex items-center justify-center gap-3 hover:bg-slate-800 transition-all hover:shadow-2xl hover:shadow-carbon/30 active:scale-[0.98] disabled:opacity-70 group"
+                className="w-full h-14 bg-solar text-carbon rounded-2xl font-black text-sm flex items-center justify-center gap-3 hover:bg-yellow-400 transition-all shadow-[0_20px_40px_-12px_rgba(242,183,5,0.3)] hover:shadow-solar/40 active:scale-[0.98] disabled:opacity-70 group overflow-hidden relative"
               >
                 {isLoading ? (
                   <Loader2 className="animate-spin w-5 h-5" />
                 ) : (
                   <>
-                    <span>تسجيل الدخول للنظام</span>
-                    <ArrowLeft className="w-5 h-5 transition-transform group-hover:-translate-x-1" />
+                    <span className="relative z-10 tracking-widest uppercase">دخول النظام الآمن</span>
+                    <ArrowLeft className="w-5 h-5 relative z-10 transition-transform group-hover:-translate-x-1" />
                   </>
                 )}
+                <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
               </button>
 
-              <div className="pt-6 text-center border-t border-slate-100">
-                <p className="text-[10px] text-slate-400 font-bold leading-relaxed">
-                  هذا النظام محمي بطبقات أمان النخبة. أي محاولة دخول غير مصرح
-                  بها يتم تسجيلها فورياً.
+              <div className="pt-8 text-center">
+                <div className="inline-flex items-center gap-2 text-[9px] text-slate-500 font-black uppercase tracking-[0.2em] mb-4">
+                  <Zap className="w-3 h-3 fill-slate-500" />
+                  تحقق أمني متعدد الطبقات
+                </div>
+                <p className="text-[10px] text-slate-500 font-bold leading-relaxed max-w-[280px] mx-auto opacity-60">
+                  الإصدار 4.5.3 • سحابة النخبة الإدارية
                 </p>
               </div>
             </motion.form>
           </AnimatePresence>
+        </div>
+
+        {/* Floating Actions */}
+        <div className="mt-8 flex justify-center">
+          <Link
+            to="/"
+            className="px-6 py-3 text-slate-400 hover:text-white hover:bg-white/5 rounded-full transition-all border border-transparent hover:border-white/10 flex items-center gap-2 group"
+          >
+            <Home className="w-4 h-4 transition-transform group-hover:scale-110" />
+            <span className="text-[10px] font-black uppercase tracking-tighter">العودة للمتجر</span>
+          </Link>
         </div>
       </motion.div>
       <Toaster position="top-center" richColors />

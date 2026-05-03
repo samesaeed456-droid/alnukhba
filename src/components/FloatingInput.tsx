@@ -54,7 +54,7 @@ export function FloatingInput({
       >
         {actualStartElement && (
           <div
-            className={`flex items-center justify-center z-10 ${hasError ? "text-red-400" : "text-slate-400 focus-within:text-solar"} ${isTextArea ? "pt-4 px-3" : "h-full"} ${startElement ? "" : dir === "ltr" ? "pl-4 pr-2" : "pr-4 pl-2"}`}
+            className={`flex items-center justify-center z-10 ${hasError ? "text-red-400" : "text-slate-400"} ${isTextArea ? "pt-4 px-3" : "h-full"} ${startElement ? "px-1" : dir === "ltr" ? "pl-4 pr-2" : "pr-4 pl-2"}`}
           >
             {actualStartElement}
           </div>
@@ -72,8 +72,8 @@ export function FloatingInput({
               peer w-full bg-transparent outline-none 
               text-carbon font-semibold text-sm sm:text-base
               ${isTextArea ? "resize-none pt-7 pb-3 px-4 min-h-[120px]" : "h-full pt-5 pb-1"}
-              ${!actualStartElement ? (dir === "ltr" ? "pl-4" : "pr-4") : "px-2"}
-              ${!actualEndElement ? (dir === "ltr" ? "pr-4" : "pl-4") : "px-2"}
+              ${!actualStartElement ? (dir === "ltr" ? "pl-4" : "pr-4") : startElement ? (dir === "ltr" ? "pl-14" : "pr-14") : "px-2"}
+              ${!actualEndElement ? (dir === "ltr" ? "pr-4" : "pl-4") : endElement ? (dir === "ltr" ? "pr-14" : "pl-14") : "px-2"}
               ${className}
             `}
           />
@@ -81,10 +81,11 @@ export function FloatingInput({
           <label
             className={`
               absolute pointer-events-none transition-all duration-200 ease-in-out z-20
-              ${!actualStartElement ? (dir === "ltr" ? "left-4" : "right-4") : dir === "ltr" ? "left-2" : "right-2"}
+              ${!actualStartElement ? (dir === "ltr" ? "left-4" : "right-4") : dir === "ltr" ? (startElement ? "left-3" : "left-2") : (startElement ? "right-3" : "right-2")}
               top-1.5 text-[10px] sm:text-xs font-bold ${hasError ? "text-red-500" : "text-slate-500 peer-focus:text-solar"}
               peer-placeholder-shown:top-1/2 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:text-sm peer-placeholder-shown:font-medium peer-placeholder-shown:text-slate-400
               ${isTextArea ? "peer-placeholder-shown:top-6" : ""}
+              whitespace-nowrap overflow-hidden text-ellipsis max-w-[calc(100%-2rem)]
             `}
           >
             {label}
@@ -93,7 +94,7 @@ export function FloatingInput({
 
         {actualEndElement && (
           <div
-            className={`flex items-center justify-center h-full z-10 ${hasError ? "text-red-400" : "text-slate-400 focus-within:text-solar"} ${isTextArea ? "pt-4" : ""} ${endElement ? "" : dir === "ltr" ? "pr-4 pl-2" : "pl-4 pr-2"}`}
+            className={`flex items-center justify-center h-full z-10 ${hasError ? "text-red-400" : "text-slate-400"} ${isTextArea ? "pt-4" : ""} ${endElement ? "px-1" : dir === "ltr" ? "pr-4 pl-2" : "pl-4 pr-2"}`}
           >
             {actualEndElement}
           </div>

@@ -661,7 +661,6 @@ const Settings = () => {
                               ...formData,
                               autoNotifications: {
                                 ...(formData.autoNotifications || {
-                                  sms: true,
                                   email: true,
                                   onStatusChange: ["shipped"],
                                 }),
@@ -683,28 +682,7 @@ const Settings = () => {
                           className="pt-6 border-t border-slate-200 space-y-6"
                         >
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="flex items-center justify-between p-4 bg-white rounded-2xl border border-slate-100">
-                              <div className="flex items-center gap-3">
-                                <Smartphone className="w-4 h-4 text-slate-400" />
-                                <span className="text-sm font-bold">
-                                  رسائل SMS
-                                </span>
-                              </div>
-                              <input
-                                type="checkbox"
-                                className="w-5 h-5 rounded-lg border-slate-300 text-solar focus:ring-solar"
-                                checked={formData.autoNotifications?.sms}
-                                onChange={(e) =>
-                                  setFormData({
-                                    ...formData,
-                                    autoNotifications: {
-                                      ...formData.autoNotifications!,
-                                      sms: e.target.checked,
-                                    },
-                                  })
-                                }
-                              />
-                            </div>
+
                           </div>
 
                           <div className="space-y-3">

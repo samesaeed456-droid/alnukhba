@@ -53,7 +53,6 @@ import { FloatingInput } from "@/components/FloatingInput";
 import ConfirmationModal from "@/components/ConfirmationModal";
 import { useStore } from "@/context/StoreContext";
 import { UserProfile as UserType } from "@/types";
-import { smsService } from "@/services/smsService";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -173,8 +172,6 @@ export default function Customers() {
     message: "",
     type: "system" as any,
   });
-  const [isSmsModalOpen, setIsSmsModalOpen] = useState(false);
-  const [smsMessage, setSmsMessage] = useState("");
 
   const handleUpdateBalance = (e: React.FormEvent) => {
     e.preventDefault();
@@ -256,7 +253,7 @@ export default function Customers() {
         message: notificationData.message,
         target: "specific_user",
         targetUserId: selectedCustomer.uid || selectedCustomer.phone,
-        type: notificationData.type === "sms" ? "sms" : "push",
+        type: "push",
       });
       // sendMarketingNotification takes care of showing the success toast and logging activity
     } catch (err) {
@@ -267,53 +264,13 @@ export default function Customers() {
     setNotificationData({ title: "", message: "", type: "system" });
   };
 
-  const [isSendingSms, setIsSendingSms] = useState(false);
-
-  const handleSendSms = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedCustomer || !smsMessage) return;
-
-    setIsSendingSms(true);
-
-    try {
-      showToast("تم إرسال الرسالة النصية بنجاح", "success");
-      setIsSmsModalOpen(false);
-      setSmsMessage("");
-    } catch (error) {
-      showToast("فشل إرسال الرسالة", "error");
-    } finally {
-      setIsSendingSms(false);
-    }
-  };
-
   const handleSendReminder = async (customer: UserType) => {
     setIsActionMenuOpen(false);
-    try {
-      const response = await fetch("/api/sms", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          phone: customer.phone,
-          message: `أهلاً ${customer.displayName || "عميلنا العزيز"}، مكانك محفوظ دائماً في متجر النخبة 🌟. لأننا نقدر ذوقك الرفيع، حرصنا على توفير أحدث الإصدارات التي نعلم أنها ستنال إعجابك. ننتظر إطلالتك بشوق: ${window.location.origin}`,
-        }),
-      });
-
-      const data = await response.json();
-      if (data.success) {
-        showToast("تم إرسال تذكير SMS بنجاح", "success");
-      } else {
-        // Show the actual error from the server
-        showToast(data.error || "فشل إرسال التذكير", "error");
-        console.error("SMS Error:", data.details);
-      }
-
-      logActivity(
-        "إرسال تذكير",
-        `تم إرسال تذكير عام للعميل ${customer.displayName}`,
-      );
-    } catch (error) {
-      showToast("فشل الاتصال بالخادم لإرسال الرسالة", "error");
-    }
+    showToast("تم إرسال التذكير بنجاح", "success");
+    logActivity(
+      "إرسال تذكير",
+      `تم إرسال تذكير عام للعميل ${customer.displayName}`,
+    );
   };
 
   const [newCustomer, setNewCustomer] = useState({
@@ -2367,7 +2324,6 @@ export default function Customers() {
                     className="w-full px-4 py-3 bg-bg-general border border-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 font-bold text-carbon transition-all"
                   >
                     <option value="system">إشعار نظام</option>
-                    <option value="sms">رسالة SMS نصية</option>
                     <option value="sale">عرض ترويجي</option>
                     <option value="order">تحديث طلب</option>
                   </select>
@@ -2393,86 +2349,7 @@ export default function Customers() {
           </div>
         )}
 
-        {/* Send SMS Modal */}
-        {isSmsModalOpen && selectedCustomer && (
-          <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsSmsModalOpen(false)}
-              className="absolute inset-0 bg-carbon/60 backdrop-blur-sm"
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative bg-white rounded-[2rem] shadow-2xl w-full max-w-md p-6 sm:p-8 overflow-hidden"
-            >
-              <button
-                onClick={() => setIsSmsModalOpen(false)}
-                className="absolute top-4 right-4 p-2 bg-gray-100 text-gray-500 rounded-full hover:bg-gray-200 transition-all"
-              >
-                <X className="w-5 h-5" />
-              </button>
 
-              <div className="mb-8 text-center">
-                <div className="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                  <MessageSquare className="w-8 h-8" />
-                </div>
-                <h2 className="text-2xl font-black text-carbon mb-2">
-                  إرسال رسالة نصية SMS
-                </h2>
-                <p className="text-sm text-gray-500 font-bold" dir="ltr">
-                  {selectedCustomer.phone}
-                </p>
-              </div>
-
-              <form onSubmit={handleSendSms} className="space-y-4">
-                <div className="relative">
-                  <FloatingInput
-                    label="نص الرسالة"
-                    isTextArea
-                    required
-                    value={smsMessage}
-                    onChange={(e) => setSmsMessage(e.target.value)}
-                    placeholder="اكتب رسالتك النصية هنا..."
-                  />
-                  <p
-                    className="text-[10px] text-gray-400 mt-2 font-bold text-left"
-                    dir="ltr"
-                  >
-                    {smsMessage.length} / 160 characters
-                  </p>
-                </div>
-
-                <div className="flex gap-3 pt-4">
-                  <button
-                    type="button"
-                    onClick={() => setIsSmsModalOpen(false)}
-                    className="flex-1 py-3 bg-gray-100 text-carbon font-black rounded-xl hover:bg-gray-200 transition-all"
-                  >
-                    إلغاء
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isSendingSms}
-                    className="flex-[2] py-3 bg-emerald-600 text-white font-black rounded-xl hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-600/20 disabled:opacity-70 flex items-center justify-center gap-2"
-                  >
-                    {isSendingSms ? (
-                      <>
-                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        جاري الإرسال...
-                      </>
-                    ) : (
-                      "إرسال SMS"
-                    )}
-                  </button>
-                </div>
-              </form>
-            </motion.div>
-          </div>
-        )}
         {/* Confirmation Modal */}
         <ConfirmationModal
           isOpen={confirmModal.isOpen}

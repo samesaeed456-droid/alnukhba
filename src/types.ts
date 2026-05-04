@@ -256,7 +256,7 @@ export interface MarketingNotification {
   clickedCount: number;
   status: "sent" | "scheduled" | "draft";
   scheduledFor?: string;
-  type: "push" | "email" | "sms";
+  type: "push" | "email";
   image?: string;
   url?: string;
   actions?: { action: string; title: string; icon?: string }[];
@@ -341,7 +341,6 @@ export interface StoreSettings {
   homeSectionOrder: string[];
   autoNotifications?: {
     enabled: boolean;
-    sms: boolean;
     email: boolean;
     onStatusChange: Order["status"][];
   };

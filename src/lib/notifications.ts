@@ -61,8 +61,12 @@ async function setupNotifications() {
         return true;
       }
     }
-  } catch (err) {
-    console.error("Failed to setup notifications:", err);
+  } catch (err: any) {
+    if (err?.code === 'messaging/permission-blocked' || err?.message?.includes('permission-blocked')) {
+      console.log('Notification permission block or denied.');
+    } else {
+      console.error("Failed to setup notifications:", err);
+    }
   }
   return false;
 }

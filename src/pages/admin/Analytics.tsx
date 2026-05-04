@@ -112,30 +112,9 @@ const Analytics = () => {
   };
 
   const handleSendReminder = async (cart: any) => {
-    // In a real app, this would call an API to send a reminder (SMS/Email/WhatsApp)
+    // In a real app, this would call an API to send a reminder (Push/Email)
     try {
-      // If we have a phone number, we can try to send a real SMS via our API
-      if (cart.customerPhone) {
-        const response = await fetch("/api/sms", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            phone: cart.customerPhone,
-            message: `أهلاً بك ${cart.customerName || "عميلنا المميز"} في عالم النخبة ✨. اختياراتك الاستثنائية لا تزال محفوظة بأمان في سلتك. أكمل خطوتك الأخيرة الآن، ودعنا نمنحك تجربة التسوق التي تليق بك: ${window.location.origin}/cart`,
-          }),
-        });
-
-        const data = await response.json();
-        if (data.success) {
-          showToast("تم إرسال تذكير SMS بنجاح", "success");
-        } else {
-          // Show the actual error from the server instead of just "simulation"
-          showToast(data.error || "فشل إرسال التذكير", "error");
-          console.error("SMS Error:", data.details);
-        }
-      } else {
-        showToast("تم إرسال التذكير للعميل (محاكاة)", "success");
-      }
+      showToast("تم إرسال التذكير للعميل (محاكاة)", "success");
 
       logActivity(
         "إرسال تذكير",

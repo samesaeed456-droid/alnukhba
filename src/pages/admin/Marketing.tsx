@@ -409,14 +409,14 @@ export default function Marketing() {
                     نوع الحملة
                   </label>
                   <div className="grid grid-cols-2 gap-2">
-                    {(["push", "sms"] as const).map((type) => (
+                    {(["push", "email"] as const).map((type) => (
                       <button
                         key={type}
                         type="button"
                         onClick={() => setNotifForm({ ...notifForm, type })}
                         className={`py-2 rounded-xl text-sm font-bold border transition-all ${notifForm.type === type ? "bg-carbon text-white border-carbon" : "bg-white text-gray-500 border-gray-200 hover:border-carbon/30"}`}
                       >
-                        {type === "push" ? "إشعار" : "SMS"}
+                        {type === "push" ? "إشعار" : "بريد"}
                       </button>
                     ))}
                   </div>
@@ -577,17 +577,13 @@ export default function Marketing() {
                             className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
                               notif.type === "push"
                                 ? "bg-purple-50 text-purple-600"
-                                : notif.type === "email"
-                                  ? "bg-blue-50 text-blue-600"
-                                  : "bg-emerald-50 text-emerald-600"
+                                : "bg-blue-50 text-blue-600"
                             }`}
                           >
                             {notif.type === "push" ? (
                               <Bell className="w-5 h-5" />
-                            ) : notif.type === "email" ? (
-                              <Mail className="w-5 h-5" />
                             ) : (
-                              <MessageSquare className="w-5 h-5" />
+                              <Mail className="w-5 h-5" />
                             )}
                           </div>
                           <div>

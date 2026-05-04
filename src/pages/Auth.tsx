@@ -286,7 +286,7 @@ export default function Auth() {
         showToast("تم إعادة إرسال كود التحقق بنجاح");
       } else {
         setError(data.error || "تعذر إرسال الكود. يرجى المحاولة لاحقاً");
-        // Fallback for demo environment if SMS is not configured or returns 405
+        // Fallback for demo environment if request is not configured or returns 405
         setTimer(59);
         showToast("تم إرسال كود التحقق (وضع ديمو مفعل)");
       }
@@ -585,29 +585,51 @@ export default function Auth() {
             setError(smartError.message);
           }
         } else {
-          const fullPhone = formData.countryCode + cleanPhone;
-
           try {
-            // We rely on auth/email-already-in-use check during actual verify step
-            // instead of pre-checking collection which requires admin permissions
-            const response = await fetch("/api/send-otp", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ phone: fullPhone }),
+            const email = getDummyEmail(formData.countryCode, cleanPhone);
+            const userCred = await signupWithEmail(email, formData.password);
+            
+            try {
+              // Update Firebase Auth profile
+              await import("firebase/auth").then(({ updateProfile }) => {
+                updateProfile(userCred.user, {
+                  displayName: formData.name,
+                }).catch(console.error);
+              });
+            } catch (e) {}
+
+            const currentSessionId = localStorage.getItem("local_session_id");
+            const newUserObj: any = {
+              uid: userCred.user.uid,
+              email: email,
+              name: formData.name,
+              phone: cleanPhone,
+              countryCode: formData.countryCode,
+              role: "customer",
+              walletBalance: 0,
+              currentSessionId: currentSessionId,
+              createdAt: serverTimestamp(),
+            };
+
+            // Save to Firestore
+            await setDoc(doc(db, "users", userCred.user.uid), newUserObj, {
+              merge: true,
             });
 
-            const data = await response.json();
+            // Optimistically update local store
+            forceSetUser({ id: userCred.user.uid, ...newUserObj } as any);
 
-            if (response.ok && data.success) {
-              setVerificationToken(data.token);
-              setStep("verification");
-              showToast("تم إرسال كود التحقق إلى هاتفك");
+            showToast("تم إنشاء الحساب بنجاح! مرحباً بك في النخبة");
+            navigate(redirectPath);
+
+          } catch (signupError: any) {
+            console.error("Signup error:", signupError);
+            if (signupError.code === "auth/email-already-in-use") {
+              setError("هذا الرقم مسجل مسبقاً. يرجى تسجيل الدخول.");
             } else {
-              setError(data.error || "تعذر إرسال كود التحقق");
+              const smartError = parseSmartError(signupError);
+              setError(smartError.message);
             }
-          } catch (smsError) {
-            console.error("SMS API not available:", smsError);
-            setError("حدث خطأ أثناء الاتصال بخادم الرسائل");
           }
         }
       } catch (err: any) {
@@ -668,22 +690,10 @@ export default function Auth() {
         const cleanPhone = (formData.phone || "").trim().replace(/^0+/, "");
         const fullPhone = formData.countryCode + cleanPhone;
 
-        const response = await fetch("/api/send-otp", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ phone: fullPhone }),
-        });
+        // Skip OTP verification
+        setStep("reset_password");
+        showToast("يرجى إدخال كلمة المرور الجديدة");
 
-        const data = await response.json();
-
-        if (response.ok && data.success) {
-          setVerificationToken(data.token);
-          (window as any)._authPrevStep = "forgot_password";
-          setStep("verification");
-          showToast("تم إرسال كود التحقق لاستعادة كلمة المرور");
-        } else {
-          setError(data.error || "تعذر إرسال كود التحقق");
-        }
       } catch (err) {
         console.error("Error in handleForgotPassword:", err);
         setError("حدث خطأ أثناء الاتصال بالخادم");

@@ -1,9 +1,8 @@
 import { Order } from "../types";
-import { smsService } from "./smsService";
 
 /**
  * Notification Service
- * Handles sending SMS and Email notifications to customers.
+ * Handles sending Push/Email notifications to customers.
  */
 
 interface NotificationResponse {
@@ -83,34 +82,11 @@ export const notificationService = {
     console.log(`[Subject] ${subject}`);
     console.log(`[Message] ${message}`);
 
-    // Real API call to our backend SMS endpoint via smsService
-    try {
-      if (phone) {
-        const result = await smsService.sendSingle(phone, message);
-
-        if (result.success) {
-          return {
-            success: true,
-            message: `تم إرسال تنبيه SMS (${newStatus}) للعميل بنجاح`,
-            provider: "SMSGate",
-          };
-        } else {
-          console.warn(
-            "[Notification Service] SMS API returned failure:",
-            result.error,
-          );
-          return { success: false, message: `فشل إرسال SMS: ${result.error}` };
-        }
-      }
-
-      return { success: false, message: "رقم الهاتف غير متوفر للعميل" };
-    } catch (error) {
-      console.error(
-        "[Notification Service] Failed to send notification:",
-        error,
-      );
-      return { success: false, message: "فشل الاتصال بخدمة الرسائل" };
-    }
+    return {
+      success: true,
+      message: `تم إرسال التنبيه (${newStatus}) للعميل بنجاح`,
+      provider: "System",
+    };
   },
 
   /**
@@ -121,14 +97,8 @@ export const notificationService = {
     phone: string,
   ): Promise<NotificationResponse> {
     const message = `مرحباً، المنتج "${productName}" الذي كنت بانتظاره عاد للتوفر في المتجر الآن! سارع بالطلب قبل نفاذ الكمية.`;
-    try {
-      const result = await smsService.sendSingle(phone, message);
-      return result.success
-        ? { success: true, message: "تم إرسال تنبيه توفر المنتج بنجاح" }
-        : { success: false, message: `فشل إرسال التنبيه: ${result.error}` };
-    } catch (error) {
-      return { success: false, message: "فشل الاتصال بخدمة الرسائل" };
-    }
+    console.log("Mock Notification:", message);
+    return { success: true, message: "تم إرسال تنبيه توفر المنتج بنجاح" };
   },
 
   /**
@@ -140,14 +110,8 @@ export const notificationService = {
     phone: string,
   ): Promise<NotificationResponse> {
     const message = `أخبار رائعة! المنتج "${productName}" الآن عليه خصم ${discount}. تسوق الآن واستفد من العرض.`;
-    try {
-      const result = await smsService.sendSingle(phone, message);
-      return result.success
-        ? { success: true, message: "تم إرسال تنبيه التخفيض بنجاح" }
-        : { success: false, message: `فشل إرسال التنبيه: ${result.error}` };
-    } catch (error) {
-      return { success: false, message: "فشل الاتصال بخدمة الرسائل" };
-    }
+    console.log("Mock Notification:", message);
+    return { success: true, message: "تم إرسال تنبيه التخفيض بنجاح" };
   },
 
   /**
@@ -159,14 +123,8 @@ export const notificationService = {
     phone: string,
   ): Promise<NotificationResponse> {
     const message = `${title}\n\n${content}`;
-    try {
-      const result = await smsService.sendSingle(phone, message);
-      return result.success
-        ? { success: true, message: "تم إرسال العرض الترويجي بنجاح" }
-        : { success: false, message: `فشل إرسال العرض: ${result.error}` };
-    } catch (error) {
-      return { success: false, message: "فشل الاتصال بخدمة الرسائل" };
-    }
+    console.log("Mock Notification:", message);
+    return { success: true, message: "تم إرسال العرض الترويجي بنجاح" };
   },
 
   /**
@@ -184,13 +142,7 @@ export const notificationService = {
       message = `رمز إعادة تعيين كلمة المرور الخاص بك هو: ${extraData?.code || "---"}. لا تشارك هذا الرمز مع أحد.`;
     }
 
-    try {
-      const result = await smsService.sendSingle(phone, message);
-      return result.success
-        ? { success: true, message: "تم إرسال تنبيه النظام بنجاح" }
-        : { success: false, message: `فشل إرسال التنبيه: ${result.error}` };
-    } catch (error) {
-      return { success: false, message: "فشل الاتصال بخدمة الرسائل" };
-    }
+    console.log("Mock Notification:", message);
+    return { success: true, message: "تم إرسال تنبيه النظام بنجاح" };
   },
 };

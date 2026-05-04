@@ -44,7 +44,6 @@ import {
 import { roundMoney, formatMoney, BASE_CURRENCY_CODE } from "../lib/finance";
 
 import { notificationService } from "../services/notificationService";
-import { smsService } from "../services/smsService";
 
 import {
   deleteImagesFromCloudinary,
@@ -1468,7 +1467,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       },
       autoNotifications: {
         enabled: true,
-        sms: true,
         email: true,
         onStatusChange: [
           "pending",
@@ -2423,46 +2421,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           createdAt: serverTimestamp(),
         });
 
-        // Send SMS if type is sms
-        if (notification.type === "sms") {
-          const targetCustomers = customers.filter((c) => {
-            if (notification.target === "all") return true;
-            if (notification.target === "specific_user")
-              return (
-                c.uid === notification.targetUserId ||
-                c.phone === notification.targetUserId
-              );
-            if (notification.target === "vip") return (c.orderCount || 0) > 10;
-            if (notification.target === "new") {
-              const thirtyDaysAgo = new Date();
-              thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-              return c.joinDate && new Date(c.joinDate) >= thirtyDaysAgo;
-            }
-            if (notification.target === "inactive") {
-              const sixtyDaysAgo = new Date();
-              sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
-              return !c.joinDate || new Date(c.joinDate) < sixtyDaysAgo;
-            }
-            return false;
-          });
-
-          const phones = targetCustomers
-            .map((c) => c.phone)
-            .filter(Boolean) as string[];
-          if (phones.length > 0) {
-            smsService.sendBulk(phones, notification.message).then((result) => {
-              if (result.success) {
-                showToast(
-                  result.message || "تم بدء إرسال الحملة بنجاح",
-                  "success",
-                );
-              } else {
-                showToast(result.error || "فشل بدء الحملة", "error");
-              }
-            });
-          }
-        }
-
         showToast("تم إرسال الإشعار بنجاح");
         logActivity(
           "إرسال إشعار تسويقي",
@@ -3259,14 +3217,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         const orderData = orderSnap.data() as Order;
         const targetUserId = orderData.userId;
 
-        // 1. Send SMS Notification (for all users, including guests)
+        // 1. Send status Notification (for all users, including guests)
         try {
           await notificationService.sendOrderStatusNotification(
             orderData,
             status,
           );
-        } catch (smsErr) {
-          console.error("Failed to send SMS status notification:", smsErr);
+        } catch (notifErr) {
+          console.error("Failed to send status notification:", notifErr);
         }
 
         // 2. Send App/Push Notification (only for registered users)

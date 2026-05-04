@@ -38,7 +38,6 @@ export const migrateLocalDataToFirebase = async () => {
         },
         autoNotifications: {
           enabled: true,
-          sms: true,
           email: true,
           onStatusChange: [
             "pending",

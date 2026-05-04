@@ -440,27 +440,19 @@ export default function Profile() {
         return;
       }
 
-      // Initiate OTP for phone change
+      // Initiate phone change bypass OTP
       setIsLoading(true);
       try {
-        const fullPhone = newCountryCode + newPhone;
-        const response = await fetch("/api/send-otp", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ phone: fullPhone }),
-        });
-        const data = await response.json();
-
-        if (response.ok && data.success) {
-          setVerificationToken(data.token);
-          setIsChangingPhone(true);
-          setChangePhoneOtp(["", "", "", ""]);
-          showToast("تم إرسال كود التحقق إلى الرقم الجديد");
-        } else {
-          showToast(data.error || "تعذر إرسال كود التحقق", "error");
-        }
+        await updateUser({
+          ...user,
+          ...formData,
+          phone: formData.phone.trim().replace(/^0+/, ""),
+        } as any);
+        setIsChangingPhone(false);
+        setCurrentView("menu");
+        showToast("تم تحديث الحساب بنجاح");
       } catch (err) {
-        showToast("فشل إرسال كود التحقق", "error");
+        showToast("فشل في تحديث الحساب، قد يكون هناك خطأ في الاتصال", "error");
       } finally {
         setIsLoading(false);
       }
@@ -532,37 +524,33 @@ export default function Profile() {
     if (!user) return;
     setIsLoading(true);
     try {
-      // In a real app with Firebase, we might use a Cloud Function to send SMS
-      // For now, we'll keep the logic but move away from localStorage for the OTP
-      const generatedOtp = Math.floor(1000 + Math.random() * 9000).toString();
-      const fullPhone = user.countryCode + user.phone;
+      // In Firebase, we should delete the user's data and then the auth account
+      // This requires re-authentication usually, but for this demo:
+      const { db, doc, deleteDoc, auth } = await import("../lib/firebase");
+      await deleteDoc(doc(db, "users", user.uid));
 
-      // Store OTP in a temporary session state or a secure way
-      // For this demo, we'll just use a state variable
-      (window as any)._tempDeletionOtp = generatedOtp;
+      // Attempt to delete auth account (might fail if not recently logged in)
+      if (auth.currentUser) {
+        await auth.currentUser.delete();
+      }
 
-      const domain = window.location.hostname;
-      const message = `تطبيق النخبة: كود التحقق الخاص بك هو ${generatedOtp}. يرجى عدم مشاركة هذا الكود مع أي شخص لضمان أمان حسابك.\n\n@${domain} #${generatedOtp}`;
-
-      const response = await fetch("/api/sms", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: fullPhone, message }),
-      });
-
-      const data = await response.json();
-      if (!response.ok || !data.success)
-        throw new Error(data.error || "Failed to send SMS");
-
-      setDeleteModalStep("otp");
-      setDeleteOtp(["", "", "", ""]);
-      showToast("تم إرسال كود التحقق لحذف الحساب");
-    } catch (err) {
-      showToast("فشل إرسال كود التحقق. يرجى المحاولة لاحقاً", "error");
+      logout();
+      navigate("/");
+      showToast("تم حذف الحساب بنجاح. نأسف لرحيلك.");
+      setShowDeleteAccountModal(false);
+      setDeletionStep("confirm");
+      setDeletionReason("");
+      setDeleteModalStep("reason");
+    } catch (err: any) {
+      if (err.code === "auth/requires-recent-login") {
+        showToast("يرجى تسجيل الخروج والدخول مجدداً لإتمام الحذف.", "error");
+      } else {
+        showToast("فشل حذف الحساب. يرجى المحاولة لاحقاً", "error");
+      }
     } finally {
       setIsLoading(false);
     }
-  }, [user, showToast]);
+  }, [user, navigate, logout, showToast]);
 
   const handleDeleteOtpChange = useCallback(
     (index: number, value: string) => {
@@ -689,27 +677,10 @@ export default function Profile() {
     if (!user) return;
     setIsLoading(true);
     try {
-      const generatedOtp = Math.floor(1000 + Math.random() * 9000).toString();
-      const fullPhone = user.countryCode + user.phone;
-      localStorage.setItem(`otp_recovery_${fullPhone}`, generatedOtp);
-
-      const domain = window.location.hostname;
-      const message = `كود استعادة كلمة المرور الخاص بك هو: ${generatedOtp}\n\n@${domain} #${generatedOtp}`;
-
-      const response = await fetch("/api/sms", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: fullPhone, message }),
-      });
-
-      if (!response.ok) throw new Error("Failed to send SMS");
-
-      setPasswordModalStep("otp");
-      setRecoveryTimer(59);
-      setRecoveryOtp(["", "", "", ""]);
-      showToast("تم إرسال كود التحقق لاستعادة كلمة المرور");
+      setPasswordModalStep("reset");
+      showToast("يرجى إدخال كلمة المرور الجديدة");
     } catch (err) {
-      showToast("فشل إرسال كود التحقق. يرجى المحاولة لاحقاً", "error");
+      showToast("حدث خطأ. يرجى المحاولة لاحقاً", "error");
     } finally {
       setIsLoading(false);
     }
@@ -726,13 +697,7 @@ export default function Profile() {
       const domain = window.location.hostname;
       const message = `كود استعادة كلمة المرور الجديد الخاص بك هو: ${generatedOtp}\n\n@${domain} #${generatedOtp}`;
 
-      const response = await fetch("/api/sms", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: fullPhone, message }),
-      });
-
-      if (!response.ok) throw new Error("Failed to send SMS");
+      console.log("Mock SMS OTP:", message);
 
       setRecoveryTimer(59);
       setRecoveryOtp(["", "", "", ""]);

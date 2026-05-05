@@ -110,6 +110,7 @@ export default function Checkout() {
     lastName: "",
     address: "",
     city: "صنعاء",
+    district: "",
     phone: "",
     countryCode: "+967",
     cardName: "",
@@ -172,11 +173,12 @@ export default function Checkout() {
       lastName: "",
       address: addr.address,
       city: addr.city,
+      district: (addr as any).district || "",
       phone: addr.phone,
       countryCode: addr.countryCode || "+967",
     }));
     setFieldErrors([]);
-  }, []);
+  }, [user]);
 
   const handleNewAddressSelect = useCallback(() => {
     setSelectedAddressId("new");
@@ -207,6 +209,25 @@ export default function Checkout() {
     },
     [fieldErrors],
   );
+
+  const availableDistricts = useMemo(() => {
+    if (!formData.city) return [];
+    const zone = shippingZones.find(
+      (z) => z.isActive && z.cities.includes(formData.city),
+    );
+    return zone?.districts || [];
+  }, [formData.city, shippingZones]);
+
+  useEffect(() => {
+    if (
+      availableDistricts.length > 0 &&
+      !availableDistricts.includes(formData.district)
+    ) {
+      setFormData((prev) => ({ ...prev, district: availableDistricts[0] }));
+    } else if (availableDistricts.length === 0) {
+      setFormData((prev) => ({ ...prev, district: "" }));
+    }
+  }, [availableDistricts, formData.district]);
 
   const subtotal = useMemo(
     () =>
@@ -288,6 +309,8 @@ export default function Checkout() {
           if (!formData.firstName.trim()) errors.push("firstName");
         }
         if (!formData.address.trim()) errors.push("address");
+        if (availableDistricts.length > 0 && !formData.district)
+          errors.push("district");
         const cleanPhone = formData.phone.replace(/\s+/g, "");
         if (!cleanPhone || !/^\d{9}$/.test(cleanPhone)) errors.push("phone");
       } else if (currentStep === 3) {
@@ -338,6 +361,7 @@ export default function Checkout() {
             lastName: nameParts.slice(1).join(" "),
             address: formData.address,
             city: formData.city,
+            district: formData.district,
             phone: formData.phone,
             countryCode: formData.countryCode,
           };
@@ -414,10 +438,11 @@ export default function Checkout() {
         paymentRef,
         formData.firstName.trim(),
         `${formData.countryCode}${formData.phone}`,
-        `${formData.address}, ${formData.city}`,
+        formData.address,
         formData.city,
         formData.deliveryInstructions,
         paymentProof,
+        formData.district,
       );
 
       if (!newOrderId) {
@@ -1057,7 +1082,7 @@ export default function Checkout() {
                               </div>
                             </div>
                             <p className="text-xs text-titanium/60 mb-1">
-                              {addr.address}, {addr.city}
+                              {addr.address}, {addr.district ? addr.district + ", " : ""}{addr.city}
                             </p>
                             <p className="text-xs text-titanium/60" dir="ltr">
                               {addr.phone}
@@ -1140,7 +1165,7 @@ export default function Checkout() {
                             name="city"
                             value={formData.city}
                             onChange={handleInputChange}
-                            className="w-full h-14 px-5 rounded-2xl border border-slate-100 bg-slate-50/50 focus:ring-4 focus:ring-slate-900/10 focus:bg-white focus:border-slate-900 outline-none transition-all duration-300 appearance-none"
+                            className="w-full h-14 px-5 rounded-2xl border border-slate-100 bg-slate-50/50 focus:ring-4 focus:ring-slate-900/10 focus:bg-white focus:border-slate-900 outline-none transition-all duration-300 appearance-none font-bold text-carbon"
                           >
                             {allCities.map((city) => (
                               <option key={city} value={city}>
@@ -1149,6 +1174,28 @@ export default function Checkout() {
                             ))}
                           </select>
                         </div>
+                        {availableDistricts.length > 0 && (
+                          <div className="space-y-2">
+                            <label className="text-xs font-bold text-titanium/80 mr-1">
+                              المنطقة
+                            </label>
+                            <div className="relative">
+                              <select
+                                name="district"
+                                value={formData.district}
+                                onChange={handleInputChange}
+                                className={`w-full h-14 px-5 rounded-2xl border ${fieldErrors.includes("district") ? "border-red-500 ring-4 ring-red-500/10" : "border-slate-100"} bg-slate-50/50 focus:ring-4 focus:ring-slate-900/10 focus:bg-white focus:border-slate-900 outline-none transition-all duration-300 appearance-none font-bold text-carbon`}
+                              >
+                                {availableDistricts.map((district) => (
+                                  <option key={district} value={district}>
+                                    {district}
+                                  </option>
+                                ))}
+                              </select>
+                              <ChevronDown className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-titanium/40 pointer-events-none" />
+                            </div>
+                          </div>
+                        )}
                         <div className="space-y-2">
                           <FloatingInput
                             label="رقم الجوال"
@@ -1909,8 +1956,8 @@ export default function Checkout() {
                       {formData.firstName} {formData.lastName} •{" "}
                       <span dir="ltr">{formData.phone}</span>
                     </p>
-                    <p className="text-xs sm:text-sm text-titanium/80">
-                      {formData.city} • {formData.address}
+                    <p className="text-xs sm:text-sm text-titanium/80 leading-relaxed font-bold">
+                      {formData.city} • {formData.district ? formData.district + " • " : ""}{formData.address}
                     </p>
                   </div>
 

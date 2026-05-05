@@ -1713,6 +1713,9 @@ export default function Orders() {
                                 عنوان التوصيل
                               </div>
                               <div className="text-[11px] sm:text-sm font-bold text-carbon leading-relaxed">
+                                {selectedOrder.district && (
+                                  <span className="text-solar">{selectedOrder.district} - </span>
+                                )}
                                 {selectedOrder.city} -{" "}
                                 {selectedOrder.shippingAddress ||
                                   "العنوان غير محدد"}

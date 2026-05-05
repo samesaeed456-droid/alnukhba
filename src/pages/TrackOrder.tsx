@@ -529,9 +529,13 @@ export default function TrackOrder() {
                                 "رقم الجوال غير محدد"}
                             </p>
                             <p className="text-xs sm:text-sm text-slate-500">
-                              {trackedOrder.shippingAddress ||
-                                user?.address ||
-                                "اليمن"}
+                              {trackedOrder.district && (
+                                <span className="text-solar">{trackedOrder.district}, </span>
+                              )}
+                              {trackedOrder.city || "اليمن"}
+                              {trackedOrder.shippingAddress && (
+                                <span className="block mt-1">{trackedOrder.shippingAddress}</span>
+                              )}
                             </p>
                           </div>
                           <div className="sm:text-left">

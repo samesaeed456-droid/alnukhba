@@ -54,6 +54,7 @@ export interface Address {
   lastName: string;
   address: string;
   city: string;
+  district?: string;
   phone: string;
   countryCode?: string;
 }
@@ -133,6 +134,7 @@ export interface Order {
   customerImage?: string;
   shippingAddress?: string;
   city?: string;
+  district?: string;
   date: string;
   items: OrderItem[];
   subtotal: number;
@@ -398,6 +400,7 @@ export interface ShippingZone {
   id: string;
   name: string;
   cities: string[];
+  districts?: string[];
   rate: number;
   freeThreshold?: number;
   estimatedDays?: string;

@@ -114,7 +114,11 @@ interface StoreContextType {
     customerName?: string,
     customerPhone?: string,
     shippingAddress?: string,
-  ) => string;
+    city?: string,
+    deliveryInstructions?: string,
+    paymentProof?: string,
+    district?: string,
+  ) => Promise<string>;
   updateOrderStatus: (
     orderId: string,
     status: Order["status"],
@@ -340,6 +344,7 @@ interface StoreActions {
     city?: string,
     deliveryInstructions?: string,
     paymentProof?: string,
+    district?: string,
   ) => Promise<string>;
   updateOrderStatus: (
     orderId: string,
@@ -2665,6 +2670,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       city?: string,
       deliveryInstructions?: string,
       paymentProof?: string,
+      district?: string,
     ) => {
       if (cart.length === 0) return "";
       if (isPlacingOrder) return "";
@@ -2852,6 +2858,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
               null,
             shippingAddress: shippingAddress || user?.address || "",
             city: city || null,
+            district: district || null,
             date: now.toISOString(),
             createdAt: serverTimestamp(),
             items: validatedItems.map((item) => ({

@@ -44,7 +44,9 @@ const Logistics = () => {
   const [formData, setFormData] = useState({
     name: "",
     cities: [] as string[],
+    districts: [] as string[],
     newCity: "",
+    newDistrict: "",
     rate: "",
     freeThreshold: "",
   });
@@ -79,6 +81,7 @@ const Logistics = () => {
     const data = {
       name: formData.name || finalCities[0],
       cities: finalCities,
+      districts: formData.districts,
       rate: Number(formData.rate),
       freeThreshold: formData.freeThreshold
         ? Number(formData.freeThreshold)
@@ -95,13 +98,15 @@ const Logistics = () => {
       }
       setIsModalOpen(false);
       setEditingZone(null);
-      setFormData({
-        name: "",
-        cities: [],
-        newCity: "",
-        rate: "",
-        freeThreshold: "",
-      });
+    setFormData({
+      name: "",
+      cities: [],
+      districts: [],
+      newCity: "",
+      newDistrict: "",
+      rate: "",
+      freeThreshold: "",
+    });
     } catch (error) {
       showToast("حدث خطأ أثناء الحفظ", "error");
     }
@@ -112,7 +117,9 @@ const Logistics = () => {
     setFormData({
       name: zone.name || "",
       cities: zone.cities || [],
+      districts: zone.districts || [],
       newCity: "",
+      newDistrict: "",
       rate: zone.rate.toString(),
       freeThreshold: zone.freeThreshold ? zone.freeThreshold.toString() : "",
     });
@@ -136,6 +143,24 @@ const Logistics = () => {
     setFormData({
       ...formData,
       cities: formData.cities.filter((c) => c !== city),
+    });
+  };
+
+  const addDistrict = (district: string) => {
+    if (!district) return;
+    if (!formData.districts.includes(district)) {
+      setFormData({
+        ...formData,
+        districts: [...formData.districts, district],
+        newDistrict: "",
+      });
+    }
+  };
+
+  const removeDistrict = (district: string) => {
+    setFormData({
+      ...formData,
+      districts: formData.districts.filter((d) => d !== district),
     });
   };
 
@@ -168,7 +193,9 @@ const Logistics = () => {
             setFormData({
               name: "",
               cities: [],
+              districts: [],
               newCity: "",
+              newDistrict: "",
               rate: "",
               freeThreshold: "",
             });
@@ -241,15 +268,37 @@ const Logistics = () => {
                 {zone.name || zone.cities?.[0]}
               </h3>
 
-              <div className="flex flex-wrap gap-1 mt-2">
-                {zone.cities?.map((city: string) => (
-                  <span
-                    key={city}
-                    className="px-2 py-0.5 bg-gray-100 text-gray-500 text-[10px] font-bold rounded-lg border border-gray-100"
-                  >
-                    {city}
-                  </span>
-                ))}
+              <div className="space-y-4 mt-2">
+                <div>
+                  <label className="text-[10px] font-bold text-gray-400 block mb-1">المدن المشمولة:</label>
+                  <div className="flex flex-wrap gap-1">
+                    {zone.cities?.map((city: string) => (
+                      <span
+                        key={city}
+                        className="px-2 py-0.5 bg-gray-100 text-gray-500 text-[10px] font-bold rounded-lg border border-gray-100"
+                      >
+                        {city}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                {zone.districts && zone.districts.length > 0 && (
+                  <div>
+                    <label className="text-[10px] font-bold text-gray-400 block mb-1">المناطق المتاحة:</label>
+                    <div className="flex flex-wrap gap-1">
+                      {zone.districts?.map((district: string) => (
+                        <span
+                          key={district}
+                          className="px-2 py-0.5 bg-solar/5 text-solar text-[10px] font-bold rounded-lg border border-solar/10"
+                        >
+                          {district}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {!zone.isActive && (
                   <span className="px-2 py-0.5 bg-red-50 text-red-500 text-[10px] font-bold rounded-lg border border-red-100">
                     متوقف مؤقتاً
@@ -362,7 +411,66 @@ const Logistics = () => {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-gray-400 px-1">
+                      المناطق التابعة لهذه المدن (اختياري)
+                    </label>
+                    <div className="flex flex-wrap gap-2 p-3 min-h-[3rem] bg-gray-50 rounded-2xl border border-gray-100">
+                      {formData.districts.map((district) => (
+                        <span
+                          key={district}
+                          className="flex items-center gap-1.5 px-3 py-1 bg-white rounded-xl text-xs font-bold text-solar border border-solar/20"
+                        >
+                          {district}
+                          <button
+                            type="button"
+                            onClick={() => removeDistrict(district)}
+                            className="text-gray-300 hover:text-red-500 transition-colors"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      ))}
+                      {formData.districts.length === 0 && (
+                        <span className="text-gray-400 text-xs py-1">
+                          لا توجد مناطق مضافة
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-gray-400 px-2">
+                      أضف منطقة جديدة
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={formData.newDistrict}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            newDistrict: e.target.value,
+                          })
+                        }
+                        placeholder="اسم المنطقة (مثال: حي السبعين)..."
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            addDistrict(formData.newDistrict);
+                          }
+                        }}
+                        className="flex-1 h-12 px-4 rounded-xl border border-gray-200 focus:ring-2 focus:ring-solar/30 focus:border-solar outline-none bg-white font-bold text-sm"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => addDistrict(formData.newDistrict)}
+                        className="h-12 w-12 flex items-center justify-center bg-solar text-white rounded-xl hover:bg-solar/90 font-bold"
+                      >
+                        <Plus className="w-5 h-5" />
+                      </button>
+                    </div>
+                  </div>
                     <div className="space-y-1">
                       <label className="text-[10px] font-bold text-gray-400 px-2">
                         اختر من القائمة
@@ -422,7 +530,6 @@ const Logistics = () => {
                       </div>
                     </div>
                   </div>
-                </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <FloatingInput

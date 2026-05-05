@@ -35,27 +35,32 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ productId, productName 
   const [showAll, setShowAll] = useState(false);
 
   useEffect(() => {
-    const reviewsRef = collection(db, "products", productId, "reviews");
-    const q = query(
-      reviewsRef,
-      orderBy("createdAt", "desc")
-    );
+    const fetchReviews = async () => {
+      setIsLoading(true);
+      try {
+        const { getDocs } = await import("firebase/firestore");
+        const reviewsRef = collection(db, "products", productId, "reviews");
+        const q = query(
+          reviewsRef,
+          orderBy("createdAt", "desc")
+        );
+        
+        const snapshot = await getDocs(q);
+        const reviewsData = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+          createdAt: doc.data().createdAt?.toDate()?.toISOString() || new Date().toISOString()
+        })) as Review[];
+        
+        setReviews(reviewsData);
+      } catch (error) {
+        console.error("Error fetching reviews:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const reviewsData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate()?.toISOString() || new Date().toISOString()
-      })) as Review[];
-      
-      setReviews(reviewsData);
-      setIsLoading(false);
-    }, (error) => {
-      console.error("Error fetching reviews:", error);
-      setIsLoading(false);
-    });
-
-    return () => unsubscribe();
+    fetchReviews();
   }, [productId]);
 
   const handleSubmitReview = async (e: React.FormEvent) => {

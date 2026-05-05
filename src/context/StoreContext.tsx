@@ -858,44 +858,73 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const currentAdminUid = adminAuth.currentUser?.uid;
     const activeDb = currentAdminUid ? adminDb : db;
     const productsRef = collection(activeDb, "products");
-    
     const q = query(productsRef, orderBy("createdAt", "desc"), limit(300));
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      if (loadingTimeout) clearTimeout(loadingTimeout);
-      const productsData = snapshot.docs.map((doc) => ({
-        ...doc.data(),
-        id: String(doc.id),
-      })) as unknown as Product[];
-      
-      setProducts(productsData);
-      localStorage.setItem("store_products", JSON.stringify(productsData));
-      localStorage.setItem("store_products_time", Date.now().toString());
-      
-      if (startedLoading) {
-        setIsLoading(false);
-      }
-    }, (error: any) => {
-      if (loadingTimeout) clearTimeout(loadingTimeout);
-      console.error("Products real-time sync error:", error);
-      if (startedLoading) {
-        setIsLoading(false);
-      }
-      
-      // Fallback to cache if exists
-      const cached = localStorage.getItem("store_products");
-      if (cached && products.length === 0) {
+    // --- Meta-Document Pattern (Real-Time + Minimal Cost) ---
+    // Single listener controls fetching for high-read collections
+    const unsubMeta = onSnapshot(doc(activeDb, "settings", "store_meta"), async (docSnap) => {
+      const meta = docSnap.data() || {};
+      const serverProductsTs = meta.products_updated_at || 0;
+      const serverCategoriesTs = meta.categories_updated_at || 0;
+
+      // 1. Get local timestamps from localStorage
+      const localProductsTs = parseInt(localStorage.getItem("store_meta_products_ts") || "0");
+      const localCategoriesTs = parseInt(localStorage.getItem("store_meta_categories_ts") || "0");
+
+      const hasLocalProducts = !!localStorage.getItem("store_products");
+      const hasLocalCategories = !!localStorage.getItem("store_categories");
+
+      const { getDocs, collection, limit } = await import("firebase/firestore");
+
+      // 2. Fetch Products ONLY if server is newer OR no local data exists
+      if (serverProductsTs > localProductsTs || !hasLocalProducts) {
         try {
-          setProducts(JSON.parse(cached));
-        } catch (e) {
-          setProducts(initialProducts);
+          const snapshot = await getDocs(q);
+          if (loadingTimeout) clearTimeout(loadingTimeout);
+          
+          const productsData = snapshot.docs.map((doc) => ({
+            ...doc.data(),
+            id: String(doc.id),
+          })) as unknown as Product[];
+          
+          setProducts(productsData);
+          localStorage.setItem("store_products", JSON.stringify(productsData));
+          localStorage.setItem("store_meta_products_ts", serverProductsTs.toString());
+          
+          if (startedLoading) setIsLoading(false);
+        } catch (error: any) {
+          if (loadingTimeout) clearTimeout(loadingTimeout);
+          console.error("Products fetch error:", error);
+          if (startedLoading) setIsLoading(false);
+        }
+      } else {
+        // Up to date!
+        if (loadingTimeout) clearTimeout(loadingTimeout);
+        if (startedLoading) setIsLoading(false);
+      }
+
+      // 3. Fetch Categories ONLY if server is newer OR no local data exists
+      if (serverCategoriesTs > localCategoriesTs || !hasLocalCategories) {
+        try {
+          const catQ = query(collection(activeDb, "categories"), limit(300));
+          const snapshot = await getDocs(catQ);
+          const categoriesData = snapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          })) as Category[];
+          
+          setCategories(categoriesData);
+          localStorage.setItem("store_categories", JSON.stringify(categoriesData));
+          localStorage.setItem("store_meta_categories_ts", serverCategoriesTs.toString());
+        } catch (error) {
+          console.error("Categories fetch error:", error);
         }
       }
     });
 
     return () => {
       if (loadingTimeout) clearTimeout(loadingTimeout);
-      unsubscribe();
+      unsubMeta();
     };
     // Only re-run if role changes or admin identity changes
   }, [user?.role, adminAuth.currentUser?.uid]);
@@ -1199,13 +1228,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const now = Date.now();
     let isInitialMarketingSync = true;
 
-    const syncCollection = (
+    const syncCollection = async (
       colName: string,
       setter: (data: any) => void,
       storageKey: string
     ) => {
-      const q = query(collection(activeDb, colName), limit(300));
-      return onSnapshot(q, (snapshot) => {
+      try {
+        const { getDocs } = await import("firebase/firestore");
+        const q = query(collection(activeDb, colName), limit(300));
+        const snapshot = await getDocs(q);
         const data = snapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
@@ -1213,24 +1244,24 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         setter(data);
         localStorage.setItem(storageKey, JSON.stringify(data));
         localStorage.setItem(`${storageKey}_time`, Date.now().toString());
-      }, (error: any) => {
+      } catch (error: any) {
         if (error.code === "permission-denied") return;
-        console.error(`Real-time sync error for ${colName}:`, error);
+        console.error(`Fetch error for ${colName}:`, error);
         const cached = localStorage.getItem(storageKey);
         if (cached) {
           try {
             setter(JSON.parse(cached));
           } catch (e) {}
         }
-      });
+      }
     };
 
-    const unsubCategories = syncCollection("categories", setCategories, "store_categories");
-    const unsubCoupons = syncCollection("coupons", setCoupons, "store_coupons");
-    const unsubPosts = syncCollection("blog_posts", setBlogPosts, "store_blog");
-    const unsubPages = syncCollection("static_pages", setStaticPages, "store_pages");
-    const unsubZones = syncCollection("shipping_zones", setShippingZones, "store_shipping_zones");
-    const unsubBanners = syncCollection("banners", setBanners, "store_banners");
+    // Categories are now synced via the Meta-Document listener above
+    syncCollection("coupons", setCoupons, "store_coupons");
+    syncCollection("blog_posts", setBlogPosts, "store_blog");
+    syncCollection("static_pages", setStaticPages, "store_pages");
+    syncCollection("shipping_zones", setShippingZones, "store_shipping_zones");
+    syncCollection("banners", setBanners, "store_banners");
     
     const unsubSettings = onSnapshot(doc(activeDb, "settings", "store"), (docSnap) => {
       if (docSnap.exists()) {
@@ -1241,9 +1272,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       }
     });
 
-    const unsubMarketing = onSnapshot(
-      query(collection(activeDb, "marketing_notifications"), orderBy("date", "desc"), limit(50)),
-      (snapshot) => {
+    const fetchMarketingData = async () => {
+      try {
+        const { getDocs } = await import("firebase/firestore");
+        const snapshot = await getDocs(query(collection(activeDb, "marketing_notifications"), orderBy("date", "desc"), limit(50)));
         const rawUser = localStorage.getItem("store_user");
         let userRegistrationTime = 0;
         if (rawUser) {
@@ -1266,60 +1298,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
         setMarketingNotifications(filteredData);
         localStorage.setItem("store_marketing_notifications", JSON.stringify(filteredData));
-
-        snapshot.docChanges().forEach((change) => {
-          if (change.type === "added") {
-            const docData = { id: change.doc.id, ...change.doc.data() } as MarketingNotification;
-            if (userRegistrationTime > 0) {
-              const notifDate = new Date(docData.date || new Date().toISOString()).getTime();
-              if (notifDate < userRegistrationTime) return;
-            }
-            if (new Date(docData.date || new Date().toISOString()).getTime() < Date.now() - 7 * 24 * 3600000) return;
-
-            const isAdminPath = typeof window !== "undefined" && window.location.pathname.startsWith("/admin");
-            if (isAdminPath) return;
-
-            if (docData.target === "specific_user") {
-               const currentUid = auth.currentUser?.uid || (rawUser ? JSON.parse(rawUser).uid : null);
-               if (!currentUid || (docData.targetUserId !== currentUid && docData.targetUserId !== auth.currentUser?.phoneNumber)) return;
-            }
-
-            if (JSON.parse(localStorage.getItem("store_deleted_notif_ids") || "[]").includes(change.doc.id)) return;
-
-            setNotifications((prev) => {
-              if (prev.some((n) => n.id === change.doc.id)) return prev;
-              const appNotif: AppNotification = {
-                id: change.doc.id,
-                title: docData.title,
-                message: docData.message,
-                date: docData.date || new Date().toISOString(),
-                isRead: false,
-                type: "sale",
-              };
-              if (!isInitialMarketingSync || (Date.now() - new Date(docData.date || new Date().toISOString()).getTime() < 60000)) {
-                sonnerToast.success(`رسالة جديدة: ${docData.title}`, {
-                  description: docData.message,
-                  duration: 6000,
-                  position: "top-center",
-                });
-              }
-              return [appNotif, ...prev];
-            });
-          }
-        });
-        isInitialMarketingSync = false;
-      }
-    );
+      } catch (e) {}
+    };
+    fetchMarketingData();
 
     return () => {
-      unsubCategories();
-      unsubCoupons();
-      unsubPosts();
-      unsubPages();
-      unsubZones();
-      unsubBanners();
       unsubSettings();
-      unsubMarketing();
     };
     // Only re-run on authentication state or environment change
   }, [isAuthReady, user?.role, adminUser?.role, adminAuth.currentUser?.uid]);
@@ -3163,6 +3147,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             () => {},
           );
         }
+        await setDoc(doc(db, "settings", "store_meta"), {
+          products_updated_at: Date.now()
+        }, { merge: true }).catch(() => {});
 
         showToast(`تم إتمام الطلب بنجاح!`);
         clearCart();
@@ -4169,6 +4156,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         } as any);
 
         await batch.commit();
+        await setDoc(doc(activeDb, "settings", "store_meta"), {
+          products_updated_at: Date.now()
+        }, { merge: true }).catch(() => {});
         logActivity(
           "تحديث مخزون",
           `تم تحديث مخزون المنتج ${product.name} إلى ${newStock}`,
@@ -4227,6 +4217,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
         if (logCount > 0) {
           await batch.commit();
+          await setDoc(doc(activeDb, "settings", "store_meta"), {
+            products_updated_at: Date.now()
+          }, { merge: true }).catch(() => {});
           logActivity("تحديث مخزون جماعي", `تم تحديث مخزون ${logCount} منتجات`);
           showToast(`تم تحديث مخزون ${logCount} منتجات`);
         }
@@ -4258,6 +4251,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         });
+        await setDoc(doc(activeDb, "settings", "store_meta"), {
+          products_updated_at: Date.now()
+        }, { merge: true }).catch(() => {});
         showToast("تم إضافة المنتج بنجاح");
         logActivity("إضافة منتج", `تم إضافة المنتج الجديد: ${product.name}`);
       } catch (error) {
@@ -4304,6 +4300,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           ...updatedData,
           updatedAt: serverTimestamp(),
         });
+        await setDoc(doc(activeDb, "settings", "store_meta"), {
+          products_updated_at: Date.now()
+        }, { merge: true }).catch(() => {});
         showToast("تم تحديث المنتج بنجاح");
         logActivity("تحديث منتج", `تم تحديث بيانات المنتج ID: ${id}`);
       } catch (error) {
@@ -4337,6 +4336,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
         const activeDb = adminAuth.currentUser ? adminDb : db;
         await deleteDoc(doc(activeDb, "products", String(id)));
+        await setDoc(doc(activeDb, "settings", "store_meta"), {
+          products_updated_at: Date.now()
+        }, { merge: true }).catch(() => {});
         showToast("تم حذف المنتج بنجاح");
         logActivity("حذف منتج", `تم حذف المنتج ID: ${id}`);
       } catch (error) {
@@ -4358,6 +4360,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           id: tempId,
           createdAt: serverTimestamp(),
         });
+        await setDoc(doc(activeDb, "settings", "store_meta"), {
+          categories_updated_at: Date.now()
+        }, { merge: true }).catch(() => {});
         logActivity("إضافة قسم", `تم إضافة قسم جديد: ${category.name}`);
         showToast("تم إضافة الفئة بنجاح", "success");
       } catch (error) {
@@ -4388,6 +4393,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           ...updatedData,
           updatedAt: serverTimestamp(),
         });
+        await setDoc(doc(activeDb, "settings", "store_meta"), {
+          categories_updated_at: Date.now()
+        }, { merge: true }).catch(() => {});
         logActivity("تحديث قسم", `تم تحديث بيانات القسم`);
         showToast("تم تحديث الفئة بنجاح", "success");
       } catch (error) {
@@ -4409,6 +4417,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         }
         const activeDb = adminAuth.currentUser ? adminDb : db;
         await deleteDoc(doc(activeDb, "categories", id));
+        await setDoc(doc(activeDb, "settings", "store_meta"), {
+          categories_updated_at: Date.now()
+        }, { merge: true }).catch(() => {});
         logActivity("حذف قسم", `تم حذف القسم بنجاح`);
         showToast(`تم حذف الفئة بنجاح`);
       } catch (error) {

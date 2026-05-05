@@ -120,7 +120,7 @@ const Hero = React.memo(() => {
 
   return (
     <div className="relative mx-2 sm:mx-6 lg:mx-8 mt-2 mb-3 sm:mb-4 rounded-xl sm:rounded-[32px] overflow-hidden group shadow-2xl border border-white/5 cursor-grab active:cursor-grabbing">
-      <div className="relative w-full h-[120px] sm:h-[180px] lg:h-[180px] bg-bg-general">
+      <div className="relative w-full h-[120px] sm:h-[180px] md:h-[200px] lg:h-[260px] xl:h-[300px] bg-bg-general">
         <AnimatePresence mode="wait">
           <motion.div
             key={activeSlide}

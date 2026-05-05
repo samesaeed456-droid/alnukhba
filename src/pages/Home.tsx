@@ -25,7 +25,11 @@ export default function Home() {
   const [isCategoryLoading] = useState(false);
 
   const { products, banners, isLoading } = useStoreState();
-  const { formatPrice } = useStoreActions();
+  const { formatPrice, syncOnDemand } = useStoreActions();
+
+  React.useEffect(() => {
+    syncOnDemand("banners");
+  }, [syncOnDemand]);
 
   const handleCategoryChange = useCallback(
     (categoryName: string) => {

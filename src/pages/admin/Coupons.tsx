@@ -26,7 +26,13 @@ export default function Coupons() {
     deleteCoupon,
     toggleCouponStatus,
     formatPrice,
+    syncOnDemand,
   } = useStore();
+
+  React.useEffect(() => {
+    syncOnDemand("coupons");
+  }, [syncOnDemand]);
+
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCoupon, setEditingCoupon] = useState<Coupon | null>(null);

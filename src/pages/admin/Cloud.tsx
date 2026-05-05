@@ -114,7 +114,6 @@ export default function CloudPage() {
         categories: store.categories,
         banners: store.banners,
         settings: store.settings,
-        blogPosts: store.blogPosts,
         marketing: store.marketingNotifications,
         orders: store.orders,
         users: store.customers,

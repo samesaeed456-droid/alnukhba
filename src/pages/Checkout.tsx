@@ -51,7 +51,14 @@ export default function Checkout() {
     language,
     settings,
     shippingZones,
+    syncOnDemand,
   } = useStore();
+
+  useEffect(() => {
+    syncOnDemand("coupons");
+    syncOnDemand("shipping_zones");
+  }, [syncOnDemand]);
+
   const navigate = useNavigate();
 
   const allCities = useMemo(() => {

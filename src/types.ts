@@ -386,19 +386,6 @@ export interface SupportTicket {
   }[];
 }
 
-export interface BlogPost {
-  id: string;
-  title: string;
-  content: string;
-  excerpt: string;
-  image: string;
-  author: string;
-  date: string;
-  slug: string;
-  tags: string[];
-  isPublished: boolean;
-}
-
 export interface StaticPage {
   id: string;
   title: string;

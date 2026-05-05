@@ -44,7 +44,14 @@ export default function Marketing() {
     marketingNotifications,
     sendMarketingNotification,
     customers,
+    syncOnDemand,
   } = useStore();
+
+  React.useEffect(() => {
+    syncOnDemand("banners");
+    syncOnDemand("marketing_notifications");
+    syncOnDemand("customers");
+  }, [syncOnDemand]);
 
   const [activeTab, setActiveTab] = useState<TabType>("banners");
 

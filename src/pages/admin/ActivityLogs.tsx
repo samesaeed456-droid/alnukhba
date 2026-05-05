@@ -18,7 +18,12 @@ import { useStore } from "@/context/StoreContext";
 import { FloatingInput } from "../../components/FloatingInput";
 
 export default function ActivityLogs() {
-  const { activityLogs, logActivity } = useStore();
+  const { activityLogs, logActivity, syncOnDemand } = useStore();
+
+  React.useEffect(() => {
+    syncOnDemand("activity_logs");
+  }, [syncOnDemand]);
+
   const [searchTerm, setSearchTerm] = useState("");
   const [actionFilter, setActionFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState("all");

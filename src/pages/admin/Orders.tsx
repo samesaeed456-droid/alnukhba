@@ -62,7 +62,14 @@ export default function Orders() {
     showToast,
     logActivity,
     shippingZones,
+    syncOnDemand,
   } = useStore();
+
+  React.useEffect(() => {
+    syncOnDemand("orders");
+    syncOnDemand("customers");
+    syncOnDemand("shipping_zones");
+  }, [syncOnDemand]);
 
   const allCities = useMemo(() => {
     const zoneCities = shippingZones

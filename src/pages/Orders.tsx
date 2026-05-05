@@ -19,7 +19,11 @@ import { useStore } from "../context/StoreContext";
 import PriceDisplay from "../components/PriceDisplay";
 
 export default function Orders() {
-  const { orders, user, products } = useStore();
+  const { orders, user, products, syncOnDemand } = useStore();
+
+  React.useEffect(() => {
+    syncOnDemand("orders");
+  }, [syncOnDemand]);
 
   const userOrders = useMemo(() => {
     if (user?.role === "admin") {

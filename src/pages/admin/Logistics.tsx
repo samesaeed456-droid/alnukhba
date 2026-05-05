@@ -32,7 +32,13 @@ const Logistics = () => {
     toggleShippingZoneStatus,
     formatPrice,
     showToast,
+    syncOnDemand,
   } = useStore();
+
+  React.useEffect(() => {
+    syncOnDemand("shipping_zones");
+  }, [syncOnDemand]);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingZone, setEditingZone] = useState<any>(null);
   const [formData, setFormData] = useState({

@@ -83,7 +83,15 @@ export default function Customers() {
     logActivity,
     sendMarketingNotification,
     shippingZones,
+    syncOnDemand,
   } = useStore();
+
+  React.useEffect(() => {
+    syncOnDemand("customers");
+    syncOnDemand("orders");
+    syncOnDemand("shipping_zones");
+  }, [syncOnDemand]);
+
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("الكل");
   const [sortBy, setSortBy] = useState<"name" | "orders" | "spent">("name");

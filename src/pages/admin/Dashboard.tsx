@@ -61,7 +61,16 @@ export default function Dashboard() {
     abandonedCarts,
     activityLogs,
     categories,
+    syncOnDemand,
   } = useStore();
+
+  React.useEffect(() => {
+    syncOnDemand("orders");
+    syncOnDemand("customers");
+    syncOnDemand("activity_logs");
+    syncOnDemand("abandonedCarts");
+    syncOnDemand("visits");
+  }, [syncOnDemand]);
 
   const [salesTimeRange, setSalesTimeRange] = useState<"weekly" | "monthly">(
     "weekly",

@@ -96,16 +96,7 @@ export const migrateLocalDataToFirebase = async () => {
       }
     }
 
-    // 6. Migrate Blog Posts
-    const localPosts = localStorage.getItem("store_blog");
-    if (localPosts) {
-      const posts = JSON.parse(localPosts);
-      for (const post of posts) {
-        await setDoc(doc(db, "blog_posts", String(post.id)), post);
-      }
-    }
-
-    // 7. Migrate Pages
+    // 6. Migrate Pages
     const localPages = localStorage.getItem("store_pages");
     if (localPages) {
       const pages = JSON.parse(localPages);

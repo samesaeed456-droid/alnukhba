@@ -6,6 +6,7 @@ import React, {
   ReactNode,
   useMemo,
   useCallback,
+  useRef,
 } from "react";
 import { toast as sonnerToast } from "sonner";
 import {
@@ -29,7 +30,6 @@ import {
   AdminRole,
   AdminPermission,
   SupportTicket,
-  BlogPost,
   StaticPage,
   ShippingZone,
   AbandonedCart,
@@ -200,10 +200,6 @@ interface StoreContextType {
   updateTicketStatus: (id: string, status: SupportTicket["status"]) => void;
   replyToTicket: (id: string, message: string) => void;
   deleteTicket: (id: string) => void;
-  blogPosts: BlogPost[];
-  addBlogPost: (post: Omit<BlogPost, "id">) => void;
-  updateBlogPost: (id: string, post: Partial<BlogPost>) => void;
-  deleteBlogPost: (id: string) => void;
   staticPages: StaticPage[];
   updateStaticPage: (id: string, content: string) => void;
   shippingZones: ShippingZone[];
@@ -267,7 +263,6 @@ interface StoreState {
   };
   coupons: Coupon[];
   supportTickets: SupportTicket[];
-  blogPosts: BlogPost[];
   staticPages: StaticPage[];
   shippingZones: ShippingZone[];
   abandonedCarts: AbandonedCart[];
@@ -318,9 +313,6 @@ interface StoreActions {
   updateTicketStatus: (id: string, status: SupportTicket["status"]) => void;
   replyToTicket: (id: string, message: string) => void;
   deleteTicket: (id: string) => void;
-  addBlogPost: (post: Omit<BlogPost, "id">) => void;
-  updateBlogPost: (id: string, post: Partial<BlogPost>) => void;
-  deleteBlogPost: (id: string) => void;
   updateStaticPage: (id: string, content: string) => void;
   addShippingZone: (zone: Omit<ShippingZone, "id" | "isActive">) => void;
   updateShippingZone: (id: string, zone: Partial<ShippingZone>) => void;
@@ -391,6 +383,7 @@ interface StoreActions {
   trackOrderById: (orderId: string) => Promise<Order | null>;
   setNotifications: React.Dispatch<React.SetStateAction<AppNotification[]>>;
   formatPrice: (price: number) => string;
+  syncOnDemand: (colName: string) => void;
 }
 
 interface StoreUI {
@@ -954,273 +947,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [products, isLoading]);
 
   // Sync Orders from Firestore with Real-time Support
-  useEffect(() => {
-    const activeAdmin =
-      adminUser?.role === "admin" || adminUser?.isAdmin
-        ? adminUser
-        : user?.role === "admin"
-          ? user
-          : null;
-
-    if (!auth.currentUser && !adminAuth.currentUser && !activeAdmin) {
-      setOrders([]);
-      return;
-    }
-
-    const activeDb = adminAuth.currentUser ? adminDb : db;
-    const ordersRef = collection(activeDb, "orders");
-    
-    // Determine query based on role
-    const q = activeAdmin
-      ? query(ordersRef, orderBy("date", "desc"), limit(50))
-      : query(
-          ordersRef,
-          where("userId", "==", auth.currentUser?.uid || "guest"),
-          orderBy("date", "desc"),
-          limit(50),
-        );
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const ordersData = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as unknown as Order[];
-      setOrders(ordersData);
-      localStorage.setItem("store_orders", JSON.stringify(ordersData));
-    }, (error) => {
-      if (error.code === "permission-denied") return;
-      console.error("Orders real-time sync error:", error);
-    });
-
-    return () => unsubscribe();
-    // Only re-run if roles or user identity change, or admin login status changes
-  }, [user?.role, user?.uid, adminUser?.role, adminUser?.uid, adminAuth.currentUser?.uid]);
-
-  // Sync Admin-only Data
-  useEffect(() => {
-    const activeAdmin =
-      adminUser?.role === "admin" || adminUser?.isAdmin
-        ? adminUser
-        : user?.role === "admin"
-          ? user
-          : null;
-    const activeDb = adminAuth.currentUser ? adminDb : db;
-
-    if (!isAuthReady) return;
-
-    if (!activeAdmin) {
-      setCustomers([]);
-      setActivityLogs([]);
-      setAdminUsers([]);
-      return;
-    }
-
-    const now = Date.now();
-    if (now - lastAdminDataFetch.current < 60000) {
-      // Throttle: don't re-fetch admin metrics within 1 minute of last fetch
-      return;
-    }
-
-    // Use getDocs instead of onSnapshot for heavy admin collections to save 100% of continuous read costs
-    const fetchAdminData = async () => {
-      try {
-        const isCurrentAdmin =
-          adminAuth.currentUser || (auth.currentUser && user?.role === "admin");
-        if (!isCurrentAdmin) return;
-
-        lastAdminDataFetch.current = Date.now();
-
-        const currentUid = auth.currentUser?.uid || adminAuth.currentUser?.uid;
-
-        // Fetch Users once per load (Limited to prevent quota issues)
-        try {
-          const snapshot = await getDocs(
-            query(collection(activeDb, "users"), limit(50)),
-          );
-          const allUsersData = snapshot.docs.map((doc) => ({
-            uid: doc.id,
-            ...doc.data(),
-          })) as unknown as UserProfile[];
-          const adminsList = allUsersData
-            .filter((u) => u.role === "admin" || u.isAdmin === true)
-            .map((u) => ({
-              id: u.uid,
-              name: u.displayName || u.name || "",
-              email: u.email || "",
-              phone: u.phone || "",
-              countryCode: u.countryCode || "+967",
-              role: u.adminRole || u.role || "support",
-              isActive: (u as any).isActive ?? true,
-              permissions: u.permissions || [],
-              createdAt: u.createdAt,
-            }));
-          const customersList = allUsersData.filter(
-            (u) => u.role !== "admin" && !u.isAdmin,
-          );
-          setAdminUsers(adminsList as any);
-          setCustomers(customersList);
-          localStorage.setItem(
-            "store_customers",
-            JSON.stringify(customersList),
-          );
-          localStorage.setItem("app_users", JSON.stringify(customersList));
-          localStorage.setItem("admin_users_list", JSON.stringify(adminsList));
-        } catch (error: any) {
-          if (error.code !== "permission-denied") console.error(error);
-        }
-
-        // Fetch Logs
-        try {
-          const snapshot = await getDocs(
-            query(
-              collection(activeDb, "activity_logs"),
-              orderBy("date", "desc"),
-              limit(50),
-            ),
-          );
-          const logsData = snapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          })) as unknown as ActivityLog[];
-          const sortedLogs = logsData.sort((a, b) => {
-            const dateA = (a.date as any)?.seconds
-              ? (a.date as any).seconds
-              : new Date(a.date).getTime();
-            const dateB = (b.date as any)?.seconds
-              ? (b.date as any).seconds
-              : new Date(b.date).getTime();
-            return dateB - dateA;
-          });
-          setActivityLogs(sortedLogs);
-          localStorage.setItem(
-            "store_activity_logs",
-            JSON.stringify(sortedLogs),
-          );
-        } catch (error: any) {}
-
-        // Fetch Support Tickets
-        try {
-          const snapshot = await getDocs(
-            query(
-              collection(activeDb, "support_tickets"),
-              orderBy("createdAt", "desc"),
-              limit(50),
-            ),
-          );
-          const ticketsData = snapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          })) as unknown as SupportTicket[];
-          setSupportTickets(ticketsData);
-          localStorage.setItem("store_tickets", JSON.stringify(ticketsData));
-        } catch (error: any) {}
-
-        // Fetch Visits
-        try {
-          const snapshot = await getDocs(
-            query(
-              collection(activeDb, "visits"),
-              orderBy("timestamp", "desc"),
-              limit(50),
-            ),
-          );
-          const visitsData = snapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          })) as unknown as Visit[];
-          setVisits(visitsData);
-          localStorage.setItem("store_visits", JSON.stringify(visitsData));
-        } catch (error: any) {}
-
-        // Fetch Search Terms
-        try {
-          const snapshot = await getDocs(
-            query(
-              collection(activeDb, "searchTerms"),
-              orderBy("timestamp", "desc"),
-              limit(50),
-            ),
-          );
-          const termsData = snapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          })) as unknown as SearchTerm[];
-          setSearchTerms(termsData);
-          localStorage.setItem("store_search_terms", JSON.stringify(termsData));
-        } catch (error: any) {}
-
-        // Fetch Abandoned Carts
-        try {
-          const snapshot = await getDocs(
-            query(
-              collection(activeDb, "abandonedCarts"),
-              orderBy("lastActive", "desc"),
-              limit(50),
-            ),
-          );
-          const cartsData = snapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          })) as unknown as AbandonedCart[];
-          setAbandonedCarts(cartsData);
-          localStorage.setItem(
-            "store_abandoned_carts",
-            JSON.stringify(cartsData),
-          );
-        } catch (error: any) {}
-
-        // Fetch Inventory Logs
-        try {
-          const snapshot = await getDocs(
-            query(
-              collection(activeDb, "inventory_logs"),
-              orderBy("date", "desc"),
-              limit(50),
-            ),
-          );
-          const logsData = snapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          })) as unknown as InventoryLog[];
-          setInventoryLogs(
-            logsData
-              .sort(
-                (a, b) =>
-                  new Date(b.date).getTime() - new Date(a.date).getTime(),
-              )
-              .slice(0, 1000),
-          );
-          localStorage.setItem(
-            "store_inventory_logs",
-            JSON.stringify(logsData.slice(0, 500)),
-          );
-        } catch (error: any) {
-          if (
-            error.code === "resource-exhausted" ||
-            error?.message?.includes("Quota")
-          ) {
-            console.warn(`Admin data fetch alert: Quota exceeded.`);
-          } else {
-            console.error("Admin data fetch error:", error);
-          }
-        }
-      } catch (err: any) {
-        if (
-          err.code === "resource-exhausted" ||
-          err?.message?.includes("Quota")
-        ) {
-          console.warn("Admin data fetch alert: Quota exceeded.");
-        } else {
-          console.error("Admin data fetch error:", err);
-        }
-      }
-    };
-
-    fetchAdminData();
-
-    return () => {};
-  }, [user, adminUser, isAuthReady]);
-
+  // Orders are now synced on demand via syncOnDemand method
+  
+  // Admin data is now synced on demand via syncOnDemand method
+  
   // Sync Public Data
   useEffect(() => {
     const activeDb = adminAuth.currentUser ? adminDb : db;
@@ -1256,12 +986,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       }
     };
 
-    // Categories are now synced via the Meta-Document listener above
-    syncCollection("coupons", setCoupons, "store_coupons");
-    syncCollection("blog_posts", setBlogPosts, "store_blog");
-    syncCollection("static_pages", setStaticPages, "store_pages");
-    syncCollection("shipping_zones", setShippingZones, "store_shipping_zones");
-    syncCollection("banners", setBanners, "store_banners");
+    // We will no longer sync these globally on mount to save reads.
+    // They will be fetched on-demand by the pages that need them.
     
     const unsubSettings = onSnapshot(doc(activeDb, "settings", "store"), (docSnap) => {
       if (docSnap.exists()) {
@@ -1477,11 +1203,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return saved ? JSON.parse(saved) : [];
   });
 
-  const [blogPosts, setBlogPosts] = useState<BlogPost[]>(() => {
-    const saved = localStorage.getItem("store_blog");
-    return saved ? JSON.parse(saved) : [];
-  });
-
   const [staticPages, setStaticPages] = useState<StaticPage[]>(() => {
     const saved = localStorage.getItem("store_pages");
     return saved ? JSON.parse(saved) : [];
@@ -1615,6 +1336,106 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const [isSearchInputFocused, setIsSearchInputFocused] = useState(false);
   const [toast, setToast] = useState({ show: false, message: "" });
+
+  const activeSyncs = useRef<Set<string>>(new Set());
+
+  const syncOnDemand = useCallback(
+    (colName: string) => {
+      // Prevents multiple listeners for the same collection
+      if (activeSyncs.current.has(colName)) return;
+      activeSyncs.current.add(colName);
+
+      const activeDb = adminAuth.currentUser ? adminDb : db;
+
+      const setterMap: Record<string, any> = {
+        coupons: setCoupons,
+        static_pages: setStaticPages,
+        shipping_zones: setShippingZones,
+        banners: setBanners,
+        admin_users: setAdminUsers,
+        customers: setCustomers,
+        activity_logs: setActivityLogs,
+        marketing_notifications: setMarketingNotifications,
+        orders: setOrders,
+        visits: setVisits,
+        searchTerms: setSearchTerms,
+        abandonedCarts: setAbandonedCarts,
+        support_tickets: setSupportTickets,
+        inventory_logs: setInventoryLogs,
+      };
+
+      const storageKeyMap: Record<string, string> = {
+        coupons: "store_coupons",
+        static_pages: "store_pages",
+        shipping_zones: "store_shipping_zones",
+        banners: "store_banners",
+        admin_users: "store_admin_users",
+        customers: "store_customers",
+        activity_logs: "store_activity_logs",
+        marketing_notifications: "store_marketing_notifications",
+        orders: "store_orders",
+        visits: "store_visits",
+        searchTerms: "store_search_terms",
+        abandonedCarts: "store_abandoned_carts",
+        support_tickets: "store_tickets",
+        inventory_logs: "store_inventory_logs",
+      };
+
+      if (!setterMap[colName]) {
+        activeSyncs.current.delete(colName);
+        return;
+      }
+
+      let q = query(collection(activeDb, colName));
+      if (colName === "orders") {
+        const activeAdmin =
+          adminUser?.role === "admin" || adminUser?.isAdmin
+            ? adminUser
+            : user?.role === "admin"
+              ? user
+              : null;
+        if (activeAdmin) {
+          q = query(collection(activeDb, "orders"), orderBy("date", "desc"), limit(100));
+        } else {
+          q = query(
+            collection(activeDb, "orders"),
+            where("userId", "==", auth.currentUser?.uid || "guest"),
+            orderBy("date", "desc"),
+            limit(50)
+          );
+        }
+      } else if (colName === "activity_logs") {
+        q = query(collection(activeDb, "activity_logs"), orderBy("date", "desc"), limit(100));
+      } else if (colName === "inventory_logs") {
+        q = query(collection(activeDb, "inventory_logs"), orderBy("date", "desc"), limit(100));
+      } else if (colName === "visits") {
+        q = query(collection(activeDb, "visits"), orderBy("timestamp", "desc"), limit(100));
+      } else if (colName === "searchTerms") {
+        q = query(collection(activeDb, "searchTerms"), orderBy("timestamp", "desc"), limit(100));
+      } else if (colName === "abandonedCarts") {
+        q = query(collection(activeDb, "abandonedCarts"), orderBy("lastActive", "desc"), limit(100));
+      } else if (colName === "support_tickets") {
+        q = query(collection(activeDb, "support_tickets"), orderBy("createdAt", "desc"), limit(100));
+      }
+
+      onSnapshot(
+        q,
+        (snapshot) => {
+          const data = snapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          }));
+          setterMap[colName](data);
+          localStorage.setItem(storageKeyMap[colName], JSON.stringify(data));
+        },
+        (error) => {
+          console.error(`Error syncing ${colName}:`, error);
+          activeSyncs.current.delete(colName);
+        },
+      );
+    },
+    [adminAuth.currentUser],
+  );
 
   const showToast = React.useCallback(
     (
@@ -2021,60 +1842,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       }
     },
     [logActivity, showToast],
-  );
-
-  const addBlogPost = React.useCallback(
-    async (post: Omit<BlogPost, "id">) => {
-      try {
-        const newPostRef = doc(collection(db, "blog_posts"));
-        await setDoc(newPostRef, {
-          ...post,
-          id: newPostRef.id,
-          createdAt: serverTimestamp(),
-        });
-        logActivity("إضافة مقال", `تم إضافة المقال ${post.title}`);
-      } catch (error) {
-        handleFirestoreError(error, OperationType.CREATE, "blog_posts");
-      }
-    },
-    [logActivity],
-  );
-
-  const updateBlogPost = React.useCallback(
-    async (id: string, post: Partial<BlogPost>) => {
-      try {
-        const oldPost = blogPosts.find((p) => p.id === id);
-        if (oldPost && post.image && oldPost.image !== post.image) {
-          deleteImagesFromCloudinary([oldPost.image]);
-        }
-
-        await updateDoc(doc(db, "blog_posts", id), {
-          ...post,
-          updatedAt: serverTimestamp(),
-        });
-        logActivity("تحديث مقال", `تم تحديث المقال ${id}`);
-      } catch (error) {
-        handleFirestoreError(error, OperationType.UPDATE, `blog_posts/${id}`);
-      }
-    },
-    [blogPosts, logActivity],
-  );
-
-  const deleteBlogPost = React.useCallback(
-    async (id: string) => {
-      try {
-        const postToDelete = blogPosts.find((p) => p.id === id);
-        if (postToDelete && postToDelete.image) {
-          deleteImagesFromCloudinary([postToDelete.image]);
-        }
-
-        await deleteDoc(doc(db, "blog_posts", id));
-        logActivity("حذف مقال", `تم حذف المقال ${id}`);
-      } catch (error) {
-        handleFirestoreError(error, OperationType.DELETE, `blog_posts/${id}`);
-      }
-    },
-    [blogPosts, logActivity],
   );
 
   const updateStaticPage = React.useCallback(
@@ -4485,7 +4252,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       adminUsers,
       activityLogs,
       supportTickets,
-      blogPosts,
       staticPages,
       shippingZones,
       abandonedCarts,
@@ -4517,7 +4283,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       adminUsers,
       activityLogs,
       supportTickets,
-      blogPosts,
       staticPages,
       shippingZones,
       abandonedCarts,
@@ -4554,9 +4319,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       updateTicketStatus,
       replyToTicket,
       deleteTicket,
-      addBlogPost,
-      updateBlogPost,
-      deleteBlogPost,
       updateStaticPage,
       addShippingZone,
       updateShippingZone,
@@ -4600,6 +4362,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       trackOrderById,
       setNotifications,
       formatPrice,
+      syncOnDemand,
     }),
     [
       addProduct,
@@ -4625,9 +4388,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       updateTicketStatus,
       replyToTicket,
       deleteTicket,
-      addBlogPost,
-      updateBlogPost,
-      deleteBlogPost,
       updateStaticPage,
       addShippingZone,
       updateShippingZone,
@@ -4670,6 +4430,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       updateNotificationSettings,
       trackOrderById,
       formatPrice,
+      syncOnDemand,
     ],
   );
 

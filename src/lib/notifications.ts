@@ -1,7 +1,7 @@
 import { initializeApp } from "firebase/app";
 import { getMessaging, getToken, onMessage } from "firebase/messaging";
 import { db, auth } from "./firebase";
-import { doc, setDoc, arrayUnion } from "firebase/firestore";
+import { doc, setDoc, arrayUnion, serverTimestamp } from "firebase/firestore";
 
 // VAPID key is required for Web Push.
 const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY;
@@ -81,7 +81,7 @@ async function saveToken(token: string) {
     {
       token,
       uid: user?.uid || null,
-      updatedAt: new Date().toISOString(),
+      updatedAt: serverTimestamp(),
       platform: "web",
     },
     { merge: true },
@@ -95,6 +95,7 @@ async function saveToken(token: string) {
       {
         fcmTokens: arrayUnion(token),
         notificationsEnabled: true,
+        updatedAt: serverTimestamp(),
       },
       { merge: true },
     );

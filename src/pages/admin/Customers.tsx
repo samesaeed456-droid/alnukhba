@@ -1102,11 +1102,13 @@ export default function Customers() {
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => setIsActionMenuOpen(!isActionMenuOpen)}
-                        className="p-2 text-slate-400 hover:text-carbon hover:bg-slate-50 rounded-full transition-all relative"
-                      >
-                        <MoreVertical className="w-6 h-6" />
+                      <div className="relative">
+                        <button
+                          onClick={() => setIsActionMenuOpen(!isActionMenuOpen)}
+                          className="p-2 text-slate-400 hover:text-carbon hover:bg-slate-50 rounded-full transition-all"
+                        >
+                          <MoreVertical className="w-6 h-6" />
+                        </button>
                         <AnimatePresence>
                           {isActionMenuOpen && (
                             <>
@@ -1241,7 +1243,7 @@ export default function Customers() {
                             </>
                           )}
                         </AnimatePresence>
-                      </button>
+                      </div>
                     </div>
                   </div>
 

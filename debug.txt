@@ -1,0 +1,348 @@
+src/components/home/HomeProductGrid.tsx:          <ProductCard key={product.id} product={product} className="h-full" wide priority={index < 4} />
+src/components/home/Hero.tsx:            id: `${banner.id}-${index}`,
+src/components/home/CategoryFilteredSection.tsx:          <ProductCard key={product.id} product={product} className="h-full" wide />
+src/components/home/FeaturedDeal.tsx:              <div key={product.id} className="min-w-[145px] w-[145px] snap-start">
+src/components/ProductSlider.tsx:            <SwiperSlide key={p.id} className="!w-[160px] sm:!w-[220px] md:!w-[280px] !h-auto">
+src/components/ProductSlider.tsx:          <ProductCard key={p.id} product={p} className="h-full" wide />
+src/components/layout/Footer.tsx:                  key={payment.id || idx} 
+src/components/layout/WishlistDrawer.tsx:                        key={product.id} 
+src/components/layout/WishlistDrawer.tsx:                            navigate(`/product/${product.id}`);
+src/components/layout/WishlistDrawer.tsx:                                navigate(`/product/${product.id}`);
+src/components/layout/WishlistDrawer.tsx:                              onClick={() => setItemToDelete(product.id)}
+src/components/layout/WishlistDrawer.tsx:            toggleWishlist(wishlist.find(p => p.id === itemToDelete)!);
+src/components/layout/CartDrawer.tsx:                        key={item.id} 
+src/components/layout/CartDrawer.tsx:                        {updatingItemId === item.id && (
+src/components/layout/CartDrawer.tsx:                              <button onClick={() => setItemToDelete(item.id)} className="text-slate-400 hover:text-red-500 transition-colors">
+src/components/layout/CartDrawer.tsx:                              <button onClick={() => handleUpdateQuantity(item.id, 1)} className="text-slate-600 hover:text-blue-600 p-1"><Plus className="w-3 h-3" /></button>
+src/components/layout/CartDrawer.tsx:                              <button onClick={() => handleUpdateQuantity(item.id, -1)} className="text-slate-600 hover:text-red-500 p-1"><Minus className="w-3 h-3" /></button>
+src/components/layout/NotificationsDrawer.tsx:    return products.find(p => p.id === productId)?.image;
+src/components/layout/NotificationsDrawer.tsx:      if (!n.isRead) markNotificationAsRead(n.id);
+src/components/layout/NotificationsDrawer.tsx:      setNotifications((prev: any) => prev.filter((n: any) => n.id !== notificationToDelete));
+src/components/layout/NotificationsDrawer.tsx:                        key={notification.id}
+src/components/layout/NotificationsDrawer.tsx:                                      markNotificationAsRead(notification.id);
+src/components/layout/NotificationsDrawer.tsx:                                    onClick={() => markNotificationAsRead(notification.id)}
+src/components/layout/NotificationsDrawer.tsx:                                onClick={() => setNotificationToDelete(notification.id)}
+src/components/layout/NotificationsDrawer.tsx:                    <div key={item.id} className="flex items-center justify-between">
+src/components/layout/NotificationsDrawer.tsx:                        onClick={() => handleUpdateSetting(item.id)}
+src/components/layout/NotificationsDrawer.tsx:                          notificationSettings[item.id as keyof typeof notificationSettings] ? 'bg-solar' : 'bg-slate-200'
+src/components/layout/NotificationsDrawer.tsx:                          animate={{ x: notificationSettings[item.id as keyof typeof notificationSettings] ? 22 : 2 }}
+src/components/layout/Header.tsx:                                  key={product.id}
+src/components/layout/Header.tsx:                                  to={`/product/${product.id}`}
+src/components/layout/Header.tsx:                            key={product.id}
+src/components/layout/Header.tsx:                            to={`/product/${product.id}`}
+src/components/RecommendedProducts.tsx:              <div key={product.id} className="flex gap-3 bg-slate-50 p-2 rounded-xl border border-slate-100">
+src/components/RecommendedProducts.tsx:              key={product.id}
+src/components/RecentlyViewed.tsx:              key={product.id} 
+src/components/admin/OrderDetailsModal.tsx:              <h2 className="text-xl font-bold text-carbon">تفاصيل الطلب #{order.id}</h2>
+src/components/admin/OrderDetailsModal.tsx:                  onChange={(e) => updateOrderStatus(order.id, e.target.value as Order['status'])}
+src/components/ProductCard.tsx:  const isNotified = useMemo(() => subscriptions.some(s => s.productId === p.id && s.type === 'back_in_stock'), [subscriptions, p.id]);
+src/components/ProductCard.tsx:        subscribeToProduct(p.id, 'back_in_stock', user?.phone || 'guest');
+src/components/ProductCard.tsx:            productId: p.id,
+src/components/ProductCard.tsx:          <FastLink to={`/product/${p.id}`} prefetchPage="ProductDetail" className="w-full h-full block">
+src/components/ProductCard.tsx:                  navigate(`/product/${p.id}`);
+src/components/ProductCard.tsx:          <FastLink to={`/product/${p.id}`} prefetchPage="ProductDetail" className="flex flex-col flex-1 items-center text-center">
+src/components/ProductCard.tsx:                  <span>بقي {(p.id.length * 7 % 8) + 2} قطع فقط</span>
+src/components/ProductCard.tsx:                  <span>{(p.id.length * 5 % 20) + 10} شخص ينتظرون توفره</span>
+src/components/ProductCard.tsx:  const isWishlisted = isInWishlist(props.product.id);
+src/pages/admin/ActivityLogs.tsx:                    <tr key={log.id} className="hover:bg-gray-50/50 transition-all">
+src/pages/admin/ActivityLogs.tsx:                <div key={log.id} className="p-4 space-y-3 hover:bg-gray-50/50 transition-all">
+src/pages/admin/Logistics.tsx:      updateShippingZone(editingZone.id, data);
+src/pages/admin/Logistics.tsx:    !shippingZones.some(zone => zone.cities.includes(city) && zone.id !== editingZone?.id)
+src/pages/admin/Logistics.tsx:            key={zone.id} 
+src/pages/admin/Logistics.tsx:                    onClick={() => toggleShippingZoneStatus(zone.id)}
+src/pages/admin/Logistics.tsx:                      onConfirm: () => deleteShippingZone(zone.id)
+src/pages/admin/Analytics.tsx:      logActivity('إرسال تذكير', `تم إرسال تذكير للسلة المتروكة رقم ${cart.id} للعميل ${cart.customerName || 'مجهول'}`);
+src/pages/admin/Analytics.tsx:        id: cart.id,
+src/pages/admin/Analytics.tsx:        if (!productSales[item.product.id]) {
+src/pages/admin/Analytics.tsx:          productSales[item.product.id] = { quantity: 0, revenue: 0 };
+src/pages/admin/Analytics.tsx:        productSales[item.product.id].quantity += item.quantity;
+src/pages/admin/Analytics.tsx:        productSales[item.product.id].revenue += item.product.price * item.quantity;
+src/pages/admin/Analytics.tsx:        const product = products.find(p => p.id === id);
+src/pages/admin/Analytics.tsx:    const rows = orders.map(o => [o.id, o.customerName, o.date, o.total, o.status]);
+src/pages/admin/Analytics.tsx:              <div key={product.id} className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 transition-colors">
+src/pages/admin/Analytics.tsx:              <div key={cart.id} className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-100">
+src/pages/admin/Messages.tsx:                    key={msg.id}
+src/pages/admin/Messages.tsx:                      if (isUnread) updateTicketStatus(msg.id, 'resolved');
+src/pages/admin/Messages.tsx:                          if (isUnread) updateTicketStatus(msg.id, 'resolved');
+src/pages/admin/Messages.tsx:                        toggleTicketSelection(msg.id);
+src/pages/admin/Messages.tsx:                        selectedTickets.includes(msg.id) 
+src/pages/admin/Messages.tsx:                      {selectedTickets.includes(msg.id) && <CheckSquare className="w-5 h-5" />}
+src/pages/admin/Messages.tsx:                              key={reply.id}
+src/pages/admin/Messages.tsx:                      updateTicketStatus(selectedMessage.id, 'open');
+src/pages/admin/Settings.tsx:              key={section.id}
+src/pages/admin/Settings.tsx:              onClick={() => setActiveSection(section.id)}
+src/pages/admin/Settings.tsx:                activeSection === section.id 
+src/pages/admin/Settings.tsx:                activeSection === section.id ? 'bg-solar/10 text-solar' : 'bg-slate-100 text-slate-400 group-hover:bg-white group-hover:text-slate-600'
+src/pages/admin/Settings.tsx:              {activeSection === section.id && (
+src/pages/admin/Settings.tsx:                                <label key={status.id} className="flex items-center gap-3 p-3 bg-white rounded-xl border border-slate-100 cursor-pointer hover:border-solar/30 transition-all">
+src/pages/admin/Settings.tsx:                                    checked={formData.autoNotifications?.onStatusChange.includes(status.id as any)}
+src/pages/admin/Settings.tsx:                                        ? [...current, status.id as any]
+src/pages/admin/Settings.tsx:                                        : current.filter(s => s !== status.id);
+src/pages/admin/Settings.tsx:                        key={method.id} 
+src/pages/admin/Settings.tsx:                          onClick={() => setExpandedPaymentId(expandedPaymentId === method.id ? null : method.id)}
+src/pages/admin/Settings.tsx:                                <ChevronDown className={`w-5 h-5 text-slate-400 transition-transform duration-300 ${expandedPaymentId === method.id ? 'rotate-180' : ''}`} />
+src/pages/admin/Settings.tsx:                              setPaymentToDelete(method.id);
+src/pages/admin/Settings.tsx:                          {expandedPaymentId === method.id && (
+src/pages/admin/Settings.tsx:                                  id={`logo-${method.id}`}
+src/pages/admin/Settings.tsx:                                  id={`acc-${method.id}`}
+src/pages/admin/Settings.tsx:                                  id={`name-${method.id}`}
+src/pages/admin/Settings.tsx:                                    id={`inst-${method.id}`}
+src/pages/admin/Settings.tsx:                                    id={`proof-${method.id}`}
+src/pages/admin/Settings.tsx:                                  <label htmlFor={`proof-${method.id}`} className="text-sm font-bold text-slate-700">إلزام العميل بإرفاق صورة الإشعار</label>
+src/pages/admin/Settings.tsx:            const newMethods = formData.paymentMethods?.filter(m => m.id !== paymentToDelete);
+src/pages/admin/Dashboard.tsx:        const pId = item.product.id.toString();
+src/pages/admin/Dashboard.tsx:        const pId = item.product.id.toString();
+src/pages/admin/Dashboard.tsx:        id: o.id,
+src/pages/admin/Dashboard.tsx:        shortId: o.id.substring(0, 4),
+src/pages/admin/Dashboard.tsx:        link: `/admin/orders?id=${o.id}`
+src/pages/admin/Dashboard.tsx:        id: log.id,
+src/pages/admin/Dashboard.tsx:        shortId: log.id.substring(0, 4),
+src/pages/admin/Dashboard.tsx:              <div key={item.id} className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 border border-slate-100 group hover:border-rose-200 transition-colors">
+src/pages/admin/Dashboard.tsx:              <div key={item.id} className="relative overflow-hidden p-4 rounded-2xl bg-slate-50 border border-slate-100 group hover:shadow-md transition-all">
+src/pages/admin/Marketing.tsx:      updateBanner(editingBanner.id, bannerForm);
+src/pages/admin/Marketing.tsx:              key={tab.id}
+src/pages/admin/Marketing.tsx:              onClick={() => setActiveTab(tab.id)}
+src/pages/admin/Marketing.tsx:                activeTab === tab.id ? 'bg-carbon text-white shadow-md' : 'text-gray-500 hover:bg-gray-50'
+src/pages/admin/Marketing.tsx:                key={banner.id}
+src/pages/admin/Marketing.tsx:                        onConfirm: () => deleteBanner(banner.id)
+src/pages/admin/Marketing.tsx:                    <div key={notif.id} className="p-5 rounded-[1.5rem] border border-gray-100 bg-white hover:shadow-lg hover:shadow-gray-100 transition-all group">
+src/pages/admin/Coupons.tsx:      updateCoupon(editingCoupon.id, couponData);
+src/pages/admin/Coupons.tsx:                <tr key={coupon.id} className="hover:bg-gray-50 transition-colors">
+src/pages/admin/Coupons.tsx:                      onClick={() => toggleCouponStatus(coupon.id)}
+src/pages/admin/Coupons.tsx:                        onClick={() => setItemToDelete(coupon.id)}
+src/pages/admin/Coupons.tsx:          <div key={coupon.id} className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 space-y-4">
+src/pages/admin/Coupons.tsx:                onClick={() => toggleCouponStatus(coupon.id)}
+src/pages/admin/Coupons.tsx:                onClick={() => setItemToDelete(coupon.id)}
+src/pages/admin/Orders.tsx:        (order.id || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+src/pages/admin/Orders.tsx:      o.id,
+src/pages/admin/Orders.tsx:                  key={order.id}
+src/pages/admin/Orders.tsx:                        <span className="text-xs font-black text-carbon uppercase tracking-tighter">#{order.id.slice(-6).toUpperCase()}</span>
+src/pages/admin/Orders.tsx:                        src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${order.customerName || order.id}`} 
+src/pages/admin/Orders.tsx:                        handleWhatsApp(order.customerPhone, order.id);
+src/pages/admin/Orders.tsx:                      toggleOrderSelection(order.id);
+src/pages/admin/Orders.tsx:                      selectedOrders.includes(order.id) 
+src/pages/admin/Orders.tsx:                    {selectedOrders.includes(order.id) && <CheckSquare className="w-4 h-4" />}
+src/pages/admin/Orders.tsx:                      setSelectedOrders(filteredOrders.map(o => o.id));
+src/pages/admin/Orders.tsx:                          key={order.id}
+src/pages/admin/Orders.tsx:                              <div className="text-sm font-black text-carbon">#{order.id.slice(-8).toUpperCase()}</div>
+src/pages/admin/Orders.tsx:                        #{selectedOrder.id.slice(-10).toUpperCase()}
+src/pages/admin/Orders.tsx:                                if (selectedOrder.status === 'pending') handleStatusUpdate(selectedOrder.id, 'processing');
+src/pages/admin/Orders.tsx:                                else if (selectedOrder.status === 'processing') handleStatusUpdate(selectedOrder.id, 'shipped');
+src/pages/admin/Orders.tsx:                                else if (selectedOrder.status === 'shipped') handleStatusUpdate(selectedOrder.id, 'delivered');
+src/pages/admin/Orders.tsx:                                if (selectedOrder.status === 'processing') handleStatusUpdate(selectedOrder.id, 'pending', true);
+src/pages/admin/Orders.tsx:                                else if (selectedOrder.status === 'shipped') handleStatusUpdate(selectedOrder.id, 'processing', true);
+src/pages/admin/Orders.tsx:                                else if (selectedOrder.status === 'delivered') handleStatusUpdate(selectedOrder.id, 'shipped', true);
+src/pages/admin/Orders.tsx:                                else if (selectedOrder.status === 'cancelled') handleStatusUpdate(selectedOrder.id, 'pending', true);
+src/pages/admin/Orders.tsx:                              handleWhatsApp(selectedOrder.customerPhone || '', selectedOrder.id);
+src/pages/admin/Orders.tsx:                                handleStatusUpdate(selectedOrder.id, 'cancelled');
+src/pages/admin/Orders.tsx:                    key={tab.id}
+src/pages/admin/Orders.tsx:                    onClick={() => setActiveModalTab(tab.id as any)}
+src/pages/admin/Orders.tsx:                      activeModalTab === tab.id 
+src/pages/admin/Orders.tsx:                    <tab.icon className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${activeModalTab === tab.id ? 'text-solar' : 'text-slate-300'}`} />
+src/pages/admin/AdminLayout.tsx:        id: `order-${order.id}`,
+src/pages/admin/AdminLayout.tsx:        link: `/admin/orders?id=${order.id}`
+src/pages/admin/AdminLayout.tsx:        id: `stock-${product.id}`,
+src/pages/admin/AdminLayout.tsx:        link: `/admin/products?id=${product.id}`
+src/pages/admin/AdminLayout.tsx:        id: `ticket-${ticket.id}`,
+src/pages/admin/AdminLayout.tsx:    return alerts.filter(alert => !readNotifications.includes(alert.id));
+src/pages/admin/AdminLayout.tsx:    const currentIds = adminNotifications.map(n => n.id);
+src/pages/admin/AdminLayout.tsx:                                  key={notif.id}
+src/pages/admin/Products.tsx:      setSelectedProducts(filteredProducts.map(p => p.id));
+src/pages/admin/Products.tsx:      updateProduct(editingProduct.id, finalFormData);
+src/pages/admin/Products.tsx:                              key={product.id}
+src/pages/admin/Products.tsx:                              className={`group hover:bg-bg-general/50 transition-all ${selectedProducts.includes(product.id) ? 'bg-solar/5' : ''}`}
+src/pages/admin/Products.tsx:                                  checked={selectedProducts.includes(product.id)}
+src/pages/admin/Products.tsx:                                  onChange={() => toggleSelectProduct(product.id)}
+src/pages/admin/Products.tsx:                                    value={stockEdits[product.id] ?? product.stockCount ?? 0}
+src/pages/admin/Products.tsx:                                    onChange={(e) => handleStockChange(product.id, e.target.value)}
+src/pages/admin/Products.tsx:                                      stockEdits[product.id] !== undefined
+src/pages/admin/Products.tsx:                                  {stockEdits[product.id] !== undefined && (
+src/pages/admin/Products.tsx:                                        delete newEdits[product.id];
+src/pages/admin/Products.tsx:                                    onClick={() => setItemToDelete(product.id)}
+src/pages/admin/Products.tsx:                        <div key={product.id} className="p-4 flex flex-col gap-4">
+src/pages/admin/Products.tsx:                              checked={selectedProducts.includes(product.id)}
+src/pages/admin/Products.tsx:                              onChange={() => toggleSelectProduct(product.id)}
+src/pages/admin/Products.tsx:                                value={stockEdits[product.id] ?? product.stockCount ?? 0}
+src/pages/admin/Products.tsx:                                onChange={(e) => handleStockChange(product.id, e.target.value)}
+src/pages/admin/Products.tsx:                                  stockEdits[product.id] !== undefined
+src/pages/admin/Products.tsx:                              onClick={() => setItemToDelete(product.id)}
+src/pages/admin/Products.tsx:                        key={product.id}
+src/pages/admin/Products.tsx:                              onClick={() => setItemToDelete(product.id)}
+src/pages/admin/Products.tsx:                                    value={stockEdits[product.id] ?? product.stockCount ?? 0}
+src/pages/admin/Products.tsx:                                    onChange={(e) => handleStockChange(product.id, e.target.value)}
+src/pages/admin/Products.tsx:                                      stockEdits[product.id] !== undefined
+src/pages/admin/Products.tsx:                              <option key={cat.id} value={cat.name}>{cat.name}</option>
+src/pages/admin/Security.tsx:      const originalAdmin = adminUsers.find(a => a.id === editingAdminId);
+src/pages/admin/Security.tsx:    setEditingAdminId(admin.id);
+src/pages/admin/Security.tsx:          <div key={admin.id} className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm hover:shadow-md transition-all flex flex-col">
+src/pages/admin/Security.tsx:                onClick={() => updateAdminUser(admin.id, { isActive: !admin.isActive }, `تم ${admin.isActive ? 'تعطيل' : 'تفعيل'} حساب المشرف ${admin.name}`)}
+src/pages/admin/Security.tsx:                onClick={() => setDeleteConfirmId(admin.id)}
+src/pages/admin/Security.tsx:                                key={perm.id}
+src/pages/admin/Security.tsx:                                onClick={() => togglePermission(perm.id)}
+src/pages/admin/Security.tsx:                                  adminForm.permissions.includes(perm.id)
+src/pages/admin/Security.tsx:                                  adminForm.permissions.includes(perm.id) ? 'bg-solar text-white' : 'bg-gray-50 text-gray-300'
+src/pages/admin/Security.tsx:                                  {adminForm.permissions.includes(perm.id) ? <UserCheck className="w-3 h-3" /> : <Shield className="w-3 h-3" />}
+src/pages/admin/Security.tsx:                                key={perm.id}
+src/pages/admin/Security.tsx:                                onClick={() => togglePermission(perm.id)}
+src/pages/admin/Security.tsx:                                  adminForm.permissions.includes(perm.id)
+src/pages/admin/Security.tsx:                                  adminForm.permissions.includes(perm.id) ? 'bg-solar text-white' : 'bg-gray-50 text-gray-300'
+src/pages/admin/Security.tsx:                                  {adminForm.permissions.includes(perm.id) ? <UserCheck className="w-3 h-3" /> : <Shield className="w-3 h-3" />}
+src/pages/admin/Customers.tsx:            (o.id || '').toLowerCase().includes(orderSearchTerm.toLowerCase()) ||
+src/pages/admin/Customers.tsx:                        key={tab.id}
+src/pages/admin/Customers.tsx:                        onClick={() => setActiveTab(tab.id as any)}
+src/pages/admin/Customers.tsx:                          activeTab === tab.id ? 'text-solar' : 'text-slate-400'
+src/pages/admin/Customers.tsx:                        <tab.icon className={`w-5 h-5 transition-transform ${activeTab === tab.id ? 'scale-105' : ''}`} />
+src/pages/admin/Customers.tsx:                        <span className={`text-[10px] font-bold ${activeTab === tab.id ? 'opacity-100' : 'opacity-70'}`}>{tab.label}</span>
+src/pages/admin/Customers.tsx:                        {activeTab === tab.id && (
+src/pages/admin/Customers.tsx:                                <div key={order.id} className="p-3.5 bg-white rounded-2xl border border-slate-100 flex items-center justify-between group hover:bg-slate-50 transition-all">
+src/pages/admin/Customers.tsx:                                      <p className="font-bold text-carbon text-sm">#{order.id.slice(-6).toUpperCase()}</p>
+src/pages/admin/Customers.tsx:                              .sort((a, b) => (pinnedNotes.includes(b.id) ? 1 : 0) - (pinnedNotes.includes(a.id) ? 1 : 0))
+src/pages/admin/Customers.tsx:                                <div key={note.id} className={`p-4 rounded-2xl border relative overflow-hidden transition-all ${pinnedNotes.includes(note.id) ? 'bg-solar/5 border-solar/20' : 'bg-amber-50/30 border-amber-100/50'}`}>
+src/pages/admin/Customers.tsx:                                  <div className={`absolute top-0 right-0 w-1 h-full ${pinnedNotes.includes(note.id) ? 'bg-solar' : 'bg-amber-400/50'}`} />
+src/pages/admin/Customers.tsx:                                    <p className={`text-sm font-semibold leading-relaxed ${pinnedNotes.includes(note.id) ? 'text-carbon' : 'text-amber-900'}`}>{note.text}</p>
+src/pages/admin/Customers.tsx:                                          prev.includes(note.id) ? prev.filter(id => id !== note.id) : [...prev, note.id]
+src/pages/admin/Customers.tsx:                                      className={`p-1 rounded-lg transition-all ${pinnedNotes.includes(note.id) ? 'text-solar bg-solar/10' : 'text-slate-300 hover:text-amber-500'}`}
+src/pages/admin/Customers.tsx:                                      <Pin className={`w-3.5 h-3.5 ${pinnedNotes.includes(note.id) ? 'fill-current' : ''}`} />
+src/pages/admin/Customers.tsx:                                    <Calendar className={`w-3 h-3 ${pinnedNotes.includes(note.id) ? 'text-solar/70' : 'text-amber-500/70'}`} />
+src/pages/admin/Customers.tsx:                                    <p className={`text-[10px] font-bold ${pinnedNotes.includes(note.id) ? 'text-solar/70' : 'text-amber-600/70'}`}>{new Date(note.date).toLocaleDateString('ar-u-nu-latn')}</p>
+src/pages/Wishlist.tsx:          <div key={p.id}>
+src/pages/Cart.tsx:                key={item.id}
+src/pages/Cart.tsx:                <Link to={`/product/${item.product.id}`} className="w-full sm:w-32 h-32 bg-white rounded-lg overflow-hidden shrink-0 p-2 relative">
+src/pages/Cart.tsx:                      <Link to={`/product/${item.product.id}`} className="font-bold text-carbon text-sm sm:text-base hover:text-solar transition-colors line-clamp-2">
+src/pages/Cart.tsx:                      onClick={() => handleRemoveItem(item.id)}
+src/pages/Cart.tsx:                        onClick={() => handleUpdateQuantity(item.id, -1)}
+src/pages/Cart.tsx:                        onClick={() => handleUpdateQuantity(item.id, 1)}
+src/pages/Notifications.tsx:    return products.find(p => p.id === productId)?.image;
+src/pages/Notifications.tsx:      if (!n.isRead) markNotificationAsRead(n.id);
+src/pages/Notifications.tsx:      setNotifications((prev: any) => prev.filter((n: any) => n.id !== notificationToDelete));
+src/pages/Notifications.tsx:                      key={notification.id}
+src/pages/Notifications.tsx:                                  onClick={() => markNotificationAsRead(notification.id)}
+src/pages/Notifications.tsx:                                  onClick={() => markNotificationAsRead(notification.id)}
+src/pages/Notifications.tsx:                              onClick={() => handleSetNotificationToDelete(notification.id)}
+src/pages/Notifications.tsx:                    <div key={item.id} className="flex items-center justify-between group">
+src/pages/Notifications.tsx:                        onClick={() => handleUpdateSetting(item.id)}
+src/pages/Notifications.tsx:                          notificationSettings[item.id as keyof typeof notificationSettings] ? 'bg-solar shadow-lg shadow-solar/20' : 'bg-slate-200'
+src/pages/Notifications.tsx:                          animate={{ x: notificationSettings[item.id as keyof typeof notificationSettings] ? 24 : 4 }}
+src/pages/Deals.tsx:  const isWishlisted = useMemo(() => wishlist.some(item => item.id === product.id), [wishlist, product.id]);
+src/pages/Deals.tsx:    const idStr = String(product.id || '');
+src/pages/Deals.tsx:  }, [product.id]);
+src/pages/Deals.tsx:      <Link to={`/product/${product.id}`} className="relative overflow-hidden bg-slate-50 block h-[180px] sm:h-[280px] w-full">
+src/pages/Deals.tsx:        <Link to={`/product/${product.id}`} className="flex-grow">
+src/pages/Deals.tsx:                <DealCard key={product.id} product={product} index={index} />
+src/pages/ProductDetail.tsx:  const product = products.find(p => String(p.id) === String(id));
+src/pages/ProductDetail.tsx:  const isNotified = product ? subscriptions.some(s => s.productId === product.id && s.type === 'back_in_stock') : false;
+src/pages/ProductDetail.tsx:          subscribeToProduct(product.id, 'back_in_stock', user?.phone || 'guest');
+src/pages/ProductDetail.tsx:              if (window.history.state && window.history.state.idx > 0) {
+src/pages/ProductDetail.tsx:              isInWishlist(product.id) 
+src/pages/ProductDetail.tsx:            <Heart className={`w-4 h-4 ${isInWishlist(product.id) ? 'fill-current' : ''}`} />
+src/pages/ProductDetail.tsx:                      أكثر من {(product.id.length * 5 % 20) + 10} شخص ينتظرون توفره
+src/pages/ProductDetail.tsx:        {products.filter(p => p.category === product.category && p.id !== product.id).length > 0 && (
+src/pages/ProductDetail.tsx:            products={products.filter(p => p.category === product.category && p.id !== product.id)} 
+src/pages/ProductDetail.tsx:              products={recentlyViewed.filter(p => p.id !== product.id)} 
+src/pages/Contact.tsx:                                <option key={type.id} value={type.label}>{type.label}</option>
+src/pages/TrackOrder.tsx:      const foundOrder = orders.find(o => (o.id || '').toLowerCase() === trackId.toLowerCase());
+src/pages/TrackOrder.tsx:                  { label: 'رقم الطلب', value: `#${trackedOrder.id}`, icon: Package, color: 'text-solar', bg: 'bg-solar/10' },
+src/pages/TrackOrder.tsx:                        key={step.id} 
+src/pages/TrackOrder.tsx:                            <p className="text-lg font-bold text-slate-400">رقم الفاتورة: #{trackedOrder.id}</p>
+src/pages/Checkout.tsx:        setSelectedAddressId(firstAddress.id);
+src/pages/Checkout.tsx:    setSelectedAddressId(addr.id);
+src/pages/Checkout.tsx:    return activePaymentMethods.find(m => m.id === paymentMethod);
+src/pages/Checkout.tsx:        setSelectedAddressId(newAddress.id);
+src/pages/Checkout.tsx:      const newAddresses = user.addresses?.filter(a => a.id !== addressToDelete);
+src/pages/Checkout.tsx:                    <div key={item.id} className="flex gap-3">
+src/pages/Checkout.tsx:              const newAddresses = user.addresses?.filter(a => a.id !== addressToDelete);
+src/pages/Checkout.tsx:                            key={addr.id}
+src/pages/Checkout.tsx:                            className={`p-3 sm:p-4 rounded-2xl border-2 cursor-pointer transition-all relative group/addr ${selectedAddressId === addr.id ? 'border-slate-900 bg-slate-900/5' : 'border-slate-100 hover:border-slate-200 bg-slate-50'}`}
+src/pages/Checkout.tsx:                                    setAddressToDelete(addr.id);
+src/pages/Checkout.tsx:                                {selectedAddressId === addr.id && <CheckCircle className="w-5 h-5 text-slate-900" />}
+src/pages/Checkout.tsx:                              key={method.id}
+src/pages/Checkout.tsx:                                setPaymentMethod(method.id as any);
+src/pages/Checkout.tsx:                                paymentMethod === method.id 
+src/pages/Checkout.tsx:                      <div key={item.id} className="bg-slate-50 p-4 sm:p-5 rounded-2xl border border-slate-100 flex items-center justify-between">
+src/pages/Checkout.tsx:                <div key={item.id} className="flex gap-4 group">
+src/pages/Category.tsx:                  <ProductCard key={product.id} product={product} wide />
+src/pages/Terms.tsx:              key={section.id}
+src/pages/Terms.tsx:                <h2 className="text-xl font-black text-carbon">{section.id}. {section.title}</h2>
+src/pages/Profile.tsx:            const newAddresses = user.addresses?.filter(a => a.id !== addressToDelete);
+src/pages/Profile.tsx:                      <div key={tx.id} className="flex items-start sm:items-center justify-between p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-slate-100 bg-slate-50/50 gap-2 sm:gap-4">
+src/pages/Profile.tsx:                      <div key={addr.id} className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-100 shadow-sm flex gap-4 justify-between items-start">
+src/pages/Profile.tsx:                            setAddressToDelete(addr.id);
+src/pages/Search.tsx:                <ProductCard key={p.id} product={p} className="h-full" wide />
+src/pages/Orders.tsx:              key={order.id}
+src/pages/Orders.tsx:                    <div className="font-bold text-carbon text-sm">طلب #{order.id}</div>
+src/pages/Orders.tsx:                  to={`/track-order?id=${order.id}`}
+src/pages/Privacy.tsx:              key={section.id}
+src/pages/Privacy.tsx:                <h2 className="text-xl font-black text-carbon">{section.id}. {section.title}</h2>
+src/lib/migrateData.ts:      await setDoc(doc(db, 'products', String(product.id)), product);
+src/lib/migrateData.ts:        await setDoc(doc(db, 'categories', String(cat.id)), cat);
+src/lib/migrateData.ts:        await setDoc(doc(db, 'coupons', String(coupon.id)), coupon);
+src/lib/migrateData.ts:        await setDoc(doc(db, 'support_tickets', String(ticket.id)), ticket);
+src/lib/migrateData.ts:        await setDoc(doc(db, 'blog_posts', String(post.id)), post);
+src/lib/migrateData.ts:        await setDoc(doc(db, 'static_pages', String(page.id)), page);
+src/lib/migrateData.ts:        await setDoc(doc(db, 'shipping_zones', String(zone.id)), zone);
+src/lib/migrateData.ts:        await setDoc(doc(db, 'banners', String(banner.id)), banner);
+src/lib/useFirestore.ts:        items.push({ id: doc.id, ...doc.data() } as unknown as T);
+src/context/StoreContext.tsx:        const uniqueProducts = Array.from(new Map(parsed.map((p: any) => [String(p.id), { ...p, id: String(p.id) }])).values()) as Product[];
+src/context/StoreContext.tsx:          id: item.id || `${item.product?.id || Date.now()}-${item.selectedColor || 'default'}-${item.selectedSize || 'default'}`
+src/context/StoreContext.tsx:    return Array.from(new Map(loadedWishlist.map((p: any) => [String(p.id), { ...p, id: String(p.id) }])).values()) as Product[];
+src/context/StoreContext.tsx:          id: String(doc.id) 
+src/context/StoreContext.tsx:      const ordersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as Order[];
+src/context/StoreContext.tsx:      const customersData = snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() })) as unknown as UserProfile[];
+src/context/StoreContext.tsx:      const logsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as ActivityLog[];
+src/context/StoreContext.tsx:      const adminsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as AdminUser[];
+src/context/StoreContext.tsx:      const ticketsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as SupportTicket[];
+src/context/StoreContext.tsx:      const visitsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as Visit[];
+src/context/StoreContext.tsx:      const termsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as SearchTerm[];
+src/context/StoreContext.tsx:      const cartsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as AbandonedCart[];
+src/context/StoreContext.tsx:      const logsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as InventoryLog[];
+src/context/StoreContext.tsx:      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as Category[];
+src/context/StoreContext.tsx:      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as Coupon[];
+src/context/StoreContext.tsx:      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as BlogPost[];
+src/context/StoreContext.tsx:      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as StaticPage[];
+src/context/StoreContext.tsx:      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as ShippingZone[];
+src/context/StoreContext.tsx:      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as Banner[];
+src/context/StoreContext.tsx:        id: newTicketRef.id,
+src/context/StoreContext.tsx:        id: newPostRef.id,
+src/context/StoreContext.tsx:        id: newZoneRef.id,
+src/context/StoreContext.tsx:          const pRef = doc(db, 'products', p.id);
+src/context/StoreContext.tsx:        id: newBannerRef.id,
+src/context/StoreContext.tsx:        id: newNotifRef.id,
+src/context/StoreContext.tsx:        id: newAdminRef.id,
+src/context/StoreContext.tsx:      const cartItemId = `${product.id}-${color || 'default'}-${size || 'default'}`;
+src/context/StoreContext.tsx:      const existing = prev.find(item => item.id === cartItemId);
+src/context/StoreContext.tsx:          item.id === cartItemId 
+src/context/StoreContext.tsx:      if (item.id === id) {
+src/context/StoreContext.tsx:    setCart(prev => prev.filter(item => item.id !== id));
+src/context/StoreContext.tsx:      setCoupons(prev => prev.map(c => c.id === id ? { ...c, ...updatedData } : c));
+src/context/StoreContext.tsx:        const sourceProduct = products.find(p => p.id === item.product.id);
+src/context/StoreContext.tsx:        updateCoupon(coupon.id, { usedCount: coupon.usedCount + 1 }, false);
+src/context/StoreContext.tsx:          productId: item.product.id || '',
+src/context/StoreContext.tsx:        await updateDoc(doc(db, 'products', String(item.product.id)), {
+src/context/StoreContext.tsx:      const exists = prev.some(p => String(p.id) === String(product.id));
+src/context/StoreContext.tsx:        newWishlist = prev.filter(p => String(p.id) !== String(product.id));
+src/context/StoreContext.tsx:    return wishlist.some(p => String(p.id) === String(productId));
+src/context/StoreContext.tsx:        uid: newUserRef.id,
+src/context/StoreContext.tsx:      await setDoc(doc(db, 'coupons', newCoupon.id), newCoupon);
+src/context/StoreContext.tsx:      const coupon = coupons.find(c => c.id === id);
+src/context/StoreContext.tsx:      setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
+src/context/StoreContext.tsx:      const filtered = prev.filter(p => p.id !== product.id);
+src/context/StoreContext.tsx:      const product = products.find(p => p.id === productId);
+src/context/StoreContext.tsx:        const product = products.find(p => p.id === update.productId);
+src/context/StoreContext.tsx:      await setDoc(doc(db, 'categories', newCategory.id), newCategory);
+src/types.ts:  id: string; // Unique ID for cart item (product.id + color + size)
+src/services/notificationService.ts:    const orderId = order.id.slice(-6).toUpperCase();
+src/services/recommendationService.ts:    const productsSummary = products.map(p => `ID: ${p.id}, Name: ${p.name}, Category: ${p.category}`).join("\n");
+src/services/recommendationService.ts:    const recommendedProducts = products.filter(p => recommendedIds.includes(p.id));
+src/services/recommendationService.ts:    const cartIds = cart.map(item => item.product.id);
+src/services/recommendationService.ts:      .filter(p => !cartIds.includes(p.id) && p.id !== currentProduct?.id)
+src/services/recommendationService.ts:  const cartIds = cart.map(item => item.product.id);
+src/services/recommendationService.ts:  const viewedIds = recentlyViewed.map(p => p.id);
+src/services/recommendationService.ts:    recommendations.push(...products.filter(p => p.category === 'إكسسوارات' && !cartIds.includes(p.id)));
+src/services/recommendationService.ts:      p.id !== currentProduct.id && 
+src/services/recommendationService.ts:      !cartIds.includes(p.id)
+src/services/recommendationService.ts:    !viewedIds.includes(p.id) && 
+src/services/recommendationService.ts:    !cartIds.includes(p.id)
+src/services/recommendationService.ts:    recommendations.push(...products.filter(p => p.isNew && !cartIds.includes(p.id)));
+src/services/recommendationService.ts:  const uniqueRecs = Array.from(new Set(recommendations.map(p => p.id)))
+src/services/recommendationService.ts:    .map(id => products.find(p => p.id === id)!)
+src/services/recommendationService.ts:    .filter(p => p.id !== currentProduct?.id && !cartIds.includes(p.id));

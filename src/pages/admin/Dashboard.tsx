@@ -365,10 +365,42 @@ export default function Dashboard() {
   }, [orders, activityLogs]);
 
   useEffect(() => {
-    toast.success("أهلاً بك مجدداً، المدير العام 👋", {
-      description: "إليك ملخص أداء متجرك اليوم",
-      duration: 5000,
+    // Check if greeting was already shown in this session
+    const greetingShown = sessionStorage.getItem("admin_greeting_shown");
+    if (greetingShown) return;
+
+    const hour = new Date().getHours();
+    let greeting = "أهلاً بك";
+    if (hour >= 5 && hour < 12) greeting = "صباح الخير";
+    else if (hour >= 12 && hour < 17) greeting = "مساء الخير";
+    else if (hour >= 17 && hour < 21) greeting = "طاب مساؤك";
+    else greeting = "أهلاً بك في وقت متأخر";
+
+    const phrases = [
+      "إليك ملخص أداء متجرك اليوم 📊",
+      "نتمنى لك يوماً مليئاً بالمبيعات والنجاح 🚀",
+      "كل شيء يسير على ما يرام في إمبراطوريتك 👑",
+      "أداء المتجر في تحسن مستمر، استمر في التميز 🌟",
+      "فريقك وبضائعك في انتظار أوامرك اليوم ⚡"
+    ];
+    const randomPhrase = phrases[Math.floor(Math.random() * phrases.length)];
+
+    toast.success(`${greeting}، المدير العام 👋`, {
+      description: randomPhrase,
+      duration: 6000,
+      style: {
+        background: '#0F172A', // Dark professional blue
+        color: '#FFFFFF',      // Pure white text
+        border: '1px solid rgba(255, 255, 255, 0.2)',
+        borderRadius: '20px',
+        padding: '16px 24px',
+        fontSize: '15px',
+        fontWeight: '900',
+        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+      },
     });
+
+    sessionStorage.setItem("admin_greeting_shown", "true");
   }, []);
 
   const containerVariants: Variants = {
@@ -964,16 +996,6 @@ export default function Dashboard() {
         </Link>
       </motion.div>
 
-      {/* Floating Action Button */}
-      <Link to="/admin/products?add=true">
-        <motion.button
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
-          className="fixed bottom-28 right-6 sm:bottom-10 sm:right-10 w-16 h-16 bg-solar text-carbon rounded-full shadow-2xl shadow-gold flex items-center justify-center z-50 lg:bottom-10"
-        >
-          <Plus className="w-8 h-8" />
-        </motion.button>
-      </Link>
     </motion.div>
   );
 }

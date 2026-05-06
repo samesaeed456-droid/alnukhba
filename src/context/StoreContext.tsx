@@ -1407,7 +1407,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      let q = query(collection(activeDb, colName));
+      let q = query(collection(activeDb, colName === "customers" ? "users" : colName));
       if (colName === "orders") {
         const activeAdmin =
           adminUser?.role === "admin" || adminUser?.isAdmin
@@ -1455,8 +1455,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         },
       );
     },
-    [adminAuth.currentUser],
+    [adminAuth.currentUser, adminUser?.uid, user?.uid, adminUser?.role, user?.role],
   );
+
+  // Clear active syncs when identity changes to ensure listeners use correct permissions/queries
+  useEffect(() => {
+    activeSyncs.current.clear();
+  }, [adminAuth.currentUser?.uid]);
 
   const showToast = React.useCallback(
     (

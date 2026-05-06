@@ -309,24 +309,24 @@ export default function App() {
       <MotionConfig reducedMotion="user">
         <Toaster
           position="top-center"
-          offset="24px"
-          duration={1500}
+          offset="32px"
+          duration={3000}
           closeButton
           toastOptions={{
             style: {
-              background: "rgba(15, 23, 42, 0.9)",
-              backdropFilter: "blur(12px)",
-              WebkitBackdropFilter: "blur(12px)",
-              border: "1px solid rgba(255, 255, 255, 0.1)",
-              color: "#ffffff",
-              borderRadius: "16px",
-              boxShadow: "0 20px 40px -10px rgba(0, 0, 0, 0.3)",
-              padding: "14px 20px",
-              fontSize: "14px",
-              fontWeight: "600",
-              fontFamily: "inherit",
+              background: "#0F172A",
+              backdropFilter: "blur(16px)",
+              WebkitBackdropFilter: "blur(16px)",
+              border: "1px solid rgba(255, 255, 255, 0.2)",
+              color: "#FFFFFF",
+              borderRadius: "20px",
+              boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)",
+              padding: "16px 24px",
+              fontSize: "15px",
+              fontWeight: "900",
+              fontFamily: "Cairo, sans-serif",
             },
-            className: "font-sans",
+            className: "font-sans admin-toast-override",
           }}
         />
         <Router>

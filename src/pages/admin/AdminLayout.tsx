@@ -776,35 +776,35 @@ export default function AdminLayout() {
                           <h3 className="text-sm font-black text-slate-900">
                             الإشعارات
                           </h3>
-                          <span className="bg-solar/10 text-solar px-2 py-0.5 rounded-lg text-[9px] font-black">
+                          <span className="bg-solar/10 text-solar px-2.5 py-1 rounded-lg text-[11px] font-black tracking-wider">
                             {adminNotifications.length} تنبيهات
                           </span>
                         </div>
 
-                        <div className="max-h-[400px] overflow-y-auto custom-scrollbar">
+                        <div className="max-h-[450px] overflow-y-auto custom-scrollbar">
                           {adminNotifications.length > 0 ? (
-                            <div className="divide-y divide-slate-50">
+                            <div className="divide-y divide-slate-100/60">
                               {adminNotifications.map((notif) => (
                                 <Link
                                   key={notif.id}
                                   to={notif.link}
                                   onClick={() => setIsNotificationsOpen(false)}
-                                  className="flex items-start gap-4 p-4 hover:bg-slate-50 transition-colors group"
+                                  className="flex items-start gap-4 p-5 hover:bg-slate-50/80 transition-all group border-r-4 border-transparent hover:border-solar"
                                 >
                                   <div
-                                    className={`w-10 h-10 rounded-2xl ${notif.bg} ${notif.color} flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform`}
+                                    className={`w-12 h-12 rounded-2xl ${notif.bg} ${notif.color} flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform shadow-sm`}
                                   >
-                                    <notif.icon className="w-5 h-5" />
+                                    <notif.icon className="w-6 h-6" />
                                   </div>
                                   <div className="flex-1 min-w-0">
-                                    <h4 className="text-sm font-black text-slate-900 line-clamp-1">
+                                    <h4 className="text-[15px] font-black text-carbon line-clamp-1 leading-tight mb-1 group-hover:text-solar transition-colors">
                                       {notif.title}
                                     </h4>
-                                    <p className="text-xs text-slate-500 font-medium mt-1 line-clamp-2 leading-relaxed">
+                                    <p className="text-[13px] text-slate-600 font-bold line-clamp-2 leading-relaxed">
                                       {notif.description}
                                     </p>
-                                    <div className="flex items-center gap-2 mt-2 text-[10px] text-slate-400 font-bold">
-                                      <Clock className="w-3 h-3" />
+                                    <div className="flex items-center gap-2 mt-2.5 text-xs text-slate-400 font-bold">
+                                      <Clock className="w-3.5 h-3.5" />
                                       {notif.time}
                                     </div>
                                   </div>

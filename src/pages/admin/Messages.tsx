@@ -23,7 +23,7 @@ import {
   MoreHorizontal,
   Star
 } from "lucide-react";
-import { motion, AnimatePresence, Variants } from "framer-motion";
+import { motion, AnimatePresence, Variants } from "motion/react";
 import { toast } from "sonner";
 import { FloatingInput } from "../../components/FloatingInput";
 import ConfirmationModal from "../../components/ConfirmationModal";

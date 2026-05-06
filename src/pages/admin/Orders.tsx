@@ -45,7 +45,7 @@ import {
   Crown,
   Grid,
 } from "lucide-react";
-import { motion, AnimatePresence, Variants } from "framer-motion";
+import { motion, AnimatePresence, Variants } from "motion/react";
 import { useStore } from "../../context/StoreContext";
 import { Order } from "../../types";
 import { notificationService } from "../../services/notificationService";

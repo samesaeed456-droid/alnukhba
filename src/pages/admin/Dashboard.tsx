@@ -47,7 +47,7 @@ import {
   Pie,
   Cell,
 } from "recharts";
-import { motion, AnimatePresence, Variants } from "framer-motion";
+import { motion, AnimatePresence, Variants } from "motion/react";
 import { toast } from "sonner";
 import { BASE_CURRENCY_SYMBOL } from "@/lib/finance";
 
@@ -395,8 +395,6 @@ export default function Dashboard() {
       initial="hidden"
       animate="visible"
     >
-      <div className="mb-8"></div>
-
       {/* Stats Grid - Professional 3-column layout on desktop */}
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
         {/* Sales Today */}

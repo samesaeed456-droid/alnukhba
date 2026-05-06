@@ -48,7 +48,7 @@ import {
   Info,
   ChevronDown,
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 import { FloatingInput } from "@/components/FloatingInput";
 import ConfirmationModal from "@/components/ConfirmationModal";
 import { useStore } from "@/context/StoreContext";

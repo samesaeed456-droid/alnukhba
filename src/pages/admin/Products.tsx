@@ -38,7 +38,7 @@ import {
   RefreshCw,
   Check,
 } from "lucide-react";
-import { motion, AnimatePresence, Variants } from "framer-motion";
+import { motion, AnimatePresence, Variants } from "motion/react";
 import { toast } from "sonner";
 import { useStore } from "@/context/StoreContext";
 import { Product } from "@/types";

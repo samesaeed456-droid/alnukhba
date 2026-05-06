@@ -17,7 +17,7 @@ import {
   ChevronDown,
   Info,
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 import { CityData } from "../../types";
 import FloatingInput from "../../components/FloatingInput";
 import ConfirmationModal from "../../components/ConfirmationModal";
@@ -240,21 +240,37 @@ const Logistics = () => {
     });
   };
 
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filteredCities = cities.filter(city => 
+    city.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <div className="space-y-6">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-black text-carbon flex items-center gap-3">
-            <div className="w-10 h-10 bg-solar/10 rounded-xl flex items-center justify-center">
-              <MapPin className="w-6 h-6 text-solar" />
+          <h1 className="text-xl font-black text-carbon flex items-center gap-3">
+            <div className="w-9 h-9 bg-solar/10 rounded-xl flex items-center justify-center">
+              <MapPin className="w-5 h-5 text-solar" />
             </div>
             إدارة المدن والمناطق
           </h1>
-          <p className="text-gray-400 text-sm mt-1">
-            إدارة قائمة المدن والمناطق التابعة لها المتاحة للعملاء
+          <p className="text-gray-400 text-xs mt-1">
+            إدارة {cities.length} مدينة ومحافظة مسجلة
           </p>
         </div>
-        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+        <div className="flex flex-wrap gap-2 w-full lg:w-auto">
+          <div className="relative flex-1 min-w-[200px]">
+            <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="بحث عن مدينة..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full h-11 pr-11 pl-4 bg-white border border-gray-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-solar/20 outline-none"
+            />
+          </div>
           <button
             onClick={() => {
               setConfirmModal({
@@ -265,10 +281,10 @@ const Logistics = () => {
               });
             }}
             disabled={isSeeding}
-            className="flex-1 sm:flex-initial flex items-center gap-2 bg-carbon text-white px-6 py-3 rounded-2xl font-bold hover:bg-carbon/90 transition-all shadow-lg shadow-carbon/20 active:scale-95 justify-center disabled:opacity-50"
+            className="flex items-center gap-2 bg-carbon text-white px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-carbon/90 transition-all active:scale-95 disabled:opacity-50"
           >
-            <MapPin className="w-5 h-5" />
-            <span>{isSeeding ? "جاري الاستيراد..." : "استيراد جميع المدن اليمنية"}</span>
+            <MapPin className="w-4 h-4" />
+            <span>{isSeeding ? "جاري..." : "استيراد الكل"}</span>
           </button>
           <button
             onClick={() => {
@@ -280,27 +296,30 @@ const Logistics = () => {
               });
               setIsCityModalOpen(true);
             }}
-            className="flex-1 sm:flex-initial flex items-center gap-2 bg-solar text-white px-6 py-3 rounded-2xl font-bold hover:bg-solar/90 transition-all shadow-lg shadow-solar/20 active:scale-95 justify-center"
+            className="flex items-center gap-2 bg-solar text-white px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-solar/90 transition-all active:scale-95"
           >
-            <Plus className="w-5 h-5" />
-            <span>إضافة مدينة جديدة</span>
+            <Plus className="w-4 h-4" />
+            <span>إضافة مدينة</span>
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {cities.map((city) => (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        {filteredCities.map((city) => (
           <motion.div
             layout
             key={city.id}
-            className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden group hover:shadow-xl hover:shadow-gray-200/50 transition-all duration-300"
+            className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden group hover:shadow-md transition-all duration-300"
           >
-            <div className="p-6">
-              <div className="flex justify-between items-start mb-6">
-                <div className="w-12 h-12 bg-solar/5 rounded-2xl flex items-center justify-center border border-solar/10">
-                  <MapPin className="w-6 h-6 text-solar" />
+            <div className="p-4">
+              <div className="flex justify-between items-center mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 bg-solar/5 rounded-lg flex items-center justify-center border border-solar/10">
+                    <MapPin className="w-4 h-4 text-solar" />
+                  </div>
+                  <h3 className="text-sm font-black text-carbon truncate max-w-[120px]">{city.name}</h3>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-1">
                   <button
                     onClick={() => {
                       setEditingCity(city);
@@ -311,59 +330,54 @@ const Logistics = () => {
                       });
                       setIsCityModalOpen(true);
                     }}
-                    className="p-2.5 bg-solar/5 text-solar rounded-xl hover:bg-solar/10 transition-all"
+                    className="p-1.5 text-gray-400 hover:text-solar hover:bg-solar/5 rounded-lg transition-all"
                   >
-                    <Edit2 className="w-5 h-5" />
+                    <Edit2 className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => {
                       setConfirmModal({
                         isOpen: true,
                         title: "حذف مدينة",
-                        message: `هل أنت متأكد من حذف مدينة ${city.name}؟ سيتم حذف جميع المناطق التابعة لها.`,
+                        message: `هل أنت متأكد من حذف مدينة ${city.name}؟`,
                         onConfirm: () => deleteCity(city.id),
                       });
                     }}
-                    className="p-2.5 bg-red-50 text-red-500 rounded-xl hover:bg-red-100 transition-all"
+                    className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
                   >
-                    <Trash2 className="w-5 h-5" />
+                    <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
               </div>
 
-              <h3 className="text-lg font-black text-carbon mb-1">{city.name}</h3>
-              <p className="text-xs text-gray-400 font-bold mb-4">
-                {city.districts?.length || 0} منطقة مسجلة
-              </p>
-
-              <div className="flex flex-wrap gap-1.5">
-                {city.districts?.slice(0, 5).map((d) => (
-                  <span key={d} className="px-2 py-0.5 bg-gray-50 text-gray-500 text-[10px] font-bold rounded-lg border border-gray-100">
+              <div className="flex flex-wrap gap-1 min-h-[44px] content-start">
+                {(city.districts || []).slice(0, 3).map((d) => (
+                  <span key={d} className="px-1.5 py-0.5 bg-gray-50 text-gray-500 text-[9px] font-black rounded-md border border-gray-100">
                     {d}
                   </span>
                 ))}
-                {(city.districts?.length || 0) > 5 && (
-                  <span className="px-2 py-0.5 bg-gray-50 text-gray-400 text-[10px] font-bold rounded-lg">
-                    +{(city.districts?.length || 0) - 5} أكثر
+                {(city.districts?.length || 0) > 3 && (
+                  <span className="px-1.5 py-0.5 text-gray-400 text-[9px] font-bold">
+                    +{(city.districts?.length || 0) - 3}
                   </span>
                 )}
                 {(city.districts?.length || 0) === 0 && (
-                  <span className="text-[10px] text-gray-300 font-bold italic">لا توجد مناطق مضافة</span>
+                  <span className="text-[9px] text-gray-300 font-bold italic">لا توجد مناطق</span>
                 )}
               </div>
             </div>
           </motion.div>
         ))}
-        {cities.length === 0 && (
-          <div className="col-span-full py-12 flex flex-col items-center justify-center bg-gray-50/50 rounded-3xl border-2 border-dashed border-gray-100">
-            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-              <MapPin className="w-8 h-8 text-gray-300" />
+        {filteredCities.length === 0 && (
+          <div className="col-span-full py-12 flex flex-col items-center justify-center bg-gray-50/50 rounded-2xl border-2 border-dashed border-gray-100">
+            <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-3">
+              <Search className="w-6 h-6 text-gray-300" />
             </div>
-            <h3 className="text-gray-500 font-bold">لا توجد مدن مضافة بعد</h3>
-            <p className="text-gray-400 text-xs mt-1">ابدأ بإضافة أول مدينة ومناطقها</p>
+            <h3 className="text-gray-500 font-bold text-sm">لم يتم العثور على نتائج</h3>
           </div>
         )}
       </div>
+
 
       {/* Add/Edit Modal */}
       <AnimatePresence>
@@ -412,12 +426,12 @@ const Logistics = () => {
                     <label className="text-[10px] font-bold text-gray-400 px-2 uppercase tracking-widest">
                       المناطق التابعة
                     </label>
-                    <div className="bg-gray-50/50 p-4 rounded-2xl border border-gray-100 min-h-[100px]">
-                      <div className="flex flex-wrap gap-2">
+                    <div className="bg-gray-50/50 p-3 rounded-2xl border border-gray-100 min-h-[60px] max-h-[220px] overflow-y-auto custom-scrollbar">
+                      <div className="flex flex-wrap gap-1.5">
                         {cityFormData.districts.map((district) => (
                           <span
                             key={district}
-                            className="flex items-center gap-1.5 px-3 py-1 bg-white rounded-xl text-xs font-bold text-solar border border-solar/20"
+                            className="flex items-center gap-1.5 px-2.5 py-1 bg-white rounded-lg text-[11px] font-black text-carbon border border-gray-100 shadow-sm"
                           >
                             {district}
                             <button
@@ -435,6 +449,7 @@ const Logistics = () => {
                       </div>
                     </div>
                   </div>
+
 
                   <div className="space-y-1">
                     <label className="text-[10px] font-bold text-gray-400 px-2 uppercase tracking-widest">

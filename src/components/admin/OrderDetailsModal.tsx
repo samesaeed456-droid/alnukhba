@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { Order } from "../../types";
 import { useStore } from "../../context/StoreContext";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 
 interface OrderDetailsModalProps {
   order: Order;

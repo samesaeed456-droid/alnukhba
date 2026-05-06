@@ -33,7 +33,7 @@ import {
   CheckCircle2,
   Fingerprint,
 } from "lucide-react";
-import { motion, AnimatePresence, Variants } from "framer-motion";
+import { motion, AnimatePresence, Variants } from "motion/react";
 import { Toaster, toast } from "sonner";
 import { startRegistration } from "@simplewebauthn/browser";
 import Logo from "@/components/Logo";
@@ -610,14 +610,9 @@ export default function AdminLayout() {
         ${isMobileMenuOpen ? "translate-x-0" : "translate-x-full lg:translate-x-0"}
       `}
       >
-        <div className="p-8 flex items-center justify-between">
-          <Link to="/admin" className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-solar flex items-center justify-center text-carbon shadow-lg shadow-gold">
-              <Zap className="w-6 h-6 fill-current" />
-            </div>
-            <span className="text-lg font-black tracking-tighter text-slate-900">
-              النخبة
-            </span>
+        <div className="p-6 pb-4 flex items-center justify-between">
+          <Link to="/admin" className="flex items-center">
+            <Logo className="h-10" variant="dark" />
           </Link>
           <button
             onClick={closeMobileMenu}
@@ -631,7 +626,7 @@ export default function AdminLayout() {
           variants={containerVariants}
           initial="hidden"
           animate="visible"
-          className="flex-1 p-6 space-y-8 overflow-y-auto custom-scrollbar"
+          className="flex-1 p-6 space-y-6 overflow-y-auto custom-scrollbar"
         >
           {navGroups.map((group) => (
             <motion.div
@@ -639,7 +634,7 @@ export default function AdminLayout() {
               key={group.title}
               className="space-y-1"
             >
-              <div className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 px-4">
+              <div className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 px-4">
                 {group.title}
               </div>
               {group.items.map((item) => {
@@ -674,8 +669,6 @@ export default function AdminLayout() {
             </motion.div>
           ))}
         </motion.nav>
-
-        <div className="p-6 border-t border-slate-50"></div>
       </aside>
 
       {/* Main Content */}
@@ -908,7 +901,7 @@ export default function AdminLayout() {
           </div>
         </header>
 
-        <div className="p-3 sm:p-10 flex-1 overflow-x-hidden pb-10">
+        <div className="p-4 sm:p-6 lg:p-8 flex-1 overflow-x-hidden pb-10">
           <Outlet />
         </div>
       </main>

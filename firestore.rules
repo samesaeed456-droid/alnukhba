@@ -139,6 +139,15 @@ service cloud.firestore {
                     incoming().usedCount >= existing().usedCount;
     }
 
+    match /cities/{cityId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /customers/{customerId} {
+      allow read, write: if isAdmin();
+    }
+
     match /shipping_zones/{zoneId} {
       allow read: if true;
       allow write: if isAdmin();

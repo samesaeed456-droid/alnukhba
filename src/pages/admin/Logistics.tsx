@@ -18,6 +18,7 @@ import {
   Info,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { CityData } from "../../types";
 import FloatingInput from "../../components/FloatingInput";
 import ConfirmationModal from "../../components/ConfirmationModal";
 
@@ -25,30 +26,26 @@ import { YEMEN_CITIES } from "../../constants";
 
 const Logistics = () => {
   const {
-    shippingZones,
-    addShippingZone,
-    updateShippingZone,
-    deleteShippingZone,
-    toggleShippingZoneStatus,
+    cities,
+    addCity,
+    updateCity,
+    deleteCity,
     formatPrice,
     showToast,
     syncOnDemand,
   } = useStore();
 
   React.useEffect(() => {
-    syncOnDemand("shipping_zones");
+    syncOnDemand("cities");
   }, [syncOnDemand]);
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingZone, setEditingZone] = useState<any>(null);
-  const [formData, setFormData] = useState({
+  const [isCityModalOpen, setIsCityModalOpen] = useState(false);
+  const [editingCity, setEditingCity] = useState<CityData | null>(null);
+  
+  const [cityFormData, setCityFormData] = useState({
     name: "",
-    cities: [] as string[],
     districts: [] as string[],
-    newCity: "",
     newDistrict: "",
-    rate: "",
-    freeThreshold: "",
   });
 
   const [confirmModal, setConfirmModal] = useState<{
@@ -63,115 +60,177 @@ const Logistics = () => {
     onConfirm: () => {},
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const [isSeeding, setIsSeeding] = useState(false);
 
-    if (formData.cities.length === 0 && !formData.newCity) {
-      showToast("يرجى إضافة مدينة واحدة على الأقل", "error");
+  const seedYemenData = async () => {
+    setIsSeeding(true);
+    showToast("جاري استيراد كافة المدن والأحياء...", "info");
+    
+    const yemenDetailedData = [
+      {
+        name: "صنعاء - الأمانة",
+        districts: [
+          "حي السبعين", "ميدان السبعين", "حي الأصبحي", "حي بيت بوس", "حي وحدّة", "حي الارتل", "حي حزيز", "دار سلم", 
+          "حي حده", "حده المدينة", "شارع جيبوتي", "شارع الجزائر", "شارع عمان", "شارع بغداد", "حي الوحدة", "الحي السياسي", 
+          "حي فج عطان", "حي عصر", "حي الزبيري", "شارع صخر", "شارع مجاهد", "حي القادسية", "حي الصافية", "حارة النصر", 
+          "حي التحرير", "شارع القصر", "شارع جمال", "شارع علي عبدالمغني", "شارع الإذاعة", "حي بئر العزب", "حي القاع", 
+          "صنعاء القديمة", "باب اليمن", "حي الفليحي", "حي شعوب", "حي الفوارس", "شارع مأرب", "حي سعوان", "مدينة سعوان", 
+          "حي جولة آية", "حي النصر", "حي الروضة", "حي مطار صنعاء", "حي الحصبة", "حي مازدا", "شارع التلفزيون", "حي النهضة", 
+          "حي الثورة", "حي الجراف الغربي", "حي الجراف الشرقي", "حي تونس", "حي صوفان", "حي مذبح", "حي شملان", "حي السنينة"
+        ]
+      },
+      {
+        name: "عدن",
+        districts: [
+          "كريتر (صيرة)", "حي القطيع", "حي شعب العيدروس", "حي الخساف", "حي الرزميت", "المعلا", "حي الروضة (المعلا)", "حي حافون", "حي المشروع", "التواهي", "حي القلوعة", "حي الفتح", "حي جولدمور", "خور مكسر", "حي السفارات", "حي ريمي", "حي أكتوبر", "حي السعادة", "حي العريش", "حي النصر (خور مكسر)", "الشيخ عثمان", "حي الممدارة", "حي عبد القوي", "حي السيلة", "حي الهاشمي", "المنصورة", "حي الدرين", "حي كابوتا", "حي إنماء", "حي التقنية", "حي القاهرة", "البريقة", "مدينة الشعب", "حي الحسوة", "حي أبو حربة", "حي فقم", "حي صعدة", "دار سعد", "حي اللحوم", "حي البساتين", "حي المصعبين"
+        ]
+      },
+      {
+        name: "تعز",
+        districts: [
+          "وسط المدينة (شارع جمال)", "حي المظفر", "حي القاهرة", "حي صالة", "حي الضبوعة", "حي المسبح", 
+          "وادي القاضي", "حي الروضة", "حي زيد الموشكي", "حي عصيفرة", "حي الجمهوري", "حي الجحملية", 
+          "حي المجلية", "حي ثعبات", "النسيرية", "حي المناخ", "حي كلابة", "حي الشماسي", "الحوبان", "مدينة الراهدة", "سوق السبت", "حي الضلعة", "دمنة خدير", "حيفان", "الصلو", "المواسط", "المعافر", "النشمة", "تربة ذبحان (الشمايتين)", "جبل حبشي", "مقبنة", "الوازعية", "ذو باب (المخا)", "ميناء المخا"
+        ]
+      },
+      {
+        name: "حضرموت",
+        districts: [
+          "المكلا - الشرج", "المكلا - الديس", "المكلا - فوة", "المكلا - روكب", "المكلا القديمة", "سيئون", "تريم", "الشحر", "القطن", "شبام", "ساه", "دوعن", "غيل باوزير", "غيل بن يمين", "الريدة وقصيعر", "حجر الصيعر", "عبر عثمان", "جول مسحة"
+        ]
+      },
+      {
+        name: "إب",
+        districts: [
+          "حي الظهار", "حي المشنة", "جبلة", "السياني", "ذي السفال", "يريم", "السدة", "النادرة", 
+          "العدين", "حبيش", "المحمول", "بعدان", "القفر", "مذيخرة", "فرع العدين", "حي المجمعة", "حي المعاين", "الرضمة", "المخادر", "حزم العدين"
+        ]
+      },
+      {
+        name: "الحديدة",
+        districts: [
+          "حي الحوك", "حي الميناء", "حي الحالي", "باجل", "بيت الفقيه", "زبيد", "القطيع", "كيلو 16", 
+          "حي الربصة", "حي الشهداء", "غليفقة", "الزيدية", "الضحي", "القناوص", "المنصورية", "التحيتا", "الخوخة", "الدريهمي", "حيس", "اللحية", "برع", "جبل السخنة"
+        ]
+      },
+      {
+        name: "ذمار",
+        districts: ["مدينة ذمار", "حي عنس", "معبر", "ضوران آنس", "الحداء", "وصاب العالي", "وصاب السافل", "عتمة", "حي الجمارك", "حي المحافظة", "حي الدرب", "مغرب عنس", "جبل الشرق"]
+      },
+      {
+        name: "عمران",
+        districts: ["مدينة عمران", "خمر", "ريدة", "حوث", "ثلاء", "شهارة", "عيال سريح", "مسور", "حرف سفيان", "جبل عيال يزيد", "السود", "السودة"]
+      },
+      {
+        name: "حجة",
+        districts: ["مدينة حجة", "المحابشة", "عبس", "حرض", "ميدي", "كشر", "كعيدنة", "الشاهل", "كحلان عفار", "كحلان الشرف", "أفلح اليمن", "أفلح الشام", "خيري"]
+      },
+      {
+        name: "صعدة",
+        districts: ["مدينة صعدة", "سحار", "الصفراء", "مجز", "حيدان", "كتاف والبقع", "باقم", "رازح", "منبه", "شدا", "غمر", "الظاهر"]
+      },
+      {
+        name: "مأرب",
+        districts: ["مدينة مأرب", "وادي مأرب", "حريب", "الجوبة", "صرواح", "مجزر", "رغوان", "مدغل", "ماهلية", "العبدية", "رحبة", "قانية"]
+      },
+      {
+        name: "أبين",
+        districts: ["زنجبار", "جعار", "لودر", "مودية", "أحور", "المحفد", "شقرة", "رصد", "سرار", "جيشان", "سباح", "الوضيع"]
+      },
+      {
+        name: "البيضاء",
+        districts: ["مدينة البيضاء", "رداع", "مكيراس", "السوادية", "الزاهر", "ذي ناعم", "الطفة", "ناطع", "نعمان", "صباح", "الرياشية", "العرش"]
+      },
+      {
+        name: "شبوة",
+        districts: ["عتق", "بيحان", "عزان", "حبان", "ميفعة", "نصاب", "رضوم", "الروضة", "جردان", "دهر", "عرماء", "الطلح", "عين"]
+      },
+      {
+        name: "لحج",
+        districts: ["الحوطة", "تبن", "ردفان", "يافع (لبعوس)", "يافع (يهر)", "المقاطرة", "الملاح", "حبيل جبر", "المضاربة والشط", "المسيمير", "طور الباحة", "القبيطة"]
+      },
+      {
+        name: "الضالع",
+        districts: ["مدينة الضالع", "قعطبة", "دمت", "حجر", "الأزارق", "الشعيب", "الحصين", "جحاف", "حي المطار (الضالع)", "جبن"]
+      },
+      {
+        name: "المهرة",
+        districts: ["الغيضة", "شحن", "حوف", "قشن", "سيحوت", "المسيلة", "منعر", "حات", "حصوين"]
+      },
+      {
+        name: "الجوف",
+        districts: ["الحزم", "المصلوب", "برط العنان", "خب والشعف", "المتون", "الزاهر", "الحميدات", "المطمة", "رجوزة", "خراب المراشي"]
+      },
+      {
+        name: "ريمة",
+        districts: ["الجبين", "كسمة", "مزهر", "بلاد الطعام", "الجعفرية", "السلفية"]
+      },
+      {
+        name: "المحويت",
+        districts: ["مدينة المحويت", "شبام كوكبان", "الطويلة", "الرجم", "ملحان", "حفاش", "بني سعد", "الخبت"]
+      },
+      {
+        name: "سقطرى",
+        districts: ["حديبو", "قلنسية", "مومي", "نوجد", "عبد الكوري", "سمحة"]
+      }
+    ];
+
+    try {
+      for (const city of yemenDetailedData) {
+        await addCity({
+          name: city.name,
+          districts: city.districts,
+          isActive: true
+        } as any);
+      }
+      showToast("تم استيراد كافة المدن والمناطق اليمنية بنجاح!", "success");
+      if (typeof syncOnDemand === 'function') syncOnDemand("cities");
+    } catch (error) {
+      showToast("حدث خطأ أثناء الاستيراد", "error");
+    } finally {
+      setIsSeeding(false);
+    }
+  };
+
+  const handleSubmitCity = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!cityFormData.name) {
+      showToast("يرجى إدخال اسم المدينة", "error");
       return;
     }
 
-    const finalCities = [...formData.cities];
-    if (formData.newCity) {
-      if (!finalCities.includes(formData.newCity)) {
-        finalCities.push(formData.newCity);
-      }
-    }
-
     const data = {
-      name: formData.name || finalCities[0],
-      cities: finalCities,
-      districts: formData.districts,
-      rate: Number(formData.rate),
-      freeThreshold: formData.freeThreshold
-        ? Number(formData.freeThreshold)
-        : undefined,
+      name: cityFormData.name,
+      districts: cityFormData.districts,
+      isActive: true,
     };
 
-    try {
-      if (editingZone) {
-        await updateShippingZone(editingZone.id, data);
-        showToast("تم تحديث سعر الشحن بنجاح");
-      } else {
-        await addShippingZone(data);
-        showToast("تم إضافة سعر الشحن بنجاح");
-      }
-      setIsModalOpen(false);
-      setEditingZone(null);
-    setFormData({
-      name: "",
-      cities: [],
-      districts: [],
-      newCity: "",
-      newDistrict: "",
-      rate: "",
-      freeThreshold: "",
-    });
-    } catch (error) {
-      showToast("حدث خطأ أثناء الحفظ", "error");
-    }
-  };
-
-  const handleEdit = (zone: any) => {
-    setEditingZone(zone);
-    setFormData({
-      name: zone.name || "",
-      cities: zone.cities || [],
-      districts: zone.districts || [],
-      newCity: "",
-      newDistrict: "",
-      rate: zone.rate.toString(),
-      freeThreshold: zone.freeThreshold ? zone.freeThreshold.toString() : "",
-    });
-    setIsModalOpen(true);
-  };
-
-  const addCity = (city: string) => {
-    if (!city) return;
-    if (!formData.cities.includes(city)) {
-      setFormData({
-        ...formData,
-        cities: [...formData.cities, city],
-        newCity: "",
-      });
+    if (editingCity) {
+      await updateCity(editingCity.id, data);
     } else {
-      showToast("المدينة مضافة بالفعل في هذه المنطقة", "info");
+      await addCity(data as any);
     }
+
+    setIsCityModalOpen(false);
   };
 
-  const removeCity = (city: string) => {
-    setFormData({
-      ...formData,
-      cities: formData.cities.filter((c) => c !== city),
-    });
-  };
-
-  const addDistrict = (district: string) => {
+  const addCityDistrict = (district: string) => {
     if (!district) return;
-    if (!formData.districts.includes(district)) {
-      setFormData({
-        ...formData,
-        districts: [...formData.districts, district],
+    if (!cityFormData.districts.includes(district)) {
+      setCityFormData({
+        ...cityFormData,
+        districts: [...cityFormData.districts, district],
         newDistrict: "",
       });
     }
   };
 
-  const removeDistrict = (district: string) => {
-    setFormData({
-      ...formData,
-      districts: formData.districts.filter((d) => d !== district),
+  const removeCityDistrict = (district: string) => {
+    setCityFormData({
+      ...cityFormData,
+      districts: cityFormData.districts.filter((d) => d !== district),
     });
   };
-
-  // Filter out cities that already have a shipping rate defined elsewhere
-  const availablePresetCities = YEMEN_CITIES.filter(
-    (city) =>
-      !shippingZones.some(
-        (zone) =>
-          zone.id !== editingZone?.id && (zone.cities || []).includes(city),
-      ),
-  );
 
   return (
     <div className="space-y-8">
@@ -179,174 +238,128 @@ const Logistics = () => {
         <div>
           <h1 className="text-2xl font-black text-carbon flex items-center gap-3">
             <div className="w-10 h-10 bg-solar/10 rounded-xl flex items-center justify-center">
-              <Truck className="w-6 h-6 text-solar" />
+              <MapPin className="w-6 h-6 text-solar" />
             </div>
-            إدارة أسعار الشحن
+            إدارة المدن والمناطق
           </h1>
           <p className="text-gray-400 text-sm mt-1">
-            حدد تكلفة التوصيل لكل مدينة أو منطقة
+            إدارة قائمة المدن والمناطق التابعة لها المتاحة للعملاء
           </p>
         </div>
-        <button
-          onClick={() => {
-            setEditingZone(null);
-            setFormData({
-              name: "",
-              cities: [],
-              districts: [],
-              newCity: "",
-              newDistrict: "",
-              rate: "",
-              freeThreshold: "",
-            });
-            setIsModalOpen(true);
-          }}
-          className="flex items-center gap-2 bg-solar text-white px-6 py-3 rounded-2xl font-bold hover:bg-solar/90 transition-all shadow-lg shadow-solar/20 active:scale-95 w-full sm:w-auto justify-center"
-        >
-          <Plus className="w-5 h-5" />
-          <span>إضافة منطقة شحن</span>
-        </button>
+        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+          <button
+            onClick={() => {
+              setConfirmModal({
+                isOpen: true,
+                title: "استيراد شامل لمدن اليمن",
+                message: "هل تريد حقاً استيراد كافة المدن والمناطق اليمنية؟ سيوفر عليك هذا مجهود الإدخال اليدوي.",
+                onConfirm: seedYemenData,
+              });
+            }}
+            disabled={isSeeding}
+            className="flex-1 sm:flex-initial flex items-center gap-2 bg-carbon text-white px-6 py-3 rounded-2xl font-bold hover:bg-carbon/90 transition-all shadow-lg shadow-carbon/20 active:scale-95 justify-center disabled:opacity-50"
+          >
+            <MapPin className="w-5 h-5" />
+            <span>{isSeeding ? "جاري الاستيراد..." : "استيراد جميع المدن اليمنية"}</span>
+          </button>
+          <button
+            onClick={() => {
+              setEditingCity(null);
+              setCityFormData({
+                name: "",
+                districts: [],
+                newDistrict: "",
+              });
+              setIsCityModalOpen(true);
+            }}
+            className="flex-1 sm:flex-initial flex items-center gap-2 bg-solar text-white px-6 py-3 rounded-2xl font-bold hover:bg-solar/90 transition-all shadow-lg shadow-solar/20 active:scale-95 justify-center"
+          >
+            <Plus className="w-5 h-5" />
+            <span>إضافة مدينة جديدة</span>
+          </button>
+        </div>
       </div>
 
-      {/* Shipping Zones Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        {shippingZones.map((zone) => (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {cities.map((city) => (
           <motion.div
             layout
-            key={zone.id}
-            className={`bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden group hover:shadow-xl hover:shadow-gray-200/50 transition-all duration-300 ${!zone.isActive ? "opacity-60 grayscale-[0.5]" : ""}`}
+            key={city.id}
+            className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden group hover:shadow-xl hover:shadow-gray-200/50 transition-all duration-300"
           >
-            <div className="p-6 border-b border-gray-50 bg-gray-50/30">
-              <div className="flex justify-between items-start mb-4">
-                <div
-                  className={`w-12 h-12 bg-white rounded-2xl shadow-sm flex items-center justify-center border border-gray-100 group-hover:scale-110 transition-transform ${!zone.isActive ? "bg-gray-100" : ""}`}
-                >
-                  <MapPin
-                    className={`w-6 h-6 ${zone.isActive ? "text-solar" : "text-gray-400"}`}
-                  />
+            <div className="p-6">
+              <div className="flex justify-between items-start mb-6">
+                <div className="w-12 h-12 bg-solar/5 rounded-2xl flex items-center justify-center border border-solar/10">
+                  <MapPin className="w-6 h-6 text-solar" />
                 </div>
                 <div className="flex gap-2">
                   <button
-                    onClick={() => toggleShippingZoneStatus(zone.id)}
-                    className={`p-2.5 rounded-xl transition-all ${zone.isActive ? "text-emerald-600 hover:bg-emerald-50" : "text-gray-400 hover:bg-gray-100"}`}
-                    title={
-                      zone.isActive ? "إيقاف التوصيل مؤقتاً" : "تفعيل التوصيل"
-                    }
+                    onClick={() => {
+                      setEditingCity(city);
+                      setCityFormData({
+                        name: city.name,
+                        districts: city.districts || [],
+                        newDistrict: "",
+                      });
+                      setIsCityModalOpen(true);
+                    }}
+                    className="p-2.5 bg-solar/5 text-solar rounded-xl hover:bg-solar/10 transition-all"
                   >
-                    {zone.isActive ? (
-                      <CheckCircle className="w-4 h-4" />
-                    ) : (
-                      <X className="w-4 h-4" />
-                    )}
+                    <Edit2 className="w-5 h-5" />
                   </button>
                   <button
-                    onClick={() => handleEdit(zone)}
-                    className="p-2.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
-                  >
-                    <Edit2 className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() =>
+                    onClick={() => {
                       setConfirmModal({
                         isOpen: true,
-                        title: "حذف منطقة الشحن",
-                        message: `هل أنت متأكد من حذف منطقة الشحن "${zone.name || zone.cities?.[0] || ""}"؟`,
-                        onConfirm: () => {
-                          deleteShippingZone(zone.id);
-                          showToast("تم حذف المنطقة بنجاح");
-                        },
-                      })
-                    }
-                    className="p-2.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
+                        title: "حذف مدينة",
+                        message: `هل أنت متأكد من حذف مدينة ${city.name}؟ سيتم حذف جميع المناطق التابعة لها.`,
+                        onConfirm: () => deleteCity(city.id),
+                      });
+                    }}
+                    className="p-2.5 bg-red-50 text-red-500 rounded-xl hover:bg-red-100 transition-all"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 className="w-5 h-5" />
                   </button>
                 </div>
               </div>
 
-              <h3 className="font-black text-xl text-carbon truncate">
-                {zone.name || zone.cities?.[0]}
-              </h3>
+              <h3 className="text-lg font-black text-carbon mb-1">{city.name}</h3>
+              <p className="text-xs text-gray-400 font-bold mb-4">
+                {city.districts?.length || 0} منطقة مسجلة
+              </p>
 
-              <div className="space-y-4 mt-2">
-                <div>
-                  <label className="text-[10px] font-bold text-gray-400 block mb-1">المدن المشمولة:</label>
-                  <div className="flex flex-wrap gap-1">
-                    {zone.cities?.map((city: string) => (
-                      <span
-                        key={city}
-                        className="px-2 py-0.5 bg-gray-100 text-gray-500 text-[10px] font-bold rounded-lg border border-gray-100"
-                      >
-                        {city}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                {zone.districts && zone.districts.length > 0 && (
-                  <div>
-                    <label className="text-[10px] font-bold text-gray-400 block mb-1">المناطق المتاحة:</label>
-                    <div className="flex flex-wrap gap-1">
-                      {zone.districts?.map((district: string) => (
-                        <span
-                          key={district}
-                          className="px-2 py-0.5 bg-solar/5 text-solar text-[10px] font-bold rounded-lg border border-solar/10"
-                        >
-                          {district}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {!zone.isActive && (
-                  <span className="px-2 py-0.5 bg-red-50 text-red-500 text-[10px] font-bold rounded-lg border border-red-100">
-                    متوقف مؤقتاً
+              <div className="flex flex-wrap gap-1.5">
+                {city.districts?.slice(0, 5).map((d) => (
+                  <span key={d} className="px-2 py-0.5 bg-gray-50 text-gray-500 text-[10px] font-bold rounded-lg border border-gray-100">
+                    {d}
+                  </span>
+                ))}
+                {(city.districts?.length || 0) > 5 && (
+                  <span className="px-2 py-0.5 bg-gray-50 text-gray-400 text-[10px] font-bold rounded-lg">
+                    +{(city.districts?.length || 0) - 5} أكثر
                   </span>
                 )}
+                {(city.districts?.length || 0) === 0 && (
+                  <span className="text-[10px] text-gray-300 font-bold italic">لا توجد مناطق مضافة</span>
+                )}
               </div>
-
-              <div className="flex items-center gap-3 mt-4">
-                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-solar/10 rounded-xl text-solar font-black text-sm">
-                  <Banknote className="w-4 h-4" />
-                  {formatPrice(zone.rate)}
-                </div>
-              </div>
-            </div>
-            <div className="p-6">
-              {zone.freeThreshold ? (
-                <div className="flex items-center gap-2 text-xs text-emerald-600 bg-emerald-50 p-3 rounded-2xl font-bold">
-                  <CheckCircle className="w-4 h-4" />
-                  شحن مجاني للطلبات فوق {formatPrice(zone.freeThreshold)}
-                </div>
-              ) : (
-                <div className="flex items-center gap-2 text-xs text-gray-400 bg-gray-50 p-3 rounded-2xl font-medium">
-                  <Info className="w-4 h-4" />
-                  لا يوجد شحن مجاني لهذه المنطقة
-                </div>
-              )}
             </div>
           </motion.div>
         ))}
-
-        {shippingZones.length === 0 && (
-          <div className="col-span-full bg-white rounded-3xl p-16 text-center border border-dashed border-gray-200">
-            <div className="w-24 h-24 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-6">
-              <Navigation className="w-12 h-12 text-gray-300" />
+        {cities.length === 0 && (
+          <div className="col-span-full py-12 flex flex-col items-center justify-center bg-gray-50/50 rounded-3xl border-2 border-dashed border-gray-100">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+              <MapPin className="w-8 h-8 text-gray-300" />
             </div>
-            <h3 className="text-xl font-black text-gray-700">
-              لا توجد مناطق شحن
-            </h3>
-            <p className="text-gray-400 mt-2 max-w-xs mx-auto">
-              ابدأ بإضافة مناطق شحن لتحديد أسعار التوصيل لعملائك
-            </p>
+            <h3 className="text-gray-500 font-bold">لا توجد مدن مضافة بعد</h3>
+            <p className="text-gray-400 text-xs mt-1">ابدأ بإضافة أول مدينة ومناطقها</p>
           </div>
         )}
       </div>
 
       {/* Add/Edit Modal */}
       <AnimatePresence>
-        {isModalOpen && (
+        {isCityModalOpen && (
           <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm">
             <motion.div
               initial={{ opacity: 0, y: 100 }}
@@ -360,219 +373,100 @@ const Logistics = () => {
                     <MapPin className="w-5 h-5 text-white" />
                   </div>
                   <h2 className="text-xl font-black text-carbon">
-                    {editingZone
-                      ? "تعديل منطقة الشحن"
-                      : "إضافة منطقة شحن جديدة"}
+                    {editingCity ? "تعديل مدينة" : "إضافة مدينة جديدة"}
                   </h2>
                 </div>
                 <button
-                  onClick={() => setIsModalOpen(false)}
-                  className="w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-sm text-gray-400 hover:text-gray-600 transition-all font-bold"
+                  onClick={() => setIsCityModalOpen(false)}
+                  className="p-2 text-gray-400 hover:text-carbon transition-colors"
                 >
-                  <X className="w-5 h-5" />
+                  <X className="w-6 h-6" />
                 </button>
               </div>
 
-              <form onSubmit={handleSubmit} className="p-6 space-y-6">
+              <form onSubmit={handleSubmitCity} className="p-6 space-y-6 max-h-[80vh] overflow-y-auto">
                 <div className="space-y-4">
-                  <FloatingInput
-                    label="اسم المنطقة (مثال: المدن الرئيسية)"
-                    value={formData.name}
-                    onChange={(e) =>
-                      setFormData({ ...formData, name: e.target.value })
-                    }
-                  />
-
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-gray-400 px-1">
-                      المدن في هذه المنطقة
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-gray-400 px-2 uppercase tracking-widest">
+                      اسم المدينة
                     </label>
-                    <div className="flex flex-wrap gap-2 p-3 min-h-[3rem] bg-gray-50 rounded-2xl border border-gray-100">
-                      {formData.cities.map((city) => (
-                        <span
-                          key={city}
-                          className="flex items-center gap-1.5 px-3 py-1 bg-white rounded-xl text-xs font-bold text-carbon border border-gray-200"
-                        >
-                          {city}
-                          <button
-                            type="button"
-                            onClick={() => removeCity(city)}
-                            className="text-gray-300 hover:text-red-500 transition-colors"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </span>
-                      ))}
-                      {formData.cities.length === 0 && (
-                        <span className="text-gray-400 text-xs py-1">
-                          لا توجد مدن مضافة
-                        </span>
-                      )}
-                    </div>
+                    <input
+                      type="text"
+                      required
+                      value={cityFormData.name}
+                      onChange={(e) => setCityFormData({ ...cityFormData, name: e.target.value })}
+                      placeholder="مثال: صنعاء، تعز، عدن..."
+                      className="w-full h-12 px-4 rounded-xl border border-gray-200 focus:ring-2 focus:ring-solar/30 focus:border-solar outline-none bg-white font-bold text-sm"
+                    />
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-gray-400 px-1">
-                      المناطق التابعة لهذه المدن (اختياري)
+                    <label className="text-[10px] font-bold text-gray-400 px-2 uppercase tracking-widest">
+                      المناطق التابعة
                     </label>
-                    <div className="flex flex-wrap gap-2 p-3 min-h-[3rem] bg-gray-50 rounded-2xl border border-gray-100">
-                      {formData.districts.map((district) => (
-                        <span
-                          key={district}
-                          className="flex items-center gap-1.5 px-3 py-1 bg-white rounded-xl text-xs font-bold text-solar border border-solar/20"
-                        >
-                          {district}
-                          <button
-                            type="button"
-                            onClick={() => removeDistrict(district)}
-                            className="text-gray-300 hover:text-red-500 transition-colors"
+                    <div className="bg-gray-50/50 p-4 rounded-2xl border border-gray-100 min-h-[100px]">
+                      <div className="flex flex-wrap gap-2">
+                        {cityFormData.districts.map((district) => (
+                          <span
+                            key={district}
+                            className="flex items-center gap-1.5 px-3 py-1 bg-white rounded-xl text-xs font-bold text-solar border border-solar/20"
                           >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </span>
-                      ))}
-                      {formData.districts.length === 0 && (
-                        <span className="text-gray-400 text-xs py-1">
-                          لا توجد مناطق مضافة
-                        </span>
-                      )}
+                            {district}
+                            <button
+                              type="button"
+                              onClick={() => removeCityDistrict(district)}
+                              className="text-gray-300 hover:text-red-500 transition-colors"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </span>
+                        ))}
+                        {cityFormData.districts.length === 0 && (
+                          <span className="text-gray-400 text-xs py-1">لا توجد مناطق مضافة</span>
+                        )}
+                      </div>
                     </div>
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-gray-400 px-2">
-                      أضف منطقة جديدة
+                    <label className="text-[10px] font-bold text-gray-400 px-2 uppercase tracking-widest">
+                      أضف منطقة جديدة لهذه المدينة
                     </label>
                     <div className="flex gap-2">
                       <input
                         type="text"
-                        value={formData.newDistrict}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            newDistrict: e.target.value,
-                          })
-                        }
-                        placeholder="اسم المنطقة (مثال: حي السبعين)..."
+                        value={cityFormData.newDistrict}
+                        onChange={(e) => setCityFormData({ ...cityFormData, newDistrict: e.target.value })}
+                        placeholder="اسم الحي أو المنطقة..."
                         onKeyDown={(e) => {
                           if (e.key === "Enter") {
                             e.preventDefault();
-                            addDistrict(formData.newDistrict);
+                            addCityDistrict(cityFormData.newDistrict);
                           }
                         }}
                         className="flex-1 h-12 px-4 rounded-xl border border-gray-200 focus:ring-2 focus:ring-solar/30 focus:border-solar outline-none bg-white font-bold text-sm"
                       />
                       <button
                         type="button"
-                        onClick={() => addDistrict(formData.newDistrict)}
+                        onClick={() => addCityDistrict(cityFormData.newDistrict)}
                         className="h-12 w-12 flex items-center justify-center bg-solar text-white rounded-xl hover:bg-solar/90 font-bold"
                       >
                         <Plus className="w-5 h-5" />
                       </button>
                     </div>
                   </div>
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-gray-400 px-2">
-                        اختر من القائمة
-                      </label>
-                      <select
-                        onChange={(e) => {
-                          if (e.target.value) addCity(e.target.value);
-                          e.target.value = "";
-                        }}
-                        className="w-full h-12 px-4 rounded-xl border border-gray-200 focus:ring-2 focus:ring-solar/30 focus:border-solar outline-none bg-white transition-all font-bold text-carbon text-sm appearance-none"
-                        style={{
-                          backgroundImage:
-                            "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236B7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E\")",
-                          backgroundRepeat: "no-repeat",
-                          backgroundPosition: "left 0.75rem center",
-                          backgroundSize: "1.25rem",
-                        }}
-                      >
-                        <option value="">-- اختر مدينة --</option>
-                        {availablePresetCities.map((city) => (
-                          <option key={city} value={city}>
-                            {city}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-gray-400 px-2">
-                        أو اكتب اسم المدينة
-                      </label>
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          value={formData.newCity}
-                          onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              newCity: e.target.value,
-                            })
-                          }
-                          placeholder="اسم المدينة..."
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              e.preventDefault();
-                              addCity(formData.newCity);
-                            }
-                          }}
-                          className="flex-1 h-12 px-4 rounded-xl border border-gray-200 focus:ring-2 focus:ring-solar/30 focus:border-solar outline-none bg-white font-bold text-sm"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => addCity(formData.newCity)}
-                          className="h-12 w-12 flex items-center justify-center bg-carbon text-white rounded-xl hover:bg-carbon/90 font-bold"
-                        >
-                          <Plus className="w-5 h-5" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <FloatingInput
-                    label="سعر الشحن (ر.س)"
-                    required
-                    type="number"
-                    min="0"
-                    value={formData.rate}
-                    onChange={(e) =>
-                      setFormData({ ...formData, rate: e.target.value })
-                    }
-                    startElement={
-                      <Banknote className="w-5 h-5 text-gray-400" />
-                    }
-                  />
-                  <FloatingInput
-                    label="حد الشحن المجاني (اختياري)"
-                    type="number"
-                    min="0"
-                    value={formData.freeThreshold}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        freeThreshold: e.target.value,
-                      })
-                    }
-                    placeholder="فارغ = لا يوجد"
-                    startElement={
-                      <CheckCircle className="w-5 h-5 text-gray-400" />
-                    }
-                  />
                 </div>
 
-                <div className="flex flex-col sm:flex-row gap-3 pt-4">
+                <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-gray-50">
                   <button
                     type="submit"
                     className="flex-[2] bg-solar text-white py-4 rounded-2xl font-bold hover:opacity-90 transition-all shadow-lg shadow-solar/20 active:scale-95 text-lg"
                   >
-                    {editingZone ? "حفظ التعديلات" : "إضافة المنطقة"}
+                    {editingCity ? "حفظ التعديلات" : "إضافة المدينة"}
                   </button>
                   <button
                     type="button"
-                    onClick={() => setIsModalOpen(false)}
+                    onClick={() => setIsCityModalOpen(false)}
                     className="flex-1 bg-gray-100 text-gray-700 py-4 rounded-2xl font-bold hover:bg-gray-200 transition-all active:scale-95"
                   >
                     إلغاء

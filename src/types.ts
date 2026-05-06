@@ -396,6 +396,13 @@ export interface StaticPage {
   lastUpdated: string;
 }
 
+export interface CityData {
+  id: string; // The city name
+  name: string;
+  districts: string[];
+  isActive?: boolean;
+}
+
 export interface ShippingZone {
   id: string;
   name: string;

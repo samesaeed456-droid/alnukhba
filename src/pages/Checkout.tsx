@@ -51,17 +51,25 @@ export default function Checkout() {
     language,
     settings,
     shippingZones,
+    cities,
     syncOnDemand,
   } = useStore();
 
   useEffect(() => {
     syncOnDemand("coupons");
     syncOnDemand("shipping_zones");
+    syncOnDemand("cities");
   }, [syncOnDemand]);
 
   const navigate = useNavigate();
 
   const allCities = useMemo(() => {
+    // Priority 1: Cities defined in the dedicated Cities collection
+    if (cities.length > 0) {
+      return [...cities].sort((a, b) => a.name.localeCompare(b.name)).map(c => c.name);
+    }
+
+    // Priority 2: Cities from shipping zones
     const zoneCities = shippingZones
       .filter((z) => z.isActive)
       .flatMap((z) => z.cities);
@@ -70,7 +78,7 @@ export default function Checkout() {
     }
     // Fallback if no shipping zones are defined
     return [...YEMEN_CITIES].sort();
-  }, [shippingZones]);
+  }, [shippingZones, cities]);
 
   useEffect(() => {
     if (!user) {
@@ -212,11 +220,19 @@ export default function Checkout() {
 
   const availableDistricts = useMemo(() => {
     if (!formData.city) return [];
+
+    // Try finding in dynamic cities collection first
+    const dynamicCity = cities.find(c => c.name === formData.city);
+    if (dynamicCity && dynamicCity.districts?.length > 0) {
+      return dynamicCity.districts;
+    }
+
+    // Fallback to shipping zones
     const zone = shippingZones.find(
       (z) => z.isActive && z.cities.includes(formData.city),
     );
     return zone?.districts || [];
-  }, [formData.city, shippingZones]);
+  }, [formData.city, shippingZones, cities]);
 
   useEffect(() => {
     if (
@@ -1161,18 +1177,21 @@ export default function Checkout() {
                           <label className="text-xs font-bold text-titanium/80 mr-1">
                             المدينة
                           </label>
-                          <select
-                            name="city"
-                            value={formData.city}
-                            onChange={handleInputChange}
-                            className="w-full h-14 px-5 rounded-2xl border border-slate-100 bg-slate-50/50 focus:ring-4 focus:ring-slate-900/10 focus:bg-white focus:border-slate-900 outline-none transition-all duration-300 appearance-none font-bold text-carbon"
-                          >
-                            {allCities.map((city) => (
-                              <option key={city} value={city}>
-                                {city}
-                              </option>
-                            ))}
-                          </select>
+                          <div className="relative">
+                            <select
+                              name="city"
+                              value={formData.city}
+                              onChange={handleInputChange}
+                              className="w-full h-12 px-4 rounded-xl border border-slate-100 bg-slate-50/50 focus:ring-4 focus:ring-slate-900/10 focus:bg-white focus:border-slate-900 outline-none transition-all duration-300 appearance-none font-bold text-carbon text-sm"
+                            >
+                              {allCities.map((city) => (
+                                <option key={city} value={city}>
+                                  {city}
+                                </option>
+                              ))}
+                            </select>
+                            <ChevronDown className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-titanium/40 pointer-events-none" />
+                          </div>
                         </div>
                         {availableDistricts.length > 0 && (
                           <div className="space-y-2">
@@ -1184,7 +1203,7 @@ export default function Checkout() {
                                 name="district"
                                 value={formData.district}
                                 onChange={handleInputChange}
-                                className={`w-full h-14 px-5 rounded-2xl border ${fieldErrors.includes("district") ? "border-red-500 ring-4 ring-red-500/10" : "border-slate-100"} bg-slate-50/50 focus:ring-4 focus:ring-slate-900/10 focus:bg-white focus:border-slate-900 outline-none transition-all duration-300 appearance-none font-bold text-carbon`}
+                                className={`w-full h-12 px-4 rounded-xl border ${fieldErrors.includes("district") ? "border-red-500 ring-4 ring-red-500/10" : "border-slate-100"} bg-slate-50/50 focus:ring-4 focus:ring-slate-900/10 focus:bg-white focus:border-slate-900 outline-none transition-all duration-300 appearance-none font-bold text-carbon text-sm`}
                               >
                                 {availableDistricts.map((district) => (
                                   <option key={district} value={district}>
@@ -1192,7 +1211,7 @@ export default function Checkout() {
                                   </option>
                                 ))}
                               </select>
-                              <ChevronDown className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-titanium/40 pointer-events-none" />
+                              <ChevronDown className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-titanium/40 pointer-events-none" />
                             </div>
                           </div>
                         )}

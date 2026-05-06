@@ -32,6 +32,7 @@ import {
   SupportTicket,
   StaticPage,
   ShippingZone,
+  CityData,
   AbandonedCart,
   SearchTerm,
   Visit,
@@ -211,6 +212,10 @@ interface StoreContextType {
   updateShippingZone: (id: string, zone: Partial<ShippingZone>) => void;
   deleteShippingZone: (id: string) => void;
   toggleShippingZoneStatus: (id: string) => void;
+  cities: CityData[];
+  addCity: (city: Omit<CityData, "id">) => void;
+  updateCity: (id: string, city: Partial<CityData>) => void;
+  deleteCity: (id: string) => void;
   abandonedCarts: AbandonedCart[];
   searchTerms: SearchTerm[];
   trackSearch: (term: string, resultsCount: number) => void;
@@ -269,6 +274,7 @@ interface StoreState {
   supportTickets: SupportTicket[];
   staticPages: StaticPage[];
   shippingZones: ShippingZone[];
+  cities: CityData[];
   abandonedCarts: AbandonedCart[];
   searchTerms: SearchTerm[];
   visits: Visit[];
@@ -322,6 +328,9 @@ interface StoreActions {
   updateShippingZone: (id: string, zone: Partial<ShippingZone>) => void;
   deleteShippingZone: (id: string) => void;
   toggleShippingZoneStatus: (id: string) => void;
+  addCity: (city: Omit<CityData, "id">) => void;
+  updateCity: (id: string, city: Partial<CityData>) => void;
+  deleteCity: (id: string) => void;
   trackSearch: (term: string, resultsCount: number) => void;
   trackVisit: (page: string) => void;
   bulkUpdatePrices: (category: string, percentage: number) => void;
@@ -1218,6 +1227,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return saved ? JSON.parse(saved) : [];
   });
 
+  const [cities, setCities] = useState<CityData[]>(() => {
+    const saved = localStorage.getItem("store_cities");
+    return saved ? JSON.parse(saved) : [];
+  });
+
   const [abandonedCarts, setAbandonedCarts] = useState<AbandonedCart[]>(() => {
     const saved = localStorage.getItem("store_abandoned_carts");
     return saved ? JSON.parse(saved) : [];
@@ -1366,6 +1380,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         searchTerms: setSearchTerms,
         abandonedCarts: setAbandonedCarts,
         support_tickets: setSupportTickets,
+        cities: setCities,
         inventory_logs: setInventoryLogs,
       };
 
@@ -1383,6 +1398,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         searchTerms: "store_search_terms",
         abandonedCarts: "store_abandoned_carts",
         support_tickets: "store_tickets",
+        cities: "store_cities",
         inventory_logs: "store_inventory_logs",
       };
 
@@ -1867,6 +1883,55 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       }
     },
     [logActivity],
+  );
+
+  const addCity = React.useCallback(
+    async (city: Omit<CityData, "id">) => {
+      const activeDb = adminAuth.currentUser ? adminDb : db;
+      try {
+        const docRef = await addDoc(collection(activeDb, "cities"), {
+          ...city,
+          createdAt: serverTimestamp(),
+        });
+        showToast("تمت إضافة المدينة بنجاح");
+        logActivity("إضافة مدينة", `تمت إضافة المدينة: ${city.name}`);
+      } catch (error) {
+        handleFirestoreError(error, OperationType.CREATE, "cities");
+      }
+    },
+    [showToast, logActivity],
+  );
+
+  const updateCity = React.useCallback(
+    async (id: string, updatedData: Partial<CityData>) => {
+      const activeDb = adminAuth.currentUser ? adminDb : db;
+      try {
+        await updateDoc(doc(activeDb, "cities", id), {
+          ...updatedData,
+          updatedAt: serverTimestamp(),
+        });
+        showToast("تم تحديث المدينة بنجاح");
+        logActivity("تحديث مدينة", `تم تحديث المدينة ID: ${id}`);
+      } catch (error) {
+        handleFirestoreError(error, OperationType.UPDATE, `cities/${id}`);
+      }
+    },
+    [showToast, logActivity],
+  );
+
+  const deleteCity = React.useCallback(
+    async (id: string) => {
+      if (!window.confirm("هل أنت متأكد من حذف هذه المدينة؟")) return;
+      const activeDb = adminAuth.currentUser ? adminDb : db;
+      try {
+        await deleteDoc(doc(activeDb, "cities", id));
+        showToast("تم حذف المدينة بنجاح");
+        logActivity("حذف مدينة", `تم حذف المدينة ID: ${id}`);
+      } catch (error) {
+        handleFirestoreError(error, OperationType.DELETE, `cities/${id}`);
+      }
+    },
+    [showToast, logActivity],
   );
 
   const addShippingZone = React.useCallback(
@@ -4261,6 +4326,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       supportTickets,
       staticPages,
       shippingZones,
+      cities,
       abandonedCarts,
       searchTerms,
       visits,
@@ -4292,6 +4358,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       supportTickets,
       staticPages,
       shippingZones,
+      cities,
       abandonedCarts,
       searchTerms,
       visits,
@@ -4331,6 +4398,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       updateShippingZone,
       deleteShippingZone,
       toggleShippingZoneStatus,
+      addCity,
+      updateCity,
+      deleteCity,
       trackSearch,
       trackVisit,
       bulkUpdatePrices,
@@ -4400,6 +4470,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       updateShippingZone,
       deleteShippingZone,
       toggleShippingZoneStatus,
+      addCity,
+      updateCity,
+      deleteCity,
       trackSearch,
       trackVisit,
       bulkUpdatePrices,

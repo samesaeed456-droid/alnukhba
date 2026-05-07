@@ -72,7 +72,7 @@ export default function DeveloperModal({
                   <Sparkles className="w-3.5 h-3.5 text-solar" />
                 </h2>
                 <p className="text-solar font-bold text-[10px] uppercase tracking-widest mb-3">
-                  Full-Stack Developer
+                  مطور ويب متكامل
                 </p>
 
                 <p className="text-slate-300 text-[11px] sm:text-xs leading-relaxed mb-5 max-w-[280px] mx-auto">
@@ -102,19 +102,19 @@ export default function DeveloperModal({
                   {[
                     {
                       icon: Facebook,
-                      label: "Facebook",
+                      label: "فيسبوك",
                       href: "https://www.facebook.com/EngSamiAlAriqi",
                       color: "hover:border-blue-500 hover:text-blue-500",
                     },
                     {
                       icon: MessageCircle,
-                      label: "WhatsApp",
+                      label: "واتساب",
                       href: "https://wa.me/967776668370",
                       color: "hover:border-green-500 hover:text-green-500",
                     },
                     {
                       icon: Phone,
-                      label: "Call",
+                      label: "اتصال",
                       href: "tel:967776668370",
                       color: "hover:border-solar hover:text-solar",
                     },

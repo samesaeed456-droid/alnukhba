@@ -60,7 +60,7 @@ export default function Auth() {
       // User is logged in to Firebase Auth but has no Firestore profile
       setIsLogin(false);
       setStep("form");
-      setError("يرجى استكمال بياناتك لتفعيل حسابك البديل.");
+      setError("استكمل البيانات");
     }
   }, [isAuthReady, user, step]);
 
@@ -526,7 +526,7 @@ export default function Auth() {
             merge: true,
           });
           forceSetUser({ ...newUserObj, createdAt: new Date().toISOString() });
-          showToast("تم استعادة وتفعيل الحساب بنجاح");
+          showToast("تم استعادة الحساب بنجاح");
           navigate(redirectPath);
           return;
         }
@@ -569,10 +569,8 @@ export default function Auth() {
                 // Switch to "Complete Profile" mode within the signup view
                 setIsLogin(false);
                 setStep("form");
-                setError(
-                  "يبدو أن بيانات حسابك قد حُذفت مسبقاً. يرجى إدخال اسمك الرباعي لإعادة تفعيل الحساب.",
-                );
-                showToast("يرجى استكمال بياناتك لإعادة تفعيل الحساب");
+                setError("استكمل البيانات");
+                showToast("استكمل البيانات");
               }
             } catch (e) {
               showToast(
@@ -624,25 +622,14 @@ export default function Auth() {
 
           } catch (signupError: any) {
             console.error("Signup error:", signupError);
-            if (signupError.code === "auth/email-already-in-use") {
-              setError("هذا الرقم مسجل مسبقاً. يرجى تسجيل الدخول.");
-            } else {
-              const smartError = parseSmartError(signupError);
-              setError(smartError.message);
-            }
+            const smartError = parseSmartError(signupError);
+            setError(smartError.message);
           }
         }
       } catch (err: any) {
         console.error("Full Auth Error Object:", err);
         const smartError = parseSmartError(err);
-
-        if (smartError.code === "auth/email-already-in-use") {
-          setError(
-            "هذا الرقم مسجل مسبقاً، יمنع إنشاء حسابين بنفس الرقم. يرجى تسجيل الدخول.",
-          );
-        } else {
-          setError(smartError.message);
-        }
+        setError(smartError.message);
 
         if (
           smartError.isConfigError ||

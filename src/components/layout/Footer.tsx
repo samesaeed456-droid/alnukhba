@@ -238,11 +238,14 @@ export default React.memo(function Footer() {
         {/* Bottom Bar */}
         <div className="pt-8 border-t border-white/10 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex flex-col md:flex-row items-center gap-4 md:gap-6 text-sm text-slate-500">
-            <p>
-              <FastLink to="/admin" className="text-slate-500 hover:text-slate-500 cursor-default" prefetchPage={undefined}>
-                &copy;
-              </FastLink> {new Date().getFullYear()} {settings.storeName}. جميع
-              الحقوق محفوظة.
+            <p className="flex items-center gap-1.5 text-sm text-slate-500" dir="rtl">
+              <FastLink to="/admin" className="hover:text-solar transition-colors" prefetchPage={undefined}>
+                ©
+              </FastLink>
+              <span>{new Date().getFullYear()}</span>
+              <span className="font-bold text-slate-400">{settings.storeName}</span>
+              <span className="text-slate-600 mx-0.5">|</span>
+              <span>جميع الحقوق محفوظة</span>
             </p>
             <div className="flex items-center gap-4">
               <FastLink
@@ -305,11 +308,11 @@ export default React.memo(function Footer() {
                 className="group flex items-center gap-2 px-3 md:px-4 py-1.5 md:py-2 bg-solar/10 hover:bg-solar/20 border border-solar/30 rounded-xl md:rounded-2xl transition-all duration-300"
               >
                 <span className="text-[9px] md:text-[10px] font-bold text-solar uppercase tracking-widest">
-                  Developed By
+                  تم التطوير بواسطة
                 </span>
                 <div className="flex items-center gap-1.5 md:gap-2">
                   <span className="text-[11px] md:text-xs font-black text-white group-hover:text-solar transition-colors">
-                    Sami Al-Ariki
+                    سامي العريقي
                   </span>
                   <div className="w-1 h-1 md:w-1.5 md:h-1.5 rounded-full bg-solar animate-pulse shadow-[0_0_8px_rgba(212,175,55,0.8)]" />
                 </div>

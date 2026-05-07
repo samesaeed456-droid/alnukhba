@@ -524,19 +524,13 @@ export default function Profile() {
     if (!user) return;
     setIsLoading(true);
     try {
-      // In Firebase, we should delete the user's data and then the auth account
-      // This requires re-authentication usually, but for this demo:
-      const { db, doc, deleteDoc, auth } = await import("../lib/firebase");
+      // Delete only Firestore document to allow "Complete Data" flow on next login
+      const { db, doc, deleteDoc } = await import("../lib/firebase");
       await deleteDoc(doc(db, "users", user.uid));
-
-      // Attempt to delete auth account (might fail if not recently logged in)
-      if (auth.currentUser) {
-        await auth.currentUser.delete();
-      }
 
       logout();
       navigate("/");
-      showToast("تم حذف الحساب بنجاح. نأسف لرحيلك.");
+      showToast("تم حذف الحساب");
       setShowDeleteAccountModal(false);
       setDeletionStep("confirm");
       setDeletionReason("");
@@ -596,19 +590,13 @@ export default function Profile() {
 
     try {
       setIsLoading(true);
-      // In Firebase, we should delete the user's data and then the auth account
-      // This requires re-authentication usually, but for this demo:
-      const { db, doc, deleteDoc, auth } = await import("../lib/firebase");
+      // Delete only Firestore document to allow "Complete Data" flow on next login
+      const { db, doc, deleteDoc } = await import("../lib/firebase");
       await deleteDoc(doc(db, "users", user.uid));
-
-      // Attempt to delete auth account (might fail if not recently logged in)
-      if (auth.currentUser) {
-        await auth.currentUser.delete();
-      }
 
       logout();
       navigate("/");
-      showToast("تم حذف الحساب بنجاح. نأسف لرحيلك.");
+      showToast("تم حذف الحساب");
       setShowDeleteAccountModal(false);
       setDeletionStep("confirm");
       setDeletionReason("");

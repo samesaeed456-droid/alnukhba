@@ -142,34 +142,7 @@ export default function AdminLogin() {
         let isAuthorized = false;
         let adminData: any = null;
 
-        // Base super admins (Instant check)
-        const superAdmins = [
-          "samesaeed456@gmail.com",
-          "samisaeed2027@gmail.com",
-          "samisaeed2025@gmail.com",
-        ];
-        const userEmail = user.email.toLowerCase();
-
-        if (superAdmins.includes(userEmail)) {
-          isAuthorized = true;
-          adminData = {
-            role: "super_admin",
-            name: "المدير العام",
-            email: user.email,
-            permissions: ["all"],
-          };
-
-          // Fast track for super admins
-          localStorage.setItem("admin_auth", "true");
-          localStorage.setItem("admin_email", user.email);
-          localStorage.setItem("admin_name", "المدير العام");
-          localStorage.setItem("admin_role", "super_admin");
-          navigate("/admin");
-          setIsCheckingAuth(false);
-          return;
-        }
-
-        // Secondary check via Firestore (Optimized with limit 1)
+        // Optimized check via Firestore
         try {
           const adminQuery = query(
             collection(adminDb, "users"),
@@ -190,7 +163,7 @@ export default function AdminLogin() {
             isAuthorized = true;
             adminData = data;
           } else {
-            // Fallback: check if isAdmin flag exists even if role is different (for safety/migration)
+            // Fallback: check if isAdmin flag exists even if role is different
             const backupQuery = query(
               collection(adminDb, "users"),
               where("email", "==", user.email),
@@ -211,7 +184,7 @@ export default function AdminLogin() {
             }
           }
         } catch (err) {
-          console.warn("Minor background auth check error:", err);
+          console.warn("Background auth check error:", err);
         }
 
         if (isAuthorized && adminData) {

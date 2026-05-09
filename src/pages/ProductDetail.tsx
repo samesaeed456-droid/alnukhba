@@ -109,6 +109,14 @@ export default function ProductDetail() {
     return product.price;
   }, [product, selectedSize]);
 
+  const currentOriginalPrice = useMemo(() => {
+    if (!product) return undefined;
+    if (selectedSize && product.sizeOriginalPrices && product.sizeOriginalPrices[selectedSize]) {
+      return product.sizeOriginalPrices[selectedSize];
+    }
+    return product.originalPrice;
+  }, [product, selectedSize]);
+
   const isNotified = product
     ? subscriptions.some(
         (s) => s.productId === product.id && s.type === "back_in_stock",
@@ -429,19 +437,19 @@ export default function ProductDetail() {
                       {formatPrice(currentPrice).split(" ").slice(1).join(" ")}
                     </span>
                   </div>
-                  {product.originalPrice && (
+                  {currentOriginalPrice && (
                     <div className="flex flex-col gap-1.5">
                       <div className="relative inline-flex items-center justify-center self-start">
                         <span className="text-base sm:text-lg text-slate-400 font-medium px-1">
-                          {formatPrice(product.originalPrice)}
+                          {formatPrice(currentOriginalPrice)}
                         </span>
                         <span className="absolute w-[110%] h-[2px] bg-rose-500/80 -rotate-3 rounded-full"></span>
                       </div>
                       <span className="text-[10px] font-black text-rose-500 bg-rose-50 px-2 py-0.5 rounded border border-rose-100/50 text-center self-start">
                         خصم{" "}
                         {Math.round(
-                          ((product.originalPrice - currentPrice) /
-                            product.originalPrice) *
+                          ((currentOriginalPrice - currentPrice) /
+                            currentOriginalPrice) *
                             100,
                         )}
                         %
@@ -464,10 +472,17 @@ export default function ProductDetail() {
 
                 {product.inStock !== false ? (
                   <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs font-bold">
-                    <div className="flex items-center gap-2 text-rose-500">
-                      <div className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
-                      بقي {product.stockCount || 9} قطع فقط في المخزن
-                    </div>
+                    {product.stockCount !== undefined ? (
+                      <div className={`flex items-center gap-2 ${product.stockCount <= 10 ? "text-rose-500" : "text-emerald-500"}`}>
+                        <div className={`w-2 h-2 rounded-full animate-pulse ${product.stockCount <= 10 ? "bg-rose-500" : "bg-emerald-500"}`} />
+                        {product.stockCount <= 20 ? `بقي ${product.stockCount} قطع فقط في المخزن` : "متوفر حالياً في المخزن"}
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 text-rose-500">
+                        <div className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
+                        بقي {((product.id.length * 7) % 8) + 8} قطع فقط في المخزن
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs font-bold">
@@ -598,11 +613,18 @@ export default function ProductDetail() {
                           }`}
                         >
                           <span className="text-xs">{size}</span>
-                          {hasCustomPrice && (
-                            <span className={`text-[9px] ${selectedSize === size ? "text-solar" : "text-solar"}`}>
-                              {formatPrice(product.sizePrices[size])}
-                            </span>
-                          )}
+                          <div className="flex flex-col items-center">
+                            {hasCustomPrice && (
+                              <span className={`text-[9px] ${selectedSize === size ? "text-solar" : "text-solar"}`}>
+                                {formatPrice(product.sizePrices[size])}
+                              </span>
+                            )}
+                            {product.sizeOriginalPrices?.[size] && (
+                              <span className={`text-[8px] line-through ${selectedSize === size ? "text-white/60" : "text-slate-400"}`}>
+                                {formatPrice(product.sizeOriginalPrices[size])}
+                              </span>
+                            )}
+                          </div>
                         </button>
                       );
                     })}

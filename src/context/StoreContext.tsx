@@ -433,94 +433,41 @@ const StoreStateContext = createContext<StoreState | undefined>(undefined);
 const StoreActionsContext = createContext<StoreActions | undefined>(undefined);
 const StoreUIContext = createContext<StoreUI | undefined>(undefined);
 
+import { useAuthStore } from "../store/authStore";
+import { useProductStore } from "../store/productStore";
+import { useCartStore } from "../store/cartStore";
+import { useOrderStore } from "../store/orderStore";
+import { useSettingsStore } from "../store/settingsStore";
+import { useUIStore } from "../store/uiStore";
+
 import { migrateLocalDataToFirebase } from "../lib/migrateData";
 import { getAdminDummyEmail } from "../lib/adminAuth";
 import { refreshNotificationToken } from "../lib/notifications";
 
 export function StoreProvider({ children }: { children: ReactNode }) {
-  const [products, setProducts] = useState<Product[]>(() => {
-    const saved = localStorage.getItem("store_products");
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        // Deduplicate products by id and ensure string IDs
-        const uniqueProducts = Array.from(
-          new Map(
-            parsed.map((p: any) => [String(p.id), { ...p, id: String(p.id) }]),
-          ).values(),
-        ) as Product[];
-        return uniqueProducts;
-      } catch (e) {
-        // Fallback to initial products if parsing fails
-      }
-    }
-    // Empty initial products
-    return [];
-  });
+  const { 
+    user, adminUser, isAuthReady, isLoading: isAuthLoading, logout: authLogout, adminLogout: authAdminLogout, 
+    setUser, setAdminUser, setIsAuthReady, setIsLoading: setIsAuthLoading, initialize: initializeAuth 
+  } = useAuthStore();
+  const { 
+    products, setProducts, categories, setCategories, inventoryLogs, setInventoryLogs,
+    recentlyViewed, setRecentlyViewed, addToRecentlyViewed: addToRecentlyViewedStore
+  } = useProductStore();
+  const { 
+    cart, setCart, wishlist, setWishlist, discount, setDiscount 
+  } = useCartStore();
+  const { 
+    orders, setOrders 
+  } = useOrderStore();
+  const { 
+    settings, setSettings, language, setLanguage 
+  } = useSettingsStore();
+  const {
+    showToast, isCartOpen, setIsCartOpen, isWishlistOpen, setIsWishlistOpen,
+    isNotificationsOpen, setIsNotificationsOpen, isMobileSearchOpen, setIsMobileSearchOpen,
+    isSearchInputFocused, setIsSearchInputFocused, canInstallPWA, installPWA, isPlacingOrder, setIsPlacingOrder
+  } = useUIStore();
 
-  const [cart, setCart] = useState<CartItem[]>(() => {
-    const saved = localStorage.getItem("store_cart");
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        // Deduplicate cart items by id to prevent React key errors
-        const uniqueItemsMap = new Map();
-        parsed.forEach((item: any) => {
-          const id =
-            item.id ||
-            `${item.product?.id || Date.now()}-${item.selectedColor || "default"}-${item.selectedSize || "default"}`;
-          if (!uniqueItemsMap.has(id)) {
-            uniqueItemsMap.set(id, { ...item, id });
-          }
-        });
-        return Array.from(uniqueItemsMap.values());
-      } catch (e) {
-        return [];
-      }
-    }
-    return [];
-  });
-
-  const [wishlist, setWishlist] = useState<Product[]>(() => {
-    const savedGuest = localStorage.getItem("store_wishlist");
-    const savedUser = localStorage.getItem("store_user");
-    const isLoggedIn = localStorage.getItem("is_logged_in") === "true";
-
-    let loadedWishlist: Product[] = [];
-
-    if (isLoggedIn && savedUser) {
-      try {
-        const userObj = JSON.parse(savedUser);
-        loadedWishlist = userObj.wishlist || [];
-      } catch (e) {}
-    } else if (savedGuest) {
-      try {
-        loadedWishlist = JSON.parse(savedGuest);
-      } catch (e) {}
-    }
-
-    // Deduplicate wishlist by id and ensure string IDs
-    return Array.from(
-      new Map(
-        loadedWishlist.map((p: any) => [
-          String(p.id),
-          { ...p, id: String(p.id) },
-        ]),
-      ).values(),
-    ) as Product[];
-  });
-
-  const [orders, setOrders] = useState<Order[]>(() => {
-    const saved = localStorage.getItem("store_orders");
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  const [user, setUser] = useState<UserProfile | null>(() => {
-    const saved = localStorage.getItem("store_user");
-    return saved ? JSON.parse(saved) : null;
-  });
-  const [adminUser, setAdminUser] = useState<UserProfile | null>(null);
-  const [isAuthReady, setIsAuthReady] = useState(false);
   const [isLoading, setIsLoading] = useState(() => {
     const hasProducts = !!localStorage.getItem("store_products");
     const hasSettings = !!localStorage.getItem("store_settings");
@@ -529,6 +476,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   });
   const [systemError, setSystemError] = useState<string | null>(null);
   const lastAdminDataFetch = React.useRef(0);
+
+  useEffect(() => {
+    return initializeAuth();
+  }, [initializeAuth]);
 
   // Connection check removed per user request
   useEffect(() => {
@@ -547,523 +498,23 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }
   }, [isAuthReady, user]);
 
-  // Firebase Auth Listeners
+  // Super Admin Rescue & Admin Sync Logic removed (moved to authStore)
+
+  // Sync Products from Firestore removed (moved to productStore)
+  const { initializeProducts } = useProductStore();
   useEffect(() => {
-    let unsubUser: (() => void) | undefined;
-
-    // 1. Customer Auth Listener (Standard Instance)
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        // Enforce single session policy
-        let localSessionId = localStorage.getItem("local_session_id");
-        if (!localSessionId) {
-          localSessionId =
-            Math.random().toString(36).substring(2) + Date.now().toString(36);
-          localStorage.setItem("local_session_id", localSessionId);
-        }
-
-        // Check hardcoded admins first for instant UI response
-        const hardcodedAdmins = [
-          "samesaeed456@gmail.com",
-          "samisaeed2027@gmail.com",
-          "samisaeed2025@gmail.com",
-        ];
-        const isHardcodedAdmin =
-          firebaseUser.email &&
-          hardcodedAdmins.includes(firebaseUser.email.toLowerCase());
-
-        if (isHardcodedAdmin) {
-          // Instant promotion to admin state for hardcoded admins
-          setUser({
-            uid: firebaseUser.uid,
-            email: firebaseUser.email || "",
-            name: firebaseUser.displayName || "Admin",
-            role: "admin",
-            createdAt: new Date().toISOString(),
-          });
-
-          // Mark as pre-authorized to bypass some security initial checks in UI
-          localStorage.setItem("admin_auth", "true");
-        }
-
-        // Replace onSnapshot with getDoc for user profile
-        getDoc(doc(db, "users", firebaseUser.uid))
-          .then((docSnap) => {
-            if (docSnap.exists()) {
-              const userData = {
-                ...docSnap.data(),
-                uid: docSnap.id,
-              } as UserProfile;
-
-              // Deduplicate addresses and transactions if they exist
-              if (userData.addresses && Array.isArray(userData.addresses)) {
-                const seenIds = new Set();
-                userData.addresses = userData.addresses.filter((addr) => {
-                  if (!addr || typeof addr !== "object") return false;
-                  const id = (addr as any).id;
-                  if (!id || seenIds.has(id)) return false;
-                  seenIds.add(id);
-                  return true;
-                });
-              }
-
-              if (
-                userData.transactions &&
-                Array.isArray(userData.transactions)
-              ) {
-                const seenTxIds = new Set();
-                userData.transactions = userData.transactions.filter((tx) => {
-                  if (!tx || typeof tx !== "object") return false;
-                  const id = (tx as any).id;
-                  if (!id || seenTxIds.has(id)) return false;
-                  seenTxIds.add(id);
-                  return true;
-                });
-              }
-
-              // Periodically update session metadata (once per session/load)
-              const currentLocalSession =
-                localStorage.getItem("local_session_id");
-              const lastPing = localStorage.getItem("last_session_ping");
-              const now = Date.now();
-
-              if (!lastPing || now - parseInt(lastPing) > 600000) {
-                // 10 mins
-                updateDoc(doc(db, "users", firebaseUser.uid), {
-                  currentSessionId: currentLocalSession,
-                  lastActive: new Date().toISOString(),
-                  updatedAt: serverTimestamp(),
-                }).catch(() => {});
-                localStorage.setItem("last_session_ping", now.toString());
-              }
-
-              // Mismatch check removed to allow multiple tabs/windows
-
-              // MANDATORY FIELD CHECK:
-              // Forbidden to enter if name or phone is missing.
-              // If incomplete, treat as no profile so Auth.tsx forces completion.
-              const hasName = !!(userData.name || userData.displayName);
-              const hasPhone = !!userData.phone;
-
-              if (!hasName || !hasPhone) {
-                setUser(null);
-                localStorage.removeItem("store_user");
-                setIsAuthReady(true);
-                return;
-              }
-
-              if (userData.isActive === false) {
-                auth.signOut();
-                setUser(null);
-                localStorage.removeItem("store_user");
-                showToast("تم تعطيل حسابك. يرجى التواصل مع الدعم.", "error");
-                setIsAuthReady(true);
-                return;
-              }
-
-              setUser(userData);
-              localStorage.setItem("store_user", JSON.stringify(userData));
-              refreshNotificationToken();
-            } else {
-              // Document doesn't exist yet (e.g. during signup before Auth.tsx completes setDoc)
-              // Or if the user was deleted but Auth is still active
-              if (
-                firebaseUser.email &&
-                hardcodedAdmins.includes(firebaseUser.email)
-              ) {
-                const adminData: any = {
-                  uid: firebaseUser.uid,
-                  email: firebaseUser.email,
-                  role: "admin",
-                  isAdmin: true,
-                  displayName: "مدير النظام",
-                  currentSessionId: localStorage.getItem("local_session_id"),
-                  updatedAt: serverTimestamp(),
-                };
-                setDoc(doc(db, "users", firebaseUser.uid), adminData, {
-                  merge: true,
-                });
-                setUser(adminData);
-              } else {
-                // FOR NORMAL USERS:
-                // If the document is missing, DO NOT automatically create it here.
-                // This ensures that deleted users are forced to re-register.
-                setUser(null);
-              }
-            }
-            setIsAuthReady(true);
-          })
-          .catch((error) => {
-            console.warn("User profile sync warning:", error);
-            if (
-              firebaseUser.email &&
-              hardcodedAdmins.includes(firebaseUser.email)
-            ) {
-              const adminData: any = {
-                uid: firebaseUser.uid,
-                email: firebaseUser.email,
-                role: "admin",
-                isAdmin: true,
-                displayName: "مدير النظام",
-                currentSessionId: localStorage.getItem("local_session_id"),
-              };
-              setUser(adminData);
-            } else {
-              const cachedUser = localStorage.getItem("store_user");
-              if (cachedUser) {
-                try {
-                  setUser(JSON.parse(cachedUser));
-                } catch (e) {
-                  setUser(null);
-                }
-              } else {
-                setUser(null);
-              }
-            }
-            setIsAuthReady(true);
-          });
-      } else {
-        if (unsubUser) unsubUser();
-        setUser(null);
-        // Clear customer specific storage
-        const keysToRemove = [
-          "store_user",
-          "local_session_id",
-          "last_session_ping",
-        ];
-        keysToRemove.forEach((key) => localStorage.removeItem(key));
-        setIsAuthReady(true);
-      }
-    });
-
-    // 2. Admin Auth Listener (Dedicated Instance)
-    const unsubscribeAdmin = onAuthStateChanged(
-      adminAuth,
-      async (firebaseAdmin) => {
-        if (firebaseAdmin) {
-          try {
-            const adminDoc = await getDoc(
-              doc(adminDb, "users", firebaseAdmin.uid),
-            );
-            if (adminDoc.exists()) {
-              const adminData = adminDoc.data() as UserProfile;
-              // We don't sign out here anymore, we let the UI handle the disabled state
-              // which provides a better "un-bypassable" message experience.
-              setAdminUser({
-                ...(adminData as any),
-                uid: adminDoc.id,
-                isActive: adminData.isActive !== false, // Ensure we have a boolean
-              });
-            } else {
-              const hardcoded = [
-                "samesaeed456@gmail.com",
-                "samisaeed2027@gmail.com",
-                "samisaeed2025@gmail.com",
-              ];
-              if (
-                firebaseAdmin.email &&
-                hardcoded.includes(firebaseAdmin.email.toLowerCase())
-              ) {
-                setAdminUser({
-                  uid: firebaseAdmin.uid,
-                  email: firebaseAdmin.email,
-                  role: "admin",
-                  isAdmin: true,
-                  displayName: "المدير العام",
-                } as UserProfile);
-              }
-            }
-          } catch (e) {
-            console.warn("Admin profile background sync:", e);
-            const hardcoded = [
-              "samesaeed456@gmail.com",
-              "samisaeed2027@gmail.com",
-              "samisaeed2025@gmail.com",
-            ];
-            if (
-              firebaseAdmin.email &&
-              hardcoded.includes(firebaseAdmin.email.toLowerCase())
-            ) {
-              setAdminUser({
-                uid: firebaseAdmin.uid,
-                email: firebaseAdmin.email,
-                role: "admin",
-                isAdmin: true,
-                displayName: "المدير العام",
-              } as UserProfile);
-            }
-          }
-        } else {
-          setAdminUser(null);
-        }
-      },
-    );
-
-    return () => {
-      unsubscribe();
-      unsubscribeAdmin();
-      if (unsubUser) unsubUser();
-    };
-  }, []);
-
-  // Super Admin Rescue & Admin Sync Logic
-  useEffect(() => {
-    if (user && isAuthReady) {
-      const syncPermissions = async () => {
-        try {
-          // 1. Simple Role/Permissions Check (Single Collection 'users')
-          const hardcodedAdmins = [
-            "samesaeed456@gmail.com",
-            "samisaeed2027@gmail.com",
-            "samisaeed2025@gmail.com",
-          ];
-          const userEmail = (user.email || "").toLowerCase();
-          const isHardcoded = hardcodedAdmins.includes(userEmail);
-
-          if (isHardcoded) {
-            // Super Admin Enforcement
-            if (
-              user.role !== "admin" ||
-              user.adminRole !== "super_admin" ||
-              !user.permissions?.includes("all")
-            ) {
-              const updates: any = {
-                role: "admin",
-                adminRole: "super_admin",
-                isAdmin: true,
-                permissions: ["all"],
-                updatedAt: serverTimestamp(),
-              };
-              await setDoc(doc(db, "users", user.uid), updates, {
-                merge: true,
-              });
-              setUser((prev) => (prev ? { ...prev, ...updates } : null));
-              showToast("تم تحديث صلاحيات المدير العام", "success");
-            }
-          }
-        } catch (e) {
-          // Log but don't spam errors
-          console.warn("Permission sync background check:", e);
-        }
-      };
-
-      syncPermissions();
-    }
-  }, [user, isAuthReady]);
-
-  // Sync Products from Firestore with Real-time Support
-  useEffect(() => {
-    // Only set loading if we don't have products yet (initial load only)
-    const startedLoading = products.length === 0;
-    if (startedLoading) {
-      setIsLoading(true);
-    }
-
-    // Safety timeout: if Firestore doesn't respond within 30 seconds, stop loading and use cache
-    const loadingTimeout = startedLoading ? setTimeout(() => {
-      if (products.length === 0) {
-        setIsLoading(false);
-        const cached = localStorage.getItem("store_products");
-        if (cached) {
-          try {
-            const data = JSON.parse(cached);
-            setProducts(data);
-            showToast("تعذر الاتصال بقاعدة البيانات، تم تحميل البيانات المخزنة مؤقتاً", "info");
-          } catch (e) {
-            setProducts(initialProducts);
-          }
-        } else {
-          setSystemError("تعذر الاتصال بقاعدة البيانات. يرجى التحقق من اتصالك بالإنترنت.");
-        }
-      }
-    }, 30000) : null;
-    
-    // Determine admin status stably to avoid listener churn
-    const currentAdminUid = adminAuth.currentUser?.uid;
-    const activeDb = currentAdminUid ? adminDb : db;
-    const productsRef = collection(activeDb, "products");
-    const q = query(productsRef, orderBy("createdAt", "desc"), limit(300));
-
-    // --- Meta-Document Pattern (Real-Time + Minimal Cost) ---
-    // Single listener controls fetching for high-read collections
-    const unsubMeta = onSnapshot(doc(activeDb, "settings", "store_meta"), async (docSnap) => {
-      const meta = docSnap.data() || {};
-      const serverProductsTs = meta.products_updated_at || 0;
-      const serverCategoriesTs = meta.categories_updated_at || 0;
-
-      // 1. Get local timestamps from localStorage
-      const localProductsTs = parseInt(localStorage.getItem("store_meta_products_ts") || "0");
-      const localCategoriesTs = parseInt(localStorage.getItem("store_meta_categories_ts") || "0");
-
-      const hasLocalProducts = !!localStorage.getItem("store_products");
-      const hasLocalCategories = !!localStorage.getItem("store_categories");
-
-      const { getDocs, collection, limit } = await import("firebase/firestore");
-
-      // 2. Fetch Products ONLY if server is newer OR no local data exists
-      if (serverProductsTs > localProductsTs || !hasLocalProducts) {
-        try {
-          const snapshot = await getDocs(q);
-          if (loadingTimeout) clearTimeout(loadingTimeout);
-          
-          const productsData = snapshot.docs.map((doc) => ({
-            ...doc.data(),
-            id: String(doc.id),
-          })) as unknown as Product[];
-          
-          setProducts(productsData);
-          localStorage.setItem("store_products", JSON.stringify(productsData));
-          localStorage.setItem("store_meta_products_ts", serverProductsTs.toString());
-          
-          if (startedLoading) setIsLoading(false);
-        } catch (error: any) {
-          if (loadingTimeout) clearTimeout(loadingTimeout);
-          console.error("Products fetch error:", error);
-          if (startedLoading) setIsLoading(false);
-        }
-      } else {
-        // Up to date!
-        if (loadingTimeout) clearTimeout(loadingTimeout);
-        if (startedLoading) setIsLoading(false);
-      }
-
-      // 3. Fetch Categories ONLY if server is newer OR no local data exists
-      if (serverCategoriesTs > localCategoriesTs || !hasLocalCategories) {
-        try {
-          const catQ = query(collection(activeDb, "categories"), limit(300));
-          const snapshot = await getDocs(catQ);
-          const categoriesData = snapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          })) as Category[];
-          
-          setCategories(categoriesData);
-          localStorage.setItem("store_categories", JSON.stringify(categoriesData));
-          localStorage.setItem("store_meta_categories_ts", serverCategoriesTs.toString());
-        } catch (error) {
-          console.error("Categories fetch error:", error);
-        }
-      }
-    });
-
-    return () => {
-      if (loadingTimeout) clearTimeout(loadingTimeout);
-      unsubMeta();
-    };
-    // Only re-run if role changes or admin identity changes
-  }, [user?.role, adminAuth.currentUser?.uid]);
-
-  // Sanitize local states against actual products list to remove deleted items
-  useEffect(() => {
-    if (!isLoading && products.length > 0) {
-      const productIds = new Set(products.map((p) => p.id));
-
-      setRecentlyViewed((prev) => {
-        const filtered = prev.filter((p) => productIds.has(p.id));
-        return filtered.length !== prev.length ? filtered : prev;
-      });
-
-      setWishlist((prev) => {
-        const filtered = prev.filter((p) => productIds.has(p.id));
-        return filtered.length !== prev.length ? filtered : prev;
-      });
-
-      setCart((prev) => {
-        const filtered = prev.filter((item) =>
-          productIds.has(item.product.id),
-        );
-        return filtered.length !== prev.length ? filtered : prev;
-      });
-    }
-  }, [products, isLoading]);
+    return initializeProducts();
+  }, [initializeProducts]);
 
   // Sync Orders from Firestore with Real-time Support
   // Orders are now synced on demand via syncOnDemand method
   
   // Admin data is now synced on demand via syncOnDemand method
   
-  // Sync Public Data
+  const { initializeSettings } = useSettingsStore();
   useEffect(() => {
-    const activeDb = adminAuth.currentUser ? adminDb : db;
-    const isAdmin = !!adminAuth.currentUser || user?.role === "admin";
-    const now = Date.now();
-    let isInitialMarketingSync = true;
-
-    const syncCollection = async (
-      colName: string,
-      setter: (data: any) => void,
-      storageKey: string
-    ) => {
-      try {
-        const { getDocs } = await import("firebase/firestore");
-        const q = query(collection(activeDb, colName), limit(300));
-        const snapshot = await getDocs(q);
-        const data = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        setter(data);
-        localStorage.setItem(storageKey, JSON.stringify(data));
-        localStorage.setItem(`${storageKey}_time`, Date.now().toString());
-      } catch (error: any) {
-        if (error.code === "permission-denied") return;
-        console.error(`Fetch error for ${colName}:`, error);
-        const cached = localStorage.getItem(storageKey);
-        if (cached) {
-          try {
-            setter(JSON.parse(cached));
-          } catch (e) {}
-        }
-      }
-    };
-
-    // We will no longer sync these globally on mount to save reads.
-    // They will be fetched on-demand by the pages that need them.
-    
-    const unsubSettings = onSnapshot(doc(activeDb, "settings", "store"), (docSnap) => {
-      if (docSnap.exists()) {
-        const data = docSnap.data() as StoreSettings;
-        setSettings(data);
-        localStorage.setItem("store_settings", JSON.stringify(data));
-        localStorage.setItem("store_settings_time", Date.now().toString());
-      }
-    });
-
-    const fetchMarketingData = async () => {
-      try {
-        const { getDocs } = await import("firebase/firestore");
-        const snapshot = await getDocs(query(collection(activeDb, "marketing_notifications"), orderBy("date", "desc"), limit(50)));
-        const rawUser = localStorage.getItem("store_user");
-        let userRegistrationTime = 0;
-        if (rawUser) {
-          try {
-            const u = JSON.parse(rawUser);
-            if (u.createdAt) userRegistrationTime = new Date(u.createdAt).getTime();
-          } catch (e) {}
-        }
-
-        const allData = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        })) as unknown as MarketingNotification[];
-        
-        const filteredData = allData.filter((notif) => {
-          if (userRegistrationTime === 0) return true;
-          const notifDate = new Date(notif.date || new Date().toISOString()).getTime();
-          return notifDate >= userRegistrationTime;
-        });
-
-        setMarketingNotifications(filteredData);
-        localStorage.setItem("store_marketing_notifications", JSON.stringify(filteredData));
-      } catch (e) {}
-    };
-    fetchMarketingData();
-
-    return () => {
-      unsubSettings();
-    };
-    // Only re-run on authentication state or environment change
-  }, [isAuthReady, user?.role, adminUser?.role, adminAuth.currentUser?.uid]);
+    return initializeSettings();
+  }, [initializeSettings]);
 
   // Sync cart to abandonedCarts for abandoned cart notifications
   useEffect(() => {
@@ -1102,16 +553,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return () => clearTimeout(timeoutId);
   }, [cart, user]);
 
-  const [discount, setDiscount] = useState<{
-    code: string | null;
-    amount: number;
-    type: "percentage" | "fixed";
-    pointsUsed?: number;
-  }>({
-    code: null,
-    amount: 0,
-    type: "percentage",
-  });
+  // SearchTerms and visits logic
 
   const [subscriptions, setSubscriptions] = useState<
     NotificationSubscription[]
@@ -1133,101 +575,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         : { sale: true, stock: true, order: true, promotions: true };
     });
 
-  const [recentlyViewed, setRecentlyViewed] = useState<Product[]>(() => {
-    const saved = localStorage.getItem("store_recently_viewed");
-    return saved ? JSON.parse(saved) : [];
-  });
+  // notifications
 
   const [coupons, setCoupons] = useState<Coupon[]>(() => {
     const saved = localStorage.getItem("store_coupons");
     return saved ? JSON.parse(saved) : [];
   });
 
-  const [language, setLanguageState] = useState<"ar" | "en">(() => {
-    const saved = localStorage.getItem("store_language");
-    return (saved as "ar" | "en") || "ar";
-  });
-
-  const [settings, setSettings] = useState<StoreSettings>(() => {
-    const saved = localStorage.getItem("store_settings");
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      // Ensure new statuses are included for existing users
-      if (
-        parsed.autoNotifications &&
-        parsed.autoNotifications.onStatusChange &&
-        !parsed.autoNotifications.onStatusChange.includes("pending")
-      ) {
-        parsed.autoNotifications.onStatusChange = Array.from(
-          new Set([
-            ...parsed.autoNotifications.onStatusChange,
-            "pending",
-            "processing",
-          ]),
-        );
-      }
-      return parsed;
-    }
-    return {
-      storeName: "متجري",
-      contactEmail: "",
-      contactPhone: "",
-      contactPhone2: "",
-      address: "",
-      socialMedia: {
-        instagram: "",
-        twitter: "",
-        facebook: "",
-        whatsapp: "",
-        tiktok: "",
-        youtube: "",
-      },
-      shippingFee: 0,
-      freeShippingThreshold: 0,
-      currency: "YER",
-      language: "ar",
-      isMaintenanceMode: false,
-      maintenanceMessage: "المتجر في وضع الصيانة حالياً. سنعود قريباً!",
-      announcementText: "",
-      primaryColor: "#000000",
-      fontFamily: "Inter",
-      homeSectionOrder: [
-        "hero",
-        "categories",
-        "deals",
-        "featured",
-        "new_arrivals",
-        "category_sliders",
-      ],
-      seo: {
-        metaTitle: "متجر النخبة للإلكترونيات",
-        metaDescription:
-          "الرؤية الجديدة للطاقة الشمسية والإلكترونيات الذكية في اليمن",
-        favicon: "/favicon.svg",
-        ogImage: "/favicon.svg",
-      },
-      autoNotifications: {
-        enabled: true,
-        email: true,
-        onStatusChange: [
-          "pending",
-          "processing",
-          "shipped",
-          "delivered",
-          "cancelled",
-        ],
-      },
-      paymentMethods: [
-        {
-          id: "wallet",
-          name: "المحفظة",
-          type: "wallet",
-          isActive: true,
-          requiresProof: false,
-        },
-      ],
-    };
-  });
+  // settings
 
   const [supportTickets, setSupportTickets] = useState<SupportTicket[]>(() => {
     const saved = localStorage.getItem("store_tickets");
@@ -1336,17 +691,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return saved ? JSON.parse(saved) : [];
   });
 
-  const [categories, setCategories] = useState<Category[]>(() => {
-    const saved = localStorage.getItem("store_categories");
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        return [];
-      }
-    }
-    return [];
-  });
+  // categories
 
   const [customers, setCustomers] = useState<UserProfile[]>(() => {
     const saved = localStorage.getItem("store_customers");
@@ -1360,17 +705,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return [];
   });
 
-  const [inventoryLogs, setInventoryLogs] = useState<InventoryLog[]>(() => {
-    const saved = localStorage.getItem("store_inventory_logs");
-    return saved ? JSON.parse(saved) : [];
-  });
+  // inventory
 
-  const [isCartOpen, setIsCartOpen] = useState(false);
-  const [isPlacingOrder, setIsPlacingOrder] = useState(false);
-  const [isWishlistOpen, setIsWishlistOpen] = useState(false);
-  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
-  const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
-  const [isSearchInputFocused, setIsSearchInputFocused] = useState(false);
   const [toast, setToast] = useState({ show: false, message: "" });
 
   const activeSyncs = useRef<Set<string>>(new Set());
@@ -1493,85 +829,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     activeSyncs.current.clear();
   }, [adminAuth.currentUser?.uid, user?.uid]);
 
-  const showToast = React.useCallback(
-    (
-      message: string,
-      type: "success" | "error" | "info" = "success",
-      options?: {
-        image?: string;
-        action?: { label: string; onClick: () => void };
-      },
-    ) => {
-      if (!message) return;
-
-      const hasCustomContent = options?.image || options?.action;
-
-      const toastContent = hasCustomContent ? (
-        <div className="flex items-center justify-between w-full gap-3 py-0.5">
-          <div className="flex items-center gap-3 flex-1 min-w-0">
-            {options?.image && (
-              <img
-                src={options.image || undefined}
-                alt="toast-img"
-                className="w-10 h-10 rounded-full object-cover border border-white/10 shrink-0"
-              />
-            )}
-            <span className="text-sm font-medium text-white truncate">
-              {message}
-            </span>
-          </div>
-          {options?.action && (
-            <button
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                options.action!.onClick();
-                sonnerToast.dismiss();
-              }}
-              className="text-[10px] font-bold bg-gold-gradient text-black px-4 py-2 rounded-full whitespace-nowrap hover:scale-105 transition-transform shrink-0 shadow-gold"
-            >
-              {options.action.label}
-            </button>
-          )}
-        </div>
-      ) : (
-        message
-      );
-
-      const toastOptions = {
-        icon:
-          type === "success" ? (
-            <div className="w-6 h-6 rounded-full bg-gold-gradient flex items-center justify-center shrink-0 shadow-gold">
-              <svg
-                className="w-3.5 h-3.5 text-black"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={3}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M5 13l4 4L19 7"
-                />
-              </svg>
-            </div>
-          ) : undefined,
-      };
-
-      if (type === "error") {
-        sonnerToast.error(toastContent, toastOptions);
-      } else if (type === "info") {
-        sonnerToast.info(toastContent, toastOptions);
-      } else {
-        sonnerToast.success(toastContent, toastOptions);
-      }
-    },
-    [],
-  );
-
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-  const [canInstallPWA, setCanInstallPWA] = useState(false);
+  const { setDeferredPrompt, setCanInstallPWA } = useUIStore();
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (e: any) => {
@@ -1588,26 +846,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         handleBeforeInstallPrompt,
       );
     };
-  }, []);
-
-  const installPWA = React.useCallback(async () => {
-    if (!deferredPrompt) {
-      showToast(
-        "التطبيق مثبت بالفعل أو المتصفح لا يدعم التثبيت المباشر",
-        "info",
-      );
-      return;
-    }
-
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-
-    if (outcome === "accepted") {
-      showToast("شكراً لتثبيت تطبيق متجر النخبة!");
-      setCanInstallPWA(false);
-      setDeferredPrompt(null);
-    }
-  }, [deferredPrompt, showToast]);
+  }, [setDeferredPrompt, setCanInstallPWA]);
 
   // Persist state to localStorage individually to improve performance
   useEffect(() => {
@@ -1786,7 +1025,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           newSettings.language &&
           newSettings.language !== settings.language
         ) {
-          setLanguageState(newSettings.language);
+          setLanguage(newSettings.language as "ar" | "en");
         }
 
         setSettings(updated);
@@ -2129,12 +1368,25 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         products.forEach((p) => {
           if (category === "الكل" || p.category === category) {
             const newPrice = Math.round(p.price * (1 + percentage / 100));
-            const pRef = doc(activeDb, "products", p.id);
-            batch.update(pRef, {
+            const updates: any = {
               price: newPrice,
               originalPrice: p.price,
               updatedAt: serverTimestamp(),
-            });
+            };
+
+            if (p.sizePrices) {
+              const newSizePrices: Record<string, number> = {};
+              const newSizeOriginalPrices: Record<string, number> = {};
+              Object.entries(p.sizePrices).forEach(([size, price]) => {
+                newSizePrices[size] = Math.round(price * (1 + percentage / 100));
+                newSizeOriginalPrices[size] = price;
+              });
+              updates.sizePrices = newSizePrices;
+              updates.sizeOriginalPrices = newSizeOriginalPrices;
+            }
+
+            const pRef = doc(activeDb, "products", p.id);
+            batch.update(pRef, updates);
             count++;
           }
         });
@@ -2838,12 +2090,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
               );
             }
 
+            const effectivePrice = (item.selectedSize && sourceProduct.sizePrices && sourceProduct.sizePrices[item.selectedSize])
+              ? sourceProduct.sizePrices[item.selectedSize]
+              : sourceProduct.price;
+
             validatedItems.push({
               ...item,
+              price: effectivePrice,
               product: {
                 ...item.product,
                 name: sourceProduct.name || item.product.name,
-                price: sourceProduct.price,
+                price: effectivePrice,
                 image:
                   sourceProduct.image ||
                   (sourceProduct.images && sourceProduct.images[0]) ||
@@ -3996,17 +3253,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const setLanguage = React.useCallback(
-    (lang: "ar" | "en") => {
-      setLanguageState(lang);
-      showToast(
-        lang === "ar"
-          ? "تم تغيير اللغة إلى العربية"
-          : "Language changed to English",
-      );
-    },
-    [showToast],
-  );
 
   const updateStock = React.useCallback(
     async (

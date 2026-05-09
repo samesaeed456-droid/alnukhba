@@ -37,10 +37,24 @@ export default function Cart() {
   const [showCouponInput, setShowCouponInput] = useState(false);
   const [selectedCity, setSelectedCity] = useState<string>("صنعاء");
 
+  const getItemPrice = useCallback((item: any) => {
+    if (item.selectedSize && item.product.sizePrices && item.product.sizePrices[item.selectedSize]) {
+      return item.product.sizePrices[item.selectedSize];
+    }
+    return item.product.price;
+  }, []);
+
+  const getItemOriginalPrice = useCallback((item: any) => {
+    if (item.selectedSize && item.product.sizeOriginalPrices && item.product.sizeOriginalPrices[item.selectedSize]) {
+      return item.product.sizeOriginalPrices[item.selectedSize];
+    }
+    return item.product.originalPrice;
+  }, []);
+
   const subtotal = useMemo(
     () =>
-      cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0),
-    [cart],
+      cart.reduce((sum, item) => sum + getItemPrice(item) * item.quantity, 0),
+    [cart, getItemPrice],
   );
 
   const shipping = useMemo(() => {
@@ -284,12 +298,19 @@ export default function Cart() {
                   </div>
 
                   <div className="mt-auto flex items-center justify-between">
-                    <div className="font-black text-lg">
-                      <PriceDisplay
-                        price={item.product?.price || 0}
-                        numberClassName="text-slate-900"
-                        currencyClassName="text-slate-900/70"
-                      />
+                    <div className="flex flex-col">
+                      <div className="font-black text-lg">
+                        <PriceDisplay
+                          price={getItemPrice(item)}
+                          numberClassName="text-slate-900"
+                          currencyClassName="text-slate-900/70"
+                        />
+                      </div>
+                      {getItemOriginalPrice(item) && (
+                        <div className="text-[10px] sm:text-xs text-slate-400 font-medium line-through">
+                          {formatPrice(getItemOriginalPrice(item))}
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex items-center bg-slate-50 rounded-lg p-1 border border-slate-100">

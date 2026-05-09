@@ -20,6 +20,11 @@ interface UIState {
   setIsSearchInputFocused: (isFocused: boolean) => void;
   isPlacingOrder: boolean;
   setIsPlacingOrder: (isPlacing: boolean) => void;
+  canInstallPWA: boolean;
+  setCanInstallPWA: (can: boolean) => void;
+  deferredPrompt: any;
+  setDeferredPrompt: (prompt: any) => void;
+  installPWA: () => Promise<void>;
   showToast: (
     message: string,
     type?: "success" | "error" | "info",
@@ -27,7 +32,7 @@ interface UIState {
   ) => void;
 }
 
-export const useUIStore = create<UIState>((set) => ({
+export const useUIStore = create<UIState>((set, get) => ({
   isCartOpen: false,
   setIsCartOpen: (isOpen) => set({ isCartOpen: isOpen }),
   isWishlistOpen: false,
@@ -41,6 +46,29 @@ export const useUIStore = create<UIState>((set) => ({
     set({ isSearchInputFocused: isFocused }),
   isPlacingOrder: false,
   setIsPlacingOrder: (isPlacing) => set({ isPlacingOrder: isPlacing }),
+  canInstallPWA: false,
+  setCanInstallPWA: (canInstallPWA) => set({ canInstallPWA }),
+  deferredPrompt: null,
+  setDeferredPrompt: (deferredPrompt) => set({ deferredPrompt }),
+  
+  installPWA: async () => {
+    const { deferredPrompt, showToast } = get();
+    if (!deferredPrompt) {
+      showToast(
+        "التطبيق مثبت بالفعل أو المتصفح لا يدعم التثبيت المباشر",
+        "info",
+      );
+      return;
+    }
+
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+
+    if (outcome === "accepted") {
+      showToast("شكراً لتثبيت تطبيق متجر النخبة!");
+      set({ canInstallPWA: false, deferredPrompt: null });
+    }
+  },
 
   showToast: (message, type = "success", options) => {
     if (!message) return;

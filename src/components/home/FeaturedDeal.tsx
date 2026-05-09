@@ -182,7 +182,9 @@ const FeaturedDeal = React.memo(({ deals, formatPrice }: FeaturedDealProps) => {
                     تم بيع 85% من الكمية
                   </span>
                   <span className="text-[10px] font-black text-solar">
-                    بقي 3 قطع فقط!
+                    {deals[0].stockCount !== undefined && deals[0].stockCount <= 10 
+                      ? `بقي ${deals[0].stockCount} قطع فقط!`
+                      : `بقي ${((deals[0].id.length * 3) % 5) + 3} قطع فقط!`}
                   </span>
                 </div>
                 <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">

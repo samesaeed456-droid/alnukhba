@@ -1,24 +1,25 @@
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, Suspense } from "react";
 import { Star, Zap } from "lucide-react";
 import { motion } from "motion/react";
 import { useStoreState, useStoreActions } from "../context/StoreContext";
-import ProductSlider from "../components/ProductSlider";
-import RecommendedProducts from "../components/RecommendedProducts";
-import ImageSlider from "../components/ImageSlider";
 import {
   ProductCardSkeleton,
   BannerSkeleton,
-  CategorySkeleton,
   SectionHeaderSkeleton,
 } from "../components/Skeleton";
 
 // Home Components
 import Hero from "../components/home/Hero";
 import CategoriesSection from "../components/home/CategoriesSection";
-import FeaturedDeal from "../components/home/FeaturedDeal";
-import HomeProductGrid from "../components/home/HomeProductGrid";
-import CategoryFilteredSection from "../components/home/CategoryFilteredSection";
-import PremiumFeatures from "../components/home/PremiumFeatures";
+const FeaturedDeal = React.lazy(() => import("../components/home/FeaturedDeal"));
+const HomeProductGrid = React.lazy(() => import("../components/home/HomeProductGrid"));
+const CategoryFilteredSection = React.lazy(() => import("../components/home/CategoryFilteredSection"));
+const PremiumFeatures = React.lazy(() => import("../components/home/PremiumFeatures"));
+const ProductSlider = React.lazy(() => import("../components/ProductSlider"));
+const RecommendedProducts = React.lazy(() => import("../components/RecommendedProducts"));
+const ImageSlider = React.lazy(() => import("../components/ImageSlider"));
+
+const HomeFallback = () => <div className="h-[200px] animate-pulse bg-white/5 rounded-2xl mb-8" />;
 
 export default function Home() {
   const [activeCategory, setActiveCategory] = useState("الكل");
@@ -239,14 +240,16 @@ export default function Home() {
             </div>
           </div>
         ) : activeCategory !== "الكل" ? (
-          <CategoryFilteredSection
-            categoryName={activeCategory}
-            products={filteredProducts}
-            isLoading={isCategoryLoading}
-            onReset={handleResetCategory}
-          />
+          <Suspense fallback={<HomeFallback />}>
+            <CategoryFilteredSection
+              categoryName={activeCategory}
+              products={filteredProducts}
+              isLoading={isCategoryLoading}
+              onReset={handleResetCategory}
+            />
+          </Suspense>
         ) : (
-          <>
+          <Suspense fallback={<HomeFallback />}>
             {/* Featured Deal Section */}
             <FeaturedDeal deals={deals} formatPrice={formatPrice} />
 
@@ -343,12 +346,14 @@ export default function Home() {
               products={batteries}
               viewAllLink="/category/بطاريات"
             />
-          </>
+          </Suspense>
         )}
       </div>
 
       {/* Premium Features Section */}
-      <PremiumFeatures />
+      <Suspense fallback={<div className="h-[100px] bg-white/5 rounded-2xl mx-4 mb-8" />}>
+        <PremiumFeatures />
+      </Suspense>
     </div>
   );
 }

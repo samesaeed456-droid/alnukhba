@@ -100,6 +100,7 @@ export default function Products() {
         colors: [],
         sizes: [],
         sizePrices: {},
+        sizeOriginalPrices: {},
         specs: {},
         sku: "",
         status: "active",
@@ -179,6 +180,7 @@ export default function Products() {
     colors: [],
     sizes: [],
     sizePrices: {},
+    sizeOriginalPrices: {},
     specs: {},
     sku: "",
     status: "active",
@@ -310,6 +312,7 @@ export default function Products() {
         colors: [],
         sizes: [],
         sizePrices: {},
+        sizeOriginalPrices: {},
         specs: {},
         sku: "",
         status: "active",
@@ -1520,22 +1523,32 @@ export default function Products() {
                                 >
                                   <div className="flex flex-col gap-0.5">
                                     <span className="text-xs font-black text-carbon">{size}</span>
-                                    <span className="text-[10px] font-bold text-solar">
-                                      {formData.sizePrices?.[size] 
-                                        ? formatPrice(formData.sizePrices[size]) 
-                                        : "السعر الأساسي"}
-                                    </span>
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-[10px] font-bold text-solar">
+                                        {formData.sizePrices?.[size] 
+                                          ? formatPrice(formData.sizePrices[size]) 
+                                          : formatPrice(formData.price || 0)}
+                                      </span>
+                                      {formData.sizeOriginalPrices?.[size] && (
+                                        <span className="text-[8px] font-bold text-slate-400 line-through">
+                                          {formatPrice(formData.sizeOriginalPrices[size])}
+                                        </span>
+                                      )}
+                                    </div>
                                   </div>
                                   <button
                                     type="button"
                                     onClick={() => {
                                       const newSizes = formData.sizes?.filter((s) => s !== size);
                                       const newPrices = { ...(formData.sizePrices || {}) };
+                                      const newOriginalPrices = { ...(formData.sizeOriginalPrices || {}) };
                                       delete newPrices[size];
+                                      delete newOriginalPrices[size];
                                       setFormData({ 
                                         ...formData, 
                                         sizes: newSizes,
-                                        sizePrices: newPrices
+                                        sizePrices: newPrices,
+                                        sizeOriginalPrices: newOriginalPrices
                                       });
                                     }}
                                     className="text-slate-400 hover:text-red-500 p-1 rounded-md transition-colors"
@@ -1548,54 +1561,74 @@ export default function Products() {
                           )}
 
                           {/* Add new size and price input row */}
-                          <div className="flex flex-col sm:flex-row gap-2">
-                            <div className="flex-1 relative">
-                              <input
-                                id="new-size-name"
-                                type="text"
-                                placeholder="اسم المقاس (مثل: XL)"
-                                className="w-full px-3 py-2.5 rounded-lg bg-white border border-slate-200 focus:ring-2 focus:ring-solar/20 focus:border-solar outline-none transition-all text-sm font-bold"
-                              />
-                            </div>
-                            <div className="flex-1 relative">
-                              <input
-                                id="new-size-price"
-                                type="number"
-                                placeholder="السعر"
-                                className="w-full px-3 py-2.5 rounded-lg bg-white border border-slate-200 focus:ring-2 focus:ring-solar/20 focus:border-solar outline-none transition-all text-sm font-bold"
-                              />
-                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 font-bold uppercase">ر.س</span>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const sizeInput = document.getElementById("new-size-name") as HTMLInputElement;
-                                const priceInput = document.getElementById("new-size-price") as HTMLInputElement;
-                                const sizeVal = sizeInput?.value.trim();
-                                const priceVal = priceInput?.value.trim();
+                          <div className="flex flex-col gap-2">
+                            <div className="flex flex-col sm:flex-row gap-2">
+                              <div className="flex-1 relative">
+                                <input
+                                  id="new-size-name"
+                                  type="text"
+                                  placeholder="اسم المقاس (مثل: XL)"
+                                  className="w-full px-3 py-2.5 rounded-lg bg-white border border-slate-200 focus:ring-2 focus:ring-solar/20 focus:border-solar outline-none transition-all text-sm font-bold"
+                                />
+                              </div>
+                              <div className="flex-1 relative">
+                                <input
+                                  id="new-size-price"
+                                  type="number"
+                                  placeholder="سعر البيع"
+                                  className="w-full px-3 py-2.5 rounded-lg bg-white border border-slate-200 focus:ring-2 focus:ring-solar/20 focus:border-solar outline-none transition-all text-sm font-bold"
+                                />
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 font-bold uppercase">ر.س</span>
+                              </div>
+                              <div className="flex-1 relative">
+                                <input
+                                  id="new-size-original-price"
+                                  type="number"
+                                  placeholder="السعر قبل الخصم (اختياري)"
+                                  className="w-full px-3 py-2.5 rounded-lg bg-white border border-slate-200 focus:ring-2 focus:ring-solar/20 focus:border-solar outline-none transition-all text-sm font-bold"
+                                />
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 font-bold uppercase">ر.س</span>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const sizeInput = document.getElementById("new-size-name") as HTMLInputElement;
+                                  const priceInput = document.getElementById("new-size-price") as HTMLInputElement;
+                                  const originalPriceInput = document.getElementById("new-size-original-price") as HTMLInputElement;
+                                  const sizeVal = sizeInput?.value.trim();
+                                  const priceVal = priceInput?.value.trim();
+                                  const originalPriceVal = originalPriceInput?.value.trim();
 
-                                if (sizeVal && !formData.sizes?.includes(sizeVal)) {
-                                  const newSizes = [...(formData.sizes || []), sizeVal];
-                                  const newPrices = { ...(formData.sizePrices || {}) };
-                                  if (priceVal) {
-                                    newPrices[sizeVal] = Number(priceVal);
+                                  if (sizeVal && !formData.sizes?.includes(sizeVal)) {
+                                    const newSizes = [...(formData.sizes || []), sizeVal];
+                                    const newPrices = { ...(formData.sizePrices || {}) };
+                                    const newOriginalPrices = { ...(formData.sizeOriginalPrices || {}) };
+                                    
+                                    if (priceVal) {
+                                      newPrices[sizeVal] = Number(priceVal);
+                                    }
+                                    if (originalPriceVal) {
+                                      newOriginalPrices[sizeVal] = Number(originalPriceVal);
+                                    }
+                                    
+                                    setFormData({
+                                      ...formData,
+                                      sizes: newSizes,
+                                      sizePrices: newPrices,
+                                      sizeOriginalPrices: newOriginalPrices
+                                    });
+                                    
+                                    sizeInput.value = "";
+                                    priceInput.value = "";
+                                    originalPriceInput.value = "";
+                                    sizeInput.focus();
                                   }
-                                  
-                                  setFormData({
-                                    ...formData,
-                                    sizes: newSizes,
-                                    sizePrices: newPrices
-                                  });
-                                  
-                                  sizeInput.value = "";
-                                  priceInput.value = "";
-                                  sizeInput.focus();
-                                }
-                              }}
-                              className="bg-solar text-white px-6 py-2.5 rounded-lg hover:bg-solar/90 transition-colors text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-md shrink-0"
-                            >
-                              <Plus className="w-4 h-4" /> إضافة حجم
-                            </button>
+                                }}
+                                className="bg-solar text-white px-6 py-2.5 rounded-lg hover:bg-solar/90 transition-colors text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-md shrink-0"
+                              >
+                                <Plus className="w-4 h-4" /> إضافة حجم
+                              </button>
+                            </div>
                           </div>
                           <p className="text-[9px] text-slate-400 font-medium italic">
                             * سيتم استخدام أدنى سعر من المقاسات المضافة كسعر أساسي للمنتج.

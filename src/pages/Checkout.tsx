@@ -245,13 +245,17 @@ export default function Checkout() {
     }
   }, [availableDistricts, formData.district]);
 
+  const getItemPrice = useCallback((item: any) => {
+    if (item.selectedSize && item.product.sizePrices && item.product.sizePrices[item.selectedSize]) {
+      return item.product.sizePrices[item.selectedSize];
+    }
+    return item.product.price;
+  }, []);
+
   const subtotal = useMemo(
     () =>
-      cart.reduce(
-        (sum, item) => sum + (item.product?.price || 0) * item.quantity,
-        0,
-      ),
-    [cart],
+      cart.reduce((sum, item) => sum + getItemPrice(item) * item.quantity, 0),
+    [cart, getItemPrice],
   );
 
   const activePaymentMethods = useMemo(() => {
@@ -2044,7 +2048,7 @@ export default function Checkout() {
                         </div>
                         <div className="text-left shrink-0">
                           <PriceDisplay
-                            price={(item.product?.price || 0) * item.quantity}
+                            price={getItemPrice(item) * item.quantity}
                             numberClassName="text-sm sm:text-base font-bold text-carbon"
                             currencyClassName="text-xs sm:text-sm text-carbon/80"
                           />
@@ -2147,7 +2151,7 @@ export default function Checkout() {
                     <div className="flex justify-end mt-1">
                       <span className="text-sm font-bold">
                         <PriceDisplay
-                          price={(item.product?.price || 0) * item.quantity}
+                          price={getItemPrice(item) * item.quantity}
                         />
                       </span>
                     </div>

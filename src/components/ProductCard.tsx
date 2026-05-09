@@ -258,10 +258,22 @@ const ProductCardInner = React.memo(function ProductCardInner({
             {/* Urgency Indicators */}
             {p.inStock !== false ? (
               <div className="flex flex-col items-center gap-1 mb-2 sm:mb-3">
-                <div className="flex items-center gap-1 text-[9px] sm:text-[10px] font-bold text-solar bg-solar/10 px-2 py-0.5 rounded-full border border-solar/20">
-                  <Zap className="w-2.5 h-2.5 fill-current" />
-                  <span>بقي {((p.id.length * 7) % 8) + 2} قطع فقط</span>
-                </div>
+                {p.stockCount !== undefined && p.stockCount <= 20 ? (
+                  <div className="flex items-center gap-1 text-[9px] sm:text-[10px] font-bold text-rose-500 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-100">
+                    <Zap className="w-2.5 h-2.5 fill-current" />
+                    <span>بقي {p.stockCount} قطع فقط</span>
+                  </div>
+                ) : p.stockCount === undefined && ((p.id.length * 7) % 15) < 3 ? (
+                  <div className="flex items-center gap-1 text-[9px] sm:text-[10px] font-bold text-solar bg-solar/10 px-2 py-0.5 rounded-full border border-solar/20">
+                    <Zap className="w-2.5 h-2.5 fill-current" />
+                    <span>بقي {((p.id.length * 7) % 8) + 5} قطع فقط</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1 text-[9px] sm:text-[10px] font-bold text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
+                    <Check className="w-2.5 h-2.5" />
+                    <span>متوفر في المخزن</span>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="flex flex-col items-center gap-1 mb-2 sm:mb-3">

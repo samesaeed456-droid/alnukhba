@@ -67,34 +67,28 @@ const CategoriesSection = React.memo(
               return (
                 <motion.button
                   key={c.id || i}
-                  whileHover={{ y: -8, scale: 1.02 }}
+                  whileHover={{ y: -4, scale: 1.02 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => onCategoryChange(c.name)}
                   className={`flex flex-col items-center gap-2 sm:gap-3 min-w-[65px] sm:min-w-[90px] transition-all group relative shrink-0`}
                 >
                   <div
-                    className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center transition-all duration-300 relative z-10 overflow-hidden ${
+                    className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center transition-all duration-300 relative z-10 ${
                       isActive
-                        ? `ring-2 ring-solar shadow-lg shadow-solar/20 bg-carbon text-solar`
-                        : `bg-white border border-slate-200/60 text-slate-400 group-hover:text-carbon group-hover:bg-slate-50 shadow-sm`
+                        ? `bg-solar/15 text-yellow-700 ring-1 ring-solar/50 shadow-sm`
+                        : `bg-white border border-slate-200/60 text-slate-400 group-hover:text-yellow-600 group-hover:bg-solar/5 group-hover:border-solar/30 shadow-sm group-hover:shadow`
                     }`}
                   >
                     <IconComponent
-                      className={`w-5 h-5 sm:w-6 sm:h-6 transition-transform duration-500 ${
+                      className={`w-5 h-5 sm:w-6 sm:h-6 transition-transform duration-300 ${
                         isActive
                           ? "scale-110"
                           : "group-hover:scale-110"
                       }`}
                     />
-                    {isActive && (
-                      <motion.div 
-                        layoutId="active-bg"
-                        className="absolute inset-0 bg-gold-gradient opacity-10"
-                      />
-                    )}
                   </div>
                   <span
-                    className={`text-[10px] sm:text-sm font-bold transition-colors ${isActive ? "text-solar" : "text-slate-500 group-hover:text-carbon"}`}
+                    className={`text-[10px] sm:text-sm transition-colors ${isActive ? "font-bold text-yellow-700" : "font-medium text-slate-500 group-hover:text-yellow-700"}`}
                   >
                     {c.name}
                   </span>

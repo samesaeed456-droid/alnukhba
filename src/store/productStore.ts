@@ -3,15 +3,15 @@ import { Product, Category, InventoryLog } from "../types";
 import { db, collection, getDocs, query, orderBy, limit, doc, setDoc, addDoc, updateDoc, deleteDoc, serverTimestamp, onSnapshot, writeBatch } from "../lib/firebase";
 
 const STATIC_CATEGORIES: Category[] = [
-  { id: "electronics", name: "إلكترونيات", icon: "Smartphone", isActive: true },
-  { id: "batteries", name: "بطاريات", icon: "Battery", isActive: true },
+  { id: "electronics", name: "إلكترونيات", icon: "Cpu", isActive: true },
+  { id: "batteries", name: "بطاريات", icon: "BatteryCharging", isActive: true },
   { id: "screens", name: "شاشات", icon: "Monitor", isActive: true },
-  { id: "networks", name: "شبكات", icon: "Wifi", isActive: true },
+  { id: "networks", name: "شبكات", icon: "Router", isActive: true },
   { id: "maintenance", name: "صيانة", icon: "Wrench", isActive: true },
   { id: "solar", name: "طاقة شمسية", icon: "Sun", isActive: true },
-  { id: "spare_parts", name: "قطع غيار", icon: "Settings", isActive: true },
+  { id: "spare_parts", name: "قطع غيار", icon: "Cog", isActive: true },
   { id: "cameras", name: "كاميرات مراقبة", icon: "Cctv", isActive: true },
-  { id: "electrical", name: "كهربائيات", icon: "Zap", isActive: true },
+  { id: "electrical", name: "كهربائيات", icon: "Plug", isActive: true },
 ];
 
 interface ProductState {

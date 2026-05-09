@@ -118,8 +118,8 @@ const Analytics = () => {
         if (!productSales[item.product.id]) {
           productSales[item.product.id] = { quantity: 0, revenue: 0 };
         }
-        productSales[item.product.id].quantity += item.quantity;
-        productSales[item.product.id].revenue += item.product.price * item.quantity;
+        productSales[item.product.id].quantity += (Number(item.quantity) || 0);
+        productSales[item.product.id].revenue += (Number(item.product.price) || 0) * (Number(item.quantity) || 0);
       });
     });
 

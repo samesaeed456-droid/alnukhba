@@ -269,16 +269,21 @@ export default function AdminLayout() {
       ];
       if (superAdmins.includes(adminEmail.toLowerCase())) {
         return {
+          id: adminEmail,
           email: adminEmail,
-          role: "super_admin",
+          role: "super_admin" as const,
           name: localStorage.getItem("admin_name") || "المدير العام",
-          permissions: ["all"],
+          permissions: ["all" as const],
+          isActive: true,
         };
       }
       return {
+        id: adminEmail,
         email: adminEmail,
-        role: localStorage.getItem("admin_role") || "admin",
+        role: (localStorage.getItem("admin_role") || "admin") as any,
         name: localStorage.getItem("admin_name") || "مدير",
+        permissions: [],
+        isActive: true,
       };
     }
     return undefined;
@@ -482,8 +487,9 @@ export default function AdminLayout() {
 
         // Check if account is disabled
         if (currentAdmin && currentAdmin.isActive === false) {
-          toast.error("تم تعطيل حسابك. يرجى مراجعة المسؤول.");
-          handleLogout();
+          // We show the blocked message overlay in the render, 
+          // so we don't logout automatically here anymore.
+          setIsAuthLoading(false);
           return;
         }
 

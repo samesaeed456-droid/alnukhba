@@ -95,9 +95,9 @@ export default function Dashboard() {
         : new Date(o.date);
       return orderDate.toISOString().split("T")[0] === todayStr;
     });
-    const salesToday = ordersToday.reduce((sum, o) => sum + (o.total || 0), 0);
+    const salesToday = ordersToday.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
 
-    const totalSales = orders.reduce((sum, o) => sum + (o.total || 0), 0);
+    const totalSales = orders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
     const activeOrders = orders.filter((o) =>
       ["pending", "processing", "shipped"].includes(o.status),
     ).length;
@@ -115,7 +115,7 @@ export default function Dashboard() {
       return orderDate.toISOString().split("T")[0] === yesterdayStr;
     });
     const salesYesterday = ordersYesterday.reduce(
-      (sum, o) => sum + (o.total || 0),
+      (sum, o) => sum + (Number(o.total) || 0),
       0,
     );
     const aovYesterday =

@@ -210,12 +210,14 @@ export default function Orders() {
     const shipped = orders.filter((o) => o.status === "shipped").length;
     const delivered = orders.filter((o) => o.status === "delivered").length;
     const cancelled = orders.filter((o) => o.status === "cancelled").length;
-    const totalRevenue = orders.reduce((sum, o) => sum + o.total, 0);
+    const totalRevenue = orders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
 
     // Mocking yesterday's revenue for percentage change
     const yesterdayRevenue = totalRevenue * 0.88;
     const percentageChange =
-      ((totalRevenue - yesterdayRevenue) / yesterdayRevenue) * 100;
+      yesterdayRevenue > 0
+        ? ((totalRevenue - yesterdayRevenue) / yesterdayRevenue) * 100
+        : 0;
 
     return {
       total,

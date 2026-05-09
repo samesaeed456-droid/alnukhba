@@ -390,7 +390,7 @@ export default function Customers() {
   const customerMetrics = useMemo(() => {
     return onlyCustomers.map((user) => {
       const userOrders = orders.filter((o) => o.userId === user.uid);
-      const totalSpent = userOrders.reduce((sum, o) => sum + o.total, 0);
+      const totalSpent = userOrders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
       return {
         ...user,
         name: user.name || user.displayName || user.phone || "عميل",
@@ -398,6 +398,7 @@ export default function Customers() {
         orderCount: userOrders.length,
         totalSpent,
         lastOrder: userOrders.length > 0 ? userOrders[0].date : null,
+        isActive: user.isActive !== false,
       };
     });
   }, [onlyCustomers, orders]);
@@ -428,7 +429,7 @@ export default function Customers() {
       return joinDate && joinDate >= thirtyDaysAgo;
     }).length;
 
-    const totalRevenue = orders.reduce((sum, o) => sum + o.total, 0);
+    const totalRevenue = orders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
     const avgLTV = total > 0 ? totalRevenue / total : 0;
 
     const inactiveCount = total - activeThisMonth;

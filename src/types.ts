@@ -102,6 +102,7 @@ export interface UserProfile {
   lastActive?: string;
   joinDate?: string;
   isBlocked?: boolean;
+  isActive?: boolean;
   isAdmin?: boolean;
   permissions?: AdminPermission[];
   adminRole?: string;

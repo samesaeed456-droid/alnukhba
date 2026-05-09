@@ -4,13 +4,28 @@ import { ShieldAlert, MessageCircle, PhoneCall, LogOut } from "lucide-react";
 import { useStore } from "../context/StoreContext";
 
 export default function BlockedOverlay() {
-  const { user, logout } = useStore();
+  const { user, adminUser, logout, adminLogout } = useStore();
 
-  if (!user || !user.isBlocked) return null;
+  const isUserBlocked = user && (user.isBlocked || user.isActive === false);
+  const isAdminBlocked = adminUser && adminUser.isActive === false;
+
+  if (!isUserBlocked && !isAdminBlocked) return null;
+
+  const handleAction = () => {
+    if (isAdminBlocked) {
+      if (adminLogout) adminLogout();
+      else {
+        localStorage.removeItem("admin_auth");
+        window.location.href = "/admin/login";
+      }
+    } else {
+      logout();
+    }
+  };
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
+      <div className="fixed inset-0 z-[100000] flex items-center justify-center p-4">
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -29,11 +44,13 @@ export default function BlockedOverlay() {
           </div>
 
           <h2 className="text-2xl sm:text-3xl font-black text-carbon mb-4">
-            عذراً، حسابك محظور
+            {isAdminBlocked ? "حساب المشرف معطل" : "عذراً، حسابك محظور"}
           </h2>
           <p className="text-titanium/60 mb-8 leading-relaxed">
-            تم تقييد وصولك إلى المتجر حالياً. نعتذر عن أي إزعاج، ولكن هذا القرار
-            تم اتخاذه بناءً على سياسات المتجر.
+            {isAdminBlocked 
+              ? "تم تعطيل صلاحيات المشرف الخاصة بك. يرجى التواصل مع المدير العام للمتجر لمراجعة حالة الحساب."
+              : "تم تقييد وصولك إلى المتجر حالياً. نعتذر عن أي إزعاج، ولكن هذا القرار تم اتخاذه بناءً على سياسات المتجر."
+            }
           </p>
 
           <div className="bg-slate-50 rounded-2xl p-6 mb-8 text-right space-y-4">
@@ -41,7 +58,7 @@ export default function BlockedOverlay() {
               كيف يمكنك حل هذه المشكلة؟
             </h3>
             <p className="text-xs text-titanium/70">
-              يرجى التواصل مع فريق الإدارة لمراجعة حالة حسابك وتوضيح الأسباب.
+              يرجى التواصل مع فريق الإدارة لمراجعة حالة حسابك وتوضيح الأسباب وإمكانية استعادته.
             </p>
           </div>
 
@@ -65,7 +82,7 @@ export default function BlockedOverlay() {
           </div>
 
           <button
-            onClick={() => logout()}
+            onClick={handleAction}
             className="flex items-center justify-center gap-2 text-red-500 font-bold hover:bg-red-50 px-6 py-3 rounded-xl transition-all mx-auto"
           >
             <LogOut className="w-5 h-5" />

@@ -189,6 +189,7 @@ interface StoreContextType {
     >,
   ) => void;
   adminUsers: AdminUser[];
+  adminUser: UserProfile | null;
   addAdminUser: (admin: Omit<AdminUser, "id">) => void;
   updateAdminUser: (
     id: string,
@@ -196,6 +197,7 @@ interface StoreContextType {
     logDetails?: string,
   ) => void;
   deleteAdminUser: (id: string) => void;
+  adminLogout: () => void;
   activityLogs: ActivityLog[];
   logActivity: (action: string, details: string) => void;
   supportTickets: SupportTicket[];
@@ -263,6 +265,7 @@ interface StoreState {
   banners: Banner[];
   marketingNotifications: MarketingNotification[];
   adminUsers: AdminUser[];
+  adminUser: UserProfile | null;
   activityLogs: ActivityLog[];
   discount: {
     code: string | null;
@@ -365,6 +368,7 @@ interface StoreActions {
   updateUser: (user: UserProfile) => void;
   forceSetUser: (user: UserProfile | null) => void;
   logout: () => void;
+  adminLogout: () => void;
   updateCustomer: (phone: string, updates: Partial<UserProfile>) => void;
   blockCustomer: (phone: string) => void;
   addCustomer: (customer: UserProfile) => void;
@@ -743,17 +747,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             );
             if (adminDoc.exists()) {
               const adminData = adminDoc.data() as UserProfile;
-              if (adminData.isActive === false) {
-                adminAuth.signOut();
-                setAdminUser(null);
-                localStorage.removeItem("admin_auth");
-                localStorage.removeItem("admin_email");
-                showToast("تم تعطيل حساب المشرف الخاص بك.", "error");
-                return;
-              }
+              // We don't sign out here anymore, we let the UI handle the disabled state
+              // which provides a better "un-bypassable" message experience.
               setAdminUser({
-                ...adminData,
+                ...(adminData as any),
                 uid: adminDoc.id,
+                isActive: adminData.isActive !== false, // Ensure we have a boolean
               });
             } else {
               const hardcoded = [
@@ -3358,6 +3357,25 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }
   }, [showToast]);
 
+  const adminLogout = React.useCallback(async () => {
+    try {
+      const keysToRemove = [
+        "admin_auth",
+        "admin_email",
+        "admin_role",
+        "admin_name",
+        "admin_attempt",
+      ];
+      keysToRemove.forEach((key) => localStorage.removeItem(key));
+
+      await adminAuth.signOut();
+      setAdminUser(null);
+      window.location.href = "/admin/login";
+    } catch (error) {
+      console.error("Admin logout error:", error);
+    }
+  }, []);
+
   const updateCustomer = React.useCallback(
     async (identifier: string, updates: Partial<UserProfile>) => {
       try {
@@ -4358,6 +4376,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       banners,
       marketingNotifications,
       adminUsers,
+      adminUser,
       activityLogs,
       supportTickets,
       staticPages,
@@ -4390,6 +4409,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       banners,
       marketingNotifications,
       adminUsers,
+      adminUser,
       activityLogs,
       supportTickets,
       staticPages,
@@ -4461,6 +4481,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       forceSetUser: forceSetUserWrapper,
       deleteAccount,
       logout,
+      adminLogout,
       applyDiscountCode,
       removeDiscount,
       addCoupon,
@@ -4533,6 +4554,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       forceSetUserWrapper,
       deleteAccount,
       logout,
+      adminLogout,
       applyDiscountCode,
       removeDiscount,
       addCoupon,

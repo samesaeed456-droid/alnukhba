@@ -2,20 +2,11 @@ import React, { useRef, useEffect, useState } from "react";
 import { useStore } from "../../context/StoreContext";
 import {
   Grid,
-  Monitor,
-  Cpu,
-  Headphones,
-  Plug,
-  Battery,
-  Sun,
-  Wifi,
-  Settings,
-  Wrench,
-  Cctv,
   ChevronLeft,
-  LayoutGrid,
   Grid2X2,
+  Package,
 } from "lucide-react";
+import * as LucideIcons from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
 interface CategoriesSectionProps {
@@ -27,7 +18,7 @@ const CategoriesSection = React.memo(
   ({ activeCategory, onCategoryChange }: CategoriesSectionProps) => {
     const { categories } = useStore();
     const displayCategories = [
-      { name: "الكل", id: "all", icon: Grid2X2 },
+      { id: "all", name: "الكل", icon: "Grid2X2" },
       ...categories.filter((c) => c.isActive && c.id !== "all"),
     ];
     const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -67,11 +58,15 @@ const CategoriesSection = React.memo(
             onScroll={checkScroll}
             className="flex overflow-x-auto gap-3 sm:gap-4 hide-scrollbar pb-4 pt-2 cursor-grab active:cursor-grabbing"
           >
-            {displayCategories.map((cat, i) => {
-              const c = cat as any;
+            {displayCategories.map((c, i) => {
+              // Handle icon rendering
+              const IconComponent = (LucideIcons as any)[c.icon || "Package"] || Package;
+
+              const isActive = activeCategory === c.name;
+
               return (
                 <motion.button
-                  key={i}
+                  key={c.id || i}
                   whileHover={{ y: -8, scale: 1.02 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => onCategoryChange(c.name)}
@@ -79,37 +74,27 @@ const CategoriesSection = React.memo(
                 >
                   <div
                     className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center transition-all duration-300 relative z-10 overflow-hidden ${
-                      activeCategory === c.name
-                        ? `ring-4 ring-solar shadow-lg shadow-solar/30 bg-carbon text-solar`
-                        : `bg-slate-100 border border-slate-200/50 text-slate-400 group-hover:text-carbon group-hover:bg-white`
+                      isActive
+                        ? `ring-2 ring-solar shadow-lg shadow-solar/20 bg-carbon text-solar`
+                        : `bg-white border border-slate-200/60 text-slate-400 group-hover:text-carbon group-hover:bg-slate-50 shadow-sm`
                     }`}
                   >
-                    {c.icon ? (
-                      <c.icon
-                        className={`w-5 h-5 sm:w-6 sm:h-6 transition-transform duration-500 ${
-                          activeCategory === c.name
-                            ? "scale-110"
-                            : "group-hover:scale-110"
-                        }`}
+                    <IconComponent
+                      className={`w-5 h-5 sm:w-6 sm:h-6 transition-transform duration-500 ${
+                        isActive
+                          ? "scale-110"
+                          : "group-hover:scale-110"
+                      }`}
+                    />
+                    {isActive && (
+                      <motion.div 
+                        layoutId="active-bg"
+                        className="absolute inset-0 bg-gold-gradient opacity-10"
                       />
-                    ) : (
-                      <img
-                        src={c.image || undefined}
-                        alt={c.name}
-                        className={`w-full h-full object-cover transition-all duration-500 ${
-                          activeCategory === c.name
-                            ? "scale-110 brightness-110"
-                            : "opacity-90 group-hover:opacity-100 group-hover:scale-110"
-                        }`}
-                        referrerPolicy="no-referrer"
-                      />
-                    )}
-                    {activeCategory === c.name && !c.icon && (
-                      <div className="absolute inset-0 bg-gold-gradient/20" />
                     )}
                   </div>
                   <span
-                    className={`text-[10px] sm:text-sm font-bold transition-colors ${activeCategory === c.name ? "text-solar" : "text-slate-500 group-hover:text-carbon"}`}
+                    className={`text-[10px] sm:text-sm font-bold transition-colors ${isActive ? "text-solar" : "text-slate-500 group-hover:text-carbon"}`}
                   >
                     {c.name}
                   </span>

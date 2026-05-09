@@ -57,8 +57,24 @@ export default function Home() {
     () => products.filter((p) => p.category === "إلكترونيات"),
     [products],
   );
-  const accessories = useMemo(
-    () => products.filter((p) => p.category === "إكسسوارات"),
+  const networks = useMemo(
+    () => products.filter((p) => p.category === "شبكات"),
+    [products],
+  );
+  const cameras = useMemo(
+    () => products.filter((p) => p.category === "كاميرات مراقبة"),
+    [products],
+  );
+  const maintenance = useMemo(
+    () => products.filter((p) => p.category === "صيانة"),
+    [products],
+  );
+  const spareParts = useMemo(
+    () => products.filter((p) => p.category === "قطع غيار"),
+    [products],
+  );
+  const electrical = useMemo(
+    () => products.filter((p) => p.category === "كهربائيات"),
     [products],
   );
   const batteries = useMemo(
@@ -116,7 +132,7 @@ export default function Home() {
         {
           image:
             "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&q=80&w=1600",
-          link: "/category/إكسسوارات",
+          link: "/category/إلكترونيات",
         },
       ]),
     [getBannersByPosition],
@@ -175,13 +191,13 @@ export default function Home() {
     [getBannersByPosition],
   );
 
-  const accessoriesBanners = useMemo(
+  const sparePartsBanners = useMemo(
     () =>
-      getBannersByPosition("accessories", [
+      getBannersByPosition("spare_parts", [
         {
           image:
             "https://images.unsplash.com/photo-1546435770-a3e426bf472b?auto=format&fit=crop&q=80&w=1600",
-          link: "/category/إكسسوارات",
+          link: "/category/قطع غيار",
         },
       ]),
     [getBannersByPosition],
@@ -322,16 +338,23 @@ export default function Home() {
             />
 
             <ImageSlider
-              slides={accessoriesBanners}
+              slides={sparePartsBanners}
               height="180px"
               mobileHeight="120px"
             />
 
             <ProductSlider
-              title="إكسسوارات"
-              subtitle="أفضل الإكسسوارات لأجهزتك"
-              products={accessories}
-              viewAllLink="/category/إكسسوارات"
+              title="كاميرات مراقبة"
+              subtitle="أحدث تقنيات المراقبة والأمان لمنزلك وعملك"
+              products={cameras}
+              viewAllLink="/category/كاميرات مراقبة"
+            />
+
+            <ProductSlider
+              title="شبكات"
+              subtitle="حلول الشبكات والإنترنت فائقة السرعة"
+              products={networks}
+              viewAllLink="/category/شبكات"
             />
 
             <ImageSlider
@@ -345,6 +368,13 @@ export default function Home() {
               subtitle="طاقة تدوم طويلاً لجميع احتياجاتك"
               products={batteries}
               viewAllLink="/category/بطاريات"
+            />
+            
+            <ProductSlider
+              title="كهربائيات"
+              subtitle="مستلزمات وأدوات كهربائية عالية الجودة"
+              products={electrical}
+              viewAllLink="/category/كهربائيات"
             />
           </Suspense>
         )}

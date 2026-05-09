@@ -1,6 +1,18 @@
 import { create } from "zustand";
 import { Product, Category, InventoryLog } from "../types";
-import { db, collection, getDocs, query, orderBy, limit, doc, setDoc, addDoc, updateDoc, deleteDoc, serverTimestamp, onSnapshot } from "../lib/firebase";
+import { db, collection, getDocs, query, orderBy, limit, doc, setDoc, addDoc, updateDoc, deleteDoc, serverTimestamp, onSnapshot, writeBatch } from "../lib/firebase";
+
+const STATIC_CATEGORIES: Category[] = [
+  { id: "electronics", name: "إلكترونيات", icon: "Smartphone", isActive: true },
+  { id: "batteries", name: "بطاريات", icon: "Battery", isActive: true },
+  { id: "screens", name: "شاشات", icon: "Monitor", isActive: true },
+  { id: "networks", name: "شبكات", icon: "Wifi", isActive: true },
+  { id: "maintenance", name: "صيانة", icon: "Wrench", isActive: true },
+  { id: "solar", name: "طاقة شمسية", icon: "Sun", isActive: true },
+  { id: "spare_parts", name: "قطع غيار", icon: "Settings", isActive: true },
+  { id: "cameras", name: "كاميرات مراقبة", icon: "Cctv", isActive: true },
+  { id: "electrical", name: "كهربائيات", icon: "Zap", isActive: true },
+];
 
 interface ProductState {
   products: Product[];
@@ -68,15 +80,16 @@ export const useProductStore = create<ProductState>((set, get) => ({
     if (startedLoading) set({ isLoading: true });
 
     const activeDb = db; // Simplified for now, in context it handles adminDb too
+    
+    // Set static categories
+    get().fetchCategories();
+
     const unsubMeta = onSnapshot(doc(activeDb, "settings", "store_meta"), async (docSnap) => {
       const meta = docSnap.data() || {};
       const serverProductsTs = meta.products_updated_at || 0;
-      const serverCategoriesTs = meta.categories_updated_at || 0;
 
       const localProductsTs = parseInt(localStorage.getItem("store_meta_products_ts") || "0");
-      const localCategoriesTs = parseInt(localStorage.getItem("store_meta_categories_ts") || "0");
       const hasLocalProducts = !!localStorage.getItem("store_products");
-      const hasLocalCategories = !!localStorage.getItem("store_categories");
 
       if (serverProductsTs > localProductsTs || !hasLocalProducts) {
         try {
@@ -90,16 +103,6 @@ export const useProductStore = create<ProductState>((set, get) => ({
         }
       }
       
-      if (serverCategoriesTs > localCategoriesTs || !hasLocalCategories) {
-        try {
-          const q = query(collection(activeDb, "categories"), limit(300));
-          const snapshot = await getDocs(q);
-          const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Category));
-          get().setCategories(data);
-          localStorage.setItem("store_meta_categories_ts", serverCategoriesTs.toString());
-        } catch (e) {}
-      }
-      
       set({ isLoading: false });
     });
 
@@ -107,11 +110,25 @@ export const useProductStore = create<ProductState>((set, get) => ({
   },
 
   fetchCategories: async () => {
-    try {
-      const snap = await getDocs(query(collection(db, "categories"), orderBy("name")));
-      const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Category));
-      get().setCategories(data);
-    } catch (e) {}
+    // Relying on static icons as requested. We set them here.
+    get().setCategories(STATIC_CATEGORIES);
+
+    // One-time cleanup of Firestore categories collection if needed
+    // This runs once per session to ensure DB stays clean as requested
+    const cleanupDone = localStorage.getItem("firestore_categories_cleaned");
+    if (!cleanupDone) {
+      try {
+        const snap = await getDocs(collection(db, "categories"));
+        if (snap.size > 0) {
+          const batch = writeBatch(db);
+          snap.docs.forEach(d => batch.delete(d.ref));
+          await batch.commit();
+        }
+        localStorage.setItem("firestore_categories_cleaned", "true");
+      } catch (e) {
+        // Silently fail if permissions or other issues
+      }
+    }
   },
 
   addToRecentlyViewed: (product) => {

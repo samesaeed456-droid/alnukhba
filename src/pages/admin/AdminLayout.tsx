@@ -324,12 +324,6 @@ export default function AdminLayout() {
             permission: "manage_products",
           },
           {
-            name: "الفئات",
-            path: "/admin/categories",
-            icon: Package,
-            permission: "manage_products",
-          },
-          {
             name: "العملاء",
             path: "/admin/customers",
             icon: Users,

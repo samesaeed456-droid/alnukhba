@@ -336,6 +336,14 @@ export default function Products() {
       finalFormData.sku = `${categoryPrefix}-${randomNum}`;
     }
 
+    // Auto-calculate price from sizes if sizes exist
+    if (finalFormData.sizes && finalFormData.sizes.length > 0 && finalFormData.sizePrices) {
+      const prices = Object.values(finalFormData.sizePrices);
+      if (prices.length > 0) {
+        finalFormData.price = Math.min(...prices);
+      }
+    }
+
     if (editingProduct) {
       // Cleanup removed images from Cloudinary
       const oldImages = [editingProduct.image, ...(editingProduct.images || [])].filter(Boolean) as string[];
@@ -1315,42 +1323,6 @@ export default function Products() {
 
                       <div>
                         <FloatingInput
-                          id="productPrice"
-                          label="السعر (ر.س)"
-                          type="number"
-                          required
-                          min="0"
-                          value={formData.price || ""}
-                          onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              price: Number(e.target.value),
-                            })
-                          }
-                          bgClass="bg-slate-50"
-                          placeholder="0.00"
-                        />
-                      </div>
-                      <div>
-                        <FloatingInput
-                          id="productOriginalPrice"
-                          label="السعر قبل الخصم"
-                          type="number"
-                          min="0"
-                          value={formData.originalPrice || ""}
-                          onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              originalPrice: Number(e.target.value),
-                            })
-                          }
-                          bgClass="bg-slate-50"
-                          placeholder="0.00"
-                        />
-                      </div>
-
-                      <div>
-                        <FloatingInput
                           id="productStock"
                           label="الكمية المتوفرة"
                           type="number"
@@ -1589,7 +1561,7 @@ export default function Products() {
                               <input
                                 id="new-size-price"
                                 type="number"
-                                placeholder="السعر (اختياري)"
+                                placeholder="السعر"
                                 className="w-full px-3 py-2.5 rounded-lg bg-white border border-slate-200 focus:ring-2 focus:ring-solar/20 focus:border-solar outline-none transition-all text-sm font-bold"
                               />
                               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 font-bold uppercase">ر.س</span>
@@ -1626,7 +1598,7 @@ export default function Products() {
                             </button>
                           </div>
                           <p className="text-[9px] text-slate-400 font-medium italic">
-                            * إذا لم يتم تحديد سعر للحجم، فسيتم استخدام السعر الأساسي للمنتج تلقائياً.
+                            * سيتم استخدام أدنى سعر من المقاسات المضافة كسعر أساسي للمنتج.
                           </p>
                         </div>
                       </div>

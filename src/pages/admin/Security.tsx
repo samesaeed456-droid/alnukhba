@@ -27,7 +27,12 @@ export default function Security() {
     updateAdminUser,
     deleteAdminUser,
     showToast,
+    syncOnDemand,
   } = useStore();
+
+  React.useEffect(() => {
+    syncOnDemand("admin_users");
+  }, [syncOnDemand]);
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);

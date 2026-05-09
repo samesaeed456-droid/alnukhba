@@ -648,6 +648,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
                 return;
               }
 
+              if (userData.isActive === false) {
+                auth.signOut();
+                setUser(null);
+                localStorage.removeItem("store_user");
+                showToast("تم تعطيل حسابك. يرجى التواصل مع الدعم.", "error");
+                setIsAuthReady(true);
+                return;
+              }
+
               setUser(userData);
               localStorage.setItem("store_user", JSON.stringify(userData));
               refreshNotificationToken();
@@ -733,10 +742,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
               doc(adminDb, "users", firebaseAdmin.uid),
             );
             if (adminDoc.exists()) {
+              const adminData = adminDoc.data() as UserProfile;
+              if (adminData.isActive === false) {
+                adminAuth.signOut();
+                setAdminUser(null);
+                localStorage.removeItem("admin_auth");
+                localStorage.removeItem("admin_email");
+                showToast("تم تعطيل حساب المشرف الخاص بك.", "error");
+                return;
+              }
               setAdminUser({
-                ...adminDoc.data(),
+                ...adminData,
                 uid: adminDoc.id,
-              } as UserProfile);
+              });
             } else {
               const hardcoded = [
                 "samesaeed456@gmail.com",
@@ -1407,7 +1425,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      let q = query(collection(activeDb, colName === "customers" ? "users" : colName));
+      let collectionPath = colName;
+      if (colName === "customers" || colName === "admin_users") {
+        collectionPath = "users";
+      }
+      let q = query(collection(activeDb, collectionPath));
       if (colName === "orders") {
         const activeAdmin =
           adminUser?.role === "admin" || adminUser?.isAdmin
@@ -1442,10 +1464,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       onSnapshot(
         q,
         (snapshot) => {
-          const data = snapshot.docs.map((doc) => ({
+          let data = snapshot.docs.map((doc) => ({
             id: doc.id,
             ...doc.data(),
           }));
+
+          if (colName === "admin_users") {
+            data = data.filter((u: any) => u.role === "admin" || u.isAdmin === true);
+          } else if (colName === "customers") {
+            // Keep all users in customers state typically, or remove admins
+            // data = data.filter((u: any) => u.role !== "admin" && !u.isAdmin); 
+            // the UI already filters it, so we can leave it as is or filter it.
+          }
+
           setterMap[colName](data);
           localStorage.setItem(storageKeyMap[colName], JSON.stringify(data));
         },
@@ -1461,7 +1492,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   // Clear active syncs when identity changes to ensure listeners use correct permissions/queries
   useEffect(() => {
     activeSyncs.current.clear();
-  }, [adminAuth.currentUser?.uid]);
+  }, [adminAuth.currentUser?.uid, user?.uid]);
 
   const showToast = React.useCallback(
     (

@@ -546,6 +546,13 @@ export default function Auth() {
               if (userDoc.exists()) {
                 const userData = userDoc.data();
 
+                if (userData.isActive === false) {
+                  await auth.signOut();
+                  setError("تم تعطيل حسابك. يرجى التواصل مع الدعم.");
+                  setIsLoading(false);
+                  return;
+                }
+
                 // Second security check: Mandatory phone/name for entrance
                 if (
                   !userData.phone ||

@@ -43,6 +43,7 @@ import {
   Pin,
   Ban,
   UserCheck,
+  UserX,
   Zap,
   History,
   Info,
@@ -380,9 +381,14 @@ export default function Customers() {
     }
   };
 
+  // Filter out admin users
+  const onlyCustomers = useMemo(() => {
+    return customers.filter((user) => user.role !== "admin" && user.isAdmin !== true);
+  }, [customers]);
+
   // Calculate customer metrics
   const customerMetrics = useMemo(() => {
-    return customers.map((user) => {
+    return onlyCustomers.map((user) => {
       const userOrders = orders.filter((o) => o.userId === user.uid);
       const totalSpent = userOrders.reduce((sum, o) => sum + o.total, 0);
       return {
@@ -394,15 +400,15 @@ export default function Customers() {
         lastOrder: userOrders.length > 0 ? userOrders[0].date : null,
       };
     });
-  }, [customers, orders]);
+  }, [onlyCustomers, orders]);
 
   const stats = useMemo(() => {
-    const total = customers.length;
+    const total = onlyCustomers.length;
     const now = new Date();
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    const activeThisMonth = customers.filter((c) => {
+    const activeThisMonth = onlyCustomers.filter((c) => {
       const userOrders = orders.filter((o) => o.userId === c.uid);
       const lastOrder = userOrders.length > 0 ? userOrders[0].date : null;
       const lastOrderDate = (lastOrder as any)?.seconds
@@ -413,7 +419,7 @@ export default function Customers() {
       return lastOrderDate && lastOrderDate >= thirtyDaysAgo;
     }).length;
 
-    const newThisMonth = customers.filter((c) => {
+    const newThisMonth = onlyCustomers.filter((c) => {
       const joinDate = (c.joinDate as any)?.seconds
         ? new Date((c.joinDate as any).seconds * 1000)
         : c.joinDate
@@ -428,7 +434,7 @@ export default function Customers() {
     const inactiveCount = total - activeThisMonth;
 
     return { total, activeThisMonth, avgLTV, newThisMonth, inactiveCount };
-  }, [customers, orders]);
+  }, [onlyCustomers, orders]);
 
   const filteredCustomers = useMemo(() => {
     return customerMetrics
@@ -844,6 +850,29 @@ export default function Customers() {
                       className="p-2 bg-white/90 backdrop-blur-sm text-red-500 rounded-xl hover:bg-red-500 hover:text-white transition-all shadow-sm border border-red-100"
                     >
                       <Trash2 className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        updateCustomer(customer.uid || customer.phone || "", {
+                          isActive: customer.isActive === false ? true : false,
+                        });
+                        showToast(
+                          `تم ${customer.isActive === false ? "تفعيل" : "تعطيل"} العميل بنجاح`,
+                        );
+                      }}
+                      className={`p-2 bg-white/90 backdrop-blur-sm rounded-xl transition-all shadow-sm border ${
+                        customer.isActive === false
+                          ? "text-green-500 border-green-100 hover:bg-green-500 hover:text-white"
+                          : "text-amber-500 border-amber-100 hover:bg-amber-500 hover:text-white"
+                      }`}
+                      title={customer.isActive === false ? "تفعيل" : "تعطيل"}
+                    >
+                      {customer.isActive === false ? (
+                        <UserCheck className="w-4 h-4" />
+                      ) : (
+                        <UserX className="w-4 h-4" />
+                      )}
                     </button>
                   </div>
 

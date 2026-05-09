@@ -175,7 +175,7 @@ service cloud.firestore {
     // --- ORDERS ---
     match /orders/{orderId} {
       // Pillar 8: Query Enforcer
-      allow list: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow list: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid) || (!isSignedIn() && resource.data.userId == 'guest');
       allow get: if isValidId(orderId) && (isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid) || (!isSignedIn() && resource.data.userId == 'guest'));
       
       allow create: if isValidId(orderId) && 

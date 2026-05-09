@@ -153,6 +153,7 @@ export default function AdminLayout() {
 
   const [isSyncing, setIsSyncing] = useState(false);
   const [isRegisteringPasskey, setIsRegisteringPasskey] = useState(false);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
 
   const handleRegisterPasskey = async () => {
     setIsRegisteringPasskey(true);
@@ -465,6 +466,7 @@ export default function AdminLayout() {
       const unsubscribe = adminAuth.onAuthStateChanged((user) => {
         if (!user || !user.email) {
           navigate("/admin/login", { replace: true });
+          setIsAuthLoading(false);
           return;
         }
 
@@ -474,6 +476,14 @@ export default function AdminLayout() {
           localStorage.getItem("admin_auth") !== "true"
         ) {
           navigate("/admin/login", { replace: true });
+          setIsAuthLoading(false);
+          return;
+        }
+
+        // Check if account is disabled
+        if (currentAdmin && currentAdmin.isActive === false) {
+          toast.error("تم تعطيل حسابك. يرجى مراجعة المسؤول.");
+          handleLogout();
           return;
         }
 
@@ -512,6 +522,7 @@ export default function AdminLayout() {
             }
           }
         }
+        setIsAuthLoading(false);
       });
       return () => unsubscribe();
     };
@@ -902,7 +913,13 @@ export default function AdminLayout() {
         </header>
 
         <div className="p-4 sm:p-6 lg:p-8 flex-1 overflow-x-hidden pb-10">
-          <Outlet />
+          {isAuthLoading ? (
+            <div className="flex items-center justify-center h-full">
+              <RefreshCw className="w-8 h-8 text-solar animate-spin" />
+            </div>
+          ) : (
+            <Outlet />
+          )}
         </div>
       </main>
     </div>

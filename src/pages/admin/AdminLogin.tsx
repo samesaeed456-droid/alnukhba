@@ -180,8 +180,15 @@ export default function AdminLogin() {
           const adminSnap = await getDocs(adminQuery);
 
           if (!adminSnap.empty) {
+            const data = adminSnap.docs[0].data();
+            if (data.isActive === false) {
+              toast.error("تم تعطيل هذا الحساب. يرجى التواصل مع المسؤول.");
+              await adminAuth.signOut();
+              setIsLoading(false);
+              return;
+            }
             isAuthorized = true;
-            adminData = adminSnap.docs[0].data();
+            adminData = data;
           } else {
             // Fallback: check if isAdmin flag exists even if role is different (for safety/migration)
             const backupQuery = query(
@@ -192,8 +199,15 @@ export default function AdminLogin() {
             );
             const backupSnap = await getDocs(backupQuery);
             if (!backupSnap.empty) {
+              const data = backupSnap.docs[0].data();
+              if (data.isActive === false) {
+                toast.error("تم تعطيل هذا الحساب. يرجى التواصل مع المسؤول.");
+                await adminAuth.signOut();
+                setIsLoading(false);
+                return;
+              }
               isAuthorized = true;
-              adminData = backupSnap.docs[0].data();
+              adminData = data;
             }
           }
         } catch (err) {

@@ -481,9 +481,6 @@ export default function Marketing() {
                     <option value="inactive">
                       العملاء الخاملين (لم يشتروا منذ 60 يوم)
                     </option>
-                    <option value="abandoned_cart">
-                      أصحاب السلال المتروكة
-                    </option>
                   </select>
                 </div>
 
@@ -639,9 +636,7 @@ export default function Marketing() {
                                 ? "VIP"
                                 : notif.target === "inactive"
                                   ? "خاملين"
-                                  : notif.target === "abandoned_cart"
-                                    ? "سلال متروكة"
-                                    : "جدد"}
+                                  : "جدد"}
                           </span>
                         </div>
                       </div>

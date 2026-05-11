@@ -15,18 +15,23 @@ service cloud.firestore {
     function isVerified() { return isSignedIn() && (request.auth.token.email_verified == true || request.auth.token.firebase.sign_in_provider == 'google.com'); }
     function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
     
-    // RBAC-based Admin Check (relational, no hardcoded emails)
+    // RBAC-based Admin Check (relational, plus hardcoded fallback)
     function isAdmin() {
       return isSignedIn() && (
-        exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+        request.auth.token.email in [
+          'samesaeed456@gmail.com', 'samisaeed2024@gmail.com', 'samisaeed2025@gmail.com',
+          'samisaeed2027@gmail.com', 'samisaeed2028@gmail.com', 'samisaeed2030@gmail.com'
+        ] || 
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
         (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('isAdmin', false) == true ||
-         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', 'customer') == 'admin')
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', 'customer') == 'admin'))
       );
     }
     
     function incoming() { return request.resource.data; }
     function existing() { return resource.data; }
-    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    function isValidId(id) { return id is string && id.size() <= 128; }
+    function isValidTokenId(id) { return id is string && id.size() <= 1024; }
     function isServerTimestamp(field) { return field == request.time; }
 
     // ===============================================================
@@ -44,16 +49,26 @@ service cloud.firestore {
       return isAdmin() || (
         isOwner(request.auth.uid) && 
         !incoming().diff(existing()).affectedKeys().hasAny(['role', 'uid', 'email', 'createdAt', 'isAdmin', 'adminRole', 'permissions', 'isBlocked']) &&
-        (incoming().get('walletBalance', existing().walletBalance) <= existing().walletBalance) &&
-        incoming().get('updatedAt', request.time) == request.time
+        (incoming().get('walletBalance', existing().get('walletBalance', 0)) <= existing().get('walletBalance', 0)) &&
+        (incoming().get('updatedAt', request.time) == request.time)
       );
     }
 
     function isValidOrder(data) {
-      return (data.userId is string && data.userId.size() <= 128) && 
-             (data.items is list && data.items.size() > 0 && data.items.size() <= 50) &&
+      return (data.userId is string && data.userId.size() <= 128 || data.userId == 'guest') && 
+             (data.items is list && data.items.size() > 0 && data.items.size() <= 150) &&
              (data.total is number && data.total >= 0) &&
-             (data.status in ['pending', 'processing', 'shipped', 'delivered', 'cancelled']);
+             (data.status in ['pending', 'processing', 'shipped', 'delivered', 'cancelled', 'refunded', 'failed']) &&
+             (data.get('paymentMethod', '') is string) &&
+             (data.get('paymentReference', '') == null || data.get('paymentReference', '') is string) &&
+             (data.get('paymentAmount', '') == null || data.get('paymentAmount', '') is string);
+    }
+
+    function isValidRecharge(data) {
+      return (data.userId is string && data.userId.size() <= 128) &&
+             (data.amount is number && data.amount > 0) &&
+             (data.get('reference', '') is string && data.get('reference', '').size() >= 4) &&
+             (data.status in ['pending', 'approved', 'rejected']);
     }
 
     function isValidReview(data) {
@@ -71,7 +86,7 @@ service cloud.firestore {
 
     // --- USERS ---
     match /users/{userId} {
-      allow list: if isAdmin() || (isSignedIn() && (resource.data.userId == request.auth.uid || resource.data.email == request.auth.token.email));
+      allow list: if isAdmin() || (isSignedIn() && (resource.data.uid == request.auth.uid || resource.data.email == request.auth.token.email));
       allow get: if isSignedIn() && (request.auth.uid == userId || isAdmin());
       
       allow create: if isValidId(userId) && (
@@ -82,8 +97,7 @@ service cloud.firestore {
          incoming().get('isAdmin', false) == false)
       );
                     
-      allow update: if isValidId(userId) && (isAdmin() || isOwner(userId)) && 
-                    isValidUser(incoming()) && isSafeUserUpdate();
+      allow update: if isValidId(userId) && (isAdmin() || (isOwner(userId) && isSafeUserUpdate()));
       
       allow delete: if isAdmin() || isOwner(userId);
     }
@@ -106,8 +120,8 @@ service cloud.firestore {
       
       // Atomic Inventory Guard (Pillar 7)
       allow update: if (isSignedIn() || !isSignedIn()) && 
-                    incoming().diff(existing()).affectedKeys().hasOnly(['stockCount']) &&
-                    incoming().stockCount <= existing().stockCount;
+                    incoming().diff(existing()).affectedKeys().hasOnly(['stockCount', 'inStock', 'updatedAt']) &&
+                    incoming().stockCount <= existing().get('stockCount', 999999);
     }
 
     match /categories/{categoryId} {
@@ -151,13 +165,13 @@ service cloud.firestore {
     // --- REVIEWS ---
     match /products/{productId}/reviews/{reviewId} {
       allow read: if true; 
-      allow create: if isSignedIn() &&
+      allow create: if isVerified() &&
                     isValidReview(incoming()) &&
                     incoming().userId == request.auth.uid &&
                     incoming().productId == productId &&
                     incoming().createdAt == request.time;
-      allow update: if isAdmin();
-      allow delete: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow update: if isAdmin() || (isOwner(resource.data.userId) && incoming().diff(existing()).affectedKeys().hasOnly(['comment', 'rating', 'images', 'updatedAt']));
+      allow delete: if isAdmin() || isOwner(resource.data.userId);
     }
 
     // --- PASSKEYS ---
@@ -181,6 +195,15 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // --- RECHARGES ---
+    match /recharges/{rechargeId} {
+      allow list: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow get: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow create: if isSignedIn() && isValidRecharge(incoming()) && incoming().userId == request.auth.uid;
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
     // --- SETTINGS & COUNTERS ---
     match /settings/counters {
       allow read: if true;
@@ -191,6 +214,8 @@ service cloud.firestore {
     match /settings/{settingsId} {
       allow read: if true;
       allow write: if isAdmin();
+      allow update: if (isSignedIn() || !isSignedIn()) && settingsId == 'store_meta' && 
+                    incoming().diff(existing()).affectedKeys().hasOnly(['products_updated_at', 'categories_updated_at', 'updatedAt']);
     }
 
     // --- SUPPORT ---
@@ -202,11 +227,6 @@ service cloud.firestore {
     }
 
     // --- MISC / SYSTEM ---
-    match /activity_logs/{logId} {
-      allow read: if isAdmin();
-      allow create: if isValidId(logId) && incoming().size() <= 10; 
-    }
-
     match /inventory_logs/{logId} {
       allow read: if isAdmin();
       allow create: if isAdmin(); // Only admins/system should log inventory changes via client
@@ -214,10 +234,7 @@ service cloud.firestore {
 
     match /statistics/{statId} {
       allow read: if isAdmin();
-      // Allow public increment of daily statistics (visits)
-      allow create, update: if statId is string && statId.size() <= 64 && statId.startsWith('daily_') &&
-                            incoming().size() <= 5 && 
-                            incoming().keys().hasAny(['totalVisits', 'uniqueVisitors', 'lastUpdated', 'totalSales']);
+      allow create, update: if statId.matches('^daily_.*');
       allow delete: if isAdmin();
     }
     match /visits/{visitId} { 
@@ -228,19 +245,31 @@ service cloud.firestore {
       allow read: if true;
       allow create, update: if termId is string && termId.size() <= 128 && incoming().size() <= 6; 
     }
-    match /abandonedCarts/{cartId} { 
-      allow create, update, delete: if isValidId(cartId) && (isAdmin() || isOwner(incoming().get('userId', ''))); 
-      allow read: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid); 
-    }
     
     match /marketing_notifications/{notificationId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    // --- LOGS & ACTIVITY ---
+    match /activity_logs/{logId} {
+      allow create: if isSignedIn(); // Allow authenticated users to log activity
+      allow read: if isAdmin();
+    }
+
+    match /activityLogs/{logId} {
+      allow create: if isSignedIn();
+      allow read: if isAdmin();
+    }
+
+    match /system/{docId} {
       allow read: if true;
       allow write: if isAdmin();
     }
 
     match /notification_tokens/{token} {
       allow get: if true;
-      allow create, update: if isValidId(token) && incoming().size() <= 10;
+      allow create, update: if isValidTokenId(token) && incoming().size() <= 15;
       allow delete: if isAdmin() || (isSignedIn() && resource.data.uid == request.auth.uid);
     }
 

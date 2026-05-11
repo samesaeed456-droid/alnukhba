@@ -34,6 +34,7 @@ import { Address } from "../types";
 import ConfirmationModal from "../components/ConfirmationModal";
 import PriceDisplay from "../components/PriceDisplay";
 import { FloatingInput } from "../components/FloatingInput";
+import { PaymentConfirmationCard } from "../components/PaymentConfirmationCard";
 
 import { YEMEN_CITIES } from "../constants";
 
@@ -127,6 +128,7 @@ export default function Checkout() {
     cvv: "",
     paymentReference: "",
     paymentProof: "",
+    paymentAmount: "",
     deliveryInstructions: "",
   });
 
@@ -341,8 +343,15 @@ export default function Checkout() {
           selectedPaymentMethod.type !== "wallet"
         ) {
           const cleanRef = formData.paymentReference.trim();
-          if (!cleanRef || !/^\d{6,15}$/.test(cleanRef))
+          // Relaxing reference validation: at least 4 chars
+          if (!cleanRef || cleanRef.length < 4) {
             errors.push("paymentReference");
+          }
+
+          const cleanAmount = formData.paymentAmount.trim();
+          if (!cleanAmount || isNaN(Number(cleanAmount)) || Number(cleanAmount) <= 0) {
+            errors.push("paymentAmount");
+          }
 
           if (selectedPaymentMethod.requiresProof && !formData.paymentProof) {
             errors.push("paymentProof");
@@ -463,6 +472,7 @@ export default function Checkout() {
         formData.deliveryInstructions,
         paymentProof,
         formData.district,
+        formData.paymentAmount,
       );
 
       if (!newOrderId) {
@@ -1535,302 +1545,123 @@ export default function Checkout() {
                           </div>
 
                           {selectedPaymentMethod && (
-                            <div className="space-y-4 sm:space-y-6">
-                              {/* Account Info & QR Side-by-Side on Desktop */}
-                              <div className="flex flex-col md:flex-row gap-4 sm:gap-6">
-                                <div className="flex-1 p-4 sm:p-5 rounded-2xl border-2 flex flex-col sm:flex-row gap-4 bg-solar/5 border-solar/10">
-                                  {selectedPaymentMethod.accountNumber && (
-                                    <div className="flex-1 bg-white p-4 rounded-xl border border-slate-100 flex justify-between items-center shadow-sm">
-                                      <div>
-                                        <div className="text-[10px] text-titanium/40 font-bold mb-1 uppercase tracking-widest">
-                                          {selectedPaymentMethod.type === "bank"
-                                            ? "رقم الحساب"
-                                            : "رقم المحفظة"}
-                                        </div>
-                                        <div className="text-lg sm:text-xl font-mono font-black tracking-widest text-solar">
-                                          {selectedPaymentMethod.accountNumber}
-                                        </div>
-                                        {selectedPaymentMethod.accountName && (
-                                          <div className="text-[10px] text-titanium/60 font-bold mt-1">
-                                            باسم:{" "}
-                                            {selectedPaymentMethod.accountName}
-                                          </div>
-                                        )}
-                                      </div>
-                                      <motion.button
-                                        whileHover={{ scale: 1.1 }}
-                                        whileTap={{ scale: 0.9 }}
-                                        onClick={async () => {
-                                          const success = await copyToClipboard(
-                                            selectedPaymentMethod.accountNumber ||
-                                              "",
-                                          );
-                                          if (success) {
-                                            setIsCopied(true);
-                                            setTimeout(
-                                              () => setIsCopied(false),
-                                              2000,
-                                            );
-                                            showToast("تم نسخ الرقم بنجاح");
-                                          }
-                                        }}
-                                        className={`w-10 h-10 rounded-xl flex items-center justify-center border transition-colors shrink-0 mr-3 ${isCopied ? "bg-emerald-50 border-emerald-200" : "bg-slate-50 border-slate-100"}`}
-                                      >
-                                        {isCopied ? (
-                                          <CheckCircle className="w-4 h-4 text-emerald-600" />
-                                        ) : (
-                                          <Copy className="w-4 h-4 text-carbon" />
-                                        )}
-                                      </motion.button>
+                            <div className="pt-8 mb-6">
+                              <div 
+                                className="relative rounded-2xl sm:rounded-[2rem] p-3 sm:p-5 mx-0 sm:mx-2"
+                                style={{ 
+                                  backgroundColor: '#F8F5F2',
+                                  border: `2px solid ${settings.primaryColor || '#ea580c'}`,
+                                  boxShadow: `inset 0 0 0 4px ${settings.primaryColor || '#ea580c'}15`
+                                }}
+                              >
+                                <div className="space-y-3 sm:space-y-4">
+                                  {/* Section 1: Header */}
+                                  <div className="bg-white rounded-2xl sm:rounded-3xl p-5 sm:p-6 pt-10 sm:pt-12 flex flex-col items-center text-center relative border shadow-sm" style={{ borderColor: `${settings.primaryColor || '#ea580c'}20` }}>
+                                    <div className="absolute -top-8 sm:-top-10 w-16 h-16 sm:w-20 sm:h-20 bg-white rounded-[1rem] sm:rounded-3xl border-2 flex items-center justify-center p-2 sm:p-3 shadow-sm" style={{ borderColor: `${settings.primaryColor || '#ea580c'}30` }}>
+                                      {selectedPaymentMethod.logo ? (
+                                        <img
+                                          src={selectedPaymentMethod.logo}
+                                          alt={selectedPaymentMethod.name}
+                                          className="w-10 h-10 sm:w-14 sm:h-14 object-contain"
+                                          referrerPolicy="no-referrer"
+                                        />
+                                      ) : (
+                                        <CreditCard className="w-8 h-8 sm:w-10 sm:h-10" style={{ color: settings.primaryColor || '#ea580c' }} />
+                                      )}
                                     </div>
-                                  )}
-
-                                  <div className="sm:w-1/3 bg-solar/10 p-4 rounded-xl border border-solar/20 shadow-sm flex flex-col justify-center items-start sm:items-center">
-                                    <div className="text-[10px] text-carbon/60 font-bold mb-1 uppercase tracking-widest">
-                                      المبلغ المطلوب
-                                    </div>
-                                    <div className="text-xl font-black">
-                                      <PriceDisplay
-                                        price={total}
-                                        numberClassName="text-carbon"
-                                        currencyClassName="text-carbon/70"
-                                      />
-                                    </div>
-                                  </div>
-                                </div>
-
-                                <div className="hidden md:flex w-64 bg-white p-4 sm:p-5 rounded-2xl border border-slate-100 flex-col items-center justify-center gap-4 shadow-sm shrink-0">
-                                  <div className="p-4 bg-white rounded-2xl border border-slate-100 shadow-lg shadow-slate-200/50">
-                                    <QRCodeSVG
-                                      value={`${paymentMethod}:${selectedPaymentMethod.accountNumber || ""};Amount:${total}`}
-                                      size={120}
-                                      level="H"
-                                      includeMargin={true}
-                                      imageSettings={
-                                        selectedPaymentMethod.logo
-                                          ? {
-                                              src: selectedPaymentMethod.logo,
-                                              x: undefined,
-                                              y: undefined,
-                                              height: 28,
-                                              width: 28,
-                                              excavate: true,
-                                            }
-                                          : undefined
-                                      }
-                                    />
-                                  </div>
-                                  <div className="text-center">
-                                    <h4 className="text-sm font-black text-carbon">
-                                      امسح الكود للدفع
+                                    
+                                    <h4 className="text-[18px] sm:text-[22px] font-black text-[#0f172a] mb-2 sm:mb-3 mt-1 sm:mt-2 tracking-wide">
+                                      ادفع الآن عبر <span style={{ color: settings.primaryColor || '#ea580c' }}>{selectedPaymentMethod.name}</span>
                                     </h4>
-                                    <p className="text-[10px] text-titanium/40 mt-1">
-                                      افتح تطبيق المحفظة وامسح الكود
+                                    <p className="text-[13px] sm:text-[16px] font-bold text-[#78716c]">
+                                      اتبع التعليمات التالية لإتمام التحويل بنجاح:
                                     </p>
                                   </div>
-                                </div>
-                              </div>
 
-                              {/* Custom Instructions */}
-                              {selectedPaymentMethod.instructions && (
-                                <div className="p-4 sm:p-5 rounded-2xl bg-slate-50 border border-slate-100">
-                                  <h4 className="text-sm font-black text-carbon mb-2">
-                                    تعليمات الدفع:
-                                  </h4>
-                                  <p className="text-xs text-titanium/70 leading-relaxed">
-                                    {selectedPaymentMethod.instructions}
-                                  </p>
-                                </div>
-                              )}
+                                  {/* Section 2: Instructions */}
+                                  <div className="bg-white rounded-[1rem] sm:rounded-[1.5rem] border shadow-sm flex flex-col overflow-hidden" style={{ borderColor: `${settings.primaryColor || '#ea580c'}20` }}>
+                                    {selectedPaymentMethod.instructions ? (
+                                      selectedPaymentMethod.instructions.split('\n').filter(line => line.trim()).map((line, idx, arr) => (
+                                        <div key={idx} className={`p-4 sm:p-5 text-center ${idx !== arr.length - 1 ? 'border-b' : ''}`} style={{ borderColor: idx !== arr.length - 1 ? `${settings.primaryColor || '#ea580c'}20` : undefined }}>
+                                          <p className={`text-[15px] sm:text-[19px] font-black ${idx === 0 ? 'text-[#0f172a]' : 'text-[#78716c]'}`}>
+                                            {line}
+                                          </p>
+                                        </div>
+                                      ))
+                                    ) : (
+                                      <div className="p-4 sm:p-5 text-center">
+                                        <p className="text-[15px] sm:text-[19px] font-black text-[#0f172a]">يرجى التحويل إلى البيانات الموضحة أدناه</p>
+                                      </div>
+                                    )}
+                                  </div>
 
-                              {/* Reference Input Section */}
-                              <div className="bg-slate-50 p-4 sm:p-5 rounded-2xl border border-slate-100 space-y-4 sm:space-y-5">
-                                <div className="space-y-3">
-                                  <div className="relative">
-                                    <FloatingInput
-                                      label="رقم المرجع (مطلوب)"
-                                      type="tel"
-                                      name="paymentReference"
-                                      inputMode="numeric"
-                                      pattern="[0-9]*"
-                                      value={formData.paymentReference}
-                                      onChange={(e) => {
-                                        const val = e.target.value.replace(
-                                          /\D/g,
-                                          "",
-                                        );
-                                        setFormData((prev) => ({
-                                          ...prev,
-                                          paymentReference: val,
-                                        }));
-                                        if (
-                                          fieldErrors.includes(
-                                            "paymentReference",
-                                          )
-                                        ) {
-                                          setFieldErrors((prev) =>
-                                            prev.filter(
-                                              (f) => f !== "paymentReference",
-                                            ),
-                                          );
+                                  {/* Section 3: Account details */}
+                                  <div 
+                                    className="bg-white rounded-[1rem] sm:rounded-[2rem] p-4 sm:p-5 border-2 border-dashed flex flex-col items-center gap-3 sm:gap-5 relative z-10"
+                                    style={{ borderColor: `${settings.primaryColor || '#ea580c'}60` }}
+                                  >
+                                    <div className="w-full bg-white border rounded-[1rem] sm:rounded-[1.25rem] py-3 sm:py-4 px-2 sm:px-4 text-center mt-1 sm:mt-2" style={{ borderColor: `${settings.primaryColor || '#ea580c'}20` }}>
+                                      <span className="text-[20px] sm:text-[32px] font-black text-[#0f172a] tracking-[0.15em] sm:tracking-[0.2em] font-mono select-all block mt-1">
+                                        {selectedPaymentMethod.accountNumber}
+                                      </span>
+                                    </div>
+
+                                    <motion.button
+                                      whileHover={{ scale: 1.02 }}
+                                      whileTap={{ scale: 0.98 }}
+                                      onClick={async (e) => {
+                                        e.stopPropagation();
+                                        const success = await copyToClipboard(selectedPaymentMethod.accountNumber || "");
+                                        if (success) {
+                                          setIsCopied(true);
+                                          setTimeout(() => setIsCopied(false), 2000);
+                                          showToast("تم النسخ", "success");
                                         }
                                       }}
-                                      className={`text-left font-mono text-xl font-bold tracking-widest ${fieldErrors.includes("paymentReference") ? "border-red-500 ring-4 ring-red-500/10" : ""}`}
-                                      dir="ltr"
-                                      bgClass="bg-white"
-                                      endElement={
-                                        formData.paymentReference ? (
-                                          <CheckCircle className="w-6 h-6 text-emerald-500" />
-                                        ) : null
-                                      }
-                                    />
-                                  </div>
-                                  <p className="text-[10px] text-titanium/40 mr-1 font-bold">
-                                    أدخل الرقم المرجعي للعملية المكون من أرقام
-                                    فقط
-                                  </p>
-                                </div>
+                                      className="w-full py-3 sm:py-4 rounded-[1rem] sm:rounded-[1.25rem] font-bold flex flex-row-reverse items-center justify-center gap-2 sm:gap-3 text-white text-[16px] sm:text-[19px] transition-colors shadow-md"
+                                      style={{ 
+                                        backgroundColor: settings.primaryColor || '#ea580c',
+                                      }}
+                                    >
+                                      <span>{isCopied ? "تم النسخ" : `نسخ ${selectedPaymentMethod.name?.includes('حاسب') ? 'رقم النقطة' : 'الرقم'}`}</span>
+                                      {isCopied ? <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0" /> : <Copy className="w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0" />}
+                                    </motion.button>
 
-                                {selectedPaymentMethod.requiresProof && (
-                                  <div className="space-y-2">
-                                    <label className="text-xs font-bold text-titanium/60 block px-4">
-                                      إرفاق صورة الإشعار (مطلوب)
-                                    </label>
-                                    <div className="relative group">
-                                      <input
-                                        type="file"
-                                        accept="image/*"
-                                        onChange={(e) => {
-                                          const file = e.target.files?.[0];
-                                          if (file) {
-                                            const processUpload = async () => {
-                                              try {
-                                                const { uploadToCloudinary } =
-                                                  await import("../lib/cloudinary");
-                                                showToast(
-                                                  "جاري رفع الإشعار...",
-                                                  "info",
-                                                );
-                                                const secureUrl =
-                                                  await uploadToCloudinary(
-                                                    file,
-                                                  );
-                                                setFormData((prev) => ({
-                                                  ...prev,
-                                                  paymentProof: secureUrl,
-                                                }));
-                                                showToast(
-                                                  "تم رفع الإشعار بنجاح",
-                                                  "success",
-                                                );
-                                              } catch (err: any) {
-                                                showToast(
-                                                  err.message ||
-                                                    "فشل رفع الإشعار",
-                                                  "error",
-                                                );
-                                              }
-                                            };
-                                            processUpload();
-                                          }
-                                        }}
-                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                                      />
-                                      <div
-                                        className={`p-6 sm:p-8 rounded-2xl border-2 border-dashed transition-all flex flex-col items-center justify-center gap-3 ${
-                                          formData.paymentProof
-                                            ? "border-emerald-500 bg-emerald-50 p-2 sm:p-2"
-                                            : "border-slate-200 bg-slate-50 group-hover:border-solar/30"
-                                        }`}
-                                      >
-                                        {formData.paymentProof ? (
-                                          <div className="relative w-full h-32 sm:h-40 rounded-xl overflow-hidden group/preview">
-                                            <img
-                                              src={
-                                                formData.paymentProof ||
-                                                undefined
-                                              }
-                                              alt="الإيصال"
-                                              className="w-full h-full object-cover"
-                                            />
-                                            <div className="absolute inset-0 bg-carbon/50 opacity-0 group-hover/preview:opacity-100 transition-opacity flex items-center justify-center">
-                                              <button
-                                                onClick={(e) => {
-                                                  e.stopPropagation();
-                                                  setFormData((prev) => ({
-                                                    ...prev,
-                                                    paymentProof: undefined,
-                                                  }));
-                                                }}
-                                                className="bg-white text-red-500 px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 hover:bg-red-50 transition-colors"
-                                              >
-                                                <X className="w-4 h-4" /> حذف
-                                                الصورة
-                                              </button>
-                                            </div>
-                                            <div className="absolute top-2 right-2 w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center border-2 border-white shadow-sm">
-                                              <CheckCircle className="w-3 h-3 text-white" />
-                                            </div>
-                                          </div>
-                                        ) : (
-                                          <>
-                                            <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center shadow-sm">
-                                              <Plus className="w-6 h-6 text-titanium/40" />
-                                            </div>
-                                            <div className="text-center">
-                                              <span className="text-xs font-bold text-titanium/60">
-                                                اضغط هنا لرفع صورة الإشعار
-                                              </span>
-                                              <p className="text-[10px] text-titanium/40 mt-1">
-                                                PNG, JPG حتى 5MB
-                                              </p>
-                                            </div>
-                                          </>
-                                        )}
-                                      </div>
-                                    </div>
-                                  </div>
-                                )}
-
-                                <div className="mt-2 text-center">
-                                  <button
-                                    onClick={() =>
-                                      setShowExampleImage(!showExampleImage)
-                                    }
-                                    className="inline-flex items-center gap-1.5 text-xs font-bold text-solar hover:text-solar/80 transition-colors"
-                                  >
-                                    <HelpCircle className="w-4 h-4" />
-                                    كيف أجد رقم المرجع؟
-                                  </button>
-                                  <AnimatePresence>
-                                    {showExampleImage && (
-                                      <motion.div
-                                        initial={{ opacity: 0, height: 0 }}
-                                        animate={{ opacity: 1, height: "auto" }}
-                                        exit={{ opacity: 0, height: 0 }}
-                                        className="overflow-hidden mt-3"
-                                      >
-                                        <div className="rounded-2xl overflow-hidden border border-slate-200 relative group cursor-zoom-in max-w-md mx-auto">
-                                          <img
-                                            src="https://19vojde6sh.ucarecd.net/0c55446b-c036-4701-bedf-30bddabf07c8/noroot.jpg"
-                                            alt="مثال لرقم المرجع"
-                                            className="w-full object-cover transition-transform duration-500 group-hover:scale-110"
-                                            referrerPolicy="no-referrer"
-                                          />
-                                          <div className="absolute inset-0 bg-gradient-to-t from-carbon/80 via-carbon/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4">
-                                            <span className="text-white text-[10px] font-bold leading-relaxed">
-                                              رقم المرجع يكون كما هو موضح في
-                                              الصورة أعلاه (مثال توضيحي)
-                                            </span>
-                                          </div>
-                                        </div>
-                                      </motion.div>
+                                    {selectedPaymentMethod.accountName && (
+                                      <p className="text-[14px] sm:text-[17px] font-black mt-1 sm:mt-2 mb-1 sm:mb-2 text-center flex flex-row justify-center gap-1.5 flex-wrap">
+                                        <span className="text-[#57534e]">اسم المستلم:</span>
+                                        <span className="text-[#0f172a]">{selectedPaymentMethod.accountName}</span>
+                                      </p>
                                     )}
-                                  </AnimatePresence>
+                                  </div>
                                 </div>
                               </div>
                             </div>
                           )}
+
+                            {/* Proof & Reference Section */}
+                            {selectedPaymentMethod && (
+                                <PaymentConfirmationCard
+                                  paymentAmount={formData.paymentAmount}
+                                  paymentReference={formData.paymentReference}
+                                  paymentProof={formData.paymentProof}
+                                  fieldErrors={fieldErrors}
+                                  onAmountChange={(val) => {
+                                    setFormData(prev => ({ ...prev, paymentAmount: val }));
+                                    setFieldErrors(prev => prev.filter(f => f !== "paymentAmount"));
+                                  }}
+                                  onReferenceChange={(val) => {
+                                    setFormData(prev => ({ ...prev, paymentReference: val }));
+                                    setFieldErrors(prev => prev.filter(f => f !== "paymentReference"));
+                                  }}
+                                  onProofChange={(val) => {
+                                    setFormData(prev => ({ ...prev, paymentProof: val }));
+                                    setFieldErrors(prev => prev.filter(f => f !== "paymentProof"));
+                                  }}
+                                  onShowToast={showToast}
+                                  primaryColor={settings.primaryColor}
+                                />
+                              )}
 
                           {paymentMethod === "wallet" && (
                             <motion.div
@@ -2303,14 +2134,23 @@ export default function Checkout() {
                   paymentMethod === "wallet" &&
                   (!user || (user.walletBalance || 0) < total))
               }
-              className="bg-carbon text-white px-8 py-3.5 rounded-2xl font-bold shadow-lg shadow-carbon/20 flex items-center gap-2 active:scale-95 transition-transform disabled:opacity-50"
+              className={`${
+                step === 4 ? "bg-solar shadow-solar/20" : "bg-carbon shadow-carbon/20"
+              } text-white px-8 py-3.5 rounded-2xl font-black shadow-lg flex items-center gap-2 active:scale-95 transition-all duration-300 disabled:opacity-50 disabled:grayscale transition-colors`}
             >
               {isProcessing
                 ? "جاري..."
                 : step === 4
-                  ? "تأكيد الشراء"
+                  ? "إتمام الطلب الآن"
                   : "المتابعة"}
-              {!isProcessing && <ArrowRight className="w-4 h-4" />}
+              {!isProcessing && (
+                <motion.div
+                  animate={{ x: [0, 4, 0] }}
+                  transition={{ repeat: Infinity, duration: 1.5 }}
+                >
+                  <ArrowRight className="w-4 h-4" />
+                </motion.div>
+              )}
             </button>
           </div>
         </div>

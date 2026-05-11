@@ -104,6 +104,15 @@ export const useProductStore = create<ProductState>((set, get) => ({
       }
       
       set({ isLoading: false });
+    }, (error) => {
+      const errInfo = {
+        error: error instanceof Error ? error.message : String(error),
+        operationType: "get",
+        path: "settings/store_meta",
+        authInfo: { userId: null }
+      };
+      console.error("Firestore Error [productStore:initializeProducts]: ", JSON.stringify(errInfo));
+      set({ isLoading: false });
     });
 
     return unsubMeta;

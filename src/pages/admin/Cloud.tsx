@@ -119,7 +119,6 @@ export default function CloudPage() {
         users: store.customers,
         tickets: store.supportTickets,
         pages: store.staticPages,
-        carts: store.abandonedCarts,
       });
 
       const unusedIds = images

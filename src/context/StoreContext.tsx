@@ -26,14 +26,12 @@ import {
   Banner,
   MarketingNotification,
   AdminUser,
-  ActivityLog,
   AdminRole,
   AdminPermission,
   SupportTicket,
   StaticPage,
   ShippingZone,
   CityData,
-  AbandonedCart,
   SearchTerm,
   Visit,
 } from "../types";
@@ -119,6 +117,7 @@ interface StoreContextType {
     deliveryInstructions?: string,
     paymentProof?: string,
     district?: string,
+    paymentAmount?: string,
   ) => Promise<string>;
   updateOrderStatus: (
     orderId: string,
@@ -198,7 +197,6 @@ interface StoreContextType {
   ) => void;
   deleteAdminUser: (id: string) => void;
   adminLogout: () => void;
-  activityLogs: ActivityLog[];
   logActivity: (action: string, details: string) => void;
   supportTickets: SupportTicket[];
   addTicket: (
@@ -218,7 +216,6 @@ interface StoreContextType {
   addCity: (city: Omit<CityData, "id">) => void;
   updateCity: (id: string, city: Partial<CityData>) => void;
   deleteCity: (id: string) => void;
-  abandonedCarts: AbandonedCart[];
   searchTerms: SearchTerm[];
   trackSearch: (term: string, resultsCount: number) => void;
   visits: Visit[];
@@ -266,7 +263,6 @@ interface StoreState {
   marketingNotifications: MarketingNotification[];
   adminUsers: AdminUser[];
   adminUser: UserProfile | null;
-  activityLogs: ActivityLog[];
   discount: {
     code: string | null;
     amount: number;
@@ -278,7 +274,6 @@ interface StoreState {
   staticPages: StaticPage[];
   shippingZones: ShippingZone[];
   cities: CityData[];
-  abandonedCarts: AbandonedCart[];
   searchTerms: SearchTerm[];
   visits: Visit[];
   systemError: string | null;
@@ -357,6 +352,7 @@ interface StoreActions {
     deliveryInstructions?: string,
     paymentProof?: string,
     district?: string,
+    paymentAmount?: string,
   ) => Promise<string>;
   updateOrderStatus: (
     orderId: string,
@@ -516,43 +512,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return initializeSettings();
   }, [initializeSettings]);
 
-  // Sync cart to abandonedCarts for abandoned cart notifications
-  useEffect(() => {
-    if (!user || cart.length === 0) return;
-
-    const timeoutId = setTimeout(async () => {
-      try {
-        const cartId = user.uid || user.phone;
-        const total = cart.reduce(
-          (sum, item) => sum + item.product.price * item.quantity,
-          0,
-        );
-
-        await setDoc(doc(db, "abandonedCarts", cartId), {
-          id: cartId,
-          userId: user.uid || null,
-          customerName: user.displayName || user.name || "عميل",
-          customerPhone: user.phone || "",
-          items: cart.map((item) => ({
-            productId: item.id.split("-")[0], // Extract real product ID
-            name: item.product.name,
-            price: item.product.price,
-            quantity: item.quantity,
-            image: item.product.image,
-          })),
-          total,
-          date: new Date().toISOString(),
-          updatedAt: serverTimestamp(),
-          recovered: false,
-        });
-      } catch (error) {
-        console.error("Failed to sync abandoned cart:", error);
-      }
-    }, 10000); // 10 second debounce to avoid excessive writes
-
-    return () => clearTimeout(timeoutId);
-  }, [cart, user]);
-
   // SearchTerms and visits logic
 
   const [subscriptions, setSubscriptions] = useState<
@@ -601,11 +560,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const [cities, setCities] = useState<CityData[]>(() => {
     const saved = localStorage.getItem("store_cities");
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  const [abandonedCarts, setAbandonedCarts] = useState<AbandonedCart[]>(() => {
-    const saved = localStorage.getItem("store_abandoned_carts");
     return saved ? JSON.parse(saved) : [];
   });
 
@@ -686,11 +640,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return [];
   });
 
-  const [activityLogs, setActivityLogs] = useState<ActivityLog[]>(() => {
-    const saved = localStorage.getItem("store_activity_logs");
-    return saved ? JSON.parse(saved) : [];
-  });
-
   // categories
 
   const [customers, setCustomers] = useState<UserProfile[]>(() => {
@@ -709,13 +658,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const [toast, setToast] = useState({ show: false, message: "" });
 
-  const activeSyncs = useRef<Set<string>>(new Set());
+  const unsubscribeMap = useRef<Map<string, () => void>>(new Map());
 
   const syncOnDemand = useCallback(
     (colName: string) => {
       // Prevents multiple listeners for the same collection
-      if (activeSyncs.current.has(colName)) return;
-      activeSyncs.current.add(colName);
+      if (unsubscribeMap.current.has(colName)) return;
+      // Temporarily mark as syncing to prevent race conditions before onSnapshot returns
+      unsubscribeMap.current.set(colName, () => {});
 
       const activeDb = adminAuth.currentUser ? adminDb : db;
 
@@ -726,13 +676,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         banners: setBanners,
         admin_users: setAdminUsers,
         customers: setCustomers,
-        activity_logs: setActivityLogs,
         marketing_notifications: setMarketingNotifications,
         orders: setOrders,
         visits: setVisits,
         searchTerms: setSearchTerms,
-        abandonedCarts: setAbandonedCarts,
-        support_tickets: setSupportTickets,
         cities: setCities,
         inventory_logs: setInventoryLogs,
       };
@@ -744,19 +691,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         banners: "store_banners",
         admin_users: "store_admin_users",
         customers: "store_customers",
-        activity_logs: "store_activity_logs",
         marketing_notifications: "store_marketing_notifications",
         orders: "store_orders",
         visits: "store_visits",
         searchTerms: "store_search_terms",
-        abandonedCarts: "store_abandoned_carts",
-        support_tickets: "store_tickets",
         cities: "store_cities",
         inventory_logs: "store_inventory_logs",
       };
 
       if (!setterMap[colName]) {
-        activeSyncs.current.delete(colName);
+        unsubscribeMap.current.delete(colName);
         return;
       }
 
@@ -782,21 +726,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             limit(50)
           );
         }
-      } else if (colName === "activity_logs") {
-        q = query(collection(activeDb, "activity_logs"), orderBy("date", "desc"), limit(100));
       } else if (colName === "inventory_logs") {
         q = query(collection(activeDb, "inventory_logs"), orderBy("date", "desc"), limit(100));
       } else if (colName === "visits") {
         q = query(collection(activeDb, "visits"), orderBy("timestamp", "desc"), limit(100));
       } else if (colName === "searchTerms") {
         q = query(collection(activeDb, "searchTerms"), orderBy("timestamp", "desc"), limit(100));
-      } else if (colName === "abandonedCarts") {
-        q = query(collection(activeDb, "abandonedCarts"), orderBy("lastActive", "desc"), limit(100));
       } else if (colName === "support_tickets") {
         q = query(collection(activeDb, "support_tickets"), orderBy("createdAt", "desc"), limit(100));
       }
 
-      onSnapshot(
+      const unsub = onSnapshot(
         q,
         (snapshot) => {
           let data = snapshot.docs.map((doc) => ({
@@ -806,28 +746,39 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
           if (colName === "admin_users") {
             data = data.filter((u: any) => u.role === "admin" || u.isAdmin === true);
-          } else if (colName === "customers") {
-            // Keep all users in customers state typically, or remove admins
-            // data = data.filter((u: any) => u.role !== "admin" && !u.isAdmin); 
-            // the UI already filters it, so we can leave it as is or filter it.
           }
 
           setterMap[colName](data);
           localStorage.setItem(storageKeyMap[colName], JSON.stringify(data));
         },
-        (error) => {
-          console.error(`Error syncing ${colName}:`, error);
-          activeSyncs.current.delete(colName);
+        async (error) => {
+          const { auth } = await import("../lib/firebase");
+          const errInfo = {
+            error: error instanceof Error ? error.message : String(error),
+            operationType: "list",
+            path: collectionPath,
+            authInfo: {
+              userId: auth.currentUser?.uid,
+              email: auth.currentUser?.email,
+              emailVerified: auth.currentUser?.emailVerified,
+              isAnonymous: auth.currentUser?.isAnonymous,
+            }
+          };
+          console.error(`Firestore Error [syncOnDemand:${colName}]: `, JSON.stringify(errInfo));
+          unsubscribeMap.current.delete(colName);
         },
       );
+      
+      unsubscribeMap.current.set(colName, unsub);
     },
     [adminAuth.currentUser, adminUser?.uid, user?.uid, adminUser?.role, user?.role],
   );
 
   // Clear active syncs when identity changes to ensure listeners use correct permissions/queries
   useEffect(() => {
-    activeSyncs.current.clear();
-  }, [adminAuth.currentUser?.uid, user?.uid]);
+    unsubscribeMap.current.forEach((unsub) => unsub());
+    unsubscribeMap.current.clear();
+  }, [adminAuth.currentUser?.uid, user?.uid, adminUser?.role, user?.role]);
 
   const { setDeferredPrompt, setCanInstallPWA } = useUIStore();
 
@@ -931,29 +882,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   );
 
   const logActivity = React.useCallback(
-    async (action: string, details: string) => {
-      try {
-        const adminEmail = localStorage.getItem("admin_email");
-        const adminName = localStorage.getItem("admin_name");
-        const activeDb = adminAuth.currentUser ? adminDb : db;
-
-        const ip = "127.0.0.1";
-
-        const logData = {
-          userId: adminEmail || user?.uid || user?.phone || "system",
-          userName: adminName || user?.name || user?.displayName || "النظام",
-          action,
-          details,
-          date: serverTimestamp(),
-          ip,
-        };
-
-        await addDoc(collection(activeDb, "activity_logs"), logData);
-      } catch (error) {
-        console.error("Failed to log activity:", error);
-      }
+    (action: string, details: string) => {
+      // Activity logging disabled
     },
-    [user],
+    [],
   );
 
   const updateSettings = React.useCallback(
@@ -2023,6 +1955,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       deliveryInstructions?: string,
       paymentProof?: string,
       district?: string,
+      paymentAmount?: string,
     ) => {
       if (cart.length === 0) return "";
       if (isPlacingOrder) return "";
@@ -2237,6 +2170,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             paymentMethod,
             paymentReference: paymentReference || null,
             paymentProof: paymentProof || null,
+            paymentAmount: paymentAmount || null,
             shippingMethod,
             deliveryInstructions: deliveryInstructions || null,
             currency: BASE_CURRENCY_CODE || "YER",
@@ -2273,11 +2207,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         });
 
         // G. Post-Order cleanup (outside transaction)
-        if (auth.currentUser) {
-          deleteDoc(doc(db, "abandonedCarts", auth.currentUser.uid)).catch(
-            () => {},
-          );
-        }
         await setDoc(doc(db, "settings", "store_meta"), {
           products_updated_at: Date.now()
         }, { merge: true }).catch(() => {});
@@ -3623,12 +3552,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       marketingNotifications,
       adminUsers,
       adminUser,
-      activityLogs,
       supportTickets,
       staticPages,
       shippingZones,
       cities,
-      abandonedCarts,
       searchTerms,
       visits,
       systemError,
@@ -3656,12 +3583,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       marketingNotifications,
       adminUsers,
       adminUser,
-      activityLogs,
       supportTickets,
       staticPages,
       shippingZones,
       cities,
-      abandonedCarts,
       searchTerms,
       visits,
       systemError,

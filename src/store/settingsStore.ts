@@ -39,7 +39,17 @@ const DEFAULT_SETTINGS: StoreSettings = {
   isMaintenanceMode: false,
   primaryColor: "#000000",
   fontFamily: "Inter",
-  homeSectionOrder: ["hero", "categories", "deals", "featured", "new_arrivals"]
+  homeSectionOrder: ["hero", "categories", "deals", "featured", "new_arrivals"],
+  announcementSettings: {
+    enabled: true,
+    announcements: [
+      { id: "1", text: "توصيل مجاني وسريع — للطلبات فوق 50 ألف ﷼", isActive: true }
+    ],
+    isMarquee: true,
+    backgroundColor: "#F8FAFC",
+    textColor: "#0F172A",
+    speed: 15
+  }
 };
 
 export const useSettingsStore = create<SettingsState>((set, get) => ({
@@ -95,6 +105,14 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       if (docSnap.exists()) {
         get().setSettings(docSnap.data() as StoreSettings);
       }
+    }, (error) => {
+      const errInfo = {
+        error: error instanceof Error ? error.message : String(error),
+        operationType: "get",
+        path: "settings/store",
+        authInfo: { userId: null }
+      };
+      console.error("Firestore Error [settingsStore:initializeSettings]: ", JSON.stringify(errInfo));
     });
 
     // 2. Fetch marketing notifications

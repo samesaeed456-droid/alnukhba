@@ -114,7 +114,9 @@ export const adminDb = initializeFirestore(
   firebaseConfig.firestoreDatabaseId,
 );
 
-// Enable offline persistence immediately after initialization
+// Enable offline persistence only if it's safe and truly needed
+// For now, let's keep it disabled to rule out persistence-related connectivity issues
+/*
 if (typeof window !== "undefined") {
   enableIndexedDbPersistence(db).catch((err) => {
     if (err.code === "failed-precondition") {
@@ -126,6 +128,7 @@ if (typeof window !== "undefined") {
 
   enableIndexedDbPersistence(adminDb).catch(() => {});
 }
+*/
 
 export let messaging: Messaging | null = null;
 

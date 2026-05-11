@@ -45,6 +45,9 @@ import {
   History,
   Lock,
   ShieldCheck,
+  ArrowRight,
+  Copy,
+  Hash,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { startRegistration } from "@simplewebauthn/browser";
@@ -53,6 +56,7 @@ import { Address } from "../types";
 import ConfirmationModal from "../components/ConfirmationModal";
 import PriceDisplay from "../components/PriceDisplay";
 import FloatingInput from "../components/FloatingInput";
+import { PaymentConfirmationCard } from "../components/PaymentConfirmationCard";
 
 export default function Profile() {
   const {
@@ -65,6 +69,7 @@ export default function Profile() {
     setLanguage,
     formatPrice,
     shippingZones,
+    settings,
   } = useStore();
   const navigate = useNavigate();
   const location = useLocation();
@@ -122,7 +127,11 @@ export default function Profile() {
   const [addressToDelete, setAddressToDelete] = useState<string | null>(null);
   const [topUpAmount, setTopUpAmount] = useState("");
   const [topUpRef, setTopUpRef] = useState("");
+  const [topUpProof, setTopUpProof] = useState<string | undefined>(undefined);
+  const [topUpMethod, setTopUpMethod] = useState<string>("");
+  const [showTopUpDetails, setShowTopUpDetails] = useState(false);
   const [topUpError, setTopUpError] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<string[]>([]);
   const [isProcessingTopUp, setIsProcessingTopUp] = useState(false);
   const [deletionStep, setDeletionStep] = useState<"confirm" | "reason">(
     "confirm",
@@ -131,6 +140,8 @@ export default function Profile() {
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showAddAddress, setShowAddAddress] = useState(false);
   const [hasPasskey, setHasPasskey] = useState(false);
+  const [isTopUpSuccess, setIsTopUpSuccess] = useState(false);
+  const [lastTopUpRef, setLastTopUpRef] = useState("");
 
   const handleRegisterPasskey = useCallback(async () => {
     if (!user) return;
@@ -263,6 +274,21 @@ export default function Profile() {
   const [recoveryOtp, setRecoveryOtp] = useState(["", "", "", ""]);
   const [recoveryTimer, setRecoveryTimer] = useState(59);
   const [isResending, setIsResending] = useState(false);
+  const activePaymentMethods = useMemo(() => {
+    return (settings.paymentMethods || []).filter((m) => m.isActive && m.id !== "wallet");
+  }, [settings.paymentMethods]);
+
+  const selectedTopUpMethod = useMemo(() => {
+    return activePaymentMethods.find((m) => m.id === topUpMethod);
+  }, [activePaymentMethods, topUpMethod]);
+
+  useEffect(() => {
+    if (activePaymentMethods.length > 0 && !topUpMethod) {
+      setTopUpMethod(activePaymentMethods[0].id);
+    }
+  }, [activePaymentMethods, topUpMethod]);
+
+  const [isCopied, setIsCopied] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
@@ -1509,7 +1535,7 @@ export default function Profile() {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 20 }}
-            className="max-w-7xl mx-auto"
+            className="max-w-7xl mx-auto pb-24"
           >
             <div className="flex items-center gap-3 sm:gap-4 mb-6 sm:mb-8">
               <button
@@ -1517,6 +1543,9 @@ export default function Profile() {
                   window.scrollTo(0, 0);
                   setCurrentView("menu");
                   setTopUpAmount("");
+                  setTopUpRef("");
+                  setTopUpProof(undefined);
+                  setShowTopUpDetails(false);
                 }}
                 className="w-10 h-10 shrink-0 bg-white rounded-full flex items-center justify-center shadow-sm border border-slate-100 hover:bg-slate-50 transition-colors"
               >
@@ -1551,199 +1580,386 @@ export default function Profile() {
               </div>
 
               {/* Top Up Form */}
-              <div className="bg-white rounded-2xl sm:rounded-3xl p-5 sm:p-8 border border-slate-100 shadow-sm">
-                <h2 className="text-lg sm:text-xl font-bold text-carbon mb-5 sm:mb-6 flex items-center gap-2">
-                  <ArrowDownToLine className="w-5 h-5 text-carbon" />
-                  إيداع رصيد
-                </h2>
-
-                <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-6">
-                  {[5000, 10000, 20000].map((amount) => (
-                    <button
-                      key={amount}
-                      onClick={() => setTopUpAmount(amount.toString())}
-                      className={`h-12 sm:h-16 rounded-xl font-bold text-base sm:text-xl transition-all border-2 ${
-                        topUpAmount === amount.toString()
-                          ? "border-carbon bg-carbon/5 text-carbon"
-                          : "border-slate-100 bg-slate-50 text-carbon hover:border-slate-200"
-                      }`}
+              <div id="recharge-section" className="bg-white rounded-2xl sm:rounded-3xl p-5 sm:p-8 border border-slate-100 shadow-sm transition-all duration-500 min-h-[400px] flex flex-col">
+                <AnimatePresence mode="wait">
+                  {isTopUpSuccess ? (
+                    <motion.div
+                      key="top-up-success"
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="flex flex-col items-center justify-center py-12 sm:py-20 text-center h-full max-w-md mx-auto"
                     >
-                      {amount}
-                    </button>
-                  ))}
-                </div>
-
-                <div className="space-y-2 sm:space-y-3 mb-6 sm:mb-8">
-                  <FloatingInput
-                    label="مبلغ مخصص"
-                    type="tel"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    value={topUpAmount}
-                    onChange={(e) =>
-                      setTopUpAmount(e.target.value.replace(/\D/g, ""))
-                    }
-                    bgClass="bg-slate-50"
-                    className="font-black text-lg sm:text-2xl text-left"
-                    dir="ltr"
-                    endElement={
-                      <div className="font-bold text-sm sm:text-base text-titanium/60 px-4">
-                        ر.ي
+                      <div className="relative mb-10">
+                        <motion.div
+                          initial={{ scale: 0, rotate: -45 }}
+                          animate={{ scale: 1, rotate: 0 }}
+                          transition={{ type: "spring", damping: 15, stiffness: 200 }}
+                          className="w-28 h-28 bg-emerald-500 rounded-[2.5rem] flex items-center justify-center relative z-10 shadow-2xl shadow-emerald-500/30"
+                        >
+                          <CheckCircle2 className="w-14 h-14 text-white" />
+                        </motion.div>
+                        <motion.div
+                          animate={{ 
+                            scale: [1, 1.2, 1],
+                            opacity: [0.3, 0.1, 0.3]
+                          }}
+                          transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                          className="absolute inset-0 bg-emerald-400 rounded-full blur-3xl -z-10"
+                        />
                       </div>
-                    }
-                  />
-                </div>
 
-                {/* Kuraimi Payment Instructions */}
-                <div className="bg-[#0056b3]/5 p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-[#0056b3]/20 space-y-3 sm:space-y-4 mb-6 sm:mb-8">
-                  <div className="flex items-center gap-3 sm:gap-4">
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-white flex items-center justify-center font-bold text-lg sm:text-xl overflow-hidden shrink-0">
-                      <img
-                        src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSijsePxWivnhnEwZs8l0IU_JB9dNkgrIn7aHGPZvV9GjeeQKt7sqcm7eA&s=10"
-                        alt="الكريمي"
-                        className="w-full h-full object-cover"
-                        referrerPolicy="no-referrer"
-                      />
-                    </div>
-                    <div>
-                      <h3 className="text-sm sm:text-base font-bold text-carbon">
-                        الدفع إلى نقطة حاسب
-                      </h3>
-                      <p className="text-[10px] sm:text-xs text-titanium/60">
-                        يرجى تحويل المبلغ وإرفاق رقم المرجع
-                      </p>
-                    </div>
-                  </div>
+                      <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.2 }}
+                      >
+                        <h2 className="text-2xl sm:text-3xl font-black text-carbon mb-4 tracking-tight">
+                          تم استلام طلبك بنجاح
+                        </h2>
+                        <p className="text-sm sm:text-base font-bold text-titanium/50 leading-relaxed mb-10 px-4">
+                          طلبك الآن في مرحلة المراجعة المالية. سيتم تحديث رصيد محفظتك تلقائياً فور تأكيد العملية من قبل فريقنا.
+                        </p>
 
-                  <div className="p-3 sm:p-4 bg-white rounded-xl sm:rounded-2xl border border-slate-100 flex justify-between items-center">
-                    <div>
-                      <div className="text-[9px] sm:text-[10px] text-titanium/40 font-bold mb-0.5 sm:mb-1">
-                        رقم نقطة حاسب
-                      </div>
-                      <div className="text-base sm:text-lg font-mono font-bold text-[#0056b3] tracking-wider">
-                        877107
-                      </div>
-                    </div>
-                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#0056b3]/10 flex items-center justify-center">
-                      <Check className="w-4 h-4 sm:w-5 sm:h-5 text-[#0056b3]" />
-                    </div>
-                  </div>
+                        <div className="grid grid-cols-2 gap-3 mb-10 w-full px-2">
+                          <div className="bg-slate-50 border border-slate-100 p-4 rounded-2xl">
+                            <div className="flex items-center justify-center gap-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
+                              <Clock className="w-3.5 h-3.5" />
+                              وقت المراجعة
+                            </div>
+                            <p className="text-sm font-black text-carbon">خلال 30 دقيقة</p>
+                          </div>
+                          <div className="bg-slate-50 border border-slate-100 p-4 rounded-2xl">
+                            <div className="flex items-center justify-center gap-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
+                              <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
+                              حالة الطلب
+                            </div>
+                            <p className="text-sm font-black text-emerald-600">طلب معلق</p>
+                          </div>
+                        </div>
 
-                  <div className="bg-white p-4 rounded-2xl border border-slate-100 space-y-3">
-                    <div className="flex items-center gap-2 text-sm font-bold text-carbon">
-                      <span className="w-6 h-6 rounded-full bg-[#0056b3] text-white flex items-center justify-center text-xs shrink-0">
-                        1
-                      </span>
-                      أولاً: قم بالدفع عبر تطبيق الكريمي
-                    </div>
-                    <div className="flex items-center gap-2 text-sm font-bold text-carbon">
-                      <span className="w-6 h-6 rounded-full bg-[#0056b3] text-white flex items-center justify-center text-xs shrink-0">
-                        2
-                      </span>
-                      ثانياً: أدخل رقم المرجع الموجود في الإشعار
-                    </div>
-                    <div className="mt-3 rounded-xl overflow-hidden border border-slate-100 relative group">
-                      <img
-                        src="https://19vojde6sh.ucarecd.net/0c55446b-c036-4701-bedf-30bddabf07c8/noroot.jpg"
-                        alt="مثال لرقم المرجع"
-                        className="w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                        referrerPolicy="no-referrer"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4">
-                        <span className="text-white text-xs font-bold">
-                          رقم المرجع يكون كما هو موضح في الصورة
-                        </span>
-                      </div>
-                    </div>
-                  </div>
+                        {lastTopUpRef && (
+                          <div className="bg-slate-900 rounded-2xl p-4 mb-10 flex items-center justify-between group overflow-hidden relative">
+                             <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2" />
+                             <div className="text-right">
+                               <p className="text-[9px] font-black text-white/40 uppercase tracking-widest mb-1">الرقم المرجعي</p>
+                               <p className="font-mono text-sm font-black text-solar">{lastTopUpRef}</p>
+                             </div>
+                             <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
+                               <Hash className="w-5 h-5 text-white/20" />
+                             </div>
+                          </div>
+                        )}
 
-                  <div className="space-y-1.5 sm:space-y-2">
-                    <FloatingInput
-                      label="رقم المرجع"
-                      type="tel"
-                      inputMode="numeric"
-                      pattern="[0-9]*"
-                      value={topUpRef}
-                      onChange={(e) => {
-                        setTopUpRef(e.target.value.replace(/\D/g, ""));
-                        setTopUpError(false);
-                      }}
-                      bgClass="bg-white"
-                      className={`text-left font-mono text-sm sm:text-base ${topUpError ? "border-red-500 ring-4 ring-red-500/10" : ""}`}
-                      dir="ltr"
-                    />
-                    {topUpError && (
-                      <p className="text-[10px] sm:text-xs text-red-500 font-bold mt-1">
-                        يرجى إدخال رقم مرجع صحيح (أرقام فقط)
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                <button
-                  disabled={
-                    !topUpAmount ||
-                    Number(topUpAmount) <= 0 ||
-                    isProcessingTopUp
-                  }
-                  onClick={() => {
-                    const amountInBaseCurrency = Number(topUpAmount);
-                    const cleanRef = topUpRef.trim();
-
-                    if (!cleanRef || !/^\d{6,15}$/.test(cleanRef)) {
-                      setTopUpError(true);
-                      showToast("يرجى إدخال رقم مرجع صحيح", "error");
-                      return;
-                    }
-
-                    if (amountInBaseCurrency > 0) {
-                      setIsProcessingTopUp(true);
-                      setTimeout(() => {
-                        const newTransaction = {
-                          id: crypto.randomUUID
-                            ? crypto.randomUUID()
-                            : Math.random().toString(36).substring(2, 15),
-                          amount: amountInBaseCurrency,
-                          type: "deposit" as const,
-                          date: new Date().toISOString(),
-                          status: "completed" as const,
-                          description: `إيداع رصيد (مرجع: ${cleanRef})`,
-                        };
-                        updateUser({
-                          ...user,
-                          walletBalance:
-                            (user.walletBalance || 0) + amountInBaseCurrency,
-                          transactions: [
-                            newTransaction,
-                            ...(user.transactions || []),
-                          ],
-                        } as any);
-                        setIsProcessingTopUp(false);
-                        setTopUpAmount("");
-                        setTopUpRef("");
-                        showToast(
-                          "تم إرسال طلب الإيداع للإدارة (تم إضافة الرصيد فوراً لغرض التجربة)",
-                        );
-                      }, 1500);
-                    }
-                  }}
-                  className={`w-full h-14 sm:h-16 rounded-xl sm:rounded-2xl font-bold text-base sm:text-lg transition-all flex items-center justify-center gap-2 ${
-                    !topUpAmount ||
-                    Number(topUpAmount) <= 0 ||
-                    isProcessingTopUp
-                      ? "bg-slate-100 text-slate-400 cursor-not-allowed"
-                      : "bg-carbon text-white hover:bg-carbon shadow-lg shadow-carbon/10"
-                  }`}
-                >
-                  {isProcessingTopUp ? (
-                    <div className="w-5 h-5 sm:w-6 sm:h-6 border-2 sm:border-3 border-white/30 border-t-white rounded-full animate-spin" />
+                        <motion.button
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={() => setIsTopUpSuccess(false)}
+                          className="w-full py-5 bg-carbon text-white rounded-2xl font-black text-sm sm:text-base shadow-xl shadow-carbon/10 transition-all hover:shadow-carbon/20"
+                        >
+                          العودة للمحفظة
+                        </motion.button>
+                      </motion.div>
+                    </motion.div>
                   ) : (
-                    <>
-                      <CreditCard className="w-4 h-4 sm:w-5 sm:h-5" />
-                      تأكيد الدفع
-                    </>
-                  )}
-                </button>
+                    <motion.div
+                      key="top-up-form"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="flex-1 flex flex-col"
+                    >
+                      <h2 className="text-lg sm:text-xl font-bold text-carbon mb-5 sm:mb-6 flex items-center gap-2">
+                        <ArrowDownToLine className="w-5 h-5 text-carbon" />
+                        إيداع رصيد
+                      </h2>
+
+                      <AnimatePresence mode="wait">
+                        {!showTopUpDetails ? (
+                          <motion.div
+                            key="methods-list"
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 mb-6"
+                          >
+                            {activePaymentMethods.map((method) => (
+                              <motion.button
+                                key={method.id}
+                                whileHover={{ scale: 1.02, y: -2 }}
+                                whileTap={{ scale: 0.98 }}
+                                onClick={() => {
+                                  setTopUpMethod(method.id);
+                                  setShowTopUpDetails(true);
+                                }}
+                                className={`p-3 sm:p-4 rounded-2xl sm:rounded-3xl border-2 transition-all flex flex-col items-center gap-2 sm:gap-3 text-center group ${
+                                  topUpMethod === method.id
+                                    ? `border-solar bg-solar/5 shadow-lg shadow-solar/10`
+                                    : "border-slate-100 bg-white hover:border-slate-200 shadow-sm"
+                                }`}
+                              >
+                                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-slate-50 flex items-center justify-center overflow-hidden shrink-0 border border-slate-100 group-hover:scale-110 transition-transform">
+                                  {method.logo ? (
+                                    <img
+                                      src={method.logo}
+                                      alt={method.name}
+                                      className="w-full h-full object-cover filter saturate-[1.6] brightness-110"
+                                      referrerPolicy="no-referrer"
+                                    />
+                                  ) : (
+                                    <CreditCard className="w-5 h-5 text-carbon/40" />
+                                  )}
+                                </div>
+                                <div className="flex-1">
+                                  <h3 className="text-[10px] sm:text-xs font-bold text-carbon">
+                                    {method.name}
+                                  </h3>
+                                </div>
+                              </motion.button>
+                            ))}
+                          </motion.div>
+                        ) : (
+                          <motion.div
+                            key="method-details"
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -20 }}
+                            className="space-y-6"
+                          >
+                            <div className="flex items-center gap-3 mb-4">
+                        <button
+                          onClick={() => setShowTopUpDetails(false)}
+                          className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-carbon hover:bg-slate-200 transition-colors"
+                        >
+                          <ArrowRight className="w-4 h-4" />
+                        </button>
+                        <h3 className="text-base font-black text-carbon">
+                          تفاصيل الإيداع عبر {selectedTopUpMethod?.name}
+                        </h3>
+                      </div>
+
+                      {selectedTopUpMethod && (
+                        <div className="mb-6 pt-6 px-1">
+                          <div
+                            className="relative rounded-2xl sm:rounded-[2rem] p-3 sm:p-4 mx-0 sm:mx-1"
+                            style={{
+                              backgroundColor: "#F8F5F2",
+                              border: `2px solid ${settings.primaryColor || "#ea580c"}`,
+                              boxShadow: `inset 0 0 0 3px ${settings.primaryColor || "#ea580c"}10`,
+                            }}
+                          >
+                            <div className="space-y-3">
+                              {/* Header Card (Smaller version of Checkout) */}
+                              <div
+                                className="bg-white rounded-xl sm:rounded-2xl p-4 pt-8 flex flex-col items-center text-center relative border shadow-sm"
+                                style={{ borderColor: `${settings.primaryColor || "#ea580c"}20` }}
+                              >
+                                <div
+                                  className="absolute -top-6 w-12 h-12 bg-white rounded-xl border-2 flex items-center justify-center p-1.5 shadow-sm"
+                                  style={{ borderColor: `${settings.primaryColor || "#ea580c"}30` }}
+                                >
+                                  {selectedTopUpMethod.logo ? (
+                                    <img
+                                      src={selectedTopUpMethod.logo}
+                                      alt={selectedTopUpMethod.name}
+                                      className="w-full h-full object-contain"
+                                      referrerPolicy="no-referrer"
+                                    />
+                                  ) : (
+                                    <CreditCard
+                                      className="w-6 h-6"
+                                      style={{ color: settings.primaryColor || "#ea580c" }}
+                                    />
+                                  )}
+                                </div>
+
+                                <h4 className="text-[14px] sm:text-[16px] font-black text-[#0f172a] mb-1 tracking-tight">
+                                  إيداع عبر <span style={{ color: settings.primaryColor || "#ea580c" }}>{selectedTopUpMethod.name}</span>
+                                </h4>
+                                <p className="text-[10px] sm:text-[11px] font-bold text-[#78716c]">
+                                  يرجى اتباع الخطوات لإتمام الشحن
+                                </p>
+                              </div>
+
+                              {/* Instructions Card */}
+                              <div
+                                className="bg-white rounded-xl sm:rounded-2xl border shadow-sm flex flex-col overflow-hidden"
+                                style={{ borderColor: `${settings.primaryColor || "#ea580c"}20` }}
+                              >
+                                {selectedTopUpMethod.instructions ? (
+                                  selectedTopUpMethod.instructions
+                                    .split("\n")
+                                    .filter((line) => line.trim())
+                                    .map((line, idx, arr) => (
+                                      <div
+                                        key={idx}
+                                        className={`p-3 sm:p-3.5 text-center ${idx !== arr.length - 1 ? "border-b" : ""}`}
+                                        style={{
+                                          borderColor:
+                                            idx !== arr.length - 1
+                                              ? `${settings.primaryColor || "#ea580c"}20`
+                                              : undefined,
+                                        }}
+                                      >
+                                        <p
+                                          className={`text-[11px] sm:text-[13px] font-black ${idx === 0 ? "text-[#0f172a]" : "text-[#78716c]"}`}
+                                        >
+                                          {line}
+                                        </p>
+                                      </div>
+                                    ))
+                                ) : (
+                                  <div className="p-3 sm:p-4 text-center">
+                                    <p className="text-[11px] sm:text-[13px] font-black text-[#0f172a]">
+                                      يرجى التحويل إلى البيانات الموضحة أدناه
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Account Details */}
+                              <div
+                                className="bg-white rounded-xl sm:rounded-2xl p-3 sm:p-4 border-2 border-dashed flex flex-col items-center gap-2 sm:gap-3 relative z-10"
+                                style={{ borderColor: `${settings.primaryColor || "#ea580c"}60` }}
+                              >
+                                <div
+                                  className="w-full bg-white border rounded-xl py-2 px-2 text-center"
+                                  style={{ borderColor: `${settings.primaryColor || "#ea580c"}20` }}
+                                >
+                                  <span className="text-[18px] sm:text-[22px] font-black text-[#0f172a] tracking-[0.1em] font-mono select-all block">
+                                    {selectedTopUpMethod.accountNumber}
+                                  </span>
+                                </div>
+
+                                <motion.button
+                                  whileHover={{ scale: 1.02 }}
+                                  whileTap={{ scale: 0.98 }}
+                                  onClick={async (e) => {
+                                    e.stopPropagation();
+                                    const { copyToClipboard } = await import("../lib/clipboard");
+                                    const success = await copyToClipboard(
+                                      selectedTopUpMethod.accountNumber || "",
+                                    );
+                                    if (success) {
+                                      setIsCopied(true);
+                                      setTimeout(() => setIsCopied(false), 2000);
+                                      showToast("تم النسخ", "success");
+                                    }
+                                  }}
+                                  className="w-full py-2.5 rounded-lg font-bold flex flex-row-reverse items-center justify-center gap-2 text-white text-[12px] sm:text-[14px] transition-colors shadow-md"
+                                  style={{
+                                    backgroundColor: settings.primaryColor || "#ea580c",
+                                  }}
+                                >
+                                  <span>{isCopied ? "تم النسخ" : `نسخ رقم الحساب`}</span>
+                                  {isCopied ? (
+                                    <CheckCircle2 className="w-4 h-4" />
+                                  ) : (
+                                    <Copy className="w-4 h-4" />
+                                  )}
+                                </motion.button>
+
+                                {selectedTopUpMethod.accountName && (
+                                  <p className="text-[11px] sm:text-[12px] font-black text-center flex flex-row justify-center gap-1.5 flex-wrap">
+                                    <span className="text-[#57534e]">المستلم:</span>
+                                    <span className="text-[#0f172a]">
+                                      {selectedTopUpMethod.accountName}
+                                    </span>
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      <PaymentConfirmationCard
+                        paymentAmount={topUpAmount}
+                        paymentReference={topUpRef}
+                        paymentProof={topUpProof}
+                        fieldErrors={fieldErrors}
+                        onAmountChange={(val) => {
+                          setTopUpAmount(val);
+                          setFieldErrors(prev => prev.filter(f => f !== "paymentAmount"));
+                        }}
+                        onReferenceChange={(val) => {
+                          setTopUpRef(val);
+                          setFieldErrors(prev => prev.filter(f => f !== "paymentReference"));
+                        }}
+                        onProofChange={(val) => {
+                          setTopUpProof(val);
+                          setFieldErrors(prev => prev.filter(f => f !== "paymentProof"));
+                        }}
+                        onShowToast={showToast}
+                        primaryColor={settings.primaryColor}
+                      />
+
+                      <button
+                        disabled={isProcessingTopUp}
+                        onClick={async () => {
+                          if (!user) return;
+                          const errors: string[] = [];
+                          if (!topUpAmount || Number(topUpAmount) <= 0) errors.push("paymentAmount");
+                          if (!topUpRef || topUpRef.length < 4) errors.push("paymentReference");
+                          if (!topUpProof) errors.push("paymentProof");
+
+                          if (errors.length > 0) {
+                            setFieldErrors(errors);
+                            showToast("يرجى إكمال بيانات الإيداع بشكل صحيح", "error");
+                            return;
+                          }
+
+                          setIsProcessingTopUp(true);
+                            try {
+                              const { db, collection, addDoc, serverTimestamp } = await import("../lib/firebase");
+                              await addDoc(collection(db, "recharges"), {
+                                userId: user.uid,
+                                userName: user.name || user.displayName || "عميل",
+                                userPhone: user.phone || "",
+                                amount: Number(topUpAmount),
+                                reference: topUpRef,
+                                proof: topUpProof,
+                                method: selectedTopUpMethod?.name || "غير محدد",
+                                status: "pending",
+                                createdAt: serverTimestamp(),
+                              });
+                              
+                              setLastTopUpRef(topUpRef);
+                              setTopUpAmount("");
+                              setTopUpRef("");
+                              setTopUpProof(undefined);
+                              setFieldErrors([]);
+                              setShowTopUpDetails(false);
+                              setIsTopUpSuccess(true);
+                              // Scroll to top of the recharge section
+                              const rechargeSection = document.getElementById("recharge-section");
+                              rechargeSection?.scrollIntoView({ behavior: "smooth", block: "center" });
+                            } catch (err) {
+                            showToast("فشل إرسال الطلب. يرجى المحاولة لاحقاً", "error");
+                          } finally {
+                            setIsProcessingTopUp(false);
+                          }
+                        }}
+                        className={`w-full h-14 sm:h-16 mt-6 rounded-xl sm:rounded-2xl font-bold text-base sm:text-lg transition-all flex items-center justify-center gap-2 ${
+                          isProcessingTopUp
+                            ? "bg-slate-100 text-slate-400 cursor-not-allowed"
+                            : "bg-carbon text-white hover:bg-carbon shadow-lg shadow-carbon/10 active:scale-95"
+                        }`}
+                      >
+                        {isProcessingTopUp ? (
+                          <div className="w-5 h-5 sm:w-6 sm:h-6 border-2 sm:border-3 border-white/30 border-t-white rounded-full animate-spin" />
+                        ) : (
+                          <>
+                            <CreditCard className="w-4 h-4 sm:w-5 sm:h-5" />
+                            إرسال الطلب للمراجعة
+                          </>
+                        )}
+                      </button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </motion.div>
+              )}
+            </AnimatePresence>
               </div>
 
               {/* Transactions History */}

@@ -46,12 +46,12 @@ const AdminCustomers = lazy(() => import("./pages/admin/Customers.tsx"));
 const AdminCoupons = lazy(() => import("./pages/admin/Coupons.tsx"));
 const AdminSettings = lazy(() => import("./pages/admin/Settings.tsx"));
 const AdminAnalytics = lazy(() => import("./pages/admin/Analytics.tsx"));
-const AdminActivityLogs = lazy(() => import("./pages/admin/ActivityLogs.tsx"));
 const AdminMarketing = lazy(() => import("./pages/admin/Marketing.tsx"));
 const AdminSecurity = lazy(() => import("./pages/admin/Security.tsx"));
 const AdminMessages = lazy(() => import("./pages/admin/Messages.tsx"));
 const AdminLogistics = lazy(() => import("./pages/admin/Logistics.tsx"));
 const AdminCloud = lazy(() => import("./pages/admin/Cloud.tsx"));
+const AdminRecharges = lazy(() => import("./pages/admin/WalletRecharges.tsx"));
 import Maintenance from "./pages/Maintenance";
 import BlockedOverlay from "./components/BlockedOverlay";
 import OfflineStatus from "./components/OfflineStatus";
@@ -255,7 +255,7 @@ const MainRoutes = () => {
         <Route path="coupons" element={<AdminCoupons />} />
         <Route path="settings" element={<AdminSettings />} />
         <Route path="analytics" element={<AdminAnalytics />} />
-        <Route path="logs" element={<AdminActivityLogs />} />
+        <Route path="recharges" element={<AdminRecharges />} />
       </Route>
 
       {/* Store Routes */}

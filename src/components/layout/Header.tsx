@@ -94,22 +94,17 @@ export default function Header({
   ).length;
 
   const [activeAnnouncement, setActiveAnnouncement] = useState(0);
-  const announcements = [
-    {
-      icon: Truck,
-      text:
-        settings.announcementText || "توصيل مجاني وسريع — للطلبات فوق 50 ألف ﷼",
-    },
-    { icon: Headphones, text: "دعم فني 24/7 — نخدمك في أي وقت" },
-    { icon: ShieldCheck, text: "دفع آمن 100% — خيارات مرنة وسهلة" },
-  ];
+  
+  const activeAnnouncementsList = settings.announcementSettings?.announcements?.filter(a => a.isActive && a.text?.trim()) || [];
 
   useEffect(() => {
+    if (activeAnnouncementsList.length <= 1) return;
+    
     const interval = setInterval(() => {
-      setActiveAnnouncement((prev) => (prev + 1) % announcements.length);
+      setActiveAnnouncement((prev) => (prev + 1) % activeAnnouncementsList.length);
     }, 4000);
     return () => clearInterval(interval);
-  }, [announcements.length]);
+  }, [activeAnnouncementsList.length]);
 
   const formatCompactPrice = (price: number) => {
     if (price >= 1000000) {
@@ -230,75 +225,47 @@ export default function Header({
   return (
     <>
       {/* Minimal Top Announcement Bar */}
-      {!isCheckout && !isAuth && (
-        <div className="bg-gold-gradient text-carbon text-[10px] sm:text-[11px] uppercase tracking-wider sm:tracking-widest py-1.5 sm:py-2 border-b border-black/10 overflow-hidden">
-          <div className="max-w-[1600px] mx-auto px-4 sm:px-6 flex items-center justify-center sm:justify-between font-bold">
-            {/* Mobile Carousel */}
-            <div className="sm:hidden relative h-4 w-full flex items-center justify-center overflow-hidden">
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={activeAnnouncement}
-                  initial={{ y: 15, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  exit={{ y: -15, opacity: 0 }}
-                  transition={{ duration: 0.4, ease: "easeInOut" }}
-                  className="absolute flex items-center gap-1.5"
-                >
-                  {React.createElement(announcements[activeAnnouncement].icon, {
-                    className: "w-3 h-3 text-carbon",
-                  })}
-                  <span>{announcements[activeAnnouncement].text}</span>
-                </motion.div>
-              </AnimatePresence>
-            </div>
-
-            {/* Desktop Static List */}
-            <div className="hidden sm:flex items-center gap-4 sm:gap-8 whitespace-nowrap overflow-x-auto hide-scrollbar">
-              <div className="flex items-center gap-1.5 sm:gap-2">
-                <Truck className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-carbon" />
-                <span>
-                  {settings.announcementText ||
-                    "توصيل مجاني وسريع — للطلبات فوق 50 ألف ﷼"}
-                </span>
-              </div>
-              <span className="hidden sm:block w-1 h-1 bg-black/20 rounded-full"></span>
-              <div className="hidden sm:flex items-center gap-1.5 sm:gap-2">
-                <Headphones className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-carbon" />
-                <span>دعم فني 24/7 — نخدمك في أي وقت</span>
-              </div>
-              <span className="hidden sm:block w-1 h-1 bg-black/20 rounded-full"></span>
-              <div className="hidden sm:flex items-center gap-1.5 sm:gap-2">
-                <ShieldCheck className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-carbon" />
-                <span>دفع آمن 100% — خيارات مرنة وسهلة</span>
-              </div>
-            </div>
-
-            <div className="hidden lg:flex items-center gap-6">
-              <div className="flex items-center gap-2 border-l border-black/10 pl-6">
-                <Phone className="w-3 h-3 text-carbon/50" />
-                <a
-                  href="tel:+967771234567"
-                  className="hover:text-black transition-colors font-bold"
-                  dir="ltr"
-                >
-                  +967 77 123 4567
-                </a>
-              </div>
-              <FastLink
-                to="/track-order"
-                prefetchPage="TrackOrder"
-                className="hover:text-black transition-colors"
+      {!isCheckout && !isAuth && settings.announcementSettings?.enabled !== false && activeAnnouncementsList.length > 0 && (
+        <div 
+          className="text-[12px] sm:text-[13px] py-2 border-b border-black/5 overflow-hidden relative font-black tracking-tight"
+          style={{ 
+            backgroundColor: settings.announcementSettings?.backgroundColor || settings.primaryColor || "#C5A059",
+            color: settings.announcementSettings?.textColor || "#FFFFFF"
+          }}
+          dir="rtl"
+        >
+          <div className="max-w-[1600px] mx-auto px-4 sm:px-6 flex items-center justify-center overflow-hidden whitespace-nowrap">
+            {settings.announcementSettings?.isMarquee ? (
+              <div 
+                className="animate-marquee inline-block whitespace-nowrap"
+                style={{ animationDuration: `${settings.announcementSettings?.speed || 20}s` }}
               >
-                تتبع الطلب
-              </FastLink>
-              <FastLink
-                to="/faq"
-                prefetchPage="FAQ"
-                className="hover:text-black transition-colors"
-              >
-                المساعدة
-              </FastLink>
-            </div>
+                {activeAnnouncementsList.map((ann: any) => (
+                  <span key={ann.id} className="mx-16 flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-current opacity-50 shrink-0" />
+                    {ann.text}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <div className="relative h-5 sm:h-6 w-full flex items-center justify-center overflow-hidden">
+                 <AnimatePresence mode="wait">
+                  <motion.div
+                    key={activeAnnouncement}
+                    initial={{ y: 20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    exit={{ y: -20, opacity: 0 }}
+                    transition={{ duration: 0.5, ease: "circOut" }}
+                    className="absolute flex items-center gap-2"
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-current opacity-50 shrink-0" />
+                    <span className="leading-none">
+                      {activeAnnouncementsList[activeAnnouncement]?.text}
+                    </span>
+                  </motion.div>
+                </AnimatePresence>
+              </div>
+            )}
           </div>
         </div>
       )}

@@ -318,7 +318,20 @@ input::placeholder, textarea::placeholder {
 .markdown-body h2 { font-size: 1.15rem; }
 .markdown-body h3 { font-size: 1.05rem; }
 
-/* Print Styles for Invoice */
+/* Marquee Animation */
+@keyframes marquee-rtl {
+  0% { transform: translateX(100%); }
+  100% { transform: translateX(-100%); }
+}
+.animate-marquee {
+  animation: marquee-rtl 25s linear infinite;
+  display: inline-block;
+  white-space: nowrap;
+}
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
 @media print {
   body * {
     visibility: hidden;

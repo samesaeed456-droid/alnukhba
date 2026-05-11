@@ -31,6 +31,7 @@ import {
   X,
   ChevronDown,
   Search,
+  Megaphone,
 } from "lucide-react";
 import { motion, AnimatePresence, Variants } from "motion/react";
 import { toast } from "sonner";
@@ -102,6 +103,13 @@ const Settings = () => {
       shortLabel: "عام",
       icon: Globe,
       description: "معلومات المتجر الأساسية والهوية",
+    },
+    {
+      id: "announcements",
+      label: "الشريط الإعلاني",
+      shortLabel: "إعلانات",
+      icon: Megaphone,
+      description: "إدارة الإعلانات في أعلى الموقع",
     },
     {
       id: "contact",
@@ -290,25 +298,6 @@ const Settings = () => {
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <FloatingInput
-                      id="announcementText"
-                      label="نص الإعلان في أعلى الموقع (الهيدر)"
-                      type="text"
-                      value={formData.announcementText || ""}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          announcementText: e.target.value,
-                        })
-                      }
-                      bgClass="bg-slate-50"
-                    />
-                    <p className="text-xs text-slate-500 mt-1 px-2">
-                      مثال: توصيل مجاني وسريع — للطلبات فوق 50 ألف ﷼
-                    </p>
-                  </div>
-
                   <div className="bg-amber-50 border border-amber-100 p-4 rounded-2xl flex gap-4">
                     <AlertCircle className="w-6 h-6 text-amber-600 shrink-0" />
                     <div>
@@ -376,6 +365,228 @@ const Settings = () => {
                       )}
                     </AnimatePresence>
                   </div>
+                </div>
+              )}
+
+              {activeSection === "announcements" && (
+                <div className="px-4 py-6 md:p-10 space-y-10">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <SectionHeader
+                      icon={Megaphone}
+                      title="الشريط الإعلاني"
+                      description="إدارة شريط الإعلانات في أعلى الموقع"
+                      bgClass="bg-purple-50"
+                      colorClass="text-purple-600"
+                    />
+                    <label className="relative inline-flex items-center cursor-pointer bg-white border border-slate-200 px-4 py-2 rounded-xl">
+                      <input
+                        type="checkbox"
+                        className="sr-only peer"
+                        checked={formData.announcementSettings?.enabled !== false}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            announcementSettings: {
+                              ...(formData.announcementSettings || { announcements: [], isMarquee: true, backgroundColor: formData.primaryColor || '#000000', textColor: '#FFFFFF', speed: 20 }),
+                              enabled: e.target.checked,
+                            },
+                          })
+                        }
+                      />
+                      <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[10px] after:left-[18px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                      <span className="mr-3 text-sm font-bold text-slate-700">
+                        تفعيل الشريط
+                      </span>
+                    </label>
+                  </div>
+
+                  <AnimatePresence>
+                    {formData.announcementSettings?.enabled !== false && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="space-y-8"
+                      >
+                        {/* Display Settings */}
+                        <div className="bg-slate-50 border border-slate-100 p-6 rounded-3xl space-y-6">
+                          <h4 className="font-bold text-lg text-slate-800">إعدادات العرض</h4>
+                          
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <label className="flex items-center justify-between p-4 bg-white border border-slate-200 rounded-2xl cursor-pointer hover:border-purple-200 transition-colors">
+                              <span className="font-bold text-sm text-slate-700">تأثير متحرك (Marquee)</span>
+                              <div className="relative inline-flex items-center">
+                                <input
+                                  type="checkbox"
+                                  className="sr-only peer"
+                                  checked={formData.announcementSettings?.isMarquee}
+                                  onChange={(e) =>
+                                    setFormData({
+                                      ...formData,
+                                      announcementSettings: {
+                                        ...(formData.announcementSettings || { enabled: true, announcements: [], backgroundColor: '#F8FAFC', textColor: '#0F172A', speed: 15 }),
+                                        isMarquee: e.target.checked,
+                                      },
+                                    })
+                                  }
+                                />
+                                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                              </div>
+                            </label>
+
+                            <div className="space-y-2">
+                              <label className="block text-sm font-bold text-slate-700 mx-2">لون الخلفية</label>
+                              <div className="flex bg-white border border-slate-200 rounded-2xl p-2 items-center gap-2">
+                                <input
+                                  type="color"
+                                  className="w-10 h-10 rounded-xl cursor-pointer border-0 p-0"
+                                  value={formData.announcementSettings?.backgroundColor || '#F8FAFC'}
+                                  onChange={(e) =>
+                                    setFormData({
+                                      ...formData,
+                                      announcementSettings: {
+                                        ...(formData.announcementSettings || { enabled: true, announcements: [], isMarquee: true, textColor: '#0F172A', speed: 15 }),
+                                        backgroundColor: e.target.value,
+                                      },
+                                    })
+                                  }
+                                />
+                                <input 
+                                  type="text" 
+                                  value={formData.announcementSettings?.backgroundColor || '#F8FAFC'}
+                                  onChange={(e) =>
+                                    setFormData({
+                                      ...formData,
+                                      announcementSettings: {
+                                        ...(formData.announcementSettings || { enabled: true, announcements: [], isMarquee: true, textColor: '#0F172A', speed: 15 }),
+                                        backgroundColor: e.target.value,
+                                      },
+                                    })
+                                  }
+                                  className="flex-1 bg-transparent border-0 focus:ring-0 text-sm font-mono text-slate-600"
+                                />
+                              </div>
+                            </div>
+
+                            <div className="space-y-2">
+                              <label className="block text-sm font-bold text-slate-700 mx-2">لون النص</label>
+                              <div className="flex bg-white border border-slate-200 rounded-2xl p-2 items-center gap-2">
+                                <input
+                                  type="color"
+                                  className="w-10 h-10 rounded-xl cursor-pointer border-0 p-0"
+                                  value={formData.announcementSettings?.textColor || '#0F172A'}
+                                  onChange={(e) =>
+                                    setFormData({
+                                      ...formData,
+                                      announcementSettings: {
+                                        ...(formData.announcementSettings || { enabled: true, announcements: [], isMarquee: true, backgroundColor: '#F8FAFC', speed: 15 }),
+                                        textColor: e.target.value,
+                                      },
+                                    })
+                                  }
+                                />
+                                <input 
+                                  type="text" 
+                                  value={formData.announcementSettings?.textColor || '#0F172A'}
+                                  onChange={(e) =>
+                                    setFormData({
+                                      ...formData,
+                                      announcementSettings: {
+                                        ...(formData.announcementSettings || { enabled: true, announcements: [], isMarquee: true, backgroundColor: '#F8FAFC', speed: 15 }),
+                                        textColor: e.target.value,
+                                      },
+                                    })
+                                  }
+                                  className="flex-1 bg-transparent border-0 focus:ring-0 text-sm font-mono text-slate-600"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Announcements List */}
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between">
+                            <h4 className="font-bold text-lg text-slate-800">النصوص الإعلانية</h4>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const current = formData.announcementSettings?.announcements || [];
+                                setFormData({
+                                  ...formData,
+                                  announcementSettings: {
+                                    ...(formData.announcementSettings || { enabled: true, isMarquee: true, backgroundColor: '#F8FAFC', textColor: '#0F172A', speed: 15 }),
+                                    announcements: [...current, { id: Math.random().toString(36).substr(2, 9), text: "", isActive: true }],
+                                  },
+                                });
+                              }}
+                              className="flex items-center gap-2 px-4 py-2 bg-purple-50 text-purple-600 rounded-xl hover:bg-purple-100 transition-colors text-sm font-bold"
+                            >
+                              <Plus className="w-4 h-4" />
+                              إضافة إعلان
+                            </button>
+                          </div>
+
+                          <div className="space-y-3">
+                            {formData.announcementSettings?.announcements?.map((ann, i) => (
+                              <div key={ann.id} className="flex gap-3 bg-white border border-slate-200 p-3 rounded-2xl items-start group">
+                                <button
+                                  onClick={() => {
+                                    const curr = [...(formData.announcementSettings?.announcements || [])];
+                                    if(curr[i]) curr[i].isActive = !curr[i].isActive;
+                                    setFormData({
+                                      ...formData,
+                                      announcementSettings: { ...formData.announcementSettings!, announcements: curr }
+                                    });
+                                  }}
+                                  className={`mt-2 flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-colors ${ann.isActive ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-400'}`}
+                                  title={ann.isActive ? 'مفعل' : 'معطل'}
+                                >
+                                  <Check className="w-4 h-4" />
+                                </button>
+                                <div className="flex-1 space-y-2">
+                                  <input
+                                    type="text"
+                                    className="w-full bg-slate-50 border-0 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-purple-100"
+                                    placeholder="أدخل النص الإعلاني..."
+                                    value={ann.text}
+                                    onChange={(e) => {
+                                      const curr = [...(formData.announcementSettings?.announcements || [])];
+                                      curr[i].text = e.target.value;
+                                      setFormData({
+                                        ...formData,
+                                        announcementSettings: { ...formData.announcementSettings!, announcements: curr }
+                                      });
+                                    }}
+                                  />
+                                </div>
+                                <button
+                                  onClick={() => {
+                                    const curr = formData.announcementSettings?.announcements?.filter(a => a.id !== ann.id) || [];
+                                    setFormData({
+                                      ...formData,
+                                      announcementSettings: { ...formData.announcementSettings!, announcements: curr }
+                                    });
+                                  }}
+                                  className="mt-2 flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-rose-600 hover:bg-rose-50 opacity-0 group-hover:opacity-100 transition-all"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            ))}
+                            
+                            {(!formData.announcementSettings?.announcements || formData.announcementSettings.announcements.length === 0) && (
+                              <div className="text-center py-12 bg-slate-50 border border-slate-100 border-dashed rounded-3xl">
+                                <Megaphone className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                                <p className="text-sm text-slate-500 font-medium">لم تقم بإضافة أي نصوص إعلانية بعد</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               )}
 

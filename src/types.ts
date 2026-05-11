@@ -148,6 +148,7 @@ export interface Order {
   paymentMethod: string;
   paymentReference?: string;
   paymentProof?: string;
+  paymentAmount?: string;
   shippingMethod?: "delivery" | "pickup";
   deliveryInstructions?: string;
   currency: string;
@@ -296,16 +297,6 @@ export interface AdminUser {
   lastLogin?: string;
 }
 
-export interface ActivityLog {
-  id: string;
-  userId: string;
-  userName: string;
-  action: string;
-  details: string;
-  date: string;
-  ip?: string;
-}
-
 export interface PaymentMethodConfig {
   id: string;
   name: string;
@@ -341,6 +332,14 @@ export interface StoreSettings {
   isMaintenanceMode: boolean;
   maintenanceMessage?: string;
   announcementText?: string;
+  announcementSettings?: {
+    enabled: boolean;
+    announcements: { id: string; text: string; icon?: string; isActive: boolean }[];
+    isMarquee: boolean;
+    backgroundColor: string;
+    textColor: string;
+    speed: number; // in seconds
+  };
   primaryColor: string;
   fontFamily: string;
   homeSectionOrder: string[];
@@ -415,16 +414,6 @@ export interface ShippingZone {
   freeThreshold?: number;
   estimatedDays?: string;
   isActive: boolean;
-}
-
-export interface AbandonedCart {
-  id: string;
-  customerId: string;
-  customerName: string;
-  items: CartItem[];
-  total: number;
-  lastActivity: string;
-  recovered: boolean;
 }
 
 export interface SearchTerm {

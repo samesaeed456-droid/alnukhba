@@ -65,39 +65,10 @@ const Analytics = () => {
     logActivity,
     visits,
     showToast,
-    abandonedCarts,
   } = useStore();
   const [timeRange, setTimeRange] = useState("30d");
   const [chartView, setChartView] = useState<"sales" | "visits">("sales");
   const [isExporting, setIsExporting] = useState(false);
-
-  const handleSendReminder = async (cart: any) => {
-    try {
-      showToast("تم إرسال التذكير للعميل بنجاح", "success");
-      logActivity(
-        "إرسال تذكير",
-        `تم إرسال تذكير للسلة رقم ${cart.id}`,
-      );
-    } catch (error) {
-      showToast("حدث خطأ أثناء الإرسال", "error");
-    }
-  };
-
-  const displayAbandonedCarts = useMemo(() => {
-    if (abandonedCarts && abandonedCarts.length > 0) {
-      return abandonedCarts.slice(0, 5).map((cart) => ({
-        id: cart.id,
-        time: new Date(cart.lastActivity).toLocaleDateString("ar-EG", {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-        value: cart.total,
-        items: cart.items.length,
-        customerName: cart.customerName,
-      }));
-    }
-    return [];
-  }, [abandonedCarts]);
 
   const metrics = useMemo(() => {
     const now = new Date();
@@ -359,7 +330,7 @@ const Analytics = () => {
       </div>
 
       {/* Lists Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 gap-8">
         {/* Top Products */}
         <div className="bg-white p-8 sm:p-10 rounded-[40px] shadow-sm border border-slate-100 flex flex-col">
           <div className="mb-8">
@@ -399,50 +370,6 @@ const Analytics = () => {
             {metrics.topProducts.length === 0 && (
               <div className="text-center py-12 text-slate-400 text-sm bg-slate-50 rounded-3xl flex-1 flex items-center justify-center border border-dashed border-slate-200">
                 لا توجد مبيعات في هذه الفترة
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Abandoned Carts */}
-        <div className="bg-white p-8 sm:p-10 rounded-[40px] shadow-sm border border-slate-100 flex flex-col relative overflow-hidden">
-          <div className="absolute bottom-0 left-0 w-64 h-64 bg-rose-50 rounded-full blur-3xl -z-10 pointer-events-none"></div>
-          <div className="mb-8 z-10">
-            <h3 className="text-2xl font-black text-carbon mb-2 flex items-center gap-2">
-              سلال متروكة <span className="bg-rose-100 text-rose-600 text-xs px-2 py-0.5 rounded-full font-bold">{displayAbandonedCarts.length}</span>
-            </h3>
-            <p className="text-sm text-slate-400 font-medium">عملاء أضافوا منتجات للسلة ولم يكملوا الدفع.</p>
-          </div>
-          <div className="space-y-3 flex-1 flex flex-col z-10">
-            {displayAbandonedCarts.map((cart) => (
-              <div key={cart.id} className="group flex items-center justify-between p-4 sm:p-5 rounded-3xl border border-rose-100/50 bg-white shadow-sm hover:shadow-md hover:border-rose-200 transition-all duration-300">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-500 flex items-center justify-center group-hover:scale-110 group-hover:bg-rose-500 group-hover:text-white transition-all duration-300">
-                    <ShoppingCart className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <span className="text-sm sm:text-base font-bold text-carbon block mb-1">
-                      {cart.customerName || "عميل غير معروف"}
-                    </span>
-                    <span className="text-xs text-slate-500">
-                      <span className="font-bold text-slate-600">{cart.items}</span> عناصر • {formatPrice(Number(cart.value))}
-                    </span>
-                  </div>
-                </div>
-                <div>
-                  <button
-                    onClick={() => handleSendReminder(cart)}
-                    className="flex items-center gap-2 bg-slate-900 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-rose-500 hover:shadow-lg transition-all duration-300"
-                  >
-                    <BellRing className="w-4 h-4" />
-                    تذكير
-                  </button>
-                </div>
-              </div>
-            ))}
-            {displayAbandonedCarts.length === 0 && (
-              <div className="text-center py-12 text-slate-400 text-sm bg-slate-50 rounded-3xl flex-1 flex items-center justify-center border border-dashed border-slate-200">
-                لا توجد سلال متروكة حالياً
               </div>
             )}
           </div>

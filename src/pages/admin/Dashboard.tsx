@@ -58,8 +58,6 @@ export default function Dashboard() {
     orders,
     formatPrice,
     customers,
-    abandonedCarts,
-    activityLogs,
     categories,
     syncOnDemand,
   } = useStore();
@@ -67,8 +65,6 @@ export default function Dashboard() {
   React.useEffect(() => {
     syncOnDemand("orders");
     syncOnDemand("customers");
-    syncOnDemand("activity_logs");
-    syncOnDemand("abandonedCarts");
     syncOnDemand("visits");
   }, [syncOnDemand]);
 
@@ -144,12 +140,11 @@ export default function Dashboard() {
       totalSales: totalSales || 0,
       activeOrders,
       aov: aov || 0,
-      abandonedCarts: abandonedCarts?.length || 0,
       salesGrowth: safeToFixed(salesGrowth),
       ordersGrowth: safeToFixed(ordersGrowth),
       aovGrowth: safeToFixed(aovGrowth),
     };
-  }, [orders, abandonedCarts]);
+  }, [orders]);
 
   // Sales Chart Data (Weekly or Monthly)
   const salesChartData = useMemo(() => {
@@ -323,10 +318,13 @@ export default function Dashboard() {
       const orderDate = (o.date as any)?.seconds
         ? new Date((o.date as any).seconds * 1000)
         : new Date(o.date);
+      const firstItemName = o.items && o.items.length > 0 ? o.items[0].name : "";
+      const typeLabel = firstItemName ? `${firstItemName}${o.items.length > 1 ? " والمزيد" : ""}` : `طلب #${(o.id || "").substring(0, 4)}`;
+
       return {
         id: o.id,
         shortId: (o.id || "").substring(0, 4),
-        type: "طلب جديد",
+        type: typeLabel,
         user: o.customerName,
         time: orderDate.toLocaleTimeString("ar-SA", {
           hour: "2-digit",
@@ -340,29 +338,12 @@ export default function Dashboard() {
       };
     });
 
-    if (lastOrders.length < 4) {
-      // Fill with activity logs if not enough orders
-      const logs = activityLogs.slice(0, 4 - lastOrders.length).map((log) => ({
-        id: log.id,
-        shortId: (log.id || "").substring(0, 4),
-        type: log.action,
-        user: log.userName || "النظام",
-        time: new Date(
-          (log.date as any)?.seconds
-            ? (log.date as any).seconds * 1000
-            : log.date,
-        ).toLocaleTimeString("ar-SA", { hour: "2-digit", minute: "2-digit" }),
-        amount: "نشاط",
-        icon: Activity,
-        color: "text-blue-600",
-        bg: "bg-blue-50",
-        link: "/admin/settings", // Activity logs usually relate to settings/system
-      }));
-      return [...lastOrders, ...logs];
-    }
-
     return lastOrders;
-  }, [orders, activityLogs]);
+  }, [orders]);
+
+  const regularCustomers = useMemo(() => {
+    return customers.filter((user) => user.role !== "admin" && user.isAdmin !== true);
+  }, [customers]);
 
   useEffect(() => {
     // Check if greeting was already shown in this session
@@ -427,8 +408,8 @@ export default function Dashboard() {
       initial="hidden"
       animate="visible"
     >
-      {/* Stats Grid - Professional 3-column layout on desktop */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
+      {/* Stats Grid - Professional 4-column layout on desktop */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
         {/* Sales Today */}
         <motion.div
           variants={itemVariants}
@@ -539,72 +520,6 @@ export default function Dashboard() {
             </span>
           </div>
         </motion.div>
-
-        {/* Average Order Value (AOV) */}
-        <motion.div
-          variants={itemVariants}
-          className="bg-white p-4 sm:p-6 rounded-[2rem] shadow-sm border border-slate-100 flex flex-col items-center sm:items-start text-center sm:text-right group hover:shadow-xl hover:shadow-solar/10 transition-all duration-500"
-        >
-          <div className="flex justify-between items-start w-full mb-4">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-solar/10 text-solar flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
-              <CreditCard className="w-5 h-5 sm:w-6 sm:h-6" />
-            </div>
-            <div
-              className={`text-[10px] font-black ${Number(stats.aovGrowth) >= 0 ? "text-emerald-600" : "text-rose-600"}`}
-            >
-              {Number(stats.aovGrowth) >= 0 ? "+" : ""}
-              {stats.aovGrowth}%
-            </div>
-          </div>
-          <div className="w-full">
-            <span className="text-slate-400 text-[10px] sm:text-xs font-black uppercase tracking-widest block mb-1">
-              متوسط الطلب
-            </span>
-            <div className="flex items-baseline justify-center sm:justify-start gap-1">
-              <span className="text-xl sm:text-2xl font-black text-slate-900">
-                {Math.round(stats.aov).toLocaleString()}
-              </span>
-              <span className="text-[10px] sm:text-xs font-bold text-slate-400">
-                {BASE_CURRENCY_SYMBOL}
-              </span>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Abandoned Carts */}
-        <motion.div
-          variants={itemVariants}
-          className="bg-white p-4 sm:p-6 rounded-[2rem] shadow-sm border border-slate-100 flex flex-col items-center sm:items-start text-center sm:text-right group hover:shadow-xl hover:shadow-rose-500/10 transition-all duration-500"
-        >
-          <div className="flex justify-between items-start w-full mb-4">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
-              <AlertCircle className="w-5 h-5 sm:w-6 sm:h-6" />
-            </div>
-            <div
-              className={`text-[10px] font-black ${stats.abandonedCarts > 0 ? "text-rose-600" : "text-emerald-600"}`}
-            >
-              {stats.abandonedCarts > 0 ? "تنبيه" : "مثالي"}
-            </div>
-          </div>
-          <div className="w-full flex justify-between items-end">
-            <div className="text-right">
-              <span className="text-slate-400 text-[10px] sm:text-xs font-black uppercase tracking-widest block mb-1">
-                سلال متروكة
-              </span>
-              <span className="text-xl sm:text-2xl font-black text-slate-900">
-                {stats.abandonedCarts}
-              </span>
-            </div>
-            {stats.abandonedCarts > 0 && (
-              <button
-                onClick={() => navigate("/admin/marketing")}
-                className="text-[10px] font-black text-rose-600 bg-rose-50 px-3 py-1.5 rounded-lg hover:bg-rose-100 transition-all border border-rose-100 mb-1"
-              >
-                إرسال تذكير
-              </button>
-            )}
-          </div>
-        </motion.div>
       </div>
 
       {/* Active Users Card */}
@@ -621,12 +536,12 @@ export default function Dashboard() {
               إجمالي العملاء
             </span>
             <span className="text-3xl font-black text-slate-900">
-              {customers.length}
+              {regularCustomers.length}
             </span>
           </div>
         </div>
         <div className="flex -space-x-3 rtl:space-x-reverse">
-          {customers.slice(0, 4).map((c, i) => (
+          {regularCustomers.slice(0, 4).map((c, i) => (
             <div
               key={i}
               className="w-10 h-10 rounded-full border-4 border-white bg-slate-100 overflow-hidden shadow-sm flex items-center justify-center text-[10px] font-black text-slate-400"
@@ -944,7 +859,7 @@ export default function Dashboard() {
       >
         <div className="flex items-center justify-between mb-8">
           <h3 className="text-xl font-black text-slate-900 tracking-tight">
-            أحدث العمليات
+            احدث الطلبات
           </h3>
           <Link
             to="/admin/orders"

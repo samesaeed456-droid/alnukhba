@@ -1735,6 +1735,13 @@ export default function Orders() {
                               <div className="text-[11px] sm:text-sm font-bold text-carbon">
                                 {selectedOrder.paymentMethod}
                               </div>
+                              {selectedOrder.paymentAmount && (
+                                <div className="text-[10px] sm:text-xs font-black text-emerald-600 mt-1 flex items-center gap-1.5">
+                                  <TrendingUp className="w-3 h-3" />
+                                  <span>المبلغ المدفوع (تأكيد العميل): </span>
+                                  {renderPrice(Number(selectedOrder.paymentAmount))}
+                                </div>
+                              )}
                               {selectedOrder.paymentReference && (
                                 <div className="text-[8px] sm:text-[10px] font-mono font-bold text-solar mt-0.5 sm:mt-1">
                                   المرجع: {selectedOrder.paymentReference}

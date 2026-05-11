@@ -22,7 +22,13 @@ export function useFirestoreCollection<T>(
         setLoading(false);
       },
       (error) => {
-        console.error(`Error fetching ${collectionName}:`, error);
+        const errInfo = {
+          error: error instanceof Error ? error.message : String(error),
+          operationType: "list",
+          path: collectionName,
+          authInfo: { userId: null }
+        };
+        console.error(`Firestore Error [useFirestoreCollection:${collectionName}]: `, JSON.stringify(errInfo));
         setLoading(false);
       },
     );

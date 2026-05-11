@@ -14,6 +14,7 @@ import {
   Menu,
   X,
   Ticket,
+  Wallet,
   Settings as SettingsIcon,
   TrendingUp,
   Megaphone,
@@ -329,6 +330,12 @@ export default function AdminLayout() {
             icon: Users,
             permission: "manage_customers",
           },
+          {
+            name: "طلبات شحن المحفظة",
+            path: "/admin/recharges",
+            icon: Wallet,
+            permission: "manage_orders",
+          },
         ],
       },
       {
@@ -373,12 +380,6 @@ export default function AdminLayout() {
             name: "السحابة",
             path: "/admin/cloud",
             icon: Cloud,
-            permission: "view_logs",
-          },
-          {
-            name: "سجل النشاطات",
-            path: "/admin/logs",
-            icon: Activity,
             permission: "view_logs",
           },
           {

@@ -60,6 +60,10 @@
         "total": { "type": "number" },
         "subtotal": { "type": "number" },
         "status": { "type": "string", "enum": ["pending", "processing", "shipped", "delivered", "cancelled"] },
+        "paymentMethod": { "type": "string" },
+        "paymentReference": { "type": "string" },
+        "paymentProof": { "type": "string" },
+        "paymentAmount": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["userId", "items", "total", "status"]
@@ -144,6 +148,24 @@
         "updatedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["productId", "userId", "rating", "comment", "createdAt"]
+    },
+    "RechargeRequest": {
+      "title": "RechargeRequest",
+      "description": "Wallet top-up requests from users",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "userPhone": { "type": "string" },
+        "amount": { "type": "number" },
+        "reference": { "type": "string" },
+        "proof": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "amount", "reference", "status", "createdAt"]
     }
   },
   "firestore": {
@@ -190,6 +212,10 @@
     "/passkeys/{passkeyId}": {
       "schema": "Passkey",
       "description": "User biometric authentication credentials"
+    },
+    "/recharges/{rechargeId}": {
+      "schema": "RechargeRequest",
+      "description": "Wallet top-up requests"
     }
   }
 }

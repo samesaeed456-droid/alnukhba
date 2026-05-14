@@ -1,5 +1,4 @@
 import express from "express";
-import { createServer as createViteServer } from "vite";
 import path from "path";
 import fs from "fs";
 import dotenv from "dotenv";
@@ -73,20 +72,18 @@ async function injectSEOMetadata(html: string, req: express.Request, db: any): P
       // Helper function to fetch from Firestore REST API
       const fetchDoc = async (docPath: string) => {
         try {
-          const res = await fetch(`${firestoreApiBase}/${docPath}`);
-          if (res.ok) {
-            const data = await res.json();
-            // Convert Firestore REST format to simple object
-            if (data && data.fields) {
-              const result: any = {};
-              for (const [key, val] of Object.entries<any>(data.fields)) {
-                if (val.stringValue !== undefined) result[key] = val.stringValue;
-                else if (val.integerValue !== undefined) result[key] = parseInt(val.integerValue);
-                else if (val.doubleValue !== undefined) result[key] = parseFloat(val.doubleValue);
-                else if (val.booleanValue !== undefined) result[key] = val.booleanValue;
-              }
-              return result;
+          const axios = (await import('axios')).default;
+          const res = await axios.get(`${firestoreApiBase}/${docPath}`);
+          if (res.data && res.data.fields) {
+            const data = res.data;
+            const result: any = {};
+            for (const [key, val] of Object.entries<any>(data.fields)) {
+              if (val.stringValue !== undefined) result[key] = val.stringValue;
+              else if (val.integerValue !== undefined) result[key] = parseInt(val.integerValue);
+              else if (val.doubleValue !== undefined) result[key] = parseFloat(val.doubleValue);
+              else if (val.booleanValue !== undefined) result[key] = val.booleanValue;
             }
+            return result;
           }
         } catch (e) {}
         return null;
@@ -740,7 +737,6 @@ app.post("/api/verify-otp", (req, res) => {
   res.json({ success: true });
 });
 
-import fs from 'fs';
 
 function getDb() {
   const adminApp = getApps()[0];
@@ -975,16 +971,17 @@ const distPath = path.join(process.cwd(), "dist");
 const isProduction = process.env.NODE_ENV === "production" || !!process.env.VERCEL;
 
 // Setup Routes
-async function setupRoutes() {
-  if (!isProduction) {
-    console.log("Setting up Vite middleware for local dev...");
+if (!isProduction) {
+  console.log("Setting up Vite middleware for local dev...");
+  (async () => {
     try {
+      const { createServer: createViteServer } = await import("vite");
       const vite = await createViteServer({
         server: { middlewareMode: true },
         appType: "spa",
       });
       // Custom middleware to handle SEO logic in dev
-      app.use(async (req, res, next) => {
+      app.use(async (req: any, res: any, next: any) => {
         // Skip for everything that's not a GET request for a page
         if (req.method !== 'GET' || req.path.startsWith('/api/') || req.path.includes('.')) {
           return next();
@@ -1006,39 +1003,49 @@ async function setupRoutes() {
         }
       });
       app.use(vite.middlewares);
+
+      const PORT = 3000;
+      app.listen(PORT, "0.0.0.0", () => {
+        console.log(`Server listening on http://0.0.0.0:${PORT}`);
+      });
     } catch (error) {
       console.error("Error creating Vite server:", error);
     }
-  } else {
-    // Production (Vercel or Cloud Run)
-    console.log("Setting up production routes...");
-    // Serve static files from dist first
-    app.use(express.static(distPath, {
-      maxAge: '1d',
-      etag: true,
-      index: false // Don't serve index.html directly from static, we want to inject SEO
-    }));
+  })();
+} else {
+  // Production (Vercel or Cloud Run)
+  console.log("Setting up production routes...");
+  // Serve static files from dist first
+  app.use(express.static(distPath, {
+    maxAge: '1d',
+    etag: true,
+    index: false // Don't serve index.html directly from static, we want to inject SEO
+  }));
 
-    // SPA Fallback with SEO Injection
-    app.get("*", async (req, res) => {
-      // If it looks like a file (has an extension), it's probably a missing asset
-      if (path.extname(req.path) && !req.path.endsWith('.html')) {
-        return res.status(404).send("Not found");
-      }
-      
-      // Don't inject for API routes
-      if (req.path.startsWith('/api/')) {
-        return res.status(404).json({ error: "API route not found" });
-      }
-      
+  // SPA Fallback with SEO Injection
+  app.get("*", async (req, res) => {
+    // If it looks like a file (has an extension), it's probably a missing asset
+    if (path.extname(req.path) && !req.path.endsWith('.html')) {
+      return res.status(404).send("Not found");
+    }
+    
+    // Don't inject for API routes
+    if (req.path.startsWith('/api/')) {
+      return res.status(404).json({ error: "API route not found" });
+    }
+    
       try {
         console.log(`[SEO Middleware] Prod Invoked for ${req.path}`);
-        const indexPath = path.join(distPath, "index.html");
-        // Fallback to root index.html if dist doesn't exist
-        const effectiveIndexPath = fs.existsSync(indexPath) ? indexPath : path.join(process.cwd(), "index.html");
         
-        if (!fs.existsSync(effectiveIndexPath)) {
-          console.error("[SEO Middleware] index.html not found at", effectiveIndexPath);
+        const possiblePaths = [
+          path.join(process.cwd(), "dist", "index.html"),
+          path.join(process.cwd(), "index.html")
+        ];
+        
+        const effectiveIndexPath = possiblePaths.find(p => fs.existsSync(p));
+        
+        if (!effectiveIndexPath) {
+          console.error("[SEO Middleware] index.html not found in any expected location:", possiblePaths);
           return res.status(500).send("index.html not found");
         }
 
@@ -1048,18 +1055,17 @@ async function setupRoutes() {
         return res.status(200).set('Content-Type', 'text/html').send(html);
       } catch (e) {
         console.error("[SEO Middleware] Prod Error:", e);
-        // Secure fallback to sending index.html raw
-        const fallbackPath = path.join(distPath, "index.html");
+        // Secure fallback
+        const fallbackPath = path.join(process.cwd(), "dist", "index.html");
         if (fs.existsSync(fallbackPath)) {
           return res.sendFile(fallbackPath);
         } else {
           return res.status(500).send("Internal Server Error");
         }
       }
-    });
-  }
+  });
 
-  // Global API Error Handler
+  // Global API Error Handler (Production only needs it here, dev can have it too but keep it simple)
   app.use("/api/*", (err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
     console.error(`[API Error] ${req.method} ${req.url}:`, err);
     res.status(err.status || 500).json({
@@ -1080,14 +1086,11 @@ async function setupRoutes() {
 
   // Start listening only if not on Vercel
   if (!process.env.VERCEL) {
-    const PORT = 3000;
+    const PORT = process.env.PORT || 3000;
     app.listen(PORT, "0.0.0.0", () => {
       console.log(`Server listening on http://0.0.0.0:${PORT}`);
     });
   }
 }
-
-// Execute setup
-setupRoutes();
 
 export default app;

@@ -11,9 +11,22 @@ import { generateRegistrationOptions, verifyRegistrationResponse, generateAuthen
 import axios from 'axios';
 import { fileURLToPath } from 'url';
 
-const IS_ESM = typeof import.meta !== 'undefined' && import.meta.url;
-const __filename = IS_ESM ? fileURLToPath(import.meta.url) : '';
-const __dirname = IS_ESM ? path.dirname(__filename) : process.cwd();
+let _filename: string;
+let _dirname: string;
+
+try {
+  // @ts-ignore
+  if (typeof import.meta !== 'undefined' && import.meta.url) {
+    _filename = fileURLToPath(import.meta.url);
+    _dirname = path.dirname(_filename);
+  } else {
+    _filename = typeof __filename !== 'undefined' ? __filename : '';
+    _dirname = typeof __dirname !== 'undefined' ? __dirname : process.cwd();
+  }
+} catch (e) {
+  _filename = '';
+  _dirname = process.cwd();
+}
 
 dotenv.config();
 
@@ -993,7 +1006,7 @@ app.post('/api/webauthn/login/verify', async (req, res) => {
 const distPath = path.join(process.cwd(), "dist");
 const isProduction = process.env.NODE_ENV === "production" || !!process.env.VERCEL;
 
-console.log("[Startup] Environment:", { isProduction, cwd: process.cwd(), dirname: __dirname });
+console.log("[Startup] Environment:", { isProduction, cwd: process.cwd(), dirname: _dirname });
 
 // Health check endpoint
 app.get("/api/health", (req, res) => {
@@ -1068,10 +1081,10 @@ if (!isProduction) {
         const possiblePaths = [
           path.join(process.cwd(), "dist", "index.html"),
           path.join(process.cwd(), "index.html"),
-          path.join(__dirname, "dist", "index.html"),
-          path.join(__dirname, "../dist", "index.html"),
-          path.join(__dirname, "index.html"),
-          path.join(__dirname, "../index.html")
+          path.join(_dirname, "dist", "index.html"),
+          path.join(_dirname, "../dist", "index.html"),
+          path.join(_dirname, "index.html"),
+          path.join(_dirname, "../index.html")
         ];
         
         const effectiveIndexPath = possiblePaths.find(p => fs.existsSync(p));

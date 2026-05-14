@@ -2,17 +2,17 @@
   "version": 2,
   "functions": {
     "api/index.ts": {
-      "includeFiles": "dist/**"
+      "includeFiles": "dist/**, firebase-applet-config.json, metadata.json"
     }
   },
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "/api/index"
+      "destination": "/api/index.ts"
     },
     {
       "source": "/((?!api/).*)",
-      "destination": "/api/index"
+      "destination": "/api/index.ts"
     }
   ]
 }

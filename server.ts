@@ -78,7 +78,8 @@ async function injectSEOMetadata(html: string, req: express.Request, db: any): P
       // Helper function to fetch from Firestore REST API
       const fetchDoc = async (docPath: string) => {
         try {
-          const res = await axios.get(`${firestoreApiBase}/${docPath}`);
+          console.log(`[SEO] Fetching ${docPath}...`);
+          const res = await axios.get(`${firestoreApiBase}/${docPath}`, { timeout: 5000 });
           if (res.data && res.data.fields) {
             const data = res.data;
             const result: any = {};
@@ -88,9 +89,12 @@ async function injectSEOMetadata(html: string, req: express.Request, db: any): P
               else if (val.doubleValue !== undefined) result[key] = parseFloat(val.doubleValue);
               else if (val.booleanValue !== undefined) result[key] = val.booleanValue;
             }
+            console.log(`[SEO] Successfully fetched ${docPath}`);
             return result;
           }
-        } catch (e) {}
+        } catch (e: any) {
+          console.warn(`[SEO] Failed to fetch ${docPath}: ${e.message}`);
+        }
         return null;
       };
 
@@ -112,23 +116,31 @@ async function injectSEOMetadata(html: string, req: express.Request, db: any): P
       const pathSegments = req.path.split('/').filter(Boolean);
       console.log(`[SEO] Path segments:`, pathSegments);
       if (pathSegments[0] === 'product' && pathSegments[1]) {
-        const productId = decodeURIComponent(pathSegments[1]);
-        const product = await fetchDoc(`products/${productId}`);
-        console.log("[SEO] Product fetched:", !!product, product?.name);
-        if (product) {
-          const pTitle = product.metaTitle || product.name;
-          if (pTitle) {
-            title = `${pTitle} | ${title}`;
-            console.log(`[SEO] Updated title to: ${title}`);
+        try {
+          const productId = decodeURIComponent(pathSegments[1] || "");
+          const product = await fetchDoc(`products/${productId}`);
+          console.log("[SEO] Product fetched:", !!product, product?.name);
+          if (product) {
+            const pTitle = product.metaTitle || product.name;
+            if (pTitle) {
+              title = `${pTitle} | ${title}`;
+              console.log(`[SEO] Updated title to: ${title}`);
+            }
+            const pDesc = product.metaDescription || product.description;
+            if (pDesc) description = (pDesc || '').substring(0, 200);
+            if (product.image) image = product.image;
           }
-          const pDesc = product.metaDescription || product.description;
-          if (pDesc) description = (pDesc || '').substring(0, 200);
-          if (product.image) image = product.image;
+        } catch (e) {
+          console.error("[SEO] Product decode error:", e);
         }
       } else if (pathSegments[0] === 'category' && pathSegments[1]) {
-        const categoryName = decodeURIComponent(pathSegments[1]);
-        title = `${categoryName} | ${title}`;
-        description = `تسوق أفضل منتجات ${categoryName} في ${storeName}. جودة عالية وضمان حقيقي.`;
+        try {
+          const categoryName = decodeURIComponent(pathSegments[1] || "");
+          title = `${categoryName} | ${title}`;
+          description = `تسوق أفضل منتجات ${categoryName} في ${storeName}. جودة عالية وضمان حقيقي.`;
+        } catch (e) {
+          console.error("[SEO] Category decode error:", e);
+        }
       }
     }
   } catch (e) {
@@ -154,20 +166,26 @@ async function injectSEOMetadata(html: string, req: express.Request, db: any): P
     const pathSegments = req.path.split('/').filter(Boolean);
     // Category Overrides: /category/NAME
     if (pathSegments[0] === 'category' && pathSegments[1]) {
-      const categoryName = decodeURIComponent(pathSegments[1]);
-      title = `${categoryName} | ${title}`;
-      description = `تسوق أفضل منتجات ${categoryName} في ${storeName}. جودة عالية وضمان حقيقي.`;
-      
       try {
-        const catProdSnap = await db.collection('products')
-          .where('category', '==', categoryName)
-          .limit(1)
-          .get();
-        if (!catProdSnap.empty) {
-          const catProd = catProdSnap.docs[0].data();
-          if (catProd.image) image = catProd.image;
+        const categoryName = decodeURIComponent(pathSegments[1] || "");
+        title = `${categoryName} | ${title}`;
+        description = `تسوق أفضل منتجات ${categoryName} في ${storeName}. جودة عالية وضمان حقيقي.`;
+        
+        try {
+          const catProdSnap = await db.collection('products')
+            .where('category', '==', categoryName)
+            .limit(1)
+            .get();
+          if (!catProdSnap.empty) {
+            const catProd = catProdSnap.docs[0].data();
+            if (catProd.image) image = catProd.image;
+          }
+        } catch (e) {
+             console.warn("[SEO] Admin fetch category prod image failed", e);
         }
-      } catch (e) {}
+      } catch (e) {
+        console.error("[SEO] Admin Category decode error:", e);
+      }
     }
   }
 

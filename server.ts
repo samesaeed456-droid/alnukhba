@@ -106,8 +106,10 @@ async function injectSEOMetadata(html: string, req: express.Request, db: any): P
           const productDoc = await db.collection('products').doc(productId).get();
           if (productDoc.exists) {
             const product = productDoc.data();
+            const stripHtml = (html: any) => (html || '').toString().replace(/<[^>]*>?/gm, '').trim();
             routeTitle = product?.metaTitle || product?.name;
-            routeDescription = product?.metaDescription || product?.description;
+            const plainDesc = stripHtml(product?.description);
+            routeDescription = stripHtml(product?.metaDescription) || plainDesc;
             routeImage = product?.image;
             if (!routeImage && product?.images && product?.images.length > 0) {
               routeImage = product.images[0];
@@ -143,6 +145,7 @@ async function injectSEOMetadata(html: string, req: express.Request, db: any): P
         const firebaseConfig = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
         const projectId = firebaseConfig.projectId;
         const databaseId = firebaseConfig.firestoreDatabaseId || "(default)";
+        const apiKey = firebaseConfig.apiKey;
         const firestoreApiBase = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents`;
 
         const parseFirestoreValue = (val: any): any => {
@@ -162,7 +165,8 @@ async function injectSEOMetadata(html: string, req: express.Request, db: any): P
         };
 
         const fetchDoc = async (docPath: string) => {
-           const res = await axios.get(`${firestoreApiBase}/${docPath}`, { timeout: 5000 });
+           const url = `${firestoreApiBase}/${docPath}?key=${apiKey}`;
+           const res = await axios.get(url, { timeout: 5000 });
            if (res.data && res.data.fields) {
                const result: any = {};
                for (const [key, val] of Object.entries<any>(res.data.fields)) {
@@ -187,10 +191,12 @@ async function injectSEOMetadata(html: string, req: express.Request, db: any): P
               const productId = decodeURIComponent(pathSegments[1] || "");
               const product = await fetchDoc(`products/${productId}`);
               if (product) {
+                 const stripHtml = (html: any) => (html || '').toString().replace(/<[^>]*>?/gm, '').trim();
                  routeTitle = product?.metaTitle || product?.name;
-                 routeDescription = product?.metaDescription || product?.description;
+                 const plainDesc = stripHtml(product?.description);
+                 routeDescription = stripHtml(product?.metaDescription) || plainDesc;
                  routeImage = product?.image;
-                 if (!routeImage && product?.images && product?.images.length > 0) {
+                 if (!routeImage && product?.images && Array.isArray(product.images) && product.images.length > 0) {
                     routeImage = product.images[0];
                  }
               }
@@ -230,6 +236,8 @@ async function injectSEOMetadata(html: string, req: express.Request, db: any): P
     <meta property="og:title" content="${esc(title)}" />
     <meta property="og:description" content="${esc(description)}" />
     <meta property="og:image" content="${esc(image)}" />
+    <meta property="og:image:secure_url" content="${esc(image)}" />
+    <meta property="og:image:alt" content="${esc(title)}" />
     <meta property="og:url" content="${esc(url)}" />
     <meta property="og:site_name" content="${esc(storeName)}" />
     <meta property="og:type" content="website" />

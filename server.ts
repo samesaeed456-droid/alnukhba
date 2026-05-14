@@ -45,6 +45,81 @@ console.log('[Startup] Cloudinary Check:', {
 const app = express();
 app.set("trust proxy", true);
 
+/**
+ * Robust SEO Metadata Injection
+ */
+async function injectSEOMetadata(html: string, req: express.Request, db: any): Promise<string> {
+  const protocol = req.headers['x-forwarded-proto'] || 'http';
+  const host = req.headers.host || 'localhost:3000';
+  const baseUrl = `${protocol}://${host}`;
+  const url = `${baseUrl}${req.path}`;
+  
+  let title = "متجر النخبة للإلكترونيات ومنظومات الطاقة الشمسية";
+  let description = "الرؤية الجديدة للطاقة الشمسية للإلكترونيات الذكية في اليمن.";
+  let image = `${baseUrl}/favicon.svg`;
+  let storeName = "متجر النخبة";
+
+  if (getApps().length > 0 && db) {
+    try {
+      const settingsDoc = await db.collection('settings').doc('store').get();
+      if (settingsDoc.exists) {
+        const settings = settingsDoc.data();
+        if (settings?.seo) {
+          if (settings.seo.metaTitle) title = settings.seo.metaTitle;
+          if (settings.seo.metaDescription) description = settings.seo.metaDescription;
+          if (settings.seo.ogImage) image = settings.seo.ogImage;
+        }
+        if (settings?.storeName) storeName = settings.storeName;
+      }
+    } catch (e) {}
+
+    const pathSegments = req.path.split('/').filter(Boolean);
+    if (pathSegments[0] === 'product' && pathSegments[1]) {
+      const productId = decodeURIComponent(pathSegments[1]);
+      try {
+        const productDoc = await db.collection('products').doc(productId).get();
+        if (productDoc.exists) {
+          const product = productDoc.data();
+          const pTitle = product?.metaTitle || product?.name;
+          if (pTitle) title = `${pTitle} | ${title}`;
+          const pDesc = product?.metaDescription || product?.description;
+          if (pDesc) description = (pDesc || '').substring(0, 200);
+          if (product?.image) image = product.image;
+        }
+      } catch (e) {}
+    } 
+  }
+
+  if (image && !image.startsWith('http')) {
+    image = image.startsWith('/') ? `${baseUrl}${image}` : `${baseUrl}/${image}`;
+  }
+
+  const esc = (text: any) => (text || '').toString().replace(/"/g, '&quot;').replace(/\n/g, ' ').trim();
+  const seoTags = `
+    <title>${esc(title)}</title>
+    <meta name="description" content="${esc(description)}" />
+    <meta property="og:title" content="${esc(title)}" />
+    <meta property="og:description" content="${esc(description)}" />
+    <meta property="og:image" content="${esc(image)}" />
+    <meta property="og:url" content="${esc(url)}" />
+    <meta property="og:site_name" content="${esc(storeName)}" />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="${esc(title)}" />
+    <meta name="twitter:description" content="${esc(description)}" />
+    <meta name="twitter:image" content="${esc(image)}" />
+    <link rel="canonical" href="${esc(url)}" />
+  `;
+
+  const tagsToClear = ['description', 'og:title', 'og:description', 'og:image', 'og:url', 'og:site_name', 'og:type', 'twitter:card', 'twitter:title', 'twitter:description', 'twitter:image'];
+  let cleanedHtml = html.replace(/<title>.*?<\/title>/gi, '');
+  for (const tag of tagsToClear) {
+    const reg = new RegExp(`<meta\\s+[^>]*?(property|name)="${tag}"[^>]*?\\/?>`, 'gi');
+    cleanedHtml = cleanedHtml.replace(reg, '');
+  }
+  return cleanedHtml.replace('<head>', `<head>\n${seoTags}`);
+}
+
 // Increase payload limit for base64 images
 app.use(express.json({ limit: "50mb" }));
 
@@ -771,77 +846,10 @@ async function startLocalServer() {
         }
 
         try {
-          // Logic similar to production but using vite.transformIndexHtml
           let html = fs.readFileSync(path.join(process.cwd(), "index.html"), "utf8");
+          const db = getDb();
+          html = await injectSEOMetadata(html, req, db);
           html = await vite.transformIndexHtml(req.url, html);
-
-          // Get dynamic meta values
-          const protocol = req.headers['x-forwarded-proto'] || 'http';
-          const host = req.headers.host || 'localhost:3000';
-          const baseUrl = `${protocol}://${host}`;
-          const url = `${baseUrl}${req.path}`;
-          
-          let title = "متجر النخبة للإلكترونيات ومنظومات الطاقة الشمسية";
-          let description = "الرؤية الجديدة للطاقة الشمسية والإلكترونيات الذكية في اليمن. جودة عالية وأسعار منافسة.";
-          let image = `${baseUrl}/favicon.svg`;
-
-          if (getApps().length > 0) {
-            const db = getFirestore();
-            
-            try {
-              const settingsDoc = await db.collection('settings').doc('store').get();
-              if (settingsDoc.exists) {
-                const settings = settingsDoc.data();
-                if (settings?.seo) {
-                  if (settings.seo.metaTitle) title = settings.seo.metaTitle;
-                  if (settings.seo.metaDescription) description = settings.seo.metaDescription;
-                  if (settings.seo.ogImage) image = settings.seo.ogImage;
-                } else if (settings?.storeName) {
-                  title = settings.storeName;
-                }
-              }
-            } catch (e) {}
-
-            const pathSegments = req.path.split('/').filter(Boolean);
-            if (pathSegments[0] === 'product' && pathSegments[1]) {
-              const productId = decodeURIComponent(pathSegments[1]);
-              try {
-                const productDoc = await db.collection('products').doc(productId).get();
-                if (productDoc.exists) {
-                  const product = productDoc.data();
-                  const pTitle = product?.metaTitle || product?.name;
-                  if (pTitle) title = `${pTitle} | ${title}`;
-                  const pDesc = product?.metaDescription || product?.description;
-                  if (pDesc) description = pDesc.substring(0, 200);
-                  if (product?.image) image = product.image;
-                }
-              } catch (e) {}
-            }
-          }
-
-          if (image && !image.startsWith('http')) {
-            image = image.startsWith('/') ? `${baseUrl}${image}` : `${baseUrl}/${image}`;
-          }
-
-          const replaceMeta = (currentHtml: string, property: string, content: string) => {
-            const escapedContent = content.toString().replace(/"/g, '&quot;').replace(/\n/g, ' ');
-            const propRegex = new RegExp(`<meta\\s+[^>]*property="${property}"[^>]*content="[^"]*"[^>]*\\/?>|<meta\\s+[^>]*content="[^"]*"[^>]*property="${property}"[^>]*\\/?>`, 'i');
-            if (propRegex.test(currentHtml)) return currentHtml.replace(propRegex, `<meta property="${property}" content="${escapedContent}" />`);
-            const nameRegex = new RegExp(`<meta\\s+[^>]*name="${property}"[^>]*content="[^"]*"[^>]*\\/?>|<meta\\s+[^>]*content="[^"]*"[^>]*name="${property}"[^>]*\\/?>`, 'i');
-            if (nameRegex.test(currentHtml)) return currentHtml.replace(nameRegex, `<meta name="${property}" content="${escapedContent}" />`);
-            return currentHtml.replace('</head>', `<meta property="${property}" content="${escapedContent}" />\n</head>`);
-          };
-
-          html = html.replace(/<title>.*?<\/title>/g, `<title>${title}</title>`);
-          html = replaceMeta(html, 'description', description);
-          html = replaceMeta(html, 'og:title', title);
-          html = replaceMeta(html, 'og:description', description);
-          html = replaceMeta(html, 'og:image', image);
-          html = replaceMeta(html, 'og:url', url);
-          html = replaceMeta(html, 'twitter:title', title);
-          html = replaceMeta(html, 'twitter:description', description);
-          html = replaceMeta(html, 'twitter:image', image);
-
           return res.send(html);
         } catch (e) {
           console.error("Vite SEO error:", e);
@@ -866,137 +874,14 @@ async function startLocalServer() {
       }
       
       try {
-      // 1. Dynamic Meta Tags for Social Media (Products, Categories, Home)
-      let html = fs.readFileSync(path.join(distPath, "index.html"), "utf8");
-      
-      const protocol = req.headers['x-forwarded-proto'] || 'http';
-      const host = req.headers.host || 'localhost:3000';
-      const baseUrl = `${protocol}://${host}`;
-      const url = `${baseUrl}${req.path}`;
-      
-      // Default fallback values
-      let title = "متجر النخبة للإلكترونيات ومنظومات الطاقة الشمسية";
-      let description = "الرؤية الجديدة للطاقة الشمسية والإلكترونيات الذكية في اليمن. جودة عالية وأسعار منافسة.";
-      let image = `${baseUrl}/favicon.svg`;
-
-      if (getApps().length > 0) {
+        let html = fs.readFileSync(path.join(distPath, "index.html"), "utf8");
         const db = getDb();
-        
-        // 1. Load global settings as defaults
-        try {
-          const settingsDoc = await db.collection('settings').doc('store').get();
-          if (settingsDoc.exists) {
-            const settings = settingsDoc.data();
-            if (settings?.seo) {
-              if (settings.seo.metaTitle) title = settings.seo.metaTitle;
-              if (settings.seo.metaDescription) description = settings.seo.metaDescription;
-              if (settings.seo.ogImage) image = settings.seo.ogImage;
-            } else if (settings?.storeName) {
-              title = settings.storeName;
-            }
-          }
-        } catch (e) {
-          console.error("Error fetching global settings for meta tags:", e);
-        }
-
-        // 2. Route-specific overrides
-        const pathSegments = req.path.split('/').filter(Boolean);
-        
-        // Product Overrides: /product/ID
-        if (pathSegments[0] === 'product' && pathSegments[1]) {
-          const productId = decodeURIComponent(pathSegments[1]);
-          try {
-            const productDoc = await db.collection('products').doc(productId).get();
-            if (productDoc.exists) {
-              const product = productDoc.data();
-              // Use product specific meta if available, else fallback to name
-              const pTitle = product?.metaTitle || product?.name;
-              if (pTitle) title = `${pTitle} | ${title}`;
-              
-              const pDesc = product?.metaDescription || product?.description;
-              if (pDesc) description = pDesc.substring(0, 200);
-              
-              if (product?.image) image = product.image;
-            }
-          } catch (e) {
-            console.error(`Error fetching product ${productId} for meta tags:`, e);
-          }
-        } 
-        // Category Overrides: /category/NAME
-        else if (pathSegments[0] === 'category' && pathSegments[1]) {
-          const categoryName = decodeURIComponent(pathSegments[1]);
-          title = `${categoryName} | ${title}`;
-          description = `تسوق أفضل منتجات ${categoryName} في متجرنا. جودة عالية وضمان حقيقي.`;
-          
-          try {
-            const catProdSnap = await db.collection('products')
-              .where('category', '==', categoryName)
-              .limit(1)
-              .get();
-            if (!catProdSnap.empty) {
-              const catProd = catProdSnap.docs[0].data();
-              if (catProd.image) image = catProd.image;
-            }
-          } catch (e) {
-            console.error(`Error fetching category ${categoryName} image:`, e);
-          }
-        }
-      }
-
-      // Ensure image URL is absolute for social crawlers
-      if (image && !image.startsWith('http')) {
-        image = image.startsWith('/') ? `${baseUrl}${image}` : `${baseUrl}/${image}`;
-      }
-
-      // Helper to replace meta tags robustly
-      const replaceMeta = (currentHtml: string, property: string, content: string) => {
-        const escapedContent = content.toString().replace(/"/g, '&quot;').replace(/\n/g, ' ');
-        
-        // Try property attribute (OG)
-        const propRegex = new RegExp(`<meta\\s+[^>]*property="${property}"[^>]*content="[^"]*"[^>]*\\/?>|<meta\\s+[^>]*content="[^"]*"[^>]*property="${property}"[^>]*\\/?>`, 'i');
-        if (propRegex.test(currentHtml)) {
-          return currentHtml.replace(propRegex, `<meta property="${property}" content="${escapedContent}" />`);
-        }
-        
-        // Try name attribute (Standard/Twitter)
-        const nameRegex = new RegExp(`<meta\\s+[^>]*name="${property}"[^>]*content="[^"]*"[^>]*\\/?>|<meta\\s+[^>]*content="[^"]*"[^>]*name="${property}"[^>]*\\/?>`, 'i');
-        if (nameRegex.test(currentHtml)) {
-          return currentHtml.replace(nameRegex, `<meta name="${property}" content="${escapedContent}" />`);
-        }
-        
-        // Inject if not found (before </head>)
-        return currentHtml.replace('</head>', `<meta property="${property}" content="${escapedContent}" />\n</head>`);
-      };
-
-      // Apply replacements
-      html = html.replace(/<title>.*?<\/title>/g, `<title>${title}</title>`);
-      
-      html = replaceMeta(html, 'description', description);
-      html = replaceMeta(html, 'og:title', title);
-      html = replaceMeta(html, 'og:description', description);
-      html = replaceMeta(html, 'og:image', image);
-      html = replaceMeta(html, 'og:url', url);
-      html = replaceMeta(html, 'og:site_name', "متجر النخبة");
-      
-      html = replaceMeta(html, 'twitter:card', "summary_large_image");
-      html = replaceMeta(html, 'twitter:title', title);
-      html = replaceMeta(html, 'twitter:description', description);
-      html = replaceMeta(html, 'twitter:image', image);
-
-      // Add schema.org specific meta
-      const schemaTags = `
-<meta itemprop="name" content="${title.replace(/"/g, '&quot;')}">
-<meta itemprop="description" content="${description.replace(/"/g, '&quot;')}">
-<meta itemprop="image" content="${image}">`;
-      html = html.replace('</head>', `${schemaTags}\n</head>`);
-      
-      return res.send(html);
+        html = await injectSEOMetadata(html, req, db);
+        return res.send(html);
       } catch (e) {
         console.error("Error generating dynamic meta tags:", e);
-        // Silently fail and serve default index.html below
+        res.sendFile(path.join(distPath, "index.html"));
       }
-
-      res.sendFile(path.join(distPath, "index.html"));
     });
   }
 
@@ -1011,7 +896,6 @@ async function startLocalServer() {
   });
 
   // Fallback for any other /api/* routes that weren't matched above
-  // This ensures we always return JSON for API calls instead of falling back to SPA HTML
   app.all("/api/*", (req, res) => {
     res.status(404).json({
       error: "المسار غير موجود في الخادم",

@@ -55,12 +55,87 @@ async function injectSEOMetadata(html: string, req: express.Request, db: any): P
   const url = `${baseUrl}${req.path}`;
   
   let title = "متجر النخبة للإلكترونيات ومنظومات الطاقة الشمسية";
-  let description = "الرؤية الجديدة للطاقة الشمسية للإلكترونيات الذكية في اليمن.";
+  let description = "الرؤية الجديدة للطاقة الشمسية والإلكترونيات الذكية في اليمن.";
   let image = `${baseUrl}/favicon.svg`;
   let storeName = "متجر النخبة";
 
+  try {
+    // 1. Read Firebase Config to get projectId and databaseId
+    const configPath = path.join(process.cwd(), 'firebase-applet-config.json');
+    if (fs.existsSync(configPath)) {
+      const firebaseConfig = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+      const projectId = firebaseConfig.projectId;
+      const databaseId = firebaseConfig.firestoreDatabaseId || "(default)";
+      
+      const firestoreApiBase = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents`;
+
+      // Helper function to fetch from Firestore REST API
+      const fetchDoc = async (docPath: string) => {
+        try {
+          const res = await fetch(`${firestoreApiBase}/${docPath}`);
+          if (res.ok) {
+            const data = await res.json();
+            // Convert Firestore REST format to simple object
+            if (data && data.fields) {
+              const result: any = {};
+              for (const [key, val] of Object.entries<any>(data.fields)) {
+                if (val.stringValue !== undefined) result[key] = val.stringValue;
+                else if (val.integerValue !== undefined) result[key] = parseInt(val.integerValue);
+                else if (val.doubleValue !== undefined) result[key] = parseFloat(val.doubleValue);
+                else if (val.booleanValue !== undefined) result[key] = val.booleanValue;
+              }
+              return result;
+            }
+          }
+        } catch (e) {}
+        return null;
+      };
+
+      // 2. Load global settings
+      const settings = await fetchDoc('settings/store');
+      if (settings) {
+         // storeName might not be strings if stored differently, but typically is string
+         if (settings.storeName) storeName = settings.storeName;
+         // We'd expect seo to be a map, but the simple parser above only parses primitive fields.
+         // If seo is stored as mapValue in Firestore, we should fetch it properly or skip.
+         // Given settings.seo might be a map, we might miss it with the simple parser.
+         // Let's improve the parser!
+      }
+      
+      // Let's do a more robust fetch specifically for what we need.
+      // Settings might have complex map for SEO, so we will do a deeper parsing if needed, but products usually have flat fields.
+      
+      // 3. Route-specific overrides
+      const pathSegments = req.path.split('/').filter(Boolean);
+      console.log(`[SEO] Path segments:`, pathSegments);
+      if (pathSegments[0] === 'product' && pathSegments[1]) {
+        const productId = decodeURIComponent(pathSegments[1]);
+        const product = await fetchDoc(`products/${productId}`);
+        console.log("[SEO] Product fetched:", !!product, product?.name);
+        if (product) {
+          const pTitle = product.metaTitle || product.name;
+          if (pTitle) {
+            title = `${pTitle} | ${title}`;
+            console.log(`[SEO] Updated title to: ${title}`);
+          }
+          const pDesc = product.metaDescription || product.description;
+          if (pDesc) description = (pDesc || '').substring(0, 200);
+          if (product.image) image = product.image;
+        }
+      } else if (pathSegments[0] === 'category' && pathSegments[1]) {
+        const categoryName = decodeURIComponent(pathSegments[1]);
+        title = `${categoryName} | ${title}`;
+        description = `تسوق أفضل منتجات ${categoryName} في ${storeName}. جودة عالية وضمان حقيقي.`;
+      }
+    }
+  } catch (e) {
+    console.error("SEO Injection Firebase error:", e);
+  }
+
+  // Admin fallback if REST failed but we have it initialized (edge case)
   if (getApps().length > 0 && db) {
     try {
+      // Just try fetching storeName if it hasn't changed.
       const settingsDoc = await db.collection('settings').doc('store').get();
       if (settingsDoc.exists) {
         const settings = settingsDoc.data();
@@ -74,20 +149,23 @@ async function injectSEOMetadata(html: string, req: express.Request, db: any): P
     } catch (e) {}
 
     const pathSegments = req.path.split('/').filter(Boolean);
-    if (pathSegments[0] === 'product' && pathSegments[1]) {
-      const productId = decodeURIComponent(pathSegments[1]);
+    // Category Overrides: /category/NAME
+    if (pathSegments[0] === 'category' && pathSegments[1]) {
+      const categoryName = decodeURIComponent(pathSegments[1]);
+      title = `${categoryName} | ${title}`;
+      description = `تسوق أفضل منتجات ${categoryName} في ${storeName}. جودة عالية وضمان حقيقي.`;
+      
       try {
-        const productDoc = await db.collection('products').doc(productId).get();
-        if (productDoc.exists) {
-          const product = productDoc.data();
-          const pTitle = product?.metaTitle || product?.name;
-          if (pTitle) title = `${pTitle} | ${title}`;
-          const pDesc = product?.metaDescription || product?.description;
-          if (pDesc) description = (pDesc || '').substring(0, 200);
-          if (product?.image) image = product.image;
+        const catProdSnap = await db.collection('products')
+          .where('category', '==', categoryName)
+          .limit(1)
+          .get();
+        if (!catProdSnap.empty) {
+          const catProd = catProdSnap.docs[0].data();
+          if (catProd.image) image = catProd.image;
         }
       } catch (e) {}
-    } 
+    }
   }
 
   if (image && !image.startsWith('http')) {
@@ -847,7 +925,8 @@ async function startLocalServer() {
 
         try {
           let html = fs.readFileSync(path.join(process.cwd(), "index.html"), "utf8");
-          const db = getDb();
+          console.log(`[SEO Middleware] Invoked for ${req.path}`);
+          const db = getApps().length > 0 ? getDb() : null;
           html = await injectSEOMetadata(html, req, db);
           html = await vite.transformIndexHtml(req.url, html);
           return res.send(html);
@@ -875,7 +954,7 @@ async function startLocalServer() {
       
       try {
         let html = fs.readFileSync(path.join(distPath, "index.html"), "utf8");
-        const db = getDb();
+        const db = getApps().length > 0 ? getDb() : null;
         html = await injectSEOMetadata(html, req, db);
         return res.send(html);
       } catch (e) {

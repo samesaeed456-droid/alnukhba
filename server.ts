@@ -782,37 +782,62 @@ async function startLocalServer() {
       }
       
       try {
-        // Dynamic Meta Tags for Social Media (Products & Categories)
-        if (req.path.startsWith('/product/') && getApps().length > 0) {
-          const productId = req.path.split('/')[2];
-          if (productId) {
-            const db = getDb();
-            const productDoc = await db.collection('products').doc(productId).get();
-            
-            if (productDoc.exists) {
-              const product = productDoc.data();
-              let html = fs.readFileSync(path.join(distPath, "index.html"), "utf8");
-              
-              // Replace default meta tags with product specific ones
-              html = html.replace(/<title>.*?<\/title>/g, `<title>${product?.name || 'منتج'} | متجر النخبة</title>`);
-              html = html.replace(/<meta property="og:title" content=".*?" \/>/g, `<meta property="og:title" content="${product?.name} | متجر النخبة" />`);
-              html = html.replace(/<meta name="twitter:title" content=".*?" \/>/g, `<meta name="twitter:title" content="${product?.name} | متجر النخبة" />`);
-              
-              if (product?.description) {
-                const desc = product.description.substring(0, 160).replace(/"/g, '&quot;');
-                html = html.replace(/<meta property="og:description" content=".*?" \/>/g, `<meta property="og:description" content="${desc}" />`);
-                html = html.replace(/<meta name="twitter:description" content=".*?" \/>/g, `<meta name="twitter:description" content="${desc}" />`);
+        // Dynamic Meta Tags for Social Media (Products, Categories, Home)
+        let html = fs.readFileSync(path.join(distPath, "index.html"), "utf8");
+        const url = `https://alnukhba.store${req.path}`;
+        
+        // Update basic tags regardless of route
+        html = html.replace(/<meta property="og:url" content=".*?" \/>/g, `<meta property="og:url" content="${url}" />`);
+
+        let title = "متجر النخبة للإلكترونيات ومنظومات الطاقة الشمسية";
+        let description = "الرؤية الجديدة للطاقة الشمسية والإلكترونيات الذكية في اليمن. جودة عالية وأسعار منافسة.";
+        let image = "https://alnukhba.store/favicon.svg";
+
+        if (getApps().length > 0) {
+          const db = getDb();
+          
+          if (req.path.startsWith('/product/')) {
+            const productId = req.path.split('/')[2];
+            if (productId) {
+              const productDoc = await db.collection('products').doc(productId).get();
+              if (productDoc.exists) {
+                const product = productDoc.data();
+                title = `${product?.name} | متجر النخبة`;
+                description = product?.description?.substring(0, 160) || description;
+                image = product?.image || image;
               }
+            }
+          } else if (req.path.startsWith('/category/')) {
+            const categoryName = decodeURIComponent(req.path.split('/')[2] || "");
+            if (categoryName) {
+              title = `${categoryName} | متجر النخبة`;
+              description = `تسوق أفضل منتجات ${categoryName} في متجر النخبة. جودة عالية وضمان حقيقي.`;
               
-              if (product?.image) {
-                html = html.replace(/<meta property="og:image" content=".*?" \/>/g, `<meta property="og:image" content="${product.image}" />`);
-                html = html.replace(/<meta name="twitter:image" content=".*?" \/>/g, `<meta name="twitter:image" content="${product.image}" />`);
+              // Try to find an image from a product in this category
+              const catProdSnap = await db.collection('products')
+                .where('category', '==', categoryName)
+                .limit(1)
+                .get();
+              if (!catProdSnap.empty) {
+                image = catProdSnap.docs[0].data().image || image;
               }
-              
-              return res.send(html);
             }
           }
         }
+
+        // Apply replacements with flexible regexes
+        html = html.replace(/<title>.*?<\/title>/g, `<title>${title}</title>`);
+        html = html.replace(/<meta property="og:title" content="[^"]*" \/>/g, `<meta property="og:title" content="${title}" />`);
+        html = html.replace(/<meta name="twitter:title" content="[^"]*" \/>/g, `<meta name="twitter:title" content="${title}" />`);
+        
+        const cleanDesc = description.replace(/"/g, '&quot;');
+        html = html.replace(/<meta property="og:description" content="[^"]*" \/>/g, `<meta property="og:description" content="${cleanDesc}" />`);
+        html = html.replace(/<meta name="twitter:description" content="[^"]*" \/>/g, `<meta name="twitter:description" content="${cleanDesc}" />`);
+        
+        html = html.replace(/<meta property="og:image" content="[^"]*" \/>/g, `<meta property="og:image" content="${image}" />`);
+        html = html.replace(/<meta name="twitter:image" content="[^"]*" \/>/g, `<meta name="twitter:image" content="${image}" />`);
+        
+        return res.send(html);
       } catch (e) {
         console.error("Error generating dynamic meta tags:", e);
         // Silently fail and serve default index.html below

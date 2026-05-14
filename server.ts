@@ -908,10 +908,14 @@ app.post('/api/webauthn/login/verify', async (req, res) => {
 });
 // --- END WEBAUTHN ---
 
-async function startLocalServer() {
-  console.log("Setting up Vite middleware for local dev...");
-  // Vite middleware for development
-  if (process.env.NODE_ENV !== "production") {
+// Define paths
+const distPath = path.join(process.cwd(), "dist");
+const isProduction = process.env.NODE_ENV === "production" || !!process.env.VERCEL;
+
+// Setup Routes
+async function setupRoutes() {
+  if (!isProduction) {
+    console.log("Setting up Vite middleware for local dev...");
     try {
       const vite = await createViteServer({
         server: { middlewareMode: true },
@@ -924,7 +928,10 @@ async function startLocalServer() {
         }
 
         try {
-          let html = fs.readFileSync(path.join(process.cwd(), "index.html"), "utf8");
+          const indexPath = path.join(process.cwd(), "index.html");
+          if (!fs.existsSync(indexPath)) return next();
+          
+          let html = fs.readFileSync(indexPath, "utf8");
           console.log(`[SEO Middleware] Invoked for ${req.path}`);
           const db = getApps().length > 0 ? getDb() : null;
           html = await injectSEOMetadata(html, req, db);
@@ -940,26 +947,42 @@ async function startLocalServer() {
       console.error("Error creating Vite server:", error);
     }
   } else {
-    const distPath = path.join(process.cwd(), "dist");
+    // Production (Vercel or Cloud Run)
+    console.log("Setting up production routes...");
     app.use(express.static(distPath, {
       maxAge: '1d',
       etag: true
     }));
 
-    // SPA Fallback - ensure we don't return index.html for missing static files
+    // SPA Fallback with SEO Injection
     app.get("*", async (req, res) => {
-      if (path.extname(req.path)) {
-        return res.status(404).send("File not found");
+      // Skip if likely a static asset or API
+      if (path.extname(req.path) || req.path.startsWith('/api/')) {
+        return res.status(404).send("Not found");
       }
       
       try {
-        let html = fs.readFileSync(path.join(distPath, "index.html"), "utf8");
+        const indexPath = path.join(distPath, "index.html");
+        // Fallback to root index.html if dist doesn't exist (e.g. during a weird deployment)
+        const effectiveIndexPath = fs.existsSync(indexPath) ? indexPath : path.join(process.cwd(), "index.html");
+        
+        if (!fs.existsSync(effectiveIndexPath)) {
+          return res.status(500).send("index.html not found");
+        }
+
+        let html = fs.readFileSync(effectiveIndexPath, "utf8");
         const db = getApps().length > 0 ? getDb() : null;
         html = await injectSEOMetadata(html, req, db);
         return res.send(html);
       } catch (e) {
         console.error("Error generating dynamic meta tags:", e);
-        res.sendFile(path.join(distPath, "index.html"));
+        // Absolute fallback to just sending the file without injection
+        const fallbackPath = path.join(distPath, "index.html");
+        if (fs.existsSync(fallbackPath)) {
+          res.sendFile(fallbackPath);
+        } else {
+          res.status(500).send("Internal Server Error");
+        }
       }
     });
   }
@@ -974,7 +997,7 @@ async function startLocalServer() {
     });
   });
 
-  // Fallback for any other /api/* routes that weren't matched above
+  // Fallback for any other /api/* routes that weren't matched
   app.all("/api/*", (req, res) => {
     res.status(404).json({
       error: "المسار غير موجود في الخادم",
@@ -983,15 +1006,16 @@ async function startLocalServer() {
     });
   });
 
-  const PORT = 3000;
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server listening on http://0.0.0.0:${PORT}`);
-  });
+  // Start listening only if not on Vercel
+  if (!process.env.VERCEL) {
+    const PORT = 3000;
+    app.listen(PORT, "0.0.0.0", () => {
+      console.log(`Server listening on http://0.0.0.0:${PORT}`);
+    });
+  }
 }
 
-// Start local dev server if not in Vercel
-if (!process.env.VERCEL) {
-  startLocalServer();
-}
+// Execute setup
+setupRoutes();
 
 export default app;

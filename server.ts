@@ -8,6 +8,12 @@ import { getAuth } from 'firebase-admin/auth';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { getMessaging } from 'firebase-admin/messaging';
 import { generateRegistrationOptions, verifyRegistrationResponse, generateAuthenticationOptions, verifyAuthenticationResponse } from '@simplewebauthn/server';
+import axios from 'axios';
+import { fileURLToPath } from 'url';
+
+const IS_ESM = typeof import.meta !== 'undefined' && import.meta.url;
+const __filename = IS_ESM ? fileURLToPath(import.meta.url) : '';
+const __dirname = IS_ESM ? path.dirname(__filename) : process.cwd();
 
 dotenv.config();
 
@@ -72,7 +78,6 @@ async function injectSEOMetadata(html: string, req: express.Request, db: any): P
       // Helper function to fetch from Firestore REST API
       const fetchDoc = async (docPath: string) => {
         try {
-          const axios = (await import('axios')).default;
           const res = await axios.get(`${firestoreApiBase}/${docPath}`);
           if (res.data && res.data.fields) {
             const data = res.data;
@@ -970,7 +975,12 @@ app.post('/api/webauthn/login/verify', async (req, res) => {
 const distPath = path.join(process.cwd(), "dist");
 const isProduction = process.env.NODE_ENV === "production" || !!process.env.VERCEL;
 
-// Setup Routes
+console.log("[Startup] Environment:", { isProduction, cwd: process.cwd(), dirname: __dirname });
+
+// Health check endpoint
+app.get("/api/health", (req, res) => {
+  res.json({ status: "ok", env: process.env.NODE_ENV, vercel: !!process.env.VERCEL });
+});
 if (!isProduction) {
   console.log("Setting up Vite middleware for local dev...");
   (async () => {
@@ -1039,14 +1049,19 @@ if (!isProduction) {
         
         const possiblePaths = [
           path.join(process.cwd(), "dist", "index.html"),
-          path.join(process.cwd(), "index.html")
+          path.join(process.cwd(), "index.html"),
+          path.join(__dirname, "dist", "index.html"),
+          path.join(__dirname, "../dist", "index.html"),
+          path.join(__dirname, "index.html"),
+          path.join(__dirname, "../index.html")
         ];
         
         const effectiveIndexPath = possiblePaths.find(p => fs.existsSync(p));
         
         if (!effectiveIndexPath) {
           console.error("[SEO Middleware] index.html not found in any expected location:", possiblePaths);
-          return res.status(500).send("index.html not found");
+          // Last ditch attempt
+          return res.status(200).send("<html><body><h1>Loading Store...</h1><script>window.location.reload()</script></body></html>");
         }
 
         let html = fs.readFileSync(effectiveIndexPath, "utf8");
@@ -1055,13 +1070,7 @@ if (!isProduction) {
         return res.status(200).set('Content-Type', 'text/html').send(html);
       } catch (e) {
         console.error("[SEO Middleware] Prod Error:", e);
-        // Secure fallback
-        const fallbackPath = path.join(process.cwd(), "dist", "index.html");
-        if (fs.existsSync(fallbackPath)) {
-          return res.sendFile(fallbackPath);
-        } else {
-          return res.status(500).send("Internal Server Error");
-        }
+        return res.status(500).send("Internal Server Error during SEO injection");
       }
   });
 

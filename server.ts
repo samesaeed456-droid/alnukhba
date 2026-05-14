@@ -1003,7 +1003,7 @@ app.post('/api/webauthn/login/verify', async (req, res) => {
 // --- END WEBAUTHN ---
 
 // Define paths
-const distPath = path.join(process.cwd(), "dist");
+const distPath = path.join(process.cwd(), "build");
 const isProduction = process.env.NODE_ENV === "production" || !!process.env.VERCEL;
 
 console.log("[Startup] Environment:", { isProduction, cwd: process.cwd(), dirname: _dirname });
@@ -1079,10 +1079,10 @@ if (!isProduction) {
         console.log(`[SEO Middleware] Prod Invoked for ${req.path}`);
         
         const possiblePaths = [
-          path.join(process.cwd(), "dist", "index.html"),
+          path.join(process.cwd(), "build", "index.html"),
           path.join(process.cwd(), "index.html"),
-          path.join(_dirname, "dist", "index.html"),
-          path.join(_dirname, "../dist", "index.html"),
+          path.join(_dirname, "build", "index.html"),
+          path.join(_dirname, "../build", "index.html"),
           path.join(_dirname, "index.html"),
           path.join(_dirname, "../index.html")
         ];
@@ -1126,7 +1126,7 @@ if (!isProduction) {
 
   // Start listening only if not on Vercel
   if (!process.env.VERCEL) {
-    const PORT = process.env.PORT || 3000;
+    const PORT = Number(process.env.PORT) || 3000;
     app.listen(PORT, "0.0.0.0", () => {
       console.log(`Server listening on http://0.0.0.0:${PORT}`);
     });

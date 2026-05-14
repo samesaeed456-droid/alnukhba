@@ -787,7 +787,7 @@ async function startLocalServer() {
         const url = `https://alnukhba.store${req.path}`;
         
         // Update basic tags regardless of route
-        html = html.replace(/<meta property="og:url" content=".*?" \/>/g, `<meta property="og:url" content="${url}" />`);
+        html = html.replace(/<meta\s+property="og:url"\s+content="[^"]*"\s*\/>/g, `<meta property="og:url" content="${url}" />`);
 
         let title = "متجر النخبة للإلكترونيات ومنظومات الطاقة الشمسية";
         let description = "الرؤية الجديدة للطاقة الشمسية والإلكترونيات الذكية في اليمن. جودة عالية وأسعار منافسة.";
@@ -796,13 +796,31 @@ async function startLocalServer() {
         if (getApps().length > 0) {
           const db = getDb();
           
+          // 1. Load global settings as defaults
+          try {
+            const settingsDoc = await db.collection('settings').doc('store').get();
+            if (settingsDoc.exists) {
+              const settings = settingsDoc.data();
+              if (settings?.seo) {
+                if (settings.seo.metaTitle) title = settings.seo.metaTitle;
+                if (settings.seo.metaDescription) description = settings.seo.metaDescription;
+                if (settings.seo.ogImage) image = settings.seo.ogImage;
+              } else if (settings?.storeName) {
+                title = settings.storeName;
+              }
+            }
+          } catch (e) {
+            console.error("Error fetching global settings for meta tags:", e);
+          }
+
+          // 2. Overrides for specific routes
           if (req.path.startsWith('/product/')) {
             const productId = req.path.split('/')[2];
             if (productId) {
               const productDoc = await db.collection('products').doc(productId).get();
               if (productDoc.exists) {
                 const product = productDoc.data();
-                title = `${product?.name} | متجر النخبة`;
+                title = product?.name ? `${product.name} | متجر النخبة` : title;
                 description = product?.description?.substring(0, 160) || description;
                 image = product?.image || image;
               }
@@ -825,17 +843,42 @@ async function startLocalServer() {
           }
         }
 
-        // Apply replacements with flexible regexes
+        // Helper to replace meta tags regardless of attribute order
+        const replaceMeta = (html: string, attrName: string, attrValue: string, contentValue: string, isProperty = true) => {
+          const attr = isProperty ? 'property' : 'name';
+          const escapedContent = contentValue.replace(/"/g, '&quot;');
+          // This regex matches <meta ... property="og:title" ... content="..." ... /> or the inverse order
+          const regex = new RegExp(`<meta\\s+[^>]*(${attr}="${attrValue}"[^>]*content="[^"]*"|content="[^"]*"[^>]*${attr}="${attrValue}")[^>]*\\/?>`, 'gi');
+          if (regex.test(html)) {
+            return html.replace(regex, `<meta ${attr}="${attrValue}" content="${escapedContent}" />`);
+          } else {
+            // If not found, inject it before </head> if it's important
+            return html.replace('</head>', `<meta ${attr}="${attrValue}" content="${escapedContent}" />\n</head>`);
+          }
+        };
+
+        // Update replacements with robust helper
         html = html.replace(/<title>.*?<\/title>/g, `<title>${title}</title>`);
-        html = html.replace(/<meta property="og:title" content="[^"]*" \/>/g, `<meta property="og:title" content="${title}" />`);
-        html = html.replace(/<meta name="twitter:title" content="[^"]*" \/>/g, `<meta name="twitter:title" content="${title}" />`);
         
-        const cleanDesc = description.replace(/"/g, '&quot;');
-        html = html.replace(/<meta property="og:description" content="[^"]*" \/>/g, `<meta property="og:description" content="${cleanDesc}" />`);
-        html = html.replace(/<meta name="twitter:description" content="[^"]*" \/>/g, `<meta name="twitter:description" content="${cleanDesc}" />`);
+        // Basic description
+        html = replaceMeta(html, 'description', 'description', description, false);
         
-        html = html.replace(/<meta property="og:image" content="[^"]*" \/>/g, `<meta property="og:image" content="${image}" />`);
-        html = html.replace(/<meta name="twitter:image" content="[^"]*" \/>/g, `<meta name="twitter:image" content="${image}" />`);
+        // OG tags
+        html = replaceMeta(html, 'og:title', 'og:title', title, true);
+        html = replaceMeta(html, 'og:description', 'og:description', description, true);
+        html = replaceMeta(html, 'og:image', 'og:image', image, true);
+        html = replaceMeta(html, 'og:url', 'og:url', url, true);
+        html = replaceMeta(html, 'og:site_name', 'og:site_name', "متجر النخبة", true);
+        html = replaceMeta(html, 'og:type', 'og:type', "website", true);
+
+        // Twitter tags
+        html = replaceMeta(html, 'twitter:card', 'twitter:card', "summary_large_image", false);
+        html = replaceMeta(html, 'twitter:title', 'twitter:title', title, false);
+        html = replaceMeta(html, 'twitter:description', 'twitter:description', description, false);
+        html = replaceMeta(html, 'twitter:image', 'twitter:image', image, false);
+
+        // Schema.org / Google Search
+        html = html.replace('</head', `<meta itemprop="name" content="${title.replace(/"/g, '&quot;')}">\n<meta itemprop="description" content="${description.replace(/"/g, '&quot;')}">\n<meta itemprop="image" content="${image}">\n</head`);
         
         return res.send(html);
       } catch (e) {

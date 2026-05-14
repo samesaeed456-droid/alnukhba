@@ -764,6 +764,90 @@ async function startLocalServer() {
         server: { middlewareMode: true },
         appType: "spa",
       });
+      // Custom middleware to handle SEO logic in dev
+      app.use(async (req, res, next) => {
+        if (req.method !== 'GET' || req.path.includes('.') || req.path.includes('/api/')) {
+          return next();
+        }
+
+        try {
+          // Logic similar to production but using vite.transformIndexHtml
+          let html = fs.readFileSync(path.join(process.cwd(), "index.html"), "utf8");
+          html = await vite.transformIndexHtml(req.url, html);
+
+          // Get dynamic meta values
+          const protocol = req.headers['x-forwarded-proto'] || 'http';
+          const host = req.headers.host || 'localhost:3000';
+          const baseUrl = `${protocol}://${host}`;
+          const url = `${baseUrl}${req.path}`;
+          
+          let title = "متجر النخبة للإلكترونيات ومنظومات الطاقة الشمسية";
+          let description = "الرؤية الجديدة للطاقة الشمسية والإلكترونيات الذكية في اليمن. جودة عالية وأسعار منافسة.";
+          let image = `${baseUrl}/favicon.svg`;
+
+          if (getApps().length > 0) {
+            const db = getFirestore();
+            
+            try {
+              const settingsDoc = await db.collection('settings').doc('store').get();
+              if (settingsDoc.exists) {
+                const settings = settingsDoc.data();
+                if (settings?.seo) {
+                  if (settings.seo.metaTitle) title = settings.seo.metaTitle;
+                  if (settings.seo.metaDescription) description = settings.seo.metaDescription;
+                  if (settings.seo.ogImage) image = settings.seo.ogImage;
+                } else if (settings?.storeName) {
+                  title = settings.storeName;
+                }
+              }
+            } catch (e) {}
+
+            const pathSegments = req.path.split('/').filter(Boolean);
+            if (pathSegments[0] === 'product' && pathSegments[1]) {
+              const productId = decodeURIComponent(pathSegments[1]);
+              try {
+                const productDoc = await db.collection('products').doc(productId).get();
+                if (productDoc.exists) {
+                  const product = productDoc.data();
+                  const pTitle = product?.metaTitle || product?.name;
+                  if (pTitle) title = `${pTitle} | ${title}`;
+                  const pDesc = product?.metaDescription || product?.description;
+                  if (pDesc) description = pDesc.substring(0, 200);
+                  if (product?.image) image = product.image;
+                }
+              } catch (e) {}
+            }
+          }
+
+          if (image && !image.startsWith('http')) {
+            image = image.startsWith('/') ? `${baseUrl}${image}` : `${baseUrl}/${image}`;
+          }
+
+          const replaceMeta = (currentHtml: string, property: string, content: string) => {
+            const escapedContent = content.toString().replace(/"/g, '&quot;').replace(/\n/g, ' ');
+            const propRegex = new RegExp(`<meta\\s+[^>]*property="${property}"[^>]*content="[^"]*"[^>]*\\/?>|<meta\\s+[^>]*content="[^"]*"[^>]*property="${property}"[^>]*\\/?>`, 'i');
+            if (propRegex.test(currentHtml)) return currentHtml.replace(propRegex, `<meta property="${property}" content="${escapedContent}" />`);
+            const nameRegex = new RegExp(`<meta\\s+[^>]*name="${property}"[^>]*content="[^"]*"[^>]*\\/?>|<meta\\s+[^>]*content="[^"]*"[^>]*name="${property}"[^>]*\\/?>`, 'i');
+            if (nameRegex.test(currentHtml)) return currentHtml.replace(nameRegex, `<meta name="${property}" content="${escapedContent}" />`);
+            return currentHtml.replace('</head>', `<meta property="${property}" content="${escapedContent}" />\n</head>`);
+          };
+
+          html = html.replace(/<title>.*?<\/title>/g, `<title>${title}</title>`);
+          html = replaceMeta(html, 'description', description);
+          html = replaceMeta(html, 'og:title', title);
+          html = replaceMeta(html, 'og:description', description);
+          html = replaceMeta(html, 'og:image', image);
+          html = replaceMeta(html, 'og:url', url);
+          html = replaceMeta(html, 'twitter:title', title);
+          html = replaceMeta(html, 'twitter:description', description);
+          html = replaceMeta(html, 'twitter:image', image);
+
+          return res.send(html);
+        } catch (e) {
+          console.error("Vite SEO error:", e);
+          next();
+        }
+      });
       app.use(vite.middlewares);
     } catch (error) {
       console.error("Error creating Vite server:", error);
@@ -790,7 +874,7 @@ async function startLocalServer() {
       const baseUrl = `${protocol}://${host}`;
       const url = `${baseUrl}${req.path}`;
       
-      // Load global settings as defaults
+      // Default fallback values
       let title = "متجر النخبة للإلكترونيات ومنظومات الطاقة الشمسية";
       let description = "الرؤية الجديدة للطاقة الشمسية والإلكترونيات الذكية في اليمن. جودة عالية وأسعار منافسة.";
       let image = `${baseUrl}/favicon.svg`;
@@ -798,6 +882,7 @@ async function startLocalServer() {
       if (getApps().length > 0) {
         const db = getDb();
         
+        // 1. Load global settings as defaults
         try {
           const settingsDoc = await db.collection('settings').doc('store').get();
           if (settingsDoc.exists) {
@@ -814,62 +899,72 @@ async function startLocalServer() {
           console.error("Error fetching global settings for meta tags:", e);
         }
 
-        // Product Overrides
-        if (req.path.startsWith('/product/')) {
-          const productId = req.path.split('/')[2];
-          if (productId) {
-            try {
-              const productDoc = await db.collection('products').doc(productId).get();
-              if (productDoc.exists) {
-                const product = productDoc.data();
-                title = product?.name ? `${product.name} | ${title}` : title;
-                description = product?.description?.substring(0, 160) || description;
-                image = product?.image || image;
-              }
-            } catch (e) {
-              console.error("Error fetching product for meta tags:", e);
+        // 2. Route-specific overrides
+        const pathSegments = req.path.split('/').filter(Boolean);
+        
+        // Product Overrides: /product/ID
+        if (pathSegments[0] === 'product' && pathSegments[1]) {
+          const productId = decodeURIComponent(pathSegments[1]);
+          try {
+            const productDoc = await db.collection('products').doc(productId).get();
+            if (productDoc.exists) {
+              const product = productDoc.data();
+              // Use product specific meta if available, else fallback to name
+              const pTitle = product?.metaTitle || product?.name;
+              if (pTitle) title = `${pTitle} | ${title}`;
+              
+              const pDesc = product?.metaDescription || product?.description;
+              if (pDesc) description = pDesc.substring(0, 200);
+              
+              if (product?.image) image = product.image;
             }
+          } catch (e) {
+            console.error(`Error fetching product ${productId} for meta tags:`, e);
           }
         } 
-        // Category Overrides
-        else if (req.path.startsWith('/category/')) {
-          const categoryName = decodeURIComponent(req.path.split('/')[2] || "");
-          if (categoryName) {
-            title = `${categoryName} | ${title}`;
-            description = `تسوق أفضل منتجات ${categoryName} في متجرنا. جودة عالية وضمان حقيقي.`;
-            
-            try {
-              const catProdSnap = await db.collection('products')
-                .where('category', '==', categoryName)
-                .limit(1)
-                .get();
-              if (!catProdSnap.empty) {
-                image = catProdSnap.docs[0].data().image || image;
-              }
-            } catch (e) {
-              console.error("Error fetching category image for meta tags:", e);
+        // Category Overrides: /category/NAME
+        else if (pathSegments[0] === 'category' && pathSegments[1]) {
+          const categoryName = decodeURIComponent(pathSegments[1]);
+          title = `${categoryName} | ${title}`;
+          description = `تسوق أفضل منتجات ${categoryName} في متجرنا. جودة عالية وضمان حقيقي.`;
+          
+          try {
+            const catProdSnap = await db.collection('products')
+              .where('category', '==', categoryName)
+              .limit(1)
+              .get();
+            if (!catProdSnap.empty) {
+              const catProd = catProdSnap.docs[0].data();
+              if (catProd.image) image = catProd.image;
             }
+          } catch (e) {
+            console.error(`Error fetching category ${categoryName} image:`, e);
           }
         }
       }
 
+      // Ensure image URL is absolute for social crawlers
+      if (image && !image.startsWith('http')) {
+        image = image.startsWith('/') ? `${baseUrl}${image}` : `${baseUrl}/${image}`;
+      }
+
       // Helper to replace meta tags robustly
       const replaceMeta = (currentHtml: string, property: string, content: string) => {
-        const escapedContent = content.toString().replace(/"/g, '&quot;');
+        const escapedContent = content.toString().replace(/"/g, '&quot;').replace(/\n/g, ' ');
         
-        // Try property first
+        // Try property attribute (OG)
         const propRegex = new RegExp(`<meta\\s+[^>]*property="${property}"[^>]*content="[^"]*"[^>]*\\/?>|<meta\\s+[^>]*content="[^"]*"[^>]*property="${property}"[^>]*\\/?>`, 'i');
         if (propRegex.test(currentHtml)) {
           return currentHtml.replace(propRegex, `<meta property="${property}" content="${escapedContent}" />`);
         }
         
-        // Try name
+        // Try name attribute (Standard/Twitter)
         const nameRegex = new RegExp(`<meta\\s+[^>]*name="${property}"[^>]*content="[^"]*"[^>]*\\/?>|<meta\\s+[^>]*content="[^"]*"[^>]*name="${property}"[^>]*\\/?>`, 'i');
         if (nameRegex.test(currentHtml)) {
           return currentHtml.replace(nameRegex, `<meta name="${property}" content="${escapedContent}" />`);
         }
         
-        // Inject if not found
+        // Inject if not found (before </head>)
         return currentHtml.replace('</head>', `<meta property="${property}" content="${escapedContent}" />\n</head>`);
       };
 
@@ -882,15 +977,18 @@ async function startLocalServer() {
       html = replaceMeta(html, 'og:image', image);
       html = replaceMeta(html, 'og:url', url);
       html = replaceMeta(html, 'og:site_name', "متجر النخبة");
-      html = replaceMeta(html, 'og:type', "website");
       
       html = replaceMeta(html, 'twitter:card', "summary_large_image");
       html = replaceMeta(html, 'twitter:title', title);
       html = replaceMeta(html, 'twitter:description', description);
       html = replaceMeta(html, 'twitter:image', image);
 
-      // Add schema.org/Google specific meta
-      html = html.replace('</head>', `<meta itemprop="name" content="${title.replace(/"/g, '&quot;')}">\n<meta itemprop="description" content="${description.replace(/"/g, '&quot;')}">\n<meta itemprop="image" content="${image}">\n</head>`);
+      // Add schema.org specific meta
+      const schemaTags = `
+<meta itemprop="name" content="${title.replace(/"/g, '&quot;')}">
+<meta itemprop="description" content="${description.replace(/"/g, '&quot;')}">
+<meta itemprop="image" content="${image}">`;
+      html = html.replace('</head>', `${schemaTags}\n</head>`);
       
       return res.send(html);
       } catch (e) {

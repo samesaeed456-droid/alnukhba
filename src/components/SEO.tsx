@@ -24,8 +24,10 @@ const SEO: React.FC<SEOProps> = ({
   const { settings } = useStore();
   
   // Use settings defaults if props are not provided
+  const rawOgImage = ogImage || settings.seo?.ogImage || settings.storeLogo || "/favicon.svg";
+  const finalOgImage = rawOgImage.startsWith('http') ? rawOgImage : `${window.location.origin}${rawOgImage.startsWith('/') ? '' : '/'}${rawOgImage}`;
+  
   const finalDescription = description || settings.seo?.metaDescription || "متجر النخبة للإلكترونيات - الرؤية الجديدة للطاقة الشمسية والإلكترونيات الذكية في اليمن. جودة عالية وأسعار منافسة.";
-  const finalOgImage = ogImage || settings.seo?.ogImage || settings.storeLogo || "https://alnukhba.store/favicon.svg";
   const finalCanonical = canonical || window.location.origin + window.location.pathname;
   
   const fullTitle = title 

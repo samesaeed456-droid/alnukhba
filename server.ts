@@ -603,6 +603,67 @@ app.post("/api/reset-password", async (req, res) => {
   }
 });
 
+// Unified SMS Endpoint
+app.post("/api/sms", async (req, res) => {
+  const { phone, phones, message } = req.body;
+
+  if (!message || (!phone && !phones)) {
+    return res.status(400).json({ success: false, error: "رقم الهاتف والرسالة مطلوبان" });
+  }
+
+  const username = (process.env.SMSGATE_USERNAME || "").trim();
+  const password = (process.env.SMSGATE_PASSWORD || "").trim();
+  const deviceId = (process.env.SMSGATE_DEVICE_ID || "").trim();
+  const targetUrl = (process.env.SMSGATE_URL || "https://api.sms-gate.app/3rdparty/v1/messages").trim();
+
+  if (!username || !password || !deviceId) {
+    return res.status(500).json({ success: false, error: "إعدادات الرسائل غير مكتملة" });
+  }
+
+  const formatPhone = (p: string) => {
+    let cleanPhone = p.replace(/\D/g, '').replace(/^0+/, '');
+    if (cleanPhone.length === 9 && cleanPhone.startsWith('7')) cleanPhone = '967' + cleanPhone;
+    return `+${cleanPhone}`;
+  };
+
+  const headers = {
+    'Authorization': `Basic ${Buffer.from(`${username}:${password}`).toString('base64')}`,
+    'Content-Type': 'application/json',
+    'Accept': 'application/json'
+  };
+
+  try {
+    const axios = (await import('axios')).default;
+    if (phones && Array.isArray(phones)) {
+      const promises = phones.map(async (p) => {
+        try {
+          return await axios.post(
+            targetUrl,
+            { message, phoneNumbers: [formatPhone(p)], deviceId },
+            { headers, timeout: 8000 }
+          );
+        } catch (err) { return null; }
+      });
+      await Promise.allSettled(promises);
+      return res.status(200).json({ success: true, message: "تمت معالجة الإرسال الجماعي" });
+    } else if (phone) {
+      const response = await axios.post(
+        targetUrl,
+        {
+          message: message,
+          phoneNumbers: [formatPhone(phone)],
+          deviceId: deviceId,
+          isUrgent: true
+        },
+        { headers, timeout: 20000 }
+      );
+      return res.status(200).json({ success: true, data: response.data });
+    }
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: "فشل الإرسال", details: error.message });
+  }
+});
+
 // Simple in-memory store for OTPs (For production, use Redis or Firestore)
 const otpStore = new Map<string, { code: string, expires: number }>();
 

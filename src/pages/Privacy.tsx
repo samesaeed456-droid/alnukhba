@@ -10,6 +10,7 @@ import {
   Info,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import SEO from "../components/SEO";
 
 const privacySections = [
   {
@@ -54,6 +55,10 @@ export default function Privacy() {
 
   return (
     <div className="min-h-screen bg-bg-general py-8 sm:py-24 relative overflow-hidden">
+      <SEO 
+        title="سياسة الخصوصية" 
+        description="تعرف على كيفية جمعنا وحمايتنا لبياناتك الشخصية في متجر النخبة. نحن نلتزم بأعلى معايير الأمان والخصوصية."
+      />
       <div className="absolute top-0 left-0 w-full h-96 bg-gradient-to-b from-bg-section to-bg-general -z-10" />
       <div className="absolute top-[-5%] left-[-5%] w-96 h-96 bg-emerald-500/5 rounded-full blur-[100px] -z-10" />
 

@@ -7,6 +7,7 @@ import {
 } from "react-router-dom";
 import { MotionConfig, motion } from "motion/react";
 import { Toaster, toast } from "sonner";
+import { HelmetProvider } from "react-helmet-async";
 import Layout from "./components/Layout";
 import { StoreProvider, useStore } from "./context/StoreContext";
 
@@ -63,6 +64,7 @@ import {
   onForegroundMessage,
   refreshNotificationToken,
 } from "./lib/notifications";
+import NotificationListener from "./components/NotificationListener";
 
 const SystemAlert = () => {
   const { systemError } = useStore();
@@ -298,41 +300,44 @@ const MainRoutes = () => {
 
 export default function App() {
   return (
-    <StoreProvider>
-      <OfflineStatus />
-      <SystemAlert />
-      <BlockedOverlay />
-      <InstallAppBanner />
-      <NotificationGatingModal />
-      <MotionConfig reducedMotion="user">
-        <Toaster
-          position="top-center"
-          offset="32px"
-          duration={3000}
-          closeButton
-          toastOptions={{
-            style: {
-              background: "#0F172A",
-              backdropFilter: "blur(16px)",
-              WebkitBackdropFilter: "blur(16px)",
-              border: "1px solid rgba(255, 255, 255, 0.2)",
-              color: "#FFFFFF",
-              borderRadius: "20px",
-              boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)",
-              padding: "16px 24px",
-              fontSize: "15px",
-              fontWeight: "900",
-              fontFamily: "Cairo, sans-serif",
-            },
-            className: "font-sans admin-toast-override",
-          }}
-        />
-        <Router>
-          <Suspense fallback={<LoadingFallback />}>
-            <MainRoutes />
-          </Suspense>
-        </Router>
-      </MotionConfig>
-    </StoreProvider>
+    <HelmetProvider>
+      <StoreProvider>
+        <NotificationListener />
+        <OfflineStatus />
+        <SystemAlert />
+        <BlockedOverlay />
+        <InstallAppBanner />
+        <NotificationGatingModal />
+        <MotionConfig reducedMotion="user">
+          <Toaster
+            position="top-center"
+            offset="32px"
+            duration={3000}
+            closeButton
+            toastOptions={{
+              style: {
+                background: "#0F172A",
+                backdropFilter: "blur(16px)",
+                WebkitBackdropFilter: "blur(16px)",
+                border: "1px solid rgba(255, 255, 255, 0.2)",
+                color: "#FFFFFF",
+                borderRadius: "20px",
+                boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)",
+                padding: "16px 24px",
+                fontSize: "15px",
+                fontWeight: "900",
+                fontFamily: "Cairo, sans-serif",
+              },
+              className: "font-sans admin-toast-override",
+            }}
+          />
+          <Router>
+            <Suspense fallback={<LoadingFallback />}>
+              <MainRoutes />
+            </Suspense>
+          </Router>
+        </MotionConfig>
+      </StoreProvider>
+    </HelmetProvider>
   );
 }

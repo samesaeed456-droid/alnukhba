@@ -21,6 +21,7 @@ import {
 } from "../context/StoreContext";
 import ProductCard from "../components/ProductCard";
 import { ProductCardSkeleton } from "../components/Skeleton";
+import SEO from "../components/SEO";
 import { motion } from "motion/react";
 import { FastLink } from "../components/FastLink";
 import { FloatingInput } from "../components/FloatingInput";
@@ -156,6 +157,11 @@ export default function Search() {
       animate="visible"
       className="max-w-[1600px] mx-auto px-2 sm:px-6 py-4 sm:py-8"
     >
+      <SEO 
+        title={debouncedQuery ? `نتائج البحث عن: ${debouncedQuery}` : "البحث"}
+        description={`ابحث في متجر النخبة عن أحدث منتجات الطاقة الشمسية والإلكترونيات. تم العثور على ${filteredProducts.length} نتيجة مطابقة.`}
+        noindex={!debouncedQuery}
+      />
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4 sm:mb-8">
         <motion.h1
           variants={itemVariants}

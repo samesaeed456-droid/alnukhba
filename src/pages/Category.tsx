@@ -1,6 +1,7 @@
 import React, { useMemo, useState, useCallback } from "react";
 import { useParams, useLocation } from "react-router-dom";
 import ProductCard from "../components/ProductCard";
+import SEO from "../components/SEO";
 import { motion } from "motion/react";
 import {
   ChevronRight,
@@ -90,6 +91,11 @@ export default function Category() {
 
   return (
     <div className="min-h-screen bg-slate-50/50 pt-20 sm:pt-24 pb-6">
+      <SEO 
+        title={categoryName}
+        description={`تسوق أفضل منتجات ${categoryName} في متجر النخبة. جودة عالية وضمان حقيقي على كافة الإلكترونيات ومنظومات الطاقة.`}
+        canonical={`https://alnukhba.store/category/${categoryName}`}
+      />
       <div className="max-w-[1600px] mx-auto px-2 sm:px-6 lg:px-8">
         {/* Breadcrumb */}
         <nav className="flex items-center gap-2 text-[10px] sm:text-sm text-slate-500 mb-4 sm:mb-8 overflow-x-auto hide-scrollbar whitespace-nowrap">

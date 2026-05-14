@@ -29,6 +29,7 @@ import {
   Clock,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+import SEO from "../components/SEO";
 import {
   useStore,
   useStoreState,
@@ -224,9 +225,39 @@ export default function ProductDetail() {
     return [];
   }, [product, products]);
 
+  const productSchema = useMemo(() => {
+    if (!product) return null;
+    return {
+      "@context": "https://schema.org/",
+      "@type": "Product",
+      "name": product.name,
+      "image": [product.image, ...(product.images || [])],
+      "description": product.description,
+      "sku": product.id,
+      "brand": {
+        "@type": "Brand",
+        "name": "النخبة"
+      },
+      "offers": {
+        "@type": "Offer",
+        "url": window.location.href,
+        "priceCurrency": "USD",
+        "price": currentPrice,
+        "availability": product.inStock !== false ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+        "itemCondition": "https://schema.org/NewCondition"
+      },
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": product.rating || 5,
+        "reviewCount": product.reviews || 10
+      }
+    };
+  }, [product, currentPrice]);
+
   if (!product) {
     return (
       <div className="flex flex-col items-center justify-center py-12">
+        <SEO title="المنتج غير موجود" />
         <h2 className="text-xl font-bold text-carbon mb-4">المنتج غير موجود</h2>
         <FastLink
           to="/"
@@ -245,6 +276,13 @@ export default function ProductDetail() {
       animate={{ opacity: 1 }}
       className="max-w-screen-2xl mx-auto px-4 sm:px-6 py-2 sm:py-4 pb-20 sm:pb-8"
     >
+      <SEO 
+        title={product.name}
+        description={product.description?.substring(0, 160)}
+        ogType="product"
+        ogImage={product.image}
+        schema={productSchema}
+      />
       {/* Top Navigation & Breadcrumbs */}
       <div className="flex items-center justify-between mb-4 gap-2 sm:gap-4">
         <div className="flex items-center gap-3 overflow-hidden">

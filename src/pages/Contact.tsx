@@ -20,6 +20,7 @@ import { useNavigate } from "react-router-dom";
 import confetti from "canvas-confetti";
 import { useStore } from "../context/StoreContext";
 import FloatingInput from "../components/FloatingInput";
+import SEO from "../components/SEO";
 
 const MAX_MESSAGE_LENGTH = 500;
 const PHONE_LENGTH = 9;
@@ -142,6 +143,11 @@ export default function Contact() {
       animate={{ opacity: 1 }}
       className="min-h-screen bg-slate-50/50 pb-20"
     >
+      <SEO 
+        title="تواصل معنا" 
+        description="هل لديك استفسار؟ نحن هنا للمساعدة. تواصل مع فريق دعم متجر النخبة عبر الهاتف أو الواتساب أو البريد الإلكتروني."
+        canonical="https://alnukhba.store/contact"
+      />
       {/* Header */}
       <div className="bg-white border-b border-slate-100 sticky top-0 z-20">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">

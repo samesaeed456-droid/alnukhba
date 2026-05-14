@@ -1,6 +1,7 @@
 import React from "react";
 import { Store, Users, Target, Award, CheckCircle2 } from "lucide-react";
 import { motion } from "motion/react";
+import SEO from "../components/SEO";
 
 export default function About() {
   const containerVariants = {
@@ -25,6 +26,11 @@ export default function About() {
       animate="visible"
       className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12"
     >
+      <SEO 
+        title="من نحن" 
+        description="تعرف على متجر النخبة، وجهتكم الأولى للطاقة الشمسية والإلكترونيات في اليمن منذ 2020. نلتزم بالجودة والمصداقية."
+        canonical="https://alnukhba.store/about"
+      />
       {/* Hero Section */}
       <motion.div
         variants={itemVariants}

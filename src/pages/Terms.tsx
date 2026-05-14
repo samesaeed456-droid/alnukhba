@@ -9,6 +9,7 @@ import {
   Truck,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import SEO from "../components/SEO";
 
 const termSections = [
   {
@@ -53,6 +54,10 @@ export default function Terms() {
 
   return (
     <div className="min-h-screen bg-bg-general py-8 sm:py-24 relative overflow-hidden">
+      <SEO 
+        title="الشروط والأحكام" 
+        description="يرجى قراءة شروط وأحكام استخدام متجر النخبة بعناية قبل البدء في التسوق. نحن نضمن حقوق التسوق الآمن لجميع عملائنا."
+      />
       <div className="absolute top-0 left-0 w-full h-96 bg-gradient-to-b from-bg-section to-bg-general -z-10" />
 
       <motion.div

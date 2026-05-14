@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useCallback, Suspense } from "react";
 import { Star, Zap } from "lucide-react";
 import { motion } from "motion/react";
+import SEO from "../components/SEO";
 import { useStoreState, useStoreActions } from "../context/StoreContext";
 import {
   ProductCardSkeleton,
@@ -220,8 +221,53 @@ export default function Home() {
     setActiveCategory("الكل");
   }, []);
 
+  const homeSchema = useMemo(() => ({
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": "https://alnukhba.store/#organization",
+        "name": "متجر النخبة للإلكترونيات ومنظومات الطاقة الشمسية",
+        "url": "https://alnukhba.store",
+        "logo": {
+          "@type": "ImageObject",
+          "url": "https://alnukhba.store/favicon.svg"
+        },
+        "sameAs": [
+          "https://facebook.com/alnukhba",
+          "https://instagram.com/alnukhba",
+          "https://twitter.com/alnukhba"
+        ],
+        "contactPoint": {
+          "@type": "ContactPoint",
+          "telephone": "+967777777777",
+          "contactType": "customer service",
+          "areaServed": "YE",
+          "availableLanguage": "Arabic"
+        }
+      },
+      {
+        "@type": "WebSite",
+        "@id": "https://alnukhba.store/#website",
+        "url": "https://alnukhba.store",
+        "name": "متجر النخبة",
+        "publisher": { "@id": "https://alnukhba.store/#organization" },
+        "potentialAction": {
+          "@type": "SearchAction",
+          "target": "https://alnukhba.store/search?q={search_term_string}",
+          "query-input": "required name=search_term_string"
+        }
+      }
+    ]
+  }), []);
+
   return (
     <div className="max-w-[1600px] mx-auto">
+      <SEO 
+        title="الرئيسية"
+        description="تسوق أحدث أنظمة الطاقة الشمسية، البطاريات، الشاشات الذكية، وكاميرات المراقبة في اليمن. جودة نخب أول وأسعار منافسة مع ضمان حقيقي."
+        schema={homeSchema}
+      />
       {/* Hero Section */}
       <Hero />
 

@@ -776,10 +776,48 @@ async function startLocalServer() {
     }));
 
     // SPA Fallback - ensure we don't return index.html for missing static files
-    app.get("*", (req, res) => {
+    app.get("*", async (req, res) => {
       if (path.extname(req.path)) {
         return res.status(404).send("File not found");
       }
+      
+      try {
+        // Dynamic Meta Tags for Social Media (Products & Categories)
+        if (req.path.startsWith('/product/') && getApps().length > 0) {
+          const productId = req.path.split('/')[2];
+          if (productId) {
+            const db = getDb();
+            const productDoc = await db.collection('products').doc(productId).get();
+            
+            if (productDoc.exists) {
+              const product = productDoc.data();
+              let html = fs.readFileSync(path.join(distPath, "index.html"), "utf8");
+              
+              // Replace default meta tags with product specific ones
+              html = html.replace(/<title>.*?<\/title>/g, `<title>${product?.name || 'منتج'} | متجر النخبة</title>`);
+              html = html.replace(/<meta property="og:title" content=".*?" \/>/g, `<meta property="og:title" content="${product?.name} | متجر النخبة" />`);
+              html = html.replace(/<meta name="twitter:title" content=".*?" \/>/g, `<meta name="twitter:title" content="${product?.name} | متجر النخبة" />`);
+              
+              if (product?.description) {
+                const desc = product.description.substring(0, 160).replace(/"/g, '&quot;');
+                html = html.replace(/<meta property="og:description" content=".*?" \/>/g, `<meta property="og:description" content="${desc}" />`);
+                html = html.replace(/<meta name="twitter:description" content=".*?" \/>/g, `<meta name="twitter:description" content="${desc}" />`);
+              }
+              
+              if (product?.image) {
+                html = html.replace(/<meta property="og:image" content=".*?" \/>/g, `<meta property="og:image" content="${product.image}" />`);
+                html = html.replace(/<meta name="twitter:image" content=".*?" \/>/g, `<meta name="twitter:image" content="${product.image}" />`);
+              }
+              
+              return res.send(html);
+            }
+          }
+        }
+      } catch (e) {
+        console.error("Error generating dynamic meta tags:", e);
+        // Silently fail and serve default index.html below
+      }
+
       res.sendFile(path.join(distPath, "index.html"));
     });
   }

@@ -1,10 +1,15 @@
 import React from "react";
 import { motion } from "motion/react";
 import { Truck, MapPin, ShieldCheck, Clock } from "lucide-react";
+import SEO from "../components/SEO";
 
 export default function Shipping() {
   return (
     <div className="bg-bg-general min-h-screen py-8 sm:py-24 relative overflow-hidden">
+      <SEO 
+        title="سياسة الشحن والتوصيل" 
+        description="تعرف على تفاصيل ومواعيد شحن وتوصيل الطلبات من متجر النخبة إلى جميع محافظات الجمهورية اليمنية."
+      />
       <div className="absolute top-0 left-0 w-full h-96 bg-gradient-to-b from-bg-section to-bg-general -z-10" />
 
       <motion.div

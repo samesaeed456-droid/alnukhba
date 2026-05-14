@@ -3111,12 +3111,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setNotifications((prev) =>
         prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)),
       );
-      // Optionally sync to Firestore if notification is user-specific
-      // Currently notifications appear to be local or pushed via marketing_notifications
+      if (user?.uid) {
+        const notifRef = doc(db, `users/${user.uid}/notifications`, id);
+        updateDoc(notifRef, { isRead: true }).catch(() => {});
+      }
     } catch (error) {
       console.error("Failed to mark notification as read:", error);
     }
-  }, []);
+  }, [user?.uid]);
 
   const deleteNotification = React.useCallback((id: string) => {
     setNotifications((prev) => prev.filter((n) => n.id !== id));
@@ -3129,7 +3131,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         JSON.stringify([...deletedIds, id]),
       );
     }
-  }, []);
+    if (user?.uid) {
+      deleteDoc(doc(db, `users/${user.uid}/notifications`, id)).catch(() => {});
+    }
+  }, [user?.uid]);
 
   const clearAllNotifications = React.useCallback(() => {
     setNotifications((prev) => {
@@ -3141,9 +3146,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         "store_deleted_notif_ids",
         JSON.stringify(Array.from(newDeletedIds)),
       );
+      
+      if (user?.uid) {
+        prev.forEach((n) => {
+           deleteDoc(doc(db, `users/${user.uid}/notifications`, n.id)).catch(() => {});
+        });
+      }
+      
       return [];
     });
-  }, []);
+  }, [user?.uid]);
 
   const updateNotificationSettings = React.useCallback(
     (newSettings: Partial<NotificationSettings>) => {

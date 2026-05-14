@@ -2,7 +2,7 @@
   "version": 2,
   "functions": {
     "api/index.ts": {
-      "includeFiles": "dist/**, firebase-applet-config.json, metadata.json"
+      "includeFiles": "{dist/**,firebase-applet-config.json,metadata.json}"
     }
   },
   "rewrites": [

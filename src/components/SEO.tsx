@@ -1,5 +1,6 @@
 import React from "react";
 import { Helmet } from "react-helmet-async";
+import { useStore } from "../context/StoreContext";
 
 interface SEOProps {
   title?: string;
@@ -13,16 +14,23 @@ interface SEOProps {
 
 const SEO: React.FC<SEOProps> = ({
   title,
-  description = "متجر النخبة للإلكترونيات - الرؤية الجديدة للطاقة الشمسية والإلكترونيات الذكية في اليمن. جودة عالية وأسعار منافسة.",
-  canonical = "https://alnukhba.store",
+  description,
+  canonical,
   ogType = "website",
-  ogImage = "https://alnukhba.store/favicon.svg",
+  ogImage,
   schema,
   noindex = false,
 }) => {
+  const { settings } = useStore();
+  
+  // Use settings defaults if props are not provided
+  const finalDescription = description || settings.seo?.metaDescription || "متجر النخبة للإلكترونيات - الرؤية الجديدة للطاقة الشمسية والإلكترونيات الذكية في اليمن. جودة عالية وأسعار منافسة.";
+  const finalOgImage = ogImage || settings.seo?.ogImage || settings.storeLogo || "https://alnukhba.store/favicon.svg";
+  const finalCanonical = canonical || window.location.origin + window.location.pathname;
+  
   const fullTitle = title 
-    ? `${title} | متجر النخبة للإلكترونيات` 
-    : "متجر النخبة للإلكترونيات ومنظومات الطاقة الشمسية";
+    ? `${title} | ${settings.seo?.metaTitle || settings.storeName || "متجر النخبة"}` 
+    : (settings.seo?.metaTitle || "متجر النخبة للإلكترونيات ومنظومات الطاقة الشمسية");
 
   // Default Organization Schema
   const orgSchema = {
@@ -66,22 +74,22 @@ const SEO: React.FC<SEOProps> = ({
 
       {/* Basic Meta Tags */}
       <title>{fullTitle}</title>
-      <meta name="description" content={description} />
-      <link rel="canonical" href={canonical} />
+      <meta name="description" content={finalDescription} />
+      <link rel="canonical" href={finalCanonical} />
 
       {/* Open Graph / Facebook */}
       <meta property="og:type" content={ogType} />
       <meta property="og:title" content={fullTitle} />
-      <meta property="og:description" content={description} />
-      <meta property="og:image" content={ogImage} />
-      <meta property="og:url" content={canonical} />
-      <meta property="og:site_name" content="متجر النخبة" />
+      <meta property="og:description" content={finalDescription} />
+      <meta property="og:image" content={finalOgImage} />
+      <meta property="og:url" content={finalCanonical} />
+      <meta property="og:site_name" content={settings.storeName || "متجر النخبة"} />
 
       {/* Twitter */}
       <meta name="twitter:card" content="summary_large_image" />
       <meta name="twitter:title" content={fullTitle} />
-      <meta name="twitter:description" content={description} />
-      <meta name="twitter:image" content={ogImage} />
+      <meta name="twitter:description" content={finalDescription} />
+      <meta name="twitter:image" content={finalOgImage} />
 
       {/* Schema.org JSON-LD */}
       <script type="application/ld+json">

@@ -78,131 +78,148 @@ async function injectSEOMetadata(html: string, req: express.Request, db: any): P
   let image = `${baseUrl}/favicon.svg`;
   let storeName = "متجر النخبة";
 
+  let fetchedStoreName: string | null = null;
+  let fetchedSeoSettings: any = null;
+  let routeTitle: string | null = null;
+  let routeDescription: string | null = null;
+  let routeImage: string | null = null;
+
   try {
-    // 1. Read Firebase Config to get projectId and databaseId
-    const configPath = path.join(process.cwd(), 'firebase-applet-config.json');
-    if (fs.existsSync(configPath)) {
-      const firebaseConfig = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
-      const projectId = firebaseConfig.projectId;
-      const databaseId = firebaseConfig.firestoreDatabaseId || "(default)";
-      
-      const firestoreApiBase = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents`;
-
-      // Helper function to fetch from Firestore REST API
-      const fetchDoc = async (docPath: string) => {
-        try {
-          console.log(`[SEO] Fetching ${docPath}...`);
-          const res = await axios.get(`${firestoreApiBase}/${docPath}`, { timeout: 5000 });
-          if (res.data && res.data.fields) {
-            const data = res.data;
-            const result: any = {};
-            for (const [key, val] of Object.entries<any>(data.fields)) {
-              if (val.stringValue !== undefined) result[key] = val.stringValue;
-              else if (val.integerValue !== undefined) result[key] = parseInt(val.integerValue);
-              else if (val.doubleValue !== undefined) result[key] = parseFloat(val.doubleValue);
-              else if (val.booleanValue !== undefined) result[key] = val.booleanValue;
-            }
-            console.log(`[SEO] Successfully fetched ${docPath}`);
-            return result;
-          }
-        } catch (e: any) {
-          console.warn(`[SEO] Failed to fetch ${docPath}: ${e.message}`);
+    // Determine whether to use Admin DB or REST API
+    if (getApps().length > 0 && db) {
+      // Use Admin DB
+      try {
+        const settingsDoc = await db.collection('settings').doc('store').get();
+        if (settingsDoc.exists) {
+          const settings = settingsDoc.data();
+          fetchedStoreName = settings?.storeName || null;
+          fetchedSeoSettings = settings?.seo || null;
         }
-        return null;
-      };
-
-      // 2. Load global settings
-      const settings = await fetchDoc('settings/store');
-      if (settings) {
-         // storeName might not be strings if stored differently, but typically is string
-         if (settings.storeName) storeName = settings.storeName;
-         // We'd expect seo to be a map, but the simple parser above only parses primitive fields.
-         // If seo is stored as mapValue in Firestore, we should fetch it properly or skip.
-         // Given settings.seo might be a map, we might miss it with the simple parser.
-         // Let's improve the parser!
+      } catch (e) {
+        console.warn("[SEO] Admin fetch settings error:", e);
       }
-      
-      // Let's do a more robust fetch specifically for what we need.
-      // Settings might have complex map for SEO, so we will do a deeper parsing if needed, but products usually have flat fields.
-      
-      // 3. Route-specific overrides
+
       const pathSegments = req.path.split('/').filter(Boolean);
-      console.log(`[SEO] Path segments:`, pathSegments);
       if (pathSegments[0] === 'product' && pathSegments[1]) {
         try {
           const productId = decodeURIComponent(pathSegments[1] || "");
-          const product = await fetchDoc(`products/${productId}`);
-          console.log("[SEO] Product fetched:", !!product, product?.name);
-          if (product) {
-            const pTitle = product.metaTitle || product.name;
-            if (pTitle) {
-              title = `${pTitle} | ${title}`;
-              console.log(`[SEO] Updated title to: ${title}`);
+          const productDoc = await db.collection('products').doc(productId).get();
+          if (productDoc.exists) {
+            const product = productDoc.data();
+            routeTitle = product?.metaTitle || product?.name;
+            routeDescription = product?.metaDescription || product?.description;
+            routeImage = product?.image;
+            if (!routeImage && product?.images && product?.images.length > 0) {
+              routeImage = product.images[0];
             }
-            const pDesc = product.metaDescription || product.description;
-            if (pDesc) description = (pDesc || '').substring(0, 200);
-            if (product.image) image = product.image;
           }
         } catch (e) {
-          console.error("[SEO] Product decode error:", e);
+          console.error("[SEO] Admin Product fetch error:", e);
         }
       } else if (pathSegments[0] === 'category' && pathSegments[1]) {
         try {
           const categoryName = decodeURIComponent(pathSegments[1] || "");
-          title = `${categoryName} | ${title}`;
-          description = `تسوق أفضل منتجات ${categoryName} في ${storeName}. جودة عالية وضمان حقيقي.`;
+          routeTitle = categoryName;
+          routeDescription = `تسوق أفضل منتجات ${categoryName} في ${fetchedStoreName || storeName}. جودة عالية وضمان حقيقي.`;
+          try {
+            const catProdSnap = await db.collection('products')
+              .where('category', '==', categoryName)
+              .limit(1)
+              .get();
+            if (!catProdSnap.empty) {
+              routeImage = catProdSnap.docs[0].data().image;
+            }
+          } catch (e) {
+               console.warn("[SEO] Admin fetch category prod image failed", e);
+          }
         } catch (e) {
-          console.error("[SEO] Category decode error:", e);
+          console.error("[SEO] Admin Category decode error:", e);
+        }
+      }
+    } else {
+      // Use REST API
+      const configPath = path.join(process.cwd(), 'firebase-applet-config.json');
+      if (fs.existsSync(configPath)) {
+        const firebaseConfig = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+        const projectId = firebaseConfig.projectId;
+        const databaseId = firebaseConfig.firestoreDatabaseId || "(default)";
+        const firestoreApiBase = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents`;
+
+        const parseFirestoreValue = (val: any): any => {
+          if (val.stringValue !== undefined) return val.stringValue;
+          if (val.integerValue !== undefined) return parseInt(val.integerValue);
+          if (val.doubleValue !== undefined) return parseFloat(val.doubleValue);
+          if (val.booleanValue !== undefined) return val.booleanValue;
+          if (val.arrayValue !== undefined) return (val.arrayValue.values || []).map(parseFirestoreValue);
+          if (val.mapValue !== undefined) {
+             const res: any = {};
+             for (const [k, v] of Object.entries<any>((val.mapValue.fields || {}))) {
+                res[k] = parseFirestoreValue(v);
+             }
+             return res;
+          }
+           return null;
+        };
+
+        const fetchDoc = async (docPath: string) => {
+           const res = await axios.get(`${firestoreApiBase}/${docPath}`, { timeout: 5000 });
+           if (res.data && res.data.fields) {
+               const result: any = {};
+               for (const [key, val] of Object.entries<any>(res.data.fields)) {
+                  result[key] = parseFirestoreValue(val);
+               }
+               return result;
+           }
+           return null;
+        };
+
+        try {
+          const settings = await fetchDoc('settings/store');
+          if (settings) {
+            fetchedStoreName = settings.storeName || null;
+            fetchedSeoSettings = settings.seo || null;
+          }
+        } catch (e) { console.warn("[SEO] REST store settings fetch error"); }
+
+        const pathSegments = req.path.split('/').filter(Boolean);
+        if (pathSegments[0] === 'product' && pathSegments[1]) {
+           try {
+              const productId = decodeURIComponent(pathSegments[1] || "");
+              const product = await fetchDoc(`products/${productId}`);
+              if (product) {
+                 routeTitle = product?.metaTitle || product?.name;
+                 routeDescription = product?.metaDescription || product?.description;
+                 routeImage = product?.image;
+                 if (!routeImage && product?.images && product?.images.length > 0) {
+                    routeImage = product.images[0];
+                 }
+              }
+           } catch (e) { console.warn("[SEO] REST product fetch error"); }
+        } else if (pathSegments[0] === 'category' && pathSegments[1]) {
+           const categoryName = decodeURIComponent(pathSegments[1] || "");
+           routeTitle = categoryName;
+           routeDescription = `تسوق أفضل منتجات ${categoryName} في ${fetchedStoreName || storeName}. جودة عالية وضمان حقيقي.`;
         }
       }
     }
   } catch (e) {
-    console.error("SEO Injection Firebase error:", e);
+    console.error("SEO Injection error:", e);
   }
 
-  // Admin fallback if REST failed but we have it initialized (edge case)
-  if (getApps().length > 0 && db) {
-    try {
-      // Just try fetching storeName if it hasn't changed.
-      const settingsDoc = await db.collection('settings').doc('store').get();
-      if (settingsDoc.exists) {
-        const settings = settingsDoc.data();
-        if (settings?.seo) {
-          if (settings.seo.metaTitle) title = settings.seo.metaTitle;
-          if (settings.seo.metaDescription) description = settings.seo.metaDescription;
-          if (settings.seo.ogImage) image = settings.seo.ogImage;
-        }
-        if (settings?.storeName) storeName = settings.storeName;
-      }
-    } catch (e) {}
-
-    const pathSegments = req.path.split('/').filter(Boolean);
-    // Category Overrides: /category/NAME
-    if (pathSegments[0] === 'category' && pathSegments[1]) {
-      try {
-        const categoryName = decodeURIComponent(pathSegments[1] || "");
-        title = `${categoryName} | ${title}`;
-        description = `تسوق أفضل منتجات ${categoryName} في ${storeName}. جودة عالية وضمان حقيقي.`;
-        
-        try {
-          const catProdSnap = await db.collection('products')
-            .where('category', '==', categoryName)
-            .limit(1)
-            .get();
-          if (!catProdSnap.empty) {
-            const catProd = catProdSnap.docs[0].data();
-            if (catProd.image) image = catProd.image;
-          }
-        } catch (e) {
-             console.warn("[SEO] Admin fetch category prod image failed", e);
-        }
-      } catch (e) {
-        console.error("[SEO] Admin Category decode error:", e);
-      }
-    }
+  // 1. Set global defaults if fetched
+  if (fetchedStoreName) storeName = fetchedStoreName;
+  if (fetchedSeoSettings) {
+    if (fetchedSeoSettings.metaTitle) title = fetchedSeoSettings.metaTitle;
+    if (fetchedSeoSettings.metaDescription) description = fetchedSeoSettings.metaDescription;
+    if (fetchedSeoSettings.ogImage) image = fetchedSeoSettings.ogImage;
   }
 
-  if (image && !image.startsWith('http')) {
+  // 2. Override with route specifics (important!)
+  if (routeTitle) title = `${routeTitle} - ${storeName}`;
+  if (routeDescription) description = (routeDescription || '').substring(0, 200);
+  if (routeImage) image = routeImage;
+
+  if (image && !image.startsWith('http') && !image.startsWith('data:')) {
     image = image.startsWith('/') ? `${baseUrl}${image}` : `${baseUrl}/${image}`;
   }
 

@@ -1,6 +1,7 @@
 import express from "express";
 import { createServer as createViteServer } from "vite";
 import path from "path";
+import fs from "fs";
 import dotenv from "dotenv";
 import { v2 as cloudinary } from 'cloudinary';
 import { initializeApp, cert, getApps } from 'firebase-admin/app';
@@ -923,7 +924,8 @@ async function setupRoutes() {
       });
       // Custom middleware to handle SEO logic in dev
       app.use(async (req, res, next) => {
-        if (req.method !== 'GET' || req.path.includes('.') || req.path.includes('/api/')) {
+        // Skip for everything that's not a GET request for a page
+        if (req.method !== 'GET' || req.path.startsWith('/api/') || req.path.includes('.')) {
           return next();
         }
 
@@ -931,14 +933,14 @@ async function setupRoutes() {
           const indexPath = path.join(process.cwd(), "index.html");
           if (!fs.existsSync(indexPath)) return next();
           
+          console.log(`[SEO Middleware] Dev Invoked for ${req.path}`);
           let html = fs.readFileSync(indexPath, "utf8");
-          console.log(`[SEO Middleware] Invoked for ${req.path}`);
           const db = getApps().length > 0 ? getDb() : null;
           html = await injectSEOMetadata(html, req, db);
           html = await vite.transformIndexHtml(req.url, html);
-          return res.send(html);
+          return res.status(200).set('Content-Type', 'text/html').send(html);
         } catch (e) {
-          console.error("Vite SEO error:", e);
+          console.error("[SEO Middleware] Dev Error:", e);
           next();
         }
       });
@@ -949,39 +951,48 @@ async function setupRoutes() {
   } else {
     // Production (Vercel or Cloud Run)
     console.log("Setting up production routes...");
+    // Serve static files from dist first
     app.use(express.static(distPath, {
       maxAge: '1d',
-      etag: true
+      etag: true,
+      index: false // Don't serve index.html directly from static, we want to inject SEO
     }));
 
     // SPA Fallback with SEO Injection
     app.get("*", async (req, res) => {
-      // Skip if likely a static asset or API
-      if (path.extname(req.path) || req.path.startsWith('/api/')) {
+      // If it looks like a file (has an extension), it's probably a missing asset
+      if (path.extname(req.path) && !req.path.endsWith('.html')) {
         return res.status(404).send("Not found");
       }
       
+      // Don't inject for API routes
+      if (req.path.startsWith('/api/')) {
+        return res.status(404).json({ error: "API route not found" });
+      }
+      
       try {
+        console.log(`[SEO Middleware] Prod Invoked for ${req.path}`);
         const indexPath = path.join(distPath, "index.html");
-        // Fallback to root index.html if dist doesn't exist (e.g. during a weird deployment)
+        // Fallback to root index.html if dist doesn't exist
         const effectiveIndexPath = fs.existsSync(indexPath) ? indexPath : path.join(process.cwd(), "index.html");
         
         if (!fs.existsSync(effectiveIndexPath)) {
+          console.error("[SEO Middleware] index.html not found at", effectiveIndexPath);
           return res.status(500).send("index.html not found");
         }
 
         let html = fs.readFileSync(effectiveIndexPath, "utf8");
         const db = getApps().length > 0 ? getDb() : null;
         html = await injectSEOMetadata(html, req, db);
-        return res.send(html);
+        return res.status(200).set('Content-Type', 'text/html').send(html);
       } catch (e) {
-        console.error("Error generating dynamic meta tags:", e);
-        // Absolute fallback to just sending the file without injection
+        console.error("[SEO Middleware] Prod Error:", e);
+        // Secure fallback to sending index.html raw
         const fallbackPath = path.join(distPath, "index.html");
         if (fs.existsSync(fallbackPath)) {
-          res.sendFile(fallbackPath);
+          return res.sendFile(fallbackPath);
         } else {
-          res.status(500).send("Internal Server Error");
+          return res.status(500).send("Internal Server Error");
         }
       }
     });

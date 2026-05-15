@@ -252,10 +252,15 @@ async function injectSEOMetadata(html: string, req: express.Request, db: any): P
     }
   } catch (e) { console.warn("[SEO] Failed to fetch categories for links"); }
 
+  // 3. Prevent indexing for sensitive or non-content pages
+  const nonIndexablePaths = ['/admin', '/cart', '/checkout', '/profile', '/orders', '/settings', '/login', '/register', '/search', '/success', '/cancel'];
+  const isNoIndex = nonIndexablePaths.some(path => req.path.startsWith(path));
+  const noIndexTag = isNoIndex ? '\n    <meta name="robots" content="noindex, nofollow" />' : '';
+
   const esc = (text: any) => (text || '').toString().replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, ' ').trim();
   const seoTags = `
     <title>${esc(title)}</title>
-    <meta name="description" content="${esc(description)}" />
+    <meta name="description" content="${esc(description)}" />${noIndexTag}
     <meta property="description" content="${esc(description)}" />
     <meta property="og:title" content="${esc(title)}" />
     <meta property="og:description" content="${esc(description)}" />
@@ -1183,6 +1188,17 @@ app.get("/robots.txt", (req, res) => {
   
   res.type('text/plain');
   res.send(`User-agent: *
+Disallow: /admin/
+Disallow: /cart/
+Disallow: /checkout/
+Disallow: /profile/
+Disallow: /orders/
+Disallow: /settings/
+Disallow: /login/
+Disallow: /register/
+Disallow: /search/
+Disallow: /success/
+Disallow: /cancel/
 Allow: /
 Sitemap: ${baseUrl}/sitemap.xml
 `);
@@ -1200,11 +1216,6 @@ app.get("/sitemap.xml", async (req, res) => {
     <loc>${baseUrl}/</loc>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
-  </url>
-  <url>
-    <loc>${baseUrl}/search</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.5</priority>
   </url>
   <url>
     <loc>${baseUrl}/terms</loc>

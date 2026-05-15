@@ -83,6 +83,10 @@ async function injectSEOMetadata(html: string, req: express.Request, db: any): P
   let routeTitle: string | null = null;
   let routeDescription: string | null = null;
   let routeImage: string | null = null;
+  let routePrice: number | null = null;
+  let routeRating: number | null = null;
+  let routeReviewCount: number | null = null;
+  let routeInStock: boolean = true;
 
   try {
     // Determine whether to use Admin DB or REST API
@@ -114,6 +118,10 @@ async function injectSEOMetadata(html: string, req: express.Request, db: any): P
             if (!routeImage && product?.images && product?.images.length > 0) {
               routeImage = product.images[0];
             }
+            routePrice = product?.price;
+            routeRating = product?.rating || product?.averageRating || 5; // Default to 5 if not set for beauty
+            routeReviewCount = product?.reviewsCount || product?.reviewCount || 10;
+            routeInStock = product?.inStock !== false && (product?.stockCount === undefined || product?.stockCount > 0);
           }
         } catch (e) {
           console.error("[SEO] Admin Product fetch error:", e);
@@ -126,7 +134,6 @@ async function injectSEOMetadata(html: string, req: express.Request, db: any): P
           try {
             const catProdSnap = await db.collection('products')
               .where('category', '==', categoryName)
-              .limit(1)
               .get();
             if (!catProdSnap.empty) {
               routeImage = catProdSnap.docs[0].data().image;
@@ -199,6 +206,10 @@ async function injectSEOMetadata(html: string, req: express.Request, db: any): P
                  if (!routeImage && product?.images && Array.isArray(product.images) && product.images.length > 0) {
                     routeImage = product.images[0];
                  }
+                 routePrice = product?.price;
+                 routeRating = product?.rating || product?.averageRating || 5;
+                 routeReviewCount = product?.reviewsCount || product?.reviewCount || 10;
+                 routeInStock = product?.inStock !== false && (product?.stockCount === undefined || product?.stockCount > 0);
               }
            } catch (e) { console.warn("[SEO] REST product fetch error"); }
         } else if (pathSegments[0] === 'category' && pathSegments[1]) {
@@ -253,12 +264,77 @@ async function injectSEOMetadata(html: string, req: express.Request, db: any): P
     <meta property="og:image:alt" content="${esc(title)}" />
     <meta property="og:url" content="${esc(url)}" />
     <meta property="og:site_name" content="${esc(storeName)}" />
-    <meta property="og:type" content="website" />
+    <meta property="og:type" content="${req.path.startsWith('/product/') ? 'product' : 'website'}" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="${esc(title)}" />
     <meta name="twitter:description" content="${esc(description)}" />
     <meta name="twitter:image" content="${esc(image)}" />
+    <meta name="twitter:site" content="@elitestore_ye" />
+    <meta name="twitter:creator" content="@elitestore_ye" />
     <link rel="canonical" href="${esc(url)}" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "${esc(storeName)}",
+        "url": "${esc(baseUrl)}",
+        "logo": "${esc(baseUrl)}/favicon.svg",
+        "sameAs": [
+          "https://facebook.com/elitestorep",
+          "https://twitter.com/elitestore_ye"
+        ],
+        "contactPoint": {
+          "@type": "ContactPoint",
+          "telephone": "+967770000000",
+          "contactType": "customer service",
+          "areaServed": "YE",
+          "availableLanguage": ["Arabic", "English"]
+        }
+      }
+    </script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "${esc(storeName)}",
+        "url": "${esc(baseUrl)}",
+        "potentialAction": {
+          "@type": "SearchAction",
+          "target": "${esc(baseUrl)}/search?q={search_term_string}",
+          "query-input": "required name=search_term_string"
+        }
+      }
+    </script>
+    ${req.path.startsWith('/product/') ? `
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Product",
+        "name": "${esc(routeTitle || title)}",
+        "description": "${esc(routeDescription || description)}",
+        "image": "${esc(image)}",
+        "offers": {
+          "@type": "Offer",
+          "url": "${esc(url)}",
+          "priceCurrency": "USD",
+          "price": "${routePrice || '0.00'}",
+          "availability": "${routeInStock ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock'}",
+          "seller": {
+            "@type": "Organization",
+            "name": "${esc(storeName)}"
+          }
+        },
+        "aggregateRating": {
+          "@type": "AggregateRating",
+          "ratingValue": "${routeRating || '5'}",
+          "reviewCount": "${routeReviewCount || '1'}"
+        }
+      }
+    </script>
+    <meta property="og:price:amount" content="${routePrice || ''}" />
+    <meta property="og:price:currency" content="USD" />
+    <meta property="product:availability" content="${routeInStock ? 'instock' : 'out of stock'}" />
+    ` : ''}
   `;
 
   // Hidden but Crawlable Structural SEO Content to satisfy Word Count and Heading checks

@@ -395,8 +395,8 @@ async function injectSEOMetadata(html: string, req: express.Request, db: any): P
   }
   
   return cleanedHtml
-    .replace('<head>', `<head>\n${seoTags}`)
-    .replace('<body>', `<body>\n${structuralContent}`);
+    .replace(/<head>/i, `<head>\n${seoTags}`)
+    .replace(/<body[^>]*>/i, (match) => `${match}\n${structuralContent}`);
 }
 
 // Increase payload limit for base64 images
@@ -1174,6 +1174,88 @@ const distPath = path.join(process.cwd(), "build");
 const isProduction = process.env.NODE_ENV === "production" || !!process.env.VERCEL;
 
 console.log("[Startup] Environment:", { isProduction, cwd: process.cwd(), dirname: _dirname });
+
+// Robots.txt endpoint
+app.get("/robots.txt", (req, res) => {
+  const protocol = req.headers['x-forwarded-proto'] || 'http';
+  const host = req.headers.host || 'localhost:3000';
+  const baseUrl = `${protocol}://${host}`;
+  
+  res.type('text/plain');
+  res.send(`User-agent: *
+Allow: /
+Sitemap: ${baseUrl}/sitemap.xml
+`);
+});
+
+// Sitemap.xml endpoint
+app.get("/sitemap.xml", async (req, res) => {
+  const protocol = req.headers['x-forwarded-proto'] || 'http';
+  const host = req.headers.host || 'localhost:3000';
+  const baseUrl = `${protocol}://${host}`;
+  
+  let xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>${baseUrl}/</loc>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>${baseUrl}/search</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>${baseUrl}/terms</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.1</priority>
+  </url>
+  <url>
+    <loc>${baseUrl}/privacy</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.1</priority>
+  </url>`;
+
+  try {
+    const db = getApps().length > 0 ? getDb() : null;
+    if (db) {
+      // Add Categories
+      const catsSnap = await db.collection('categories').get();
+      catsSnap.docs.forEach((doc: any) => {
+        const name = doc.data().name;
+        xml += `
+  <url>
+    <loc>${baseUrl}/category/${encodeURIComponent(name)}</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>`;
+      });
+
+      // Add Products
+      const productsSnap = await db.collection('products').get();
+      productsSnap.docs.forEach((doc: any) => {
+        const product = doc.data();
+        const updatedAt = product.updatedAt ? (product.updatedAt.toDate ? product.updatedAt.toDate().toISOString() : product.updatedAt) : new Date().toISOString();
+        xml += `
+  <url>
+    <loc>${baseUrl}/product/${encodeURIComponent(doc.id)}</loc>
+    <lastmod>${updatedAt.split('T')[0]}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>`;
+      });
+    }
+  } catch (e) {
+    console.error("[Sitemap] Generation error:", e);
+  }
+
+  xml += `
+</urlset>`;
+  
+  res.header('Content-Type', 'application/xml');
+  res.send(xml);
+});
 
 // Health check endpoint
 app.get("/api/health", (req, res) => {

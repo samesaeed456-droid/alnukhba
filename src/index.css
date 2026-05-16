@@ -75,11 +75,23 @@
   --color-transparent: transparent;
 }
 
+html, body {
+  overflow-x: hidden !important;
+  max-width: 100% !important;
+  width: 100%;
+}
+
 body {
   font-family: 'Cairo', sans-serif;
   background-color: var(--bg-general);
   direction: rtl;
   color: var(--text-main);
+}
+
+#root {
+  overflow-x: hidden !important;
+  width: 100%;
+  max-width: 100% !important;
 }
 
 /* Global Scale Down for Desktop */

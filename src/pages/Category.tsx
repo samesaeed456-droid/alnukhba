@@ -90,7 +90,7 @@ export default function Category() {
   if (!categoryName) return null;
 
   return (
-    <div className="min-h-screen bg-slate-50/50 pt-20 sm:pt-24 pb-6">
+    <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-slate-50/50 pt-20 sm:pt-24 pb-6">
       <SEO 
         title={categoryName}
         description={`تسوق أفضل منتجات ${categoryName} في متجر النخبة. جودة عالية وضمان حقيقي على كافة الإلكترونيات ومنظومات الطاقة.`}

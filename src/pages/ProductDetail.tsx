@@ -274,7 +274,7 @@ export default function ProductDetail() {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="max-w-screen-2xl mx-auto px-4 sm:px-6 py-2 sm:py-4 pb-20 sm:pb-8"
+      className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-2 sm:py-4 pb-20 sm:pb-8"
     >
       <SEO 
         title={product.name}

@@ -104,7 +104,7 @@ export default function Layout({ children }: LayoutProps) {
 
   return (
     <div
-      className="min-h-screen flex flex-col font-sans text-carbon transition-colors duration-200"
+      className="min-h-screen flex flex-col font-sans text-carbon transition-colors duration-200 overflow-x-hidden max-w-full w-full"
       dir="rtl"
     >
       <div className={isHeaderMobileHidden ? "hidden md:block" : ""}>

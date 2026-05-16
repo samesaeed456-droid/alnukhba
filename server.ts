@@ -64,6 +64,39 @@ console.log('[Startup] Cloudinary Check:', {
 const app = express();
 app.set("trust proxy", true);
 
+const esc = (text: any) => (text || '').toString()
+  .replace(/&/g, '&amp;')
+  .replace(/"/g, '&quot;')
+  .replace(/'/g, '&apos;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/\n/g, ' ')
+  .trim();
+
+// Global SEO data cache to prevent DB overhead
+let globalSettingsCache: {
+  storeName: string | null;
+  seo: any;
+  socialMedia: any;
+  timestamp: number;
+} | null = null;
+
+// Cache Firebase config
+let _cachedFirebaseConfig: any = null;
+function getFirebaseConfig() {
+  if (_cachedFirebaseConfig) return _cachedFirebaseConfig;
+  const configPath = path.join(process.cwd(), 'firebase-applet-config.json');
+  if (fs.existsSync(configPath)) {
+    try {
+      _cachedFirebaseConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+      return _cachedFirebaseConfig;
+    } catch (e) {
+      console.error("[Config] Error parsing firebase-applet-config.json:", e);
+    }
+  }
+  return null;
+}
+
 /**
  * Robust SEO Metadata Injection
  */
@@ -73,13 +106,23 @@ async function injectSEOMetadata(html: string, req: express.Request, db: any): P
   const baseUrl = `${protocol}://${host}`;
   const url = `${baseUrl}${req.path}`;
   
+  let storeName = "متجر النخبة";
   let title = "متجر النخبة للإلكترونيات ومنظومات الطاقة الشمسية";
   let description = "الرؤية الجديدة للطاقة الشمسية والإلكترونيات الذكية في اليمن.";
   let image = `${baseUrl}/favicon.svg`;
-  let storeName = "متجر النخبة";
 
   let fetchedStoreName: string | null = null;
   let fetchedSeoSettings: any = null;
+  let fetchedSocialMedia: any = null;
+
+  // Simple in-memory cache for settings
+  const now = Date.now();
+  if (globalSettingsCache && (now - globalSettingsCache.timestamp < 300000)) { // 5 minutes cache
+    fetchedStoreName = globalSettingsCache.storeName;
+    fetchedSeoSettings = globalSettingsCache.seo;
+    fetchedSocialMedia = globalSettingsCache.socialMedia;
+  }
+
   let routeTitle: string | null = null;
   let routeDescription: string | null = null;
   let routeImage: string | null = null;
@@ -89,146 +132,209 @@ async function injectSEOMetadata(html: string, req: express.Request, db: any): P
   let routeInStock: boolean = true;
 
   try {
-    // Determine whether to use Admin DB or REST API
-    if (getApps().length > 0 && db) {
-      // Use Admin DB
-      try {
-        const settingsDoc = await db.collection('settings').doc('store').get();
-        if (settingsDoc.exists) {
-          const settings = settingsDoc.data();
-          fetchedStoreName = settings?.storeName || null;
-          fetchedSeoSettings = settings?.seo || null;
-        }
-      } catch (e) {
-        console.warn("[SEO] Admin fetch settings error:", e);
-      }
+    const fetchData = async () => {
+      // Determine whether to use Admin DB or REST API
+      if (getApps().length > 0 && db) {
+        const promises: Promise<any>[] = [];
 
-      const pathSegments = req.path.split('/').filter(Boolean);
-      if (pathSegments[0] === 'product' && pathSegments[1]) {
-        try {
-          const productId = decodeURIComponent(pathSegments[1] || "");
-          const productDoc = await db.collection('products').doc(productId).get();
-          if (productDoc.exists) {
-            const product = productDoc.data();
-            const stripHtml = (html: any) => (html || '').toString().replace(/<[^>]*>?/gm, '').trim();
-            routeTitle = product?.metaTitle || product?.name;
-            const plainDesc = stripHtml(product?.description);
-            routeDescription = stripHtml(product?.metaDescription) || plainDesc;
-            routeImage = product?.image;
-            if (!routeImage && product?.images && product?.images.length > 0) {
-              routeImage = product.images[0];
-            }
-            routePrice = product?.price;
-            routeRating = product?.rating || product?.averageRating || 5; // Default to 5 if not set for beauty
-            routeReviewCount = product?.reviewsCount || product?.reviewCount || 10;
-            routeInStock = product?.inStock !== false && (product?.stockCount === undefined || product?.stockCount > 0);
-          }
-        } catch (e) {
-          console.error("[SEO] Admin Product fetch error:", e);
-        }
-      } else if (pathSegments[0] === 'category' && pathSegments[1]) {
-        try {
-          const categoryName = decodeURIComponent(pathSegments[1] || "");
-          routeTitle = categoryName;
-          routeDescription = `تسوق أفضل منتجات ${categoryName} في ${fetchedStoreName || storeName}. جودة عالية وضمان حقيقي.`;
-          try {
-            const catProdSnap = await db.collection('products')
-              .where('category', '==', categoryName)
-              .get();
-            if (!catProdSnap.empty) {
-              routeImage = catProdSnap.docs[0].data().image;
-            }
-          } catch (e) {
-               console.warn("[SEO] Admin fetch category prod image failed", e);
-          }
-        } catch (e) {
-          console.error("[SEO] Admin Category decode error:", e);
-        }
-      }
-    } else {
-      // Use REST API
-      const configPath = path.join(process.cwd(), 'firebase-applet-config.json');
-      if (fs.existsSync(configPath)) {
-        const firebaseConfig = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
-        const projectId = firebaseConfig.projectId;
-        const databaseId = firebaseConfig.firestoreDatabaseId || "(default)";
-        const apiKey = firebaseConfig.apiKey;
-        const firestoreApiBase = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents`;
-
-        const parseFirestoreValue = (val: any): any => {
-          if (val.stringValue !== undefined) return val.stringValue;
-          if (val.integerValue !== undefined) return parseInt(val.integerValue);
-          if (val.doubleValue !== undefined) return parseFloat(val.doubleValue);
-          if (val.booleanValue !== undefined) return val.booleanValue;
-          if (val.arrayValue !== undefined) return (val.arrayValue.values || []).map(parseFirestoreValue);
-          if (val.mapValue !== undefined) {
-             const res: any = {};
-             for (const [k, v] of Object.entries<any>((val.mapValue.fields || {}))) {
-                res[k] = parseFirestoreValue(v);
+        // 1. Fetch Store Settings if not in cache
+        if (!fetchedStoreName) {
+          promises.push((async () => {
+             try {
+                const settingsDoc = await db.collection('settings').doc('store').get();
+                if (settingsDoc.exists) {
+                  const settings = settingsDoc.data();
+                  fetchedStoreName = settings?.storeName || null;
+                  fetchedSeoSettings = settings?.seo || null;
+                  fetchedSocialMedia = settings?.socialMedia || null;
+                  
+                  globalSettingsCache = {
+                    storeName: fetchedStoreName,
+                    seo: fetchedSeoSettings,
+                    socialMedia: fetchedSocialMedia,
+                    timestamp: Date.now()
+                  };
+                  console.log("[SEO] Fetched and cached settings from DB");
+                }
+             } catch (e) {
+                console.warn("[SEO] Admin fetch settings error:", e instanceof Error ? e.message : e);
              }
-             return res;
-          }
-           return null;
-        };
+          })());
+        }
 
-        const fetchDoc = async (docPath: string) => {
-           const url = `${firestoreApiBase}/${docPath}?key=${apiKey}`;
-           const res = await axios.get(url, { timeout: 5000 });
-           if (res.data && res.data.fields) {
-               const result: any = {};
-               for (const [key, val] of Object.entries<any>(res.data.fields)) {
-                  result[key] = parseFirestoreValue(val);
-               }
-               return result;
-           }
-           return null;
-        };
-
-        try {
-          const settings = await fetchDoc('settings/store');
-          if (settings) {
-            fetchedStoreName = settings.storeName || null;
-            fetchedSeoSettings = settings.seo || null;
-          }
-        } catch (e) { console.warn("[SEO] REST store settings fetch error"); }
-
+        // 2. Fetch Route Specifics
         const pathSegments = req.path.split('/').filter(Boolean);
         if (pathSegments[0] === 'product' && pathSegments[1]) {
-           try {
+          promises.push((async () => {
+            try {
               const productId = decodeURIComponent(pathSegments[1] || "");
-              const product = await fetchDoc(`products/${productId}`);
-              if (product) {
-                 const stripHtml = (html: any) => (html || '').toString().replace(/<[^>]*>?/gm, '').trim();
-                 routeTitle = product?.metaTitle || product?.name;
-                 const plainDesc = stripHtml(product?.description);
-                 routeDescription = stripHtml(product?.metaDescription) || plainDesc;
-                 routeImage = product?.image;
-                 if (!routeImage && product?.images && Array.isArray(product.images) && product.images.length > 0) {
-                    routeImage = product.images[0];
-                 }
-                 routePrice = product?.price;
-                 routeRating = product?.rating || product?.averageRating || 5;
-                 routeReviewCount = product?.reviewsCount || product?.reviewCount || 10;
-                 routeInStock = product?.inStock !== false && (product?.stockCount === undefined || product?.stockCount > 0);
+              const productDoc = await db.collection('products').doc(productId).get();
+              if (productDoc.exists) {
+                const product = productDoc.data();
+                const stripHtml = (html: any) => (html || '').toString().replace(/<[^>]*>?/gm, '').trim();
+                routeTitle = product?.metaTitle || product?.name;
+                const plainDesc = stripHtml(product?.description);
+                routeDescription = stripHtml(product?.metaDescription) || plainDesc;
+                routeImage = product?.image;
+                if (!routeImage && product?.images && product?.images.length > 0) {
+                  routeImage = product.images[0];
+                }
+                routePrice = product?.price;
+                routeRating = product?.rating || product?.averageRating || 5;
+                routeReviewCount = product?.reviewsCount || product?.reviewCount || 10;
+                routeInStock = product?.inStock !== false && (product?.stockCount === undefined || product?.stockCount > 0);
               }
-           } catch (e) { console.warn("[SEO] REST product fetch error"); }
+            } catch (e) {
+              console.error("[SEO] Admin Product fetch error:", e instanceof Error ? e.message : e);
+            }
+          })());
         } else if (pathSegments[0] === 'category' && pathSegments[1]) {
-           const categoryName = decodeURIComponent(pathSegments[1] || "");
-           routeTitle = categoryName;
-           routeDescription = `تسوق أفضل منتجات ${categoryName} في ${fetchedStoreName || storeName}. جودة عالية وضمان حقيقي.`;
+          promises.push((async () => {
+            try {
+              const categoryName = decodeURIComponent(pathSegments[1] || "");
+              routeTitle = categoryName;
+              routeDescription = `تسوق أفضل منتجات ${categoryName} في ${fetchedStoreName || storeName}. جودة عالية وضمان حقيقي.`;
+              const catProdSnap = await db.collection('products')
+                .where('category', '==', categoryName)
+                .limit(1)
+                .get();
+              if (!catProdSnap.empty) {
+                routeImage = catProdSnap.docs[0].data().image;
+              }
+            } catch (e) {
+              console.warn("[SEO] Admin Category fetch error:", e instanceof Error ? e.message : e);
+            }
+          })());
+        }
+
+        await Promise.all(promises);
+      } else {
+        // Use REST API
+        const firebaseConfig = getFirebaseConfig();
+        if (firebaseConfig) {
+          const projectId = firebaseConfig.projectId;
+          const databaseId = firebaseConfig.firestoreDatabaseId || "(default)";
+          const apiKey = firebaseConfig.apiKey;
+          const firestoreApiBase = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents`;
+
+          const parseFirestoreValue = (val: any): any => {
+            if (!val) return null;
+            if (val.stringValue !== undefined) return val.stringValue;
+            if (val.integerValue !== undefined) return parseInt(val.integerValue);
+            if (val.doubleValue !== undefined) return parseFloat(val.doubleValue);
+            if (val.booleanValue !== undefined) return val.booleanValue;
+            if (val.arrayValue !== undefined) return (val.arrayValue.values || []).map(parseFirestoreValue);
+            if (val.mapValue !== undefined) {
+               const res: any = {};
+               for (const [k, v] of Object.entries<any>((val.mapValue.fields || {}))) {
+                  res[k] = parseFirestoreValue(v);
+               }
+               return res;
+            }
+             return null;
+          };
+
+          const fetchDoc = async (docPath: string) => {
+             try {
+                const url = `${firestoreApiBase}/${docPath}?key=${apiKey}`;
+                const res = await axios.get(url, { timeout: 4000 });
+                if (res.data && res.data.fields) {
+                    const result: any = {};
+                    for (const [key, val] of Object.entries<any>(res.data.fields)) {
+                       result[key] = parseFirestoreValue(val);
+                    }
+                    return result;
+                }
+             } catch (err: any) {
+                if (err.response?.status === 404) {
+                   // Silence 404s as they might be expected for some docs
+                   return null;
+                }
+                console.warn(`[SEO] REST fetchDoc failed for ${docPath}:`, err.response?.data?.error?.message || err.message);
+             }
+             return null;
+          };
+
+          const restPromises: Promise<any>[] = [];
+
+          if (!fetchedStoreName) {
+            restPromises.push((async () => {
+              try {
+                const settings = await fetchDoc('settings/store');
+                if (settings) {
+                  fetchedStoreName = settings.storeName || null;
+                  fetchedSeoSettings = settings.seo || null;
+                  fetchedSocialMedia = settings.socialMedia || null;
+                  
+                  globalSettingsCache = {
+                    storeName: fetchedStoreName,
+                    seo: fetchedSeoSettings,
+                    socialMedia: fetchedSocialMedia,
+                    timestamp: Date.now()
+                  };
+                  console.log("[SEO] Fetched and cached settings via REST API");
+                }
+              } catch (e: any) { 
+                console.warn("[SEO] REST store settings fetch error:", e.message); 
+              }
+            })());
+          }
+
+          const pathSegments = req.path.split('/').filter(Boolean);
+          if (pathSegments[0] === 'product' && pathSegments[1]) {
+             restPromises.push((async () => {
+               try {
+                  const productId = decodeURIComponent(pathSegments[1] || "");
+                  const product = await fetchDoc(`products/${productId}`);
+                  if (product) {
+                     const stripHtml = (html: any) => (html || '').toString().replace(/<[^>]*>?/gm, '').trim();
+                     routeTitle = product?.metaTitle || product?.name;
+                     const plainDesc = stripHtml(product?.description);
+                     routeDescription = stripHtml(product?.metaDescription) || plainDesc;
+                     routeImage = product?.image;
+                     if (!routeImage && product?.images && Array.isArray(product.images) && product.images.length > 0) {
+                        routeImage = product.images[0];
+                     }
+                     routePrice = product?.price;
+                     routeRating = product?.rating || product?.averageRating || 5;
+                     routeReviewCount = product?.reviewsCount || product?.reviewCount || 10;
+                     routeInStock = product?.inStock !== false && (product?.stockCount === undefined || product?.stockCount > 0);
+                  }
+               } catch (e: any) { 
+                  console.warn("[SEO] REST product fetch error:", e.message); 
+               }
+             })());
+          } else if (pathSegments[0] === 'category' && pathSegments[1]) {
+             const categoryName = decodeURIComponent(pathSegments[1] || "");
+             routeTitle = categoryName;
+             routeDescription = `تسوق أفضل منتجات ${categoryName} في ${fetchedStoreName || storeName}. جودة عالية وضمان حقيقي.`;
+          }
+
+          await Promise.all(restPromises);
         }
       }
-    }
+    };
+
+    // Race against a 5-second timeout to ensure the server responds even if DB is slow
+    await Promise.race([
+      fetchData(),
+      new Promise((_, reject) => setTimeout(() => reject(new Error("SEO Timeout")), 5000))
+    ]).catch(e => console.warn("[SEO] Fetch timed out or failed:", e.message));
+
   } catch (e) {
     console.error("SEO Injection error:", e);
   }
 
   // 1. Set global defaults if fetched
-  if (fetchedStoreName) storeName = fetchedStoreName;
+  if (fetchedStoreName) {
+    storeName = fetchedStoreName;
+    title = `${storeName} - رواد الإلكترونيات والطاقة الشمسية`;
+  }
+  
   if (fetchedSeoSettings) {
     if (fetchedSeoSettings.metaTitle) title = fetchedSeoSettings.metaTitle;
     if (fetchedSeoSettings.metaDescription) description = fetchedSeoSettings.metaDescription;
-    if (fetchedSeoSettings.ogImage) image = fetchedSeoSettings.ogImage;
+    if (fetchedSeoSettings.ogImage && fetchedSeoSettings.ogImage.length > 5) image = fetchedSeoSettings.ogImage;
   }
 
   // 2. Override with route specifics (important!)
@@ -239,6 +345,9 @@ async function injectSEOMetadata(html: string, req: express.Request, db: any): P
   if (image && !image.startsWith('http') && !image.startsWith('data:')) {
     image = image.startsWith('/') ? `${baseUrl}${image}` : `${baseUrl}/${image}`;
   }
+
+  const twitterUsername = fetchedSocialMedia?.twitter?.split('/').pop()?.replace('@', '') || "elitestore_ye";
+  const facebookUrl = fetchedSocialMedia?.facebook || "https://facebook.com/elitestorep";
 
   // Fetch some categories for internal links to satisfy "Internal Links" SEO check
   let categoriesHtml = "";
@@ -257,7 +366,6 @@ async function injectSEOMetadata(html: string, req: express.Request, db: any): P
   const isNoIndex = nonIndexablePaths.some(path => req.path.startsWith(path));
   const noIndexTag = isNoIndex ? '\n    <meta name="robots" content="noindex, nofollow" />' : '';
 
-  const esc = (text: any) => (text || '').toString().replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, ' ').trim();
   const seoTags = `
     <title>${esc(title)}</title>
     <meta name="description" content="${esc(description)}" />${noIndexTag}
@@ -274,9 +382,29 @@ async function injectSEOMetadata(html: string, req: express.Request, db: any): P
     <meta name="twitter:title" content="${esc(title)}" />
     <meta name="twitter:description" content="${esc(description)}" />
     <meta name="twitter:image" content="${esc(image)}" />
-    <meta name="twitter:site" content="@elitestore_ye" />
-    <meta name="twitter:creator" content="@elitestore_ye" />
+    <meta name="twitter:site" content="@${twitterUsername}" />
+    <meta name="twitter:creator" content="@${twitterUsername}" />
     <link rel="canonical" href="${esc(url)}" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          {
+            "@type": "ListItem",
+            "position": 1,
+            "name": "الرئيسية",
+            "item": "${esc(baseUrl)}"
+          }
+          ${routeTitle ? `, {
+            "@type": "ListItem",
+            "position": 2,
+            "name": "${esc(routeTitle)}",
+            "item": "${esc(url)}"
+          }` : ''}
+        ]
+      }
+    </script>
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -285,8 +413,8 @@ async function injectSEOMetadata(html: string, req: express.Request, db: any): P
         "url": "${esc(baseUrl)}",
         "logo": "${esc(baseUrl)}/favicon.svg",
         "sameAs": [
-          "https://facebook.com/elitestorep",
-          "https://twitter.com/elitestore_ye"
+          "${esc(facebookUrl)}",
+          "https://twitter.com/${twitterUsername}"
         ],
         "contactPoint": {
           "@type": "ContactPoint",
@@ -318,11 +446,18 @@ async function injectSEOMetadata(html: string, req: express.Request, db: any): P
         "name": "${esc(routeTitle || title)}",
         "description": "${esc(routeDescription || description)}",
         "image": "${esc(image)}",
+        "sku": "${esc(req.path.split('/').pop())}",
+        "brand": {
+          "@type": "Brand",
+          "name": "${esc(storeName)}"
+        },
         "offers": {
           "@type": "Offer",
           "url": "${esc(url)}",
           "priceCurrency": "USD",
           "price": "${routePrice || '0.00'}",
+          "priceValidUntil": "2027-01-01",
+          "itemCondition": "https://schema.org/NewCondition",
           "availability": "${routeInStock ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock'}",
           "seller": {
             "@type": "Organization",
@@ -400,7 +535,7 @@ async function injectSEOMetadata(html: string, req: express.Request, db: any): P
   }
   
   return cleanedHtml
-    .replace(/<head>/i, `<head>\n${seoTags}`)
+    .replace(/<head>/i, (match) => `${match}\n${seoTags}`)
     .replace(/<body[^>]*>/i, (match) => `${match}\n${structuralContent}`);
 }
 
@@ -948,12 +1083,9 @@ app.post("/api/verify-otp", (req, res) => {
 
 function getDb() {
   const adminApp = getApps()[0];
-  const configPath = path.join(process.cwd(), 'firebase-applet-config.json');
-  if (fs.existsSync(configPath)) {
-    const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-    if (config.firestoreDatabaseId) {
-      return getFirestore(adminApp, config.firestoreDatabaseId);
-    }
+  const config = getFirebaseConfig();
+  if (config && config.firestoreDatabaseId) {
+    return getFirestore(adminApp, config.firestoreDatabaseId);
   }
   return getFirestore(adminApp);
 }
@@ -1210,12 +1342,19 @@ app.get("/sitemap.xml", async (req, res) => {
   const host = req.headers.host || 'localhost:3000';
   const baseUrl = `${protocol}://${host}`;
   
+  const storeName = globalSettingsCache?.storeName || "متجر النخبة";
+
   let xml = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
   <url>
     <loc>${baseUrl}/</loc>
+    <lastmod>${new Date().toISOString().split('T')[0]}</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
+    <image:image>
+      <image:loc>${baseUrl}/favicon.svg</image:loc>
+      <image:title>${esc(storeName)}</image:title>
+    </image:image>
   </url>
   <url>
     <loc>${baseUrl}/terms</loc>
@@ -1228,34 +1367,61 @@ app.get("/sitemap.xml", async (req, res) => {
     <priority>0.1</priority>
   </url>`;
 
+  const db = getApps().length > 0 ? getDb() : null;
+
   try {
-    const db = getApps().length > 0 ? getDb() : null;
     if (db) {
       // Add Categories
       const catsSnap = await db.collection('categories').get();
       catsSnap.docs.forEach((doc: any) => {
-        const name = doc.data().name;
+        const cat = doc.data();
+        const name = cat.name;
         xml += `
   <url>
     <loc>${baseUrl}/category/${encodeURIComponent(name)}</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
+    ${cat.image ? `
+    <image:image>
+      <image:loc>${cat.image.startsWith('http') ? cat.image : `${baseUrl}${cat.image.startsWith('/') ? '' : '/'}${cat.image}`}</image:loc>
+      <image:title>${esc(name)}</image:title>
+    </image:image>` : ''}
   </url>`;
       });
 
-      // Add Products
+      // Add Products (Optimized with lastmod and images)
       const productsSnap = await db.collection('products').get();
       productsSnap.docs.forEach((doc: any) => {
         const product = doc.data();
-        const updatedAt = product.updatedAt ? (product.updatedAt.toDate ? product.updatedAt.toDate().toISOString() : product.updatedAt) : new Date().toISOString();
+        let updatedAtStr = new Date().toISOString().split('T')[0];
+        if (product.updatedAt) {
+          try {
+            const date = product.updatedAt.toDate ? product.updatedAt.toDate() : new Date(product.updatedAt);
+            if (!isNaN(date.getTime())) {
+              updatedAtStr = date.toISOString().split('T')[0];
+            }
+          } catch(err) {}
+        }
+        
+        const imageUrl = product.image || (product.images && product.images[0]);
+        const fullImageUrl = imageUrl ? (imageUrl.startsWith('http') ? imageUrl : `${baseUrl}${imageUrl.startsWith('/') ? '' : '/'}${imageUrl}`) : null;
+
         xml += `
   <url>
     <loc>${baseUrl}/product/${encodeURIComponent(doc.id)}</loc>
-    <lastmod>${updatedAt.split('T')[0]}</lastmod>
+    <lastmod>${updatedAtStr}</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
+    ${fullImageUrl ? `
+    <image:image>
+      <image:loc>${esc(fullImageUrl)}</image:loc>
+      <image:title>${esc(product.name)}</image:title>
+    </image:image>` : ''}
   </url>`;
       });
+    } else {
+      // Use fallback or static list if DB is not available
+      console.warn("[Sitemap] Database not available for sitemap generation");
     }
   } catch (e) {
     console.error("[Sitemap] Generation error:", e);
@@ -1284,7 +1450,7 @@ if (!isProduction) {
       // Custom middleware to handle SEO logic in dev
       app.use(async (req: any, res: any, next: any) => {
         // Skip for everything that's not a GET request for a page
-        if (req.method !== 'GET' || req.path.startsWith('/api/') || req.path.includes('.')) {
+        if (req.method !== 'GET' || req.path.startsWith('/api/') || req.path.includes('.') || req.headers.accept?.includes('json')) {
           return next();
         }
 
@@ -1292,10 +1458,16 @@ if (!isProduction) {
           const indexPath = path.join(process.cwd(), "index.html");
           if (!fs.existsSync(indexPath)) return next();
           
-          console.log(`[SEO Middleware] Dev Invoked for ${req.path}`);
           let html = fs.readFileSync(indexPath, "utf8");
           const db = getApps().length > 0 ? getDb() : null;
-          html = await injectSEOMetadata(html, req, db);
+          
+          // Try to inject SEO but don't block if it's slow
+          try {
+            html = await injectSEOMetadata(html, req, db);
+          } catch (seoErr) {
+            console.warn("[SEO Middleware] Dev Injection failed, serving raw html");
+          }
+          
           html = await vite.transformIndexHtml(req.url, html);
           return res.status(200).set('Content-Type', 'text/html').send(html);
         } catch (e) {
@@ -1351,8 +1523,7 @@ if (!isProduction) {
         
         if (!effectiveIndexPath) {
           console.error("[SEO Middleware] index.html not found in any expected location:", possiblePaths);
-          // Last ditch attempt
-          return res.status(200).send("<html><body><h1>Loading Store...</h1><script>window.location.reload()</script></body></html>");
+          return res.status(200).send("<html><body><h1>Loading Store...</h1><p>الرجاء الانتظار قليلاً أو تحديث الصفحة.</p></body></html>");
         }
 
         let html = fs.readFileSync(effectiveIndexPath, "utf8");

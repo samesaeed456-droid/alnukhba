@@ -602,7 +602,7 @@ export default function AdminLayout() {
 
   return (
     <div
-      className="flex h-screen bg-[#F8FAFC] overflow-hidden font-sans"
+      className="flex h-screen w-full max-w-full bg-[#F8FAFC] overflow-hidden font-sans"
       dir="rtl"
     >
       {/* Mobile Menu Overlay */}

@@ -684,7 +684,7 @@ export default function AdminLayout() {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto flex flex-col h-screen w-full relative bg-[#FDFCFB]">
+      <main className="flex-1 min-w-0 overflow-y-auto flex flex-col h-screen w-full relative bg-[#FDFCFB]">
         <header className="bg-white/80 backdrop-blur-xl border-b border-slate-100 sticky top-0 z-30 shrink-0">
           <div className="px-4 lg:px-8 py-3 flex justify-between items-center gap-4">
             {/* Left: Mobile Toggle & Page Title */}

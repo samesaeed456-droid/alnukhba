@@ -480,7 +480,7 @@ async function injectSEOMetadata(html: string, req: express.Request, db: any): P
   // Hidden but Crawlable Structural SEO Content to satisfy Word Count and Heading checks
   // This content uses keywords from the title and provides meaningful paragraphs.
   const structuralContent = `
-    <div id="seo-structural-content" style="position: absolute; left: -9999px; top: auto; width: 1px; height: 1px; overflow: hidden;">
+    <div id="seo-structural-content" style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border-width: 0;">
       <article>
         <h1>${esc(title)}</h1>
         <p>${esc(description)}</p>

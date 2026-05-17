@@ -76,9 +76,8 @@
 }
 
 html, body {
-  overflow-x: hidden !important;
-  max-width: 100% !important;
-  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
 }
 
 body {
@@ -86,12 +85,13 @@ body {
   background-color: var(--bg-general);
   direction: rtl;
   color: var(--text-main);
+  overflow-x: hidden;
 }
 
 #root {
-  overflow-x: hidden !important;
+  overflow-x: hidden;
+  max-width: 100vw;
   width: 100%;
-  max-width: 100% !important;
 }
 
 /* Global Scale Down for Desktop */

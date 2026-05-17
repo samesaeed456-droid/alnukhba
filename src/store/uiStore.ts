@@ -73,83 +73,85 @@ export const useUIStore = create<UIState>((set, get) => ({
   showToast: (message, type = "success", options) => {
     if (!message) return;
 
-    const hasCustomContent = options?.image || options?.action;
-
-    // Using React.createElement instead of JSX to avoid TSX parsing issues in a .ts file
-    const toastContent = hasCustomContent
-      ? React.createElement(
-          "div",
-          {
-            className: "flex items-center justify-between w-full gap-3 py-0.5",
-          },
-          React.createElement(
-            "div",
-            { className: "flex items-center gap-3 flex-1 min-w-0" },
-            options?.image &&
-              React.createElement("img", {
-                src: options.image,
-                alt: "toast-img",
-                className:
-                  "w-10 h-10 rounded-full object-cover border border-white/10 shrink-0",
-              }),
-            React.createElement(
-              "span",
-              { className: "text-sm font-medium text-white truncate" },
-              message,
-            ),
-          ),
-          options?.action &&
-            React.createElement(
-              "button",
-              {
-                onClick: (e: React.MouseEvent) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  options.action!.onClick();
-                  sonnerToast.dismiss();
-                },
-                className:
-                  "text-[10px] font-bold bg-gold-gradient text-black px-4 py-2 rounded-full whitespace-nowrap hover:scale-105 transition-transform shrink-0 shadow-gold",
-              },
-              options.action.label,
-            ),
-        )
-      : message;
-
-    const toastOptions = {
-      icon:
-        type === "success"
-          ? React.createElement(
-              "div",
-              {
-                className:
-                  "w-6 h-6 rounded-full bg-gold-gradient flex items-center justify-center shrink-0 shadow-gold",
-              },
-              React.createElement(
-                "svg",
-                {
-                  className: "w-3.5 h-3.5 text-black",
-                  fill: "none",
-                  viewBox: "0 0 24 24",
-                  stroke: "currentColor",
-                  strokeWidth: 3,
-                },
-                React.createElement("path", {
-                  strokeLinecap: "round",
-                  strokeLinejoin: "round",
-                  d: "M5 13l4 4L19 7",
-                }),
-              ),
+    // We'll use a more modern, customized sonner implementation
+    sonnerToast.custom((t) => 
+      React.createElement(
+        "div",
+        {
+          className: `
+            flex items-center gap-4 p-3 pr-4 rounded-3xl backdrop-blur-2xl border pointer-events-auto shadow-[0_20px_50px_rgba(0,0,0,0.2)] 
+            w-[380px] max-w-[92vw] mx-auto animate-in fade-in slide-in-from-top-4 duration-500
+            ${type === 'success' 
+              ? 'bg-white/80 dark:bg-gray-900/80 border-white/50 dark:border-white/10' 
+              : type === 'error'
+              ? 'bg-red-50/90 dark:bg-red-950/80 border-red-200/50 dark:border-red-500/20'
+              : 'bg-blue-50/90 dark:bg-blue-950/80 border-blue-200/50 dark:border-blue-500/20'
+            }
+          `,
+          dir: "rtl"
+        },
+        // Accent Bar
+        React.createElement("div", {
+          className: `absolute top-0 right-0 w-1.5 h-full rounded-l-full ${
+            type === 'success' ? 'bg-solar' : type === 'error' ? 'bg-red-500' : 'bg-blue-500'
+          }`
+        }),
+        
+        // Icon / Image
+        options?.image 
+          ? React.createElement("img", {
+              src: options.image,
+              className: "w-11 h-11 rounded-2xl object-cover shadow-sm",
+              alt: "toast"
+            })
+          : React.createElement("div", {
+              className: `w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${
+                type === 'success' ? 'bg-solar/10' : type === 'error' ? 'bg-red-100 dark:bg-red-900/30' : 'bg-blue-100 dark:bg-blue-900/30'
+              }`
+            },
+            React.createElement("svg", {
+              className: `w-6 h-6 ${type === 'success' ? 'text-solar' : type === 'error' ? 'text-red-600' : 'text-blue-600'}`,
+              fill: "none",
+              viewBox: "0 0 24 24",
+              stroke: "currentColor",
+              strokeWidth: 2.5
+            }, 
+            type === 'success' 
+              ? React.createElement("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M5 13l4 4L19 7" })
+              : type === 'error'
+              ? React.createElement("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" })
+              : React.createElement("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" })
             )
-          : undefined,
-    };
+          ),
 
-    if (type === "error") {
-      sonnerToast.error(toastContent as any, toastOptions);
-    } else if (type === "info") {
-      sonnerToast.info(toastContent as any, toastOptions);
-    } else {
-      sonnerToast.success(toastContent as any, toastOptions);
-    }
+        // Message
+        React.createElement("div", { className: "flex-1 min-w-0" },
+          React.createElement("p", { 
+            className: `text-[14px] font-black leading-tight ${
+              type === 'success' ? 'text-gray-900 dark:text-white' : type === 'error' ? 'text-red-900 dark:text-red-100' : 'text-blue-900 dark:text-blue-100'
+            }`
+          }, message)
+        ),
+
+        // Action
+        options?.action && React.createElement("button", {
+          onClick: (e: React.MouseEvent) => {
+            e.preventDefault();
+            e.stopPropagation();
+            options.action!.onClick();
+            sonnerToast.dismiss(t);
+          },
+          className: `px-4 py-2 rounded-2xl text-[12px] font-black transition-all active:scale-95 whitespace-nowrap ${
+            type === 'success' 
+              ? 'bg-solar text-black shadow-lg shadow-solar/25' 
+              : 'bg-white/50 dark:bg-black/20 text-current'
+          }`
+        }, options.action.label)
+      ),
+      {
+        duration: 4000,
+        position: 'top-center'
+      }
+    );
   },
 }));

@@ -137,14 +137,20 @@ export default function WalletRecharges() {
           
           // Add notification for user in Firestore (for in-app notification list)
           const notificationRef = doc(collection(activeDb, `users/${selectedRecharge.userId}/notifications`));
-          const notifTitle = "تم شحن المحفظة بنجاح 💰";
-          const notifBody = `مبروك! تمت الموافقة على طلب الشحن بمبلغ ${formatPrice(selectedRecharge.amount)}. رصيدك الحالي الآن هو ${formatPrice(newBalance)}. شكراً لاستخدامك متجرنا!`;
+          const notifTitle = "✅ تم شحن محفظتك بنجاح";
+          const notifBody = `أهلاً ${selectedRecharge.userName}، يسعدنا إبلاغك بأنه تمت الموافقة على طلب الشحن بمبلغ ${formatPrice(selectedRecharge.amount)}.
+          
+الرصيد الجديد المتوفر: ${formatPrice(newBalance)}
+رقم المرجع: ${selectedRecharge.reference}
+
+نتمنى لك تجربة تسوق ممتعة!`;
           
           batch.set(notificationRef, {
             title: notifTitle,
-            body: notifBody,
-            type: "wallet",
+            message: notifBody,
+            type: "system",
             isRead: false,
+            date: new Date().toISOString(),
             createdAt: serverTimestamp()
           });
 
@@ -173,14 +179,17 @@ export default function WalletRecharges() {
         
         // Add notification for user
         const notificationRef = doc(collection(activeDb, `users/${selectedRecharge.userId}/notifications`));
-        const notifTitle = "تحديث بخصوص طلب الشحن ⚠️";
-        const notifBody = `عذراً، تم رفض طلب الشحن الخاص بك (مرجع: ${selectedRecharge.reference}). يرجى التأكد من بيانات السند أو التواصل مع الدعم للمساعدة.`;
+        const notifTitle = "❌ تحديث بشأن طلب الشحن";
+        const notifMessage = `نأسف لإبلاغك بأنه تعذر قبول طلب الشحن الخاص بك بمبلغ ${formatPrice(selectedRecharge.amount)} (مرجع: ${selectedRecharge.reference}).
+
+يرجى مراجعة بيانات السند أو التواصل مع خدمة العملاء لمساعدتك في إتمام العملية.`;
 
         batch.set(notificationRef, {
           title: notifTitle,
-          body: notifBody,
-          type: "wallet",
+          message: notifMessage,
+          type: "system",
           isRead: false,
+          date: new Date().toISOString(),
           createdAt: serverTimestamp()
         });
 
@@ -191,11 +200,11 @@ export default function WalletRecharges() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               title: notifTitle,
-              message: notifBody,
+              message: notifMessage,
               target: "specific_user",
               targetUserId: selectedRecharge.userId,
               url: "/profile",
-              type: "wallet"
+              type: "system"
             })
           }).catch(e => console.warn("Background notification failed:", e));
         } catch (e) {}

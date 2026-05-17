@@ -202,21 +202,45 @@ const MainRoutes = () => {
     const hasAsked = localStorage.getItem("notifications_asked");
     if (!hasAsked) {
       const timer = setTimeout(() => {
-        toast("هل تود تلقي إشعارات بآخر العروض والطلبات؟", {
-          action: {
-            label: "تفعيل",
-            onClick: () => {
-              requestNotificationPermission();
-              localStorage.setItem("notifications_asked", "true");
-            },
-          },
-          cancel: {
-            label: "ليس الآن",
-            onClick: () => localStorage.setItem("notifications_asked", "true"),
-          },
-          duration: 10000,
-          icon: <Bell className="w-5 h-5 text-solar" />,
-        });
+        toast.custom((t) => (
+          <motion.div
+            initial={{ opacity: 0, y: -40, scale: 0.9, filter: 'blur(10px)' }}
+            animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
+            exit={{ opacity: 0, scale: 0.9, filter: 'blur(10px)' }}
+            className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-2xl rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.2)] p-4 flex gap-4 items-center border border-white/50 dark:border-white/10 w-[420px] max-w-[94vw] pointer-events-auto"
+            dir="rtl"
+          >
+            <div className="w-12 h-12 bg-solar/10 rounded-2xl flex items-center justify-center shrink-0">
+              <Bell className="w-6 h-6 text-solar animate-bounce" />
+            </div>
+            <div className="flex-1">
+              <h4 className="text-[14px] font-black text-gray-900 dark:text-white leading-tight">
+                هل تود تلقي إشعارات بآخر العروض والطلبات؟ 🔔
+              </h4>
+              <div className="flex gap-2 mt-3">
+                <button
+                  onClick={() => {
+                    requestNotificationPermission();
+                    localStorage.setItem("notifications_asked", "true");
+                    toast.dismiss(t);
+                  }}
+                  className="flex-1 bg-solar text-black text-[12px] font-black py-2.5 rounded-xl shadow-lg shadow-solar/20 active:scale-95 transition-all"
+                >
+                  تفعيل
+                </button>
+                <button
+                  onClick={() => {
+                    localStorage.setItem("notifications_asked", "true");
+                    toast.dismiss(t);
+                  }}
+                  className="px-4 bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-gray-300 text-[12px] font-black py-2.5 rounded-xl active:scale-95 transition-all"
+                >
+                  ليس الآن
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        ), { duration: 10000, position: 'top-center' });
       }, 5000);
       return () => clearTimeout(timer);
     }
@@ -311,24 +335,12 @@ export default function App() {
         <MotionConfig reducedMotion="user">
           <Toaster
             position="top-center"
-            offset="32px"
-            duration={3000}
+            expand={false}
+            richColors
             closeButton
+            theme="system"
             toastOptions={{
-              style: {
-                background: "#0F172A",
-                backdropFilter: "blur(16px)",
-                WebkitBackdropFilter: "blur(16px)",
-                border: "1px solid rgba(255, 255, 255, 0.2)",
-                color: "#FFFFFF",
-                borderRadius: "20px",
-                boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)",
-                padding: "16px 24px",
-                fontSize: "15px",
-                fontWeight: "900",
-                fontFamily: "Cairo, sans-serif",
-              },
-              className: "font-sans admin-toast-override",
+              className: "font-sans",
             }}
           />
           <Router>

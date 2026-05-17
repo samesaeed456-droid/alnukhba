@@ -1850,6 +1850,39 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           updatedAt: serverTimestamp(),
         } as any);
 
+        // Add in-app notification for the user
+        const notificationRef = doc(collection(activeDb, `users/${userData.uid}/notifications`));
+        const isDeposit = amount >= 0;
+        const notifTitle = isDeposit ? "تغيير في الرصيد: إيداع 💰" : "تغيير في الرصيد: خصم 💸";
+        const notifBody = isDeposit 
+          ? `قامت الإدارة بإضافة مبلغ ${formatPrice(Math.abs(amount))} إلى محفظتك. رصيدك الحالي هو ${formatPrice(newBalance)}. سبب العملية: ${description}`
+          : `تم خصم مبلغ ${formatPrice(Math.abs(amount))} من محفظتك. رصيدك الحالي هو ${formatPrice(newBalance)}. سبب العملية: ${description}`;
+
+        await setDoc(notificationRef, {
+          title: notifTitle,
+          message: notifBody,
+          type: "system",
+          isRead: false,
+          date: new Date().toISOString(),
+          createdAt: serverTimestamp(),
+        });
+
+        // Try to send real push if possible (background API)
+        try {
+          fetch("/api/admin/notifications/send", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              title: notifTitle,
+              message: notifBody,
+              target: "specific_user",
+              targetUserId: userData.uid,
+              url: "/profile",
+              type: "system"
+            })
+          }).catch(e => console.warn("Background notification failed:", e));
+        } catch (e) {}
+
         logActivity(
           "تحديث رصيد",
           `تم ${amount >= 0 ? "إضافة" : "خصم"} ${Math.abs(amount)} لرصيد العميل: ${identifier} - ${description}`,
@@ -2314,6 +2347,18 @@ export function StoreProvider({ children }: { children: ReactNode }) {
                 url: `/profile`,
               }),
             });
+
+            // ADDED: Write to Firestore notifications collection too
+            const notificationRef = doc(collection(activeDb, `users/${targetUserId}/notifications`));
+            await setDoc(notificationRef, {
+              title: statusTitle,
+              message: statusMessage,
+              type: "order",
+              isRead: false,
+              date: new Date().toISOString(),
+              createdAt: serverTimestamp(),
+              url: `/profile`,
+            });
           } catch (notifErr) {
             console.error("Failed to send App notification:", notifErr);
           }
@@ -2531,12 +2576,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         "store_user",
         "store_cart",
         "store_wishlist",
+        "store_notifications",
+        "store_recently_viewed"
       ];
       keysToRemove.forEach((key) => localStorage.removeItem(key));
 
       await auth.signOut();
       setUser(null);
       setWishlist([]);
+      setNotifications([]);
       showToast("تم تسجيل الخروج بنجاح");
     } catch (error) {
       console.error("Logout failed:", error);

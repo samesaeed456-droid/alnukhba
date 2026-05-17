@@ -30,38 +30,57 @@ export default function NotificationListener() {
       snapshot.docChanges().forEach((change) => {
         if (change.type === "added") {
           const product = change.doc.data();
-          // Awesome small window notification for new product
+          // Modern minimal product notification
           toast.custom((t) => (
             <motion.div
-              initial={{ opacity: 0, y: -20, scale: 0.9 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-4 flex gap-4 items-center border border-solar/20 relative overflow-hidden pointer-events-auto"
+              initial={{ opacity: 0, y: -40, scale: 0.9, filter: 'blur(10px)' }}
+              animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
+              exit={{ opacity: 0, scale: 0.9, filter: 'blur(10px)' }}
+              transition={{ type: 'spring', damping: 20, stiffness: 150 }}
+              className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-2xl rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.2)] p-3 pr-4 flex gap-4 items-center border border-white/50 dark:border-white/10 w-[380px] max-w-[92vw] pointer-events-auto relative overflow-hidden group"
+              dir="rtl"
             >
-              <div className="absolute top-0 right-0 w-32 h-32 bg-solar/10 rounded-full blur-3xl -z-10" />
+              <div className="absolute top-0 right-0 w-1.5 h-full bg-gradient-to-b from-solar to-orange-400" />
               
-              <div className="w-14 h-14 bg-solar/10 rounded-xl flex items-center justify-center shrink-0">
+              <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center justify-center shrink-0 shadow-inner overflow-hidden border border-slate-200/50 dark:border-white/5">
                 {product.image ? (
-                  <img src={product.image} alt={product.name} className="w-full h-full object-cover rounded-xl" />
+                  <img src={product.image} alt={product.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                 ) : (
-                  <Package className="w-6 h-6 text-solar" />
+                  <Package className="w-7 h-7 text-solar" />
                 )}
               </div>
               
-              <div className="flex-1 text-right">
-                <div className="flex items-center justify-end gap-1.5 mb-1">
-                  <span className="text-xs font-bold text-solar uppercase tracking-wider">منتج جديد</span>
-                  <Sparkles className="w-4 h-4 text-solar" />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <span className="text-[10px] font-black tracking-widest text-solar uppercase bg-solar/10 px-2 py-0.5 rounded-full">وصول جديد</span>
+                  <Sparkles className="w-3 h-3 text-solar animate-pulse" />
                 </div>
-                <h4 className="font-semibold text-gray-900 dark:text-white line-clamp-1">
+                <h4 className="text-[15px] font-black text-gray-900 dark:text-white line-clamp-1">
                   {product.name}
                 </h4>
-                <p className="text-sm font-bold text-solar mt-1">
-                  {formatPrice(product.price || 0)}
-                </p>
+                <div className="flex items-center gap-2 mt-1">
+                   <p className="text-[13px] font-black text-solar">
+                    {formatPrice(product.price || 0)}
+                  </p>
+                  {product.oldPrice && (
+                    <span className="text-[11px] text-gray-400 line-through font-bold">
+                      {formatPrice(product.oldPrice)}
+                    </span>
+                  )}
+                </div>
               </div>
+
+              <button 
+                onClick={() => {
+                  window.location.href = `/product/${change.doc.id}`;
+                  toast.dismiss(t);
+                }}
+                className="bg-solar text-black text-[12px] font-black px-4 py-2.5 rounded-2xl shadow-lg shadow-solar/20 active:scale-95 transition-all hover:brightness-105"
+              >
+                عرض
+              </button>
             </motion.div>
-          ), { duration: 5000, position: 'top-center' });
+          ), { duration: 6000, position: 'top-center' });
         }
       });
     }, (error) => {
@@ -73,7 +92,10 @@ export default function NotificationListener() {
 
   // 2. Listen for User Notifications (Wallet Recharge, etc)
   useEffect(() => {
-    if (!user?.uid) return;
+    if (!user?.uid) {
+      setNotifications([]);
+      return;
+    }
     
     let isInitialLoad = true;
 
@@ -164,7 +186,8 @@ export default function NotificationListener() {
   // Helper to show professional horizontal top banner (App Store style)
   const showStandardToast = (data: any, id: string) => {
     // If it's a recharge success, trigger confetti
-    const isRecharge = data.title.includes("شحن") || data.body.includes("رصيد") || data.type === 'wallet';
+    const isRecharge = data.title.includes("شحن") || data.body?.includes("رصيد") || data.type === 'wallet';
+    const isOrder = data.type === 'order' || data.title.includes("طلب");
     
     if (isRecharge) {
       setTimeout(triggerConfetti, 500);
@@ -172,44 +195,61 @@ export default function NotificationListener() {
 
     toast.custom((t) => (
       <motion.div
-        initial={{ opacity: 0, y: -50, scale: 0.95 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        exit={{ opacity: 0, y: -20, scale: 0.95 }}
-        className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border border-gray-100 dark:border-gray-800 rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.15)] p-3 pr-4 flex items-center gap-3.5 w-[360px] max-w-[95vw] pointer-events-auto relative group overflow-hidden"
+        initial={{ opacity: 0, y: -60, scale: 0.8, filter: 'blur(10px)' }}
+        animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
+        exit={{ opacity: 0, y: -20, scale: 0.9, filter: 'blur(5px)' }}
+        transition={{ type: 'spring', damping: 18, stiffness: 120 }}
+        className="bg-white/85 dark:bg-gray-950/85 backdrop-blur-2xl border border-white/40 dark:border-white/5 rounded-[2rem] shadow-[0_30px_70px_-15px_rgba(0,0,0,0.3)] p-3.5 flex items-center gap-4 w-[400px] max-w-[94vw] pointer-events-auto relative group overflow-hidden"
         dir="rtl"
       >
-        {/* Subtle accent glow */}
-        <div className={`absolute top-0 right-0 w-1.5 h-full ${isRecharge ? 'bg-emerald-500' : 'bg-solar'}`} />
+        {/* Dynamic Accent Bar */}
+        <div className={`absolute top-0 right-0 w-2 h-full opacity-80 ${
+          isRecharge ? 'bg-emerald-500' : isOrder ? 'bg-blue-500' : 'bg-solar'
+        }`} />
         
-        {isRecharge && (
-          <div className="absolute -left-4 -bottom-4 w-24 h-24 bg-emerald-500/5 rounded-full blur-2xl" />
-        )}
+        {/* Animated Background Element */}
+        <div className={`absolute -left-10 -bottom-10 w-32 h-32 blur-3xl opacity-20 rounded-full transition-colors ${
+          isRecharge ? 'bg-emerald-500' : isOrder ? 'bg-blue-500' : 'bg-solar'
+        }`} />
         
-        <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 shadow-inner ${isRecharge ? 'bg-emerald-50' : 'bg-solar/10'}`}>
-          <Wallet className={`w-5.5 h-5.5 stroke-[2.5px] ${isRecharge ? 'text-emerald-600' : 'text-solar'}`} />
+        {/* Icon Container */}
+        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 shadow-inner relative z-10 ${
+          isRecharge ? 'bg-emerald-50' : isOrder ? 'bg-blue-50' : 'bg-solar/10'
+        }`}>
+          {isRecharge ? (
+            <Wallet className="w-7 h-7 text-emerald-600 stroke-[2.5px]" />
+          ) : isOrder ? (
+            <Package className="w-7 h-7 text-blue-600 stroke-[2.5px]" />
+          ) : (
+            <Sparkles className="w-7 h-7 text-solar stroke-[2.5px]" />
+          )}
         </div>
         
-        <div className="flex-1 min-w-0 text-right">
-          <h4 className="text-[14px] font-black text-gray-900 dark:text-white truncate">
+        {/* Content */}
+        <div className="flex-1 min-w-0 text-right space-y-0.5 relative z-10">
+          <h4 className="text-[15px] font-black text-gray-950 dark:text-white leading-tight tracking-tight">
             {data.title}
           </h4>
-          <p className="text-[12px] font-bold text-gray-500 dark:text-gray-400 truncate mt-0.5" title={data.body}>
-            {data.body}
+          <p className="text-[12.5px] font-bold text-gray-500 dark:text-gray-400 line-clamp-2 leading-snug" title={data.body || data.message}>
+            {data.body || data.message}
           </p>
         </div>
 
+        {/* Action Button */}
         <button 
           onClick={() => {
              markNotificationAsRead(id);
              toast.dismiss(t);
           }}
-          className={`text-[12px] font-black px-4 py-2 rounded-xl transition-all whitespace-nowrap active:scale-95 ${
+          className={`h-11 px-5 rounded-2xl text-[13px] font-black transition-all flex items-center justify-center whitespace-nowrap active:scale-90 relative z-10 ${
             isRecharge 
-              ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20 hover:brightness-105' 
-              : 'text-solar bg-solar/5 hover:bg-solar/10'
+              ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30' 
+              : isOrder 
+              ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/30'
+              : 'bg-solar text-black shadow-lg shadow-solar/30'
           }`}
         >
-          {isRecharge ? "رائع!" : "فهمت"}
+          {isRecharge ? "رائع!" : isOrder ? "متابعة" : "فهمت"}
         </button>
       </motion.div>
     ), { 

@@ -164,7 +164,9 @@ export default function NotificationListener() {
   // Helper to show professional horizontal top banner (App Store style)
   const showStandardToast = (data: any, id: string) => {
     // If it's a recharge success, trigger confetti
-    if (data.title.includes("شحن") || data.body.includes("رصيد")) {
+    const isRecharge = data.title.includes("شحن") || data.body.includes("رصيد") || data.type === 'wallet';
+    
+    if (isRecharge) {
       setTimeout(triggerConfetti, 500);
     }
 
@@ -173,21 +175,25 @@ export default function NotificationListener() {
         initial={{ opacity: 0, y: -50, scale: 0.95 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, y: -20, scale: 0.95 }}
-        className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border border-gray-100 dark:border-gray-800 rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.15)] p-3 pr-4 flex items-center gap-3.5 w-[340px] max-w-[95vw] pointer-events-auto relative group overflow-hidden"
+        className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border border-gray-100 dark:border-gray-800 rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.15)] p-3 pr-4 flex items-center gap-3.5 w-[360px] max-w-[95vw] pointer-events-auto relative group overflow-hidden"
         dir="rtl"
       >
         {/* Subtle accent glow */}
-        <div className="absolute top-0 right-0 w-1 h-full bg-solar" />
+        <div className={`absolute top-0 right-0 w-1.5 h-full ${isRecharge ? 'bg-emerald-500' : 'bg-solar'}`} />
         
-        <div className="w-10 h-10 bg-solar/10 rounded-xl flex items-center justify-center shrink-0">
-          <Wallet className="w-5 h-5 text-solar" strokeWidth={2.5} />
+        {isRecharge && (
+          <div className="absolute -left-4 -bottom-4 w-24 h-24 bg-emerald-500/5 rounded-full blur-2xl" />
+        )}
+        
+        <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 shadow-inner ${isRecharge ? 'bg-emerald-50' : 'bg-solar/10'}`}>
+          <Wallet className={`w-5.5 h-5.5 stroke-[2.5px] ${isRecharge ? 'text-emerald-600' : 'text-solar'}`} />
         </div>
         
         <div className="flex-1 min-w-0 text-right">
-          <h4 className="text-[13px] font-bold text-gray-900 dark:text-white truncate">
+          <h4 className="text-[14px] font-black text-gray-900 dark:text-white truncate">
             {data.title}
           </h4>
-          <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate mt-0.5" title={data.body}>
+          <p className="text-[12px] font-bold text-gray-500 dark:text-gray-400 truncate mt-0.5" title={data.body}>
             {data.body}
           </p>
         </div>
@@ -197,13 +203,17 @@ export default function NotificationListener() {
              markNotificationAsRead(id);
              toast.dismiss(t);
           }}
-          className="text-[11px] font-bold text-solar bg-solar/5 px-3 py-1.5 rounded-lg hover:bg-solar/10 transition-colors whitespace-nowrap"
+          className={`text-[12px] font-black px-4 py-2 rounded-xl transition-all whitespace-nowrap active:scale-95 ${
+            isRecharge 
+              ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20 hover:brightness-105' 
+              : 'text-solar bg-solar/5 hover:bg-solar/10'
+          }`}
         >
-          فهمت
+          {isRecharge ? "رائع!" : "فهمت"}
         </button>
       </motion.div>
     ), { 
-      duration: 10000, 
+      duration: isRecharge ? 15000 : 10000, 
       id: `std-${id}`,
       position: 'top-center'
     });

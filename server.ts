@@ -572,7 +572,7 @@ app.post("/api/admin/notifications/send", async (req, res) => {
       tokens = tokensSnap.docs.map(doc => doc.id);
     } else if (target === 'specific_user' && targetUserId) {
       const tokensSnap = await db.collection('notification_tokens')
-        .where('userId', '==', targetUserId)
+        .where('uid', '==', targetUserId)
         .get();
       tokens = tokensSnap.docs.map(doc => doc.id);
     } else if (target === 'abandoned_cart') {
@@ -580,7 +580,7 @@ app.post("/api/admin/notifications/send", async (req, res) => {
       const userIds = abandonedSnap.docs.map(doc => doc.id);
       if (userIds.length > 0) {
         const tokensSnap = await db.collection('notification_tokens')
-          .where('userId', 'in', userIds.slice(0, 10))
+          .where('uid', 'in', userIds.slice(0, 10))
           .get();
         tokens = tokensSnap.docs.map(doc => doc.id);
       }
@@ -589,7 +589,7 @@ app.post("/api/admin/notifications/send", async (req, res) => {
       const userIds = vipSnap.docs.map(doc => doc.id);
       if (userIds.length > 0) {
         const tokensSnap = await db.collection('notification_tokens')
-          .where('userId', 'in', userIds.slice(0, 10))
+          .where('uid', 'in', userIds.slice(0, 10))
           .get();
         tokens = tokensSnap.docs.map(doc => doc.id);
       }

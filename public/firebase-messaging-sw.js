@@ -27,8 +27,8 @@ messaging.onBackgroundMessage((payload) => {
   const notificationTitle = payload.notification.title;
   const notificationOptions = {
     body: payload.notification.body,
-    icon: payload.notification.icon || '/icon-192x192.png',
-    badge: '/icon-192x192.png',
+    icon: payload.notification.icon || '/favicon.svg',
+    badge: '/favicon.svg',
     image: payload.data.image || payload.notification.image, // Support rich images
     vibrate: [200, 100, 200, 100, 200, 100, 200],
     tag: 'elite-store-notification',

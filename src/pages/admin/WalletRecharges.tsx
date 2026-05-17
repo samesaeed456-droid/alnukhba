@@ -135,15 +135,34 @@ export default function WalletRecharges() {
             transactions: [newTransaction, ...(userData.transactions || [])]
           });
           
-          // Add notification for user
+          // Add notification for user in Firestore (for in-app notification list)
           const notificationRef = doc(collection(activeDb, `users/${selectedRecharge.userId}/notifications`));
+          const notifTitle = "تم شحن المحفظة بنجاح 💰";
+          const notifBody = `مبروك! تمت الموافقة على طلب الشحن بمبلغ ${formatPrice(selectedRecharge.amount)}. رصيدك الحالي الآن هو ${formatPrice(newBalance)}. شكراً لاستخدامك متجرنا!`;
+          
           batch.set(notificationRef, {
-            title: "تم شحن المحفظة بنجاح",
-            body: `تمت الموافقة على طلب الشحن بمبلغ ${formatPrice(selectedRecharge.amount)}. رصيدك الحالي: ${formatPrice(newBalance)}`,
+            title: notifTitle,
+            body: notifBody,
             type: "wallet",
             isRead: false,
             createdAt: serverTimestamp()
           });
+
+          // Trigger Push Notification via Server API
+          try {
+            fetch("/api/admin/notifications/send", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                title: notifTitle,
+                message: notifBody,
+                target: "specific_user",
+                targetUserId: selectedRecharge.userId,
+                url: "/profile",
+                type: "wallet"
+              })
+            }).catch(e => console.warn("Background notification failed:", e));
+          } catch (e) {}
         }
       } else {
         // Reject
@@ -154,13 +173,32 @@ export default function WalletRecharges() {
         
         // Add notification for user
         const notificationRef = doc(collection(activeDb, `users/${selectedRecharge.userId}/notifications`));
+        const notifTitle = "تحديث بخصوص طلب الشحن ⚠️";
+        const notifBody = `عذراً، تم رفض طلب الشحن الخاص بك (مرجع: ${selectedRecharge.reference}). يرجى التأكد من بيانات السند أو التواصل مع الدعم للمساعدة.`;
+
         batch.set(notificationRef, {
-          title: "تم رفض طلب شحن المحفظة",
-          body: `عذراً، تم رفض طلب الشحن الخاص بك (مرجع: ${selectedRecharge.reference}). يرجى التأكد من البيانات أو التواصل مع الدعم.`,
+          title: notifTitle,
+          body: notifBody,
           type: "wallet",
           isRead: false,
           createdAt: serverTimestamp()
         });
+
+        // Trigger Push Notification via Server API
+        try {
+          fetch("/api/admin/notifications/send", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              title: notifTitle,
+              message: notifBody,
+              target: "specific_user",
+              targetUserId: selectedRecharge.userId,
+              url: "/profile",
+              type: "wallet"
+            })
+          }).catch(e => console.warn("Background notification failed:", e));
+        } catch (e) {}
       }
 
       await batch.commit();

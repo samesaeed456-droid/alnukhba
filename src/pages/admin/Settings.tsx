@@ -34,6 +34,7 @@ import {
   Megaphone,
 } from "lucide-react";
 import { motion, AnimatePresence, Variants } from "motion/react";
+import { showLuxuryToast } from "@/lib/luxuryToast";
 import { toast } from "sonner";
 
 // Reusable Section Header Component
@@ -85,12 +86,15 @@ const Settings = () => {
     try {
       await updateSettings(formData);
       logActivity("تحديث الإعدادات", "تم تحديث إعدادات النظام العامة");
-      toast.success("تم حفظ الإعدادات بنجاح", {
-        description: "تم تحديث كافة التغييرات في النظام.",
-        icon: <CheckCircle2 className="w-5 h-5 text-emerald-500" />,
+      showLuxuryToast("success", {
+        title: "تم الحفظ بنجاح!",
+        description: "تم تحديث كافة إعدادات النظام وتطبيقها عالمياً.",
       });
     } catch (error) {
-      toast.error("حدث خطأ أثناء الحفظ");
+      showLuxuryToast("error", {
+        title: "فشل الحفظ",
+        description: "حدث خطأ غير متوقع أثناء محاولة حفظ الإعدادات.",
+      });
     } finally {
       setIsSaving(false);
     }

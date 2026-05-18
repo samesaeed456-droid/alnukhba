@@ -25,12 +25,13 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { useStore } from "../../context/StoreContext";
+import { toast } from "sonner";
 import { motion, AnimatePresence } from "motion/react";
 import { Banner, MarketingNotification } from "../../types";
 import { FloatingInput } from "../../components/FloatingInput";
 import { ImageUploadField } from "../../components/ImageUploadField";
 import ConfirmationModal from "../../components/ConfirmationModal";
-import { toast } from "sonner";
+import { showLuxuryToast } from "@/lib/luxuryToast";
 import { deleteImagesFromCloudinary } from "@/lib/cloudinary";
 
 type TabType = "banners" | "notifications";
@@ -137,13 +138,22 @@ export default function Marketing() {
         toast.dismiss(loadingToast);
 
         if (data.success) {
-          toast.success(`تم الإرسال بنجاح لـ ${data.sentCount} جهاز`);
+          showLuxuryToast("success", {
+            title: "تم الإرسال!",
+            description: `تم الإرسال بنجاح لـ ${data.sentCount} جهاز`,
+          });
         } else {
-          toast.error(data.error || "فشل الإرسال");
+          showLuxuryToast("error", {
+            title: "فشل الإرسال",
+            description: data.error || "تعذر إرسال الإشعار، يرجى التحقق من الإعدادات",
+          });
         }
       } catch (err) {
         toast.dismiss(loadingToast);
-        toast.error("خطأ في الاتصال بالخادم");
+        showLuxuryToast("error", {
+          title: "خطأ فني",
+          description: "خطأ في الاتصال بالخادم، يرجى المحاولة لاحقاً",
+        });
       }
     }
 
@@ -163,7 +173,10 @@ export default function Marketing() {
     const files = Array.from(e.target.files || []);
     if (files.length > 0) {
       try {
-        toast.info(`جاري رفع ${files.length} صور إلى الخادم...`);
+        showLuxuryToast("info", {
+          title: "جاري الرفع",
+          description: `جاري رفع ${files.length} صور إلى الخادم السحابي...`,
+        });
         const { uploadToCloudinary } = await import("../../lib/cloudinary");
         const secureUrls = await Promise.all(
           files.map((file) => uploadToCloudinary(file)),
@@ -177,10 +190,16 @@ export default function Marketing() {
             image: prev.image || updatedImages[0],
           };
         });
-        toast.success("تم رفع الصور بنجاح");
+        showLuxuryToast("success", {
+          title: "تم الرفع بنجاح!",
+          description: "تمت إضافة الصور الجديدة إلى مكتبة البنرات",
+        });
       } catch (error: any) {
         console.error("Marketing images upload failed:", error);
-        toast.error(error.message || "فشل في رفع بعض الصور");
+        showLuxuryToast("error", {
+          title: "فشل الرفع",
+          description: error.message || "فشل في رفع بعض الصور",
+        });
       }
     }
   };
@@ -208,9 +227,15 @@ export default function Marketing() {
         const secureUrl = await uploadToCloudinary(file);
         setNotifForm((prev) => ({ ...prev, image: secureUrl }));
         toast.dismiss(loadingToast);
-        toast.success("تم رفع صورة الإشعار بنجاح");
+        showLuxuryToast("success", {
+          title: "تم رفع الصورة",
+          description: "صورة الإشعار جاهزة الآن للإرسال",
+        });
       } catch (error: any) {
-        toast.error("فشل في رفع الصورة");
+        showLuxuryToast("error", {
+          title: "خطأ في الرفع",
+          description: "فشل في رفع صورة الإشعار للخادم",
+        });
       }
     }
   };

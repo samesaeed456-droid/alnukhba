@@ -69,6 +69,20 @@ export interface Transaction {
   description: string;
 }
 
+export interface RechargeRequest {
+  id: string;
+  userId: string;
+  userName: string;
+  userPhone: string;
+  amount: number;
+  reference: string;
+  proof: string;
+  status: "pending" | "approved" | "rejected";
+  createdAt: any;
+  updatedAt?: any;
+  method?: string;
+}
+
 export interface UserNote {
   id: string;
   text: string;

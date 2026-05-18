@@ -39,12 +39,13 @@ import {
   Check,
 } from "lucide-react";
 import { motion, AnimatePresence, Variants } from "motion/react";
-import { toast } from "sonner";
+import { Toaster, toast } from "sonner";
 import { useStore } from "@/context/StoreContext";
 import { Product } from "@/types";
 import ConfirmationModal from "@/components/ConfirmationModal";
 import { FloatingInput } from "@/components/FloatingInput";
 import { deleteImagesFromCloudinary } from "@/lib/cloudinary";
+import { showLuxuryToast } from "@/lib/luxuryToast";
 
 const PREDEFINED_COLORS = [
   { name: "أسود", value: "#000000" },
@@ -368,14 +369,14 @@ export default function Products() {
     const file = e.target.files?.[0];
     if (file) {
       try {
-        toast.info("جاري رفع الصورة للخادم...");
+        showLuxuryToast("info", { title: "تنبيه", description: "جاري رفع الصورة للخادم..." });
         const { uploadToCloudinary } = await import("../../lib/cloudinary");
         const secureUrl = await uploadToCloudinary(file);
         setFormData((prev) => ({ ...prev, image: secureUrl }));
-        toast.success("تم الرفع بنجاح");
+        showLuxuryToast("success", { title: "تم بنجاح!", description: "تم الرفع بنجاح" });
       } catch (error: any) {
         console.error("Image upload failed:", error);
-        toast.error(error.message || "فشل في رفع الصورة");
+        showLuxuryToast("error", { title: "فشل الرفع", description: error.message || "فشل في رفع الصورة" });
       }
     }
   };
@@ -386,7 +387,7 @@ export default function Products() {
     const files = Array.from(e.target.files || []);
     if (files.length > 0) {
       try {
-        toast.info(`جاري رفع ${files.length} صور للخادم...`);
+        showLuxuryToast("info", { title: "تنبيه", description: `جاري رفع ${files.length} صور للخادم...` });
         const { uploadToCloudinary } = await import("../../lib/cloudinary");
         const secureUrls = await Promise.all(
           files.map((file) => uploadToCloudinary(file)),
@@ -395,10 +396,10 @@ export default function Products() {
           ...prev,
           images: [...(prev.images || []), ...secureUrls],
         }));
-        toast.success("تم تجهيز الصور بنجاح");
+        showLuxuryToast("success", { title: "تم بنجاح!", description: "تم تجهيز الصور بنجاح" });
       } catch (error: any) {
         console.error("Gallery images upload failed:", error);
-        toast.error(error.message || "فشل في رفع بعض الصور");
+        showLuxuryToast("error", { title: "فشل الرفع", description: error.message || "فشل في رفع بعض الصور" });
       }
     }
   };

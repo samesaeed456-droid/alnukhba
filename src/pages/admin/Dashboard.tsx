@@ -48,7 +48,7 @@ import {
   Cell,
 } from "recharts";
 import { motion, AnimatePresence, Variants } from "motion/react";
-import { toast } from "sonner";
+import { showLuxuryToast } from "@/lib/luxuryToast";
 import { BASE_CURRENCY_SYMBOL } from "@/lib/finance";
 
 export default function Dashboard() {
@@ -366,19 +366,9 @@ export default function Dashboard() {
     ];
     const randomPhrase = phrases[Math.floor(Math.random() * phrases.length)];
 
-    toast.success(`${greeting}، المدير العام 👋`, {
+    showLuxuryToast("success", {
+      title: `${greeting}، المدير العام 👋`,
       description: randomPhrase,
-      duration: 6000,
-      style: {
-        background: '#0F172A', // Dark professional blue
-        color: '#FFFFFF',      // Pure white text
-        border: '1px solid rgba(255, 255, 255, 0.2)',
-        borderRadius: '20px',
-        padding: '16px 24px',
-        fontSize: '15px',
-        fontWeight: '900',
-        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
-      },
     });
 
     sessionStorage.setItem("admin_greeting_shown", "true");

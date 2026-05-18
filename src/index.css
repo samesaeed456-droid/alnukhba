@@ -289,6 +289,23 @@ input::placeholder, textarea::placeholder {
   animation: sweep 3s infinite ease-in-out;
 }
 
+@keyframes slide-down {
+  from { transform: translateY(-100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.animate-slide-down {
+  animation: slide-down 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Luxury Glassmorphic Base for custom toasts */
+.glass-toast {
+  background: rgba(15, 23, 42, 0.95);
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
 /* Markdown Styling */
 .markdown-body {
   font-family: 'Cairo', sans-serif;
@@ -329,6 +346,72 @@ input::placeholder, textarea::placeholder {
 .markdown-body h1 { font-size: 1.25rem; }
 .markdown-body h2 { font-size: 1.15rem; }
 .markdown-body h3 { font-size: 1.05rem; }
+
+/* -------------------------------------------------------------------------- */
+/* Sonner Toast Custom Styling - Luxury Glassmorphic Arabic                  */
+/* -------------------------------------------------------------------------- */
+[data-sonner-toast] {
+  --toast-padding: 0px !important;
+  --toast-border-radius: 20px !important;
+  backdrop-filter: blur(16px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
+}
+
+[data-sonner-toast][data-styled="true"] {
+  padding: 10px 14px !important;
+  min-height: 56px !important;
+  border: 1px solid rgba(197, 168, 128, 0.2) !important;
+  background: rgba(15, 23, 42, 0.95) !important;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5) !important;
+  max-width: 400px !important;
+  width: 92vw !important;
+  margin-inline: auto !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+}
+
+@media (max-width: 640px) {
+  [data-sonner-toast] {
+    margin-top: 12px !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+  }
+}
+
+[data-sonner-toast] [data-close-button] {
+  right: auto !important;
+  left: 8px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  background: rgba(255,255,255,0.05) !important;
+  border: none !important;
+  color: #c5a880 !important;
+}
+
+[data-sonner-toast] [data-icon] {
+  margin-right: 0 !important;
+  margin-left: 0 !important;
+  transform: scale(1.1);
+  color: #c5a880 !important; /* Gold icons */
+}
+
+[data-sonner-toast] [data-content] {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  white-space: nowrap !important;
+  font-family: inherit !important;
+  color: #fff !important;
+  flex: 1 !important;
+}
+
+[data-sonner-toast][data-type="success"] {
+  border-right: 4px solid #c5a880 !important; /* Premium Gold side accent */
+}
+
+[data-sonner-toast][data-type="error"] {
+  border-right: 4px solid #ef4444 !important;
+}
 
 /* Marquee Animation */
 @keyframes marquee-rtl {

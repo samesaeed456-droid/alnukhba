@@ -14,7 +14,7 @@ import {
   Home,
 } from "lucide-react";
 import { FloatingInput } from "../../components/FloatingInput";
-import { Toaster, toast } from "sonner";
+import { showLuxuryToast } from "@/lib/luxuryToast";
 import { useStore } from "@/context/StoreContext";
 import { startAuthentication } from "@simplewebauthn/browser";
 import {
@@ -99,7 +99,10 @@ export default function AdminLogin() {
 
       if (verifyData.success) {
         await signInWithCustomToken(adminAuth, verifyData.customToken);
-        toast.success("تم تسجيل الدخول بالبصمة بنجاح!");
+        showLuxuryToast("success", {
+          title: "دخول ناجح!",
+          description: "تم تسجيل الدخول بالبصمة بنجاح!",
+        });
         // Navigation will be handled by useEffect auth listener
       } else {
         throw new Error(verifyData.error || "فشل التحقق");
@@ -107,13 +110,20 @@ export default function AdminLogin() {
     } catch (err: any) {
       console.error("[Admin Passkey Login Error]:", err);
       if (err.name === "NotAllowedError") {
-        toast.error("تم إلغاء العملية");
+        showLuxuryToast("error", {
+          title: "عملية ملغاة",
+          description: "تم إلغاء العملية من قبل المستخدم",
+        });
       } else if (err.name === "NotSupportedError") {
-        toast.error("المتصفح لا يدعم البصمة هنا. يرجى فتح المتصفح بشكل كامل.");
+        showLuxuryToast("error", {
+          title: "غير مدعوم",
+          description: "المتصفح لا يدعم البصمة هنا. يرجى فتح المتصفح بشكل كامل.",
+        });
       } else {
-        toast.error(
-          `خطأ في البصمة: ${err.message || "يرجى المحاولة بالطريقة التقليدية"}`,
-        );
+        showLuxuryToast("error", {
+          title: "خطأ في البصمة",
+          description: err.message || "يرجى المحاولة بالطريقة التقليدية",
+        });
       }
     } finally {
       setIsLoading(false);
@@ -155,7 +165,10 @@ export default function AdminLogin() {
           if (!adminSnap.empty) {
             const data = adminSnap.docs[0].data();
             if (data.isActive === false) {
-              toast.error("تم تعطيل هذا الحساب. يرجى التواصل مع المسؤول.");
+              showLuxuryToast("error", {
+                title: "الحساب معطل",
+                description: "تم تعطيل هذا الحساب. يرجى التواصل مع المسؤول.",
+              });
               await adminAuth.signOut();
               setIsLoading(false);
               return;
@@ -174,7 +187,10 @@ export default function AdminLogin() {
             if (!backupSnap.empty) {
               const data = backupSnap.docs[0].data();
               if (data.isActive === false) {
-                toast.error("تم تعطيل هذا الحساب. يرجى التواصل مع المسؤول.");
+                showLuxuryToast("error", {
+                  title: "الحساب معطل",
+                  description: "تم تعطيل هذا الحساب. يرجى التواصل مع المسؤول.",
+                });
                 await adminAuth.signOut();
                 setIsLoading(false);
                 return;
@@ -201,7 +217,10 @@ export default function AdminLogin() {
           navigate("/admin");
         } else {
           if (localStorage.getItem("admin_attempt") === "true") {
-            toast.error("هذا الحساب ليس لديه صلاحيات إدارية");
+            showLuxuryToast("error", {
+              title: "فشل الدخول",
+              description: "هذا الحساب ليس لديه صلاحيات إدارية",
+            });
             localStorage.removeItem("admin_attempt");
             await adminAuth.signOut();
           }
@@ -238,7 +257,10 @@ export default function AdminLogin() {
     } catch (error: any) {
       console.error("Login error:", error);
       const smartError = parseSmartError(error);
-      toast.error(smartError.message);
+      showLuxuryToast("error", {
+        title: "خطأ في الدخول",
+        description: smartError.message,
+      });
     } finally {
       setIsLoading(false);
     }
@@ -450,7 +472,6 @@ export default function AdminLogin() {
           </Link>
         </div>
       </motion.div>
-      <Toaster position="top-center" richColors />
     </div>
   );
 }

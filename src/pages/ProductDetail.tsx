@@ -29,6 +29,7 @@ import {
   Clock,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+import { toast } from "sonner";
 import SEO from "../components/SEO";
 import {
   useStore,
@@ -152,6 +153,7 @@ export default function ProductDetail() {
         addToCart(product, quantity, selectedColor, selectedSize);
         setIsAdded(true);
         setShowCheckoutBar(true);
+
         setTimeout(() => {
           setIsAdded(false);
         }, 5000);

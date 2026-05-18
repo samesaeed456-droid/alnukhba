@@ -9,8 +9,9 @@ import {
   Square,
   Wand2,
 } from "lucide-react";
-import { toast } from "sonner";
+import { showLuxuryToast } from "@/lib/luxuryToast";
 import { useStore } from "@/context/StoreContext";
+import { toast } from "sonner";
 
 interface CloudinaryImage {
   public_id: string;
@@ -52,7 +53,10 @@ export default function CloudPage() {
       setImages(imgData.images);
       setUsage(usageData);
     } catch (error) {
-      toast.error("حدث خطأ أثناء جلب البيانات");
+      showLuxuryToast("error", {
+        title: "خطأ في الاتصال",
+        description: "حدث خطأ أثناء جلب البيانات من السحابة",
+      });
       console.error(error);
     } finally {
       setLoading(false);
@@ -75,7 +79,10 @@ export default function CloudPage() {
         body: JSON.stringify({ public_ids: [id] }),
       });
       if (!response.ok) throw new Error("فشل الحذف");
-      toast.success("تم حذف الصورة");
+      showLuxuryToast("success", {
+        title: "تم الحذف",
+        description: "تم حذف الصورة نهائياً من السحابة",
+      });
       setSelectedIds((prev) => prev.filter((i) => i !== id));
       fetchData();
     } catch (error) {
@@ -96,7 +103,10 @@ export default function CloudPage() {
         body: JSON.stringify({ public_ids: selectedIds }),
       });
       if (!response.ok) throw new Error("فشل الحذف");
-      toast.success("تم حذف الصور المختارة");
+      showLuxuryToast("success", {
+        title: "تم الحذف بنجاح",
+        description: `تم حذف ${selectedIds.length} صورة من السحابة`,
+      });
       setSelectedIds([]);
       fetchData();
     } catch (error) {
@@ -142,12 +152,21 @@ export default function CloudPage() {
       setSelectedIds(unusedIds);
 
       if (unusedIds.length > 0) {
-        toast.success(`تم تحديد ${unusedIds.length} صورة غير مستخدمة`);
+        showLuxuryToast("success", {
+          title: "اكتشاف ذكي",
+          description: `تم تحديد ${unusedIds.length} صورة غير مستخدمة للنظام`,
+        });
       } else {
-        toast.info("جميع الصور مستخدمة حالياً في التطبيق أو الطلبات");
+        showLuxuryToast("info", {
+          title: "سحابة نظيفة",
+          description: "جميع الصور مستخدمة حالياً في التطبيق أو الطلبات",
+        });
       }
     } catch (err) {
-      toast.error("حدث خطأ أثناء فحص الصور");
+      showLuxuryToast("error", {
+        title: "خطأ في الفحص",
+        description: "حدث خطأ أثناء فحص تواجد الصور في النظام",
+      });
     }
   };
 

@@ -34,6 +34,7 @@ import {
   CityData,
   SearchTerm,
   Visit,
+  RechargeRequest,
 } from "../types";
 import { products as initialProducts } from "../data";
 import {
@@ -276,6 +277,7 @@ interface StoreState {
   cities: CityData[];
   searchTerms: SearchTerm[];
   visits: Visit[];
+  recharges: RechargeRequest[];
   systemError: string | null;
   isLoading: boolean;
   isAuthReady: boolean;
@@ -587,6 +589,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return [];
   });
 
+  const [recharges, setRecharges] = useState<RechargeRequest[]>(() => {
+    const saved = localStorage.getItem("store_recharges");
+    if (saved) return JSON.parse(saved);
+    return [];
+  });
+
   const getPermissionsByRole = (role: AdminRole): AdminPermission[] => {
     switch (role) {
       case "super_admin":
@@ -682,6 +690,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         searchTerms: setSearchTerms,
         cities: setCities,
         inventory_logs: setInventoryLogs,
+        recharges: setRecharges,
       };
 
       const storageKeyMap: Record<string, string> = {
@@ -697,6 +706,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         searchTerms: "store_search_terms",
         cities: "store_cities",
         inventory_logs: "store_inventory_logs",
+        recharges: "store_recharges",
       };
 
       if (!setterMap[colName]) {
@@ -734,6 +744,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         q = query(collection(activeDb, "searchTerms"), orderBy("timestamp", "desc"), limit(100));
       } else if (colName === "support_tickets") {
         q = query(collection(activeDb, "support_tickets"), orderBy("createdAt", "desc"), limit(100));
+      } else if (colName === "recharges") {
+        q = query(collection(activeDb, "recharges"), orderBy("createdAt", "desc"), limit(100));
       }
 
       const unsub = onSnapshot(
@@ -829,6 +841,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     localStorage.setItem("store_language", language);
   }, [language]);
+  useEffect(() => {
+    localStorage.setItem("store_recharges", JSON.stringify(recharges));
+  }, [recharges]);
   useEffect(() => {
     localStorage.setItem(
       "store_marketing_notifications",
@@ -3618,6 +3633,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       cities,
       searchTerms,
       visits,
+      recharges,
       systemError,
       isLoading,
       isAuthReady,
@@ -3649,6 +3665,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       cities,
       searchTerms,
       visits,
+      recharges,
       systemError,
       isLoading,
       isAuthReady,

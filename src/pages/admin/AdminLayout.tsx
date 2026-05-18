@@ -35,11 +35,13 @@ import {
   Fingerprint,
 } from "lucide-react";
 import { motion, AnimatePresence, Variants } from "motion/react";
-import { Toaster, toast } from "sonner";
+import { toast } from "sonner";
 import { startRegistration } from "@simplewebauthn/browser";
 import Logo from "@/components/Logo";
 import { useStore } from "@/context/StoreContext";
 import { FloatingInput } from "@/components/FloatingInput";
+import { AdminNotificationListener } from "@/components/admin/AdminNotificationListener";
+import { showLuxuryToast } from "@/lib/luxuryToast";
 
 export default function AdminLayout() {
   const location = useLocation();
@@ -51,7 +53,9 @@ export default function AdminLayout() {
     adminUsers,
     logActivity,
     supportTickets,
+    recharges,
     logout,
+    syncOnDemand,
   } = useStore();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
@@ -98,7 +102,7 @@ export default function AdminLayout() {
 
     // 1. New Orders (Pending)
     const pendingOrders = orders.filter((o) => o.status === "pending");
-    pendingOrders.slice(0, 3).forEach((order) => {
+    pendingOrders.forEach((order) => {
       const orderDate = (order.date as any)?.seconds
         ? new Date((order.date as any).seconds * 1000)
         : new Date(order.date);
@@ -106,6 +110,7 @@ export default function AdminLayout() {
         id: `order-${order.id}`,
         title: "طلب جديد ينتظر الموافقة",
         description: `العميل: ${order.customerName} - المبلغ: ${formatPrice(order.total)}`,
+        timestamp: orderDate.getTime(),
         time: orderDate.toLocaleTimeString("ar-SA", {
           hour: "2-digit",
           minute: "2-digit",
@@ -121,11 +126,12 @@ export default function AdminLayout() {
     const lowStockProducts = products.filter(
       (p) => p.inStock && (p.stockCount || 0) <= (p.minStock || 5),
     );
-    lowStockProducts.slice(0, 2).forEach((product) => {
+    lowStockProducts.slice(0, 5).forEach((product) => {
       alerts.push({
         id: `stock-${product.id}`,
         title: "تنبيه مخزون منخفض",
         description: `المنتج: ${product.name} - المتبقي: ${product.stockCount}`,
+        timestamp: Date.now(),
         time: "الآن",
         icon: AlertCircle,
         color: "text-rose-600",
@@ -136,12 +142,19 @@ export default function AdminLayout() {
 
     // 3. Support Tickets
     const openTickets = supportTickets.filter((t) => t.status === "open");
-    openTickets.slice(0, 2).forEach((ticket) => {
+    openTickets.forEach((ticket) => {
+      const ticketDate = (ticket.createdAt as any)?.seconds
+        ? new Date((ticket.createdAt as any).seconds * 1000)
+        : ticket.createdAt ? new Date(ticket.createdAt) : new Date();
       alerts.push({
         id: `ticket-${ticket.id}`,
         title: "رسالة دعم فني جديدة",
         description: ticket.subject,
-        time: "منذ قليل",
+        timestamp: ticketDate.getTime(),
+        time: ticketDate.toLocaleTimeString("ar-SA", {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
         icon: MessageSquare,
         color: "text-blue-600",
         bg: "bg-blue-50",
@@ -149,8 +162,33 @@ export default function AdminLayout() {
       });
     });
 
+    // 4. Wallet Recharges
+    const pendingRecharges = recharges.filter((r) => r.status === "pending");
+    pendingRecharges.forEach((recharge) => {
+      const rechargeDate = (recharge.createdAt as any)?.seconds
+        ? new Date((recharge.createdAt as any).seconds * 1000)
+        : recharge.createdAt ? new Date(recharge.createdAt) : new Date();
+      alerts.push({
+        id: `recharge-${recharge.id}`,
+        title: "طلب شحن محفظة جديد",
+        description: `العميل: ${recharge.userName} - المبلغ: ${formatPrice(recharge.amount)}`,
+        timestamp: rechargeDate.getTime(),
+        time: rechargeDate.toLocaleTimeString("ar-SA", {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+        icon: Wallet,
+        color: "text-emerald-600",
+        bg: "bg-emerald-50",
+        link: "/admin/recharges",
+      });
+    });
+
+    // Sort by timestamp descending
+    alerts.sort((a, b) => b.timestamp - a.timestamp);
+
     return alerts.filter((alert) => !readNotifications.includes(alert.id));
-  }, [orders, products, supportTickets, formatPrice, readNotifications]);
+  }, [orders, products, supportTickets, recharges, formatPrice, readNotifications]);
 
   const [isSyncing, setIsSyncing] = useState(false);
   const [isRegisteringPasskey, setIsRegisteringPasskey] = useState(false);
@@ -209,16 +247,25 @@ export default function AdminLayout() {
       const verifyData = JSON.parse(verifyText);
 
       if (verifyData.success) {
-        toast.success("تم إعداد وتسجيل بصمة الدخول بنجاح!");
+        showLuxuryToast("success", {
+          title: "تم الإعداد بنجاح!",
+          description: "تم تسجيل بصمة الدخول بنجاح لإدارة المتجر",
+        });
       } else {
         throw new Error(verifyData.error || "فشل التحقق");
       }
     } catch (err: any) {
       console.error("[Admin Passkey Register Error]:", err);
       if (err.name === "NotSupportedError") {
-        toast.error("المتصفح أو الجهاز لا يدعم هذه الميزة");
+        showLuxuryToast("error", {
+          title: "خطأ في التوافق",
+          description: "المتصفح أو الجهاز لا يدعم هذه الميزة حالياً",
+        });
       } else {
-        toast.error(err.message || "حدث خطأ أثناء تسجيل البصمة");
+        showLuxuryToast("error", {
+          title: "فشل العملية",
+          description: err.message || "حدث خطأ أثناء تسجيل البصمة",
+        });
       }
     } finally {
       setIsRegisteringPasskey(false);
@@ -238,7 +285,10 @@ export default function AdminLayout() {
       return next;
     });
 
-    toast.success("تم تحديد جميع التنبيهات كمقروءة");
+    showLuxuryToast("success", {
+      title: "تم التحديث!",
+      description: "تم تحديد جميع التنبيهات كمقروءة بنجاح",
+    });
     setIsNotificationsOpen(false);
   };
 
@@ -251,8 +301,10 @@ export default function AdminLayout() {
 
     setIsSyncing(false);
     toast.dismiss(syncToast);
-    toast.success("تم تحديث البيانات بنجاح", {
-      description: `آخر تحديث: ${new Date().toLocaleTimeString("ar-SA")}`,
+    
+    showLuxuryToast("success", {
+      title: "مزامنة ناجحة",
+      description: `تم تحديث البيانات - ${new Date().toLocaleTimeString("ar-SA")}`,
     });
   };
 
@@ -460,6 +512,12 @@ export default function AdminLayout() {
 
   // Check authentication and permissions
   useEffect(() => {
+    syncOnDemand("recharges");
+    syncOnDemand("orders");
+    syncOnDemand("support_tickets");
+  }, [syncOnDemand]);
+
+  useEffect(() => {
     const checkAuth = async () => {
       const { adminAuth } = await import("@/lib/firebase");
 
@@ -518,7 +576,10 @@ export default function AdminLayout() {
                 currentItem.permission as any,
               )
             ) {
-              toast.error("ليس لديك صلاحية للوصول لهذه الصفحة");
+              showLuxuryToast("error", {
+                title: "دخول غير مصرح",
+                description: "ليس لديك الصلاحيات الكافية للوصول لهذا القسم",
+              });
               navigate("/admin", { replace: true });
             }
           }
@@ -914,6 +975,7 @@ export default function AdminLayout() {
         </header>
 
         <div className="p-4 sm:p-6 lg:p-8 flex-1 overflow-x-hidden pb-10">
+          <AdminNotificationListener />
           {isAuthLoading ? (
             <div className="flex items-center justify-center h-full">
               <RefreshCw className="w-8 h-8 text-solar animate-spin" />

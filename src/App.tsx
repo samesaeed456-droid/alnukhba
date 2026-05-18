@@ -207,37 +207,38 @@ const MainRoutes = () => {
             initial={{ opacity: 0, y: -40, scale: 0.9, filter: 'blur(10px)' }}
             animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
             exit={{ opacity: 0, scale: 0.9, filter: 'blur(10px)' }}
-            className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-2xl rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.2)] p-4 flex gap-4 items-center border border-white/50 dark:border-white/10 w-[420px] max-w-[94vw] pointer-events-auto"
+            className="bg-[#111214]/90 backdrop-blur-2xl rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.5)] p-1.5 pr-4 flex gap-3 items-center border border-[#c5a880]/30 w-fit max-w-[92vw] mx-auto pointer-events-auto ring-1 ring-white/5"
             dir="rtl"
           >
-            <div className="w-12 h-12 bg-solar/10 rounded-2xl flex items-center justify-center shrink-0">
-              <Bell className="w-6 h-6 text-solar animate-bounce" />
+            <div className="w-8 h-8 bg-[#c5a880] rounded-full flex items-center justify-center shrink-0 shadow-lg shadow-[#c5a880]/20">
+              <Bell className="w-4 h-4 text-black" />
             </div>
-            <div className="flex-1">
-              <h4 className="text-[14px] font-black text-gray-900 dark:text-white leading-tight">
-                هل تود تلقي إشعارات بآخر العروض والطلبات؟ 🔔
-              </h4>
-              <div className="flex gap-2 mt-3">
-                <button
-                  onClick={() => {
-                    requestNotificationPermission();
-                    localStorage.setItem("notifications_asked", "true");
-                    toast.dismiss(t);
-                  }}
-                  className="flex-1 bg-solar text-black text-[12px] font-black py-2.5 rounded-xl shadow-lg shadow-solar/20 active:scale-95 transition-all"
-                >
-                  تفعيل
-                </button>
-                <button
-                  onClick={() => {
-                    localStorage.setItem("notifications_asked", "true");
-                    toast.dismiss(t);
-                  }}
-                  className="px-4 bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-gray-300 text-[12px] font-black py-2.5 rounded-xl active:scale-95 transition-all"
-                >
-                  ليس الآن
-                </button>
-              </div>
+            <div className="flex flex-col">
+              <span className="text-[11px] font-bold text-white leading-tight">
+                تفعيل التنبيهات؟ 🔔
+              </span>
+              <span className="text-[9px] text-[#c5a880]/80">لعروض حصرية وطلباتك</span>
+            </div>
+            <div className="flex gap-1 ml-1">
+              <button
+                onClick={() => {
+                  requestNotificationPermission();
+                  localStorage.setItem("notifications_asked", "true");
+                  toast.dismiss(t);
+                }}
+                className="bg-[#c5a880] text-black text-[9px] font-black px-4 py-1.5 rounded-full active:scale-90 transition-all hover:brightness-110"
+              >
+                تفعيل
+              </button>
+              <button
+                onClick={() => {
+                  localStorage.setItem("notifications_asked", "true");
+                  toast.dismiss(t);
+                }}
+                className="bg-white/5 text-white/60 text-[9px] font-bold px-3 py-1.5 rounded-full active:scale-90 transition-all"
+              >
+                إغلاق
+              </button>
             </div>
           </motion.div>
         ), { duration: 10000, position: 'top-center' });
@@ -338,9 +339,12 @@ export default function App() {
             expand={false}
             richColors
             closeButton
-            theme="system"
+            theme="dark"
             toastOptions={{
-              className: "font-sans",
+              className: "font-sans !border-none !shadow-none !bg-transparent",
+              style: {
+                direction: 'rtl',
+              }
             }}
           />
           <Router>

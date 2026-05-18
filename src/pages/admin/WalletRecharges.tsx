@@ -15,10 +15,11 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
-import { toast } from "sonner";
+import { Toaster, toast } from "sonner";
 import { useStore } from "@/context/StoreContext";
 import PriceDisplay from "@/components/PriceDisplay";
 import ConfirmationModal from "@/components/ConfirmationModal";
+import { showLuxuryToast } from "@/lib/luxuryToast";
 
 interface RechargeRequest {
   id: string;
@@ -70,7 +71,7 @@ export default function WalletRecharges() {
             }
           };
           console.error("Firestore Error [WalletRecharges]:", JSON.stringify(errInfo));
-          toast.error("فشل تحميل طلبات الإيداع");
+          showLuxuryToast("error", { title: "خطأ في التحميل", description: "فشل تحميل طلبات الإيداع من الخادم" });
           setIsLoading(false);
         });
 
@@ -217,12 +218,15 @@ export default function WalletRecharges() {
         `${actionType === "approve" ? "تمت الموافقة" : "تم رفض"} طلب إيداع العميل ${selectedRecharge.userName} بمبلغ ${selectedRecharge.amount}`
       );
 
-      toast.success(actionType === "approve" ? "تم قبول الطلب وشحن المحفظة" : "تم رفض الطلب");
+      showLuxuryToast("success", { 
+        title: "تمت العملية!", 
+        description: actionType === "approve" ? "تم قبول الطلب وشحن المحفظة بنجاح" : "تم رفض الطلب بنجاح" 
+      });
       setIsConfirmModalOpen(false);
       setSelectedRecharge(null);
     } catch (error) {
       console.error("Error processing recharge action:", error);
-      toast.error("فشل إكمال العملية");
+      showLuxuryToast("error", { title: "فشل العملية", description: "تعذر إكمال العملية، يرجى المحاولة لاحقاً" });
     } finally {
       setIsProcessing(false);
     }

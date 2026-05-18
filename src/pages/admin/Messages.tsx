@@ -24,7 +24,7 @@ import {
   Star
 } from "lucide-react";
 import { motion, AnimatePresence, Variants } from "motion/react";
-import { toast } from "sonner";
+import { showLuxuryToast } from "@/lib/luxuryToast";
 import { FloatingInput } from "../../components/FloatingInput";
 import ConfirmationModal from "../../components/ConfirmationModal";
 
@@ -105,7 +105,10 @@ const Messages = () => {
           // Identify product reference
           await deleteDoc(doc(db, "products", review.productId, "reviews", review.id));
           setAllReviews((prev) => prev.filter((r) => r.id !== review.id));
-          toast.success("تم حذف التقييم بنجاح");
+          showLuxuryToast("success", {
+            title: "تم الحذف",
+            description: "تم حذف التقييم بنجاح من صفحة المنتج",
+          });
         } catch (error) {
           handleFirestoreError(error, OperationType.DELETE, `products/${review.productId}/reviews/${review.id}`);
         }
@@ -168,8 +171,12 @@ const Messages = () => {
 
   const handleBulkStatusUpdate = (newStatus: "open" | "resolved") => {
     selectedTickets.forEach((id) => updateTicketStatus(id, newStatus));
+    const count = selectedTickets.length;
     setSelectedTickets([]);
-    toast.success(`تم تحديث ${selectedTickets.length} رسائل بنجاح`);
+    showLuxuryToast("success", {
+      title: "تحديث جماعي",
+      description: `تم تحديث ${count} رسائل بنجاح للتصنيف الجديد`,
+    });
   };
 
   const handleBulkDelete = () => {
@@ -178,9 +185,13 @@ const Messages = () => {
       title: "حذف الرسائل",
       message: `هل أنت متأكد من حذف ${selectedTickets.length} رسائل نهائياً؟ لا يمكن التراجع عن هذا الإجراء.`,
       onConfirm: () => {
+        const count = selectedTickets.length;
         selectedTickets.forEach((id) => deleteTicket(id));
         setSelectedTickets([]);
-        toast.success("تم حذف الرسائل بنجاح");
+        showLuxuryToast("success", {
+          title: "حذف جماعي",
+          description: `تم حذف ${count} رسائل نهائياً من النظام`,
+        });
       },
     });
   };
@@ -562,7 +573,10 @@ const Messages = () => {
                   <button
                     onClick={() => {
                       navigator.clipboard.writeText(selectedMessage.message);
-                      toast.success("تم نسخ محتوى الرسالة");
+                      showLuxuryToast("success", {
+                        title: "تم النسخ",
+                        description: "تم نسخ محتوى الرسالة للحافظة",
+                      });
                     }}
                     className="hidden sm:block p-4 bg-white text-slate-400 hover:text-carbon hover:bg-slate-50 rounded-[22px] transition-colors border border-bg-hover shadow-sm"
                     title="نسخ الرسالة"
@@ -694,12 +708,15 @@ const Messages = () => {
                   </AnimatePresence>
                 </div>
 
-                <div className="flex items-center gap-3 sm:gap-4 w-full sm:w-auto order-1 sm:order-2">
+               <div className="flex items-center gap-3 sm:gap-4 w-full sm:w-auto order-1 sm:order-2">
                   <button
                     onClick={() => {
                       updateTicketStatus(selectedMessage.id, "open");
                       setIsDetailsModalOpen(false);
-                      toast.success("تم التحديد كغير مقروءة");
+                      showLuxuryToast("info", {
+                        title: "تغيير الحالة",
+                        description: "تم التحديد كغير مقروءة للمراجعة لاحقاً",
+                      });
                     }}
                     className="flex-1 sm:flex-none px-6 sm:px-10 py-4 sm:py-5 bg-white text-carbon rounded-[20px] sm:rounded-[28px] font-black text-xs sm:text-base border border-bg-hover shadow-sm hover:bg-slate-50 transition-all hover:border-solar/30"
                   >

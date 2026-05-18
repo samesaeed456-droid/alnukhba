@@ -12,6 +12,7 @@ import {
   Users,
 } from "lucide-react";
 import { motion } from "motion/react";
+import { toast } from "sonner";
 import { Product, NotificationSubscription } from "../types";
 import {
   useStore,
@@ -123,6 +124,7 @@ const ProductCardInner = React.memo(function ProductCardInner({
 
       addToCart(p);
       setIsAdded(true);
+
       setTimeout(() => {
         setIsAdded(false);
       }, 1500);

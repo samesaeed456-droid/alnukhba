@@ -2,83 +2,105 @@ import { db } from "./firebase";
 import { collection, getDocs } from "firebase/firestore";
 import { supabase } from "./supabase";
 
+export interface MigrationStep {
+  id: string;
+  name: string;
+  collection: string;
+  table: string;
+  status: 'idle' | 'loading' | 'success' | 'error';
+  count: number;
+  error?: string;
+}
+
 /**
- * Utility script to migrate data from Firebase to Supabase
- * You can call this function safely once to transfer your existing 
- * Firebase store data into Supabase Postgres Tables.
+ * Advanced script to migrate data from Firebase arrays & documents to Supabase Tables
+ * Includes detailed callbacks to report progress per collection.
  */
-export const migrateFirebaseToSupabase = async () => {
+export const migrateFirebaseToSupabaseWithProgress = async (
+  onStepProgress: (steps: MigrationStep[]) => void
+) => {
   const supabaseClient = supabase();
   
   if (!supabaseClient) {
-    console.error("Supabase client is not initialized. Please ensure your .env variables are set.");
-    return false;
+    throw new Error("Supabase client is not initialized. Please configure credentials first.");
   }
 
+  const steps: MigrationStep[] = [
+    { id: 'categories', name: 'الأقسام والأسماء (Categories)', collection: 'categories', table: 'categories', status: 'idle', count: 0 },
+    { id: 'products', name: 'المنتجات والمخزون (Products)', collection: 'products', table: 'products', status: 'idle', count: 0 },
+    { id: 'users', name: 'حسابات العملاء (Users)', collection: 'users', table: 'users', status: 'idle', count: 0 },
+    { id: 'orders', name: 'طلبات الشراء والعمليات (Orders)', collection: 'orders', table: 'orders', status: 'idle', count: 0 },
+    { id: 'coupons', name: 'كوبونات الخصم (Coupons)', collection: 'coupons', table: 'coupons', status: 'idle', count: 0 },
+    { id: 'recharges', name: 'عمليات شحن المحفظة (Recharges)', collection: 'recharges', table: 'recharges', status: 'idle', count: 0 },
+    { id: 'support_tickets', name: 'تذاكر الدعم الفني (Support Tickets)', collection: 'support_tickets', table: 'support_tickets', status: 'idle', count: 0 },
+  ];
+
+  // Trigger initial idle state
+  onStepProgress([...steps]);
+
+  for (let i = 0; i < steps.length; i++) {
+    const step = steps[i];
+    step.status = 'loading';
+    onStepProgress([...steps]);
+
+    try {
+      console.log(`Starting migration for: ${step.collection}`);
+      const querySnap = await getDocs(collection(db, step.collection));
+      
+      const items = querySnap.docs.map(doc => {
+        const data = doc.data();
+        const docData: any = { id: doc.id, ...data };
+        
+        // Map document ID to primary key where schemas vary
+        if (step.id === 'users') {
+          docData.uid = doc.id;
+          delete docData.id;
+        }
+
+        // Deep-scan for Firestore date formats & translate to standard ISO strings
+        for (const [key, val] of Object.entries(docData)) {
+          if (val && typeof val === 'object') {
+            if ('toDate' in val && typeof (val as any).toDate === 'function') {
+              docData[key] = (val as any).toDate().toISOString();
+            } else if ('seconds' in val && 'nanoseconds' in val) {
+              docData[key] = new Date((val as any).seconds * 1000).toISOString();
+            }
+          }
+        }
+        return docData;
+      });
+
+      if (items.length > 0) {
+        // Run full Upsert operation to bypass duplicate insert faults
+        const { error: upsertError } = await supabaseClient.from(step.table).upsert(items);
+        if (upsertError) {
+          throw upsertError;
+        }
+        step.count = items.length;
+      }
+      
+      step.status = 'success';
+    } catch (err: any) {
+      console.error(`Migration error on table ${step.table}:`, err);
+      step.status = 'error';
+      step.error = err.message || JSON.stringify(err);
+    }
+
+    // Refresh UI after each table completes
+    onStepProgress([...steps]);
+  }
+  
+  return steps.every(s => s.status === 'success');
+};
+
+/**
+ * Kept for backwards compatibility
+ */
+export const migrateFirebaseToSupabase = async () => {
   try {
-    console.log("Starting Data Migration: Firebase -> Supabase");
-
-    // 1. Migrate Products
-    console.log("Migrating products...");
-    const productsSnap = await getDocs(collection(db, "products"));
-    const products = productsSnap.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
-    
-    if (products.length > 0) {
-      const { error: productError } = await supabaseClient.from("products").upsert(products);
-      if (productError) console.error("Error migrating products:", productError);
-    }
-
-    // 2. Migrate Categories
-    console.log("Migrating categories...");
-    const categoriesSnap = await getDocs(collection(db, "categories"));
-    const categories = categoriesSnap.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
-
-    if (categories.length > 0) {
-      const { error: categoryError } = await supabaseClient.from("categories").upsert(categories);
-      if (categoryError) console.error("Error migrating categories:", categoryError);
-    }
-
-    // 3. Migrate Users (Basic profile info, Note: Firebase Auth handles actual passwords)
-    console.log("Migrating users...");
-    const usersSnap = await getDocs(collection(db, "users"));
-    const users = usersSnap.docs.map(doc => ({
-      uid: doc.id,
-      ...doc.data()
-    }));
-
-    if (users.length > 0) {
-      const { error: userError } = await supabaseClient.from("users").upsert(users);
-      if (userError) console.error("Error migrating users:", userError);
-    }
-
-    // 4. Migrate Orders
-    console.log("Migrating orders...");
-    const ordersSnap = await getDocs(collection(db, "orders"));
-    const orders = ordersSnap.docs.map(doc => {
-      const data = doc.data();
-      return {
-        id: doc.id,
-        ...data,
-        // Ensure dates are parsed properly if they are timestamps
-        date: data.date?.toDate ? data.date.toDate().toISOString() : data.date
-      };
-    });
-
-    if (orders.length > 0) {
-      const { error: orderError } = await supabaseClient.from("orders").upsert(orders);
-      if (orderError) console.error("Error migrating orders:", orderError);
-    }
-
-    console.log("Migration to Supabase completed step!");
-    return true;
-  } catch (error) {
-    console.error("Migration to Supabase failed:", error);
+    return await migrateFirebaseToSupabaseWithProgress(() => {});
+  } catch (e) {
+    console.error(e);
     return false;
   }
 };

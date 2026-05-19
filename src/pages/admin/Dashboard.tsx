@@ -56,6 +56,7 @@ export default function Dashboard() {
   const {
     products,
     orders,
+    recharges,
     formatPrice,
     customers,
     categories,
@@ -64,6 +65,7 @@ export default function Dashboard() {
 
   React.useEffect(() => {
     syncOnDemand("orders");
+    syncOnDemand("recharges");
     syncOnDemand("customers");
     syncOnDemand("visits");
   }, [syncOnDemand]);
@@ -93,12 +95,11 @@ export default function Dashboard() {
     });
     const salesToday = ordersToday.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
 
-    const totalSales = orders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
-    const activeOrders = orders.filter((o) =>
-      ["pending", "processing", "shipped"].includes(o.status),
-    ).length;
+    const currentTotalSales = orders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+    const pendingRecharges = recharges.filter((r) => r.status === "pending").length;
 
-    const aov = orders.length > 0 ? (totalSales || 0) / orders.length : 0;
+    const aov = orders.length > 0 ? (currentTotalSales || 0) / orders.length : 0;
+
 
     // Calculate growth (comparing to previous period - simplified for now)
     const yesterday = new Date(now);
@@ -137,8 +138,8 @@ export default function Dashboard() {
     return {
       salesToday: salesToday || 0,
       ordersToday: ordersToday.length,
-      totalSales: totalSales || 0,
-      activeOrders,
+      totalSales: currentTotalSales || 0,
+      pendingRecharges,
       aov: aov || 0,
       salesGrowth: safeToFixed(salesGrowth),
       ordersGrowth: safeToFixed(ordersGrowth),
@@ -486,27 +487,28 @@ export default function Dashboard() {
           </div>
         </motion.div>
 
-        {/* Active Orders */}
+        {/* Pending Recharges instead of Active Orders */}
         <motion.div
           variants={itemVariants}
-          className="bg-white p-4 sm:p-6 rounded-[2rem] shadow-sm border border-slate-100 flex flex-col items-center sm:items-start text-center sm:text-right group hover:shadow-xl hover:shadow-amber-500/10 transition-all duration-500"
+          onClick={() => navigate("/admin/recharges")}
+          className="bg-white p-4 sm:p-6 rounded-[2rem] shadow-sm border border-slate-100 flex flex-col items-center sm:items-start text-center sm:text-right group hover:shadow-xl hover:shadow-amber-500/10 transition-all duration-500 cursor-pointer"
         >
           <div className="flex justify-between items-start w-full mb-4">
             <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
-              <ShoppingCart className="w-5 h-5 sm:w-6 sm:h-6" />
+              <Wallet className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
             <div
-              className={`text-[10px] font-black ${stats.activeOrders > 0 ? "text-amber-600" : "text-emerald-600"}`}
+              className={`text-[10px] font-black ${stats.pendingRecharges > 0 ? "text-amber-600" : "text-emerald-600"}`}
             >
-              {stats.activeOrders > 0 ? "نشط" : "مكتمل"}
+              {stats.pendingRecharges > 0 ? "ينتظر" : "مكتمل"}
             </div>
           </div>
           <div className="w-full">
             <span className="text-slate-400 text-[10px] sm:text-xs font-black uppercase tracking-widest block mb-1">
-              الطلبات النشطة
+              طلبات شحن جديدة
             </span>
             <span className="text-xl sm:text-2xl font-black text-slate-900">
-              {stats.activeOrders}
+              {stats.pendingRecharges}
             </span>
           </div>
         </motion.div>

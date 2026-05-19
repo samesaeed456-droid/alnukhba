@@ -9,6 +9,8 @@ import {
   Percent,
   Heart,
   User,
+  UserPlus,
+  LogIn,
   Package,
   MapPin,
   Settings,
@@ -74,6 +76,20 @@ export default React.memo(function MobileMenu({
     { icon: Info, label: "من نحن", path: "/about" },
     { icon: Headphones, label: "اتصل بنا", path: "/contact" },
     { icon: HelpCircle, label: "الأسئلة الشائعة", path: "/faq" },
+    ...(!user ? [
+      {
+        icon: LogIn,
+        label: "تسجيل الدخول",
+        path: "/auth",
+        variant: "blue",
+      },
+      {
+        icon: UserPlus,
+        label: "إنشاء حساب",
+        path: "/auth?mode=signup",
+        variant: "gold",
+      },
+    ] : []),
   ];
 
   const renderMenuItem = (item: any) => {
@@ -81,13 +97,26 @@ export default React.memo(function MobileMenu({
       window.location.pathname === item.path &&
       (!item.state || window.location.search.includes(item.state?.view));
 
+    const variants: Record<string, string> = {
+      blue: "bg-blue-50/50 hover:bg-blue-100/50 border-blue-100/50 text-blue-600",
+      gold: "bg-solar/5 hover:bg-solar/10 border-solar/20 text-solar font-bold",
+    };
+
+    const variantClass = item.variant ? variants[item.variant as keyof typeof variants] : "";
+
     return (
-      <div key={item.label}>
+      <div key={item.label + item.path}>
         <Link
           to={item.path}
           state={item.state}
           onClick={onClose}
-          className={`flex items-center justify-between py-2 px-2.5 rounded-xl transition-all group relative overflow-hidden ${isActive ? "bg-solar/5" : "hover:bg-slate-50"}`}
+          className={`flex items-center justify-between py-2.5 px-3 rounded-xl transition-all group relative overflow-hidden border ${
+            item.variant
+              ? variantClass
+              : isActive
+                ? "bg-solar/5 border-solar/10"
+                : "hover:bg-slate-50 border-transparent"
+          }`}
         >
           {isActive && (
             <motion.div
@@ -95,21 +124,35 @@ export default React.memo(function MobileMenu({
               className="absolute right-0 top-0 bottom-0 w-1 bg-solar rounded-l-full"
             />
           )}
-          <div className="flex items-center gap-3">
-            <div
-              className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors shadow-sm border ${isActive ? "bg-gold-gradient border-transparent shadow-gold" : "bg-slate-50 border-slate-100 group-hover:border-solar/30 group-hover:bg-white"}`}
-            >
-              <item.icon
-                className={`w-3.5 h-3.5 ${isActive ? "text-black" : "text-slate-500 group-hover:text-solar"}`}
-                strokeWidth={1.5}
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <span
-                className={`text-sm font-medium transition-colors ${isActive ? "text-solar font-bold" : "text-slate-700 group-hover:text-slate-900"}`}
+            <div className="flex items-center gap-3">
+              <div
+                className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors shadow-sm border ${
+                  item.variant
+                    ? item.variant === "blue"
+                      ? "bg-blue-500 text-white border-transparent"
+                      : "bg-gold-gradient text-black border-transparent"
+                    : isActive
+                      ? "bg-gold-gradient border-transparent shadow-gold"
+                      : "bg-slate-50 border-slate-100 group-hover:border-solar/30 group-hover:bg-white"
+                }`}
               >
-                {item.label}
-              </span>
+                <item.icon
+                  className={`w-3.5 h-3.5 ${item.variant ? "" : isActive ? "text-black" : "text-slate-500 group-hover:text-solar"}`}
+                  strokeWidth={1.5}
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <span
+                  className={`text-sm font-medium transition-colors ${
+                    item.variant
+                      ? "font-black"
+                      : isActive
+                        ? "text-solar font-bold"
+                        : "text-slate-700 group-hover:text-slate-900"
+                  }`}
+                >
+                  {item.label}
+                </span>
               {item.badge && (
                 <span className="bg-rose-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-md shadow-sm">
                   {item.badge}

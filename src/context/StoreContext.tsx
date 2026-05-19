@@ -851,6 +851,24 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     );
   }, [marketingNotifications]);
 
+  // Auto-sync admin collections when logged in
+  useEffect(() => {
+    if (adminUser || user?.role === "admin") {
+      const adminCols = ["orders", "recharges", "support_tickets", "admin_users", "visits"];
+      adminCols.forEach(col => syncOnDemand(col));
+    }
+  }, [adminUser, user, syncOnDemand]);
+
+  // Sync basic data on mount
+  useEffect(() => {
+    syncOnDemand("products");
+    syncOnDemand("categories");
+    syncOnDemand("banners");
+    syncOnDemand("settings");
+    syncOnDemand("shipping_zones");
+    syncOnDemand("cities");
+  }, [syncOnDemand]);
+
   useEffect(() => {
     document.documentElement.dir = language === "ar" ? "rtl" : "ltr";
     document.documentElement.lang = language;
@@ -1300,6 +1318,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
       // We use setDoc with merge: true to create or update the daily document efficiently
       await setDoc(statsRef, updateData, { merge: true });
+
+      // ADDED: Log individual visit for real-time tracking (Live Visitors)
+      const visitRef = doc(collection(db, "visits"));
+      await setDoc(visitRef, {
+        sessionId,
+        page,
+        timestamp: new Date().toISOString(),
+        device: window.innerWidth < 768 ? "mobile" : "desktop",
+        isUnique,
+      });
     } catch (error) {
       console.error("Failed to track visit:", error);
     }

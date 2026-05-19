@@ -39,13 +39,8 @@ export const AdminNotificationListener: React.FC = () => {
       
       snapshot.docChanges().forEach((change) => {
         if (change.type === "added") {
-          const order = change.doc.data();
-          showLuxuryToast("success", {
-            title: "طلب جديد وارد! 🛍️",
-            description: `العميل: ${order.customerName} - المبلغ: ${formatPrice(order.total)}`,
-            actionText: "معاينة",
-            onAction: () => navigate(`/admin/orders?id=${change.doc.id}`),
-          });
+          // Toast removed - functionality moved to AdminLayout navbar
+          console.log("New order detected - Notification available in header");
         }
       });
     }, (err) => console.error("AdminNotif Orders Error:", err));
@@ -68,14 +63,8 @@ export const AdminNotificationListener: React.FC = () => {
 
       snapshot.docChanges().forEach((change) => {
         if (change.type === "added") {
-          const recharge = change.doc.data();
-          showLuxuryToast("info", {
-            title: "طلب شحن محفظة 💰",
-            description: `بقيمة ${formatPrice(recharge.amount)} - بانتظار الموافقة`,
-            actionText: "فحص",
-            onAction: () => navigate(`/admin/recharges`),
-          });
-          console.log("AdminNotificationListener: New recharge detected!");
+          // Toast removed - functionality moved to AdminLayout navbar
+          console.log("New recharge detected - Notification available in header");
         }
       });
     }, (err) => console.error("AdminNotif Recharges Error:", err));
@@ -98,13 +87,8 @@ export const AdminNotificationListener: React.FC = () => {
 
       snapshot.docChanges().forEach((change) => {
         if (change.type === "added") {
-          const ticket = change.doc.data();
-          showLuxuryToast("warning", {
-            title: "رسالة دعم جديدة 💬",
-            description: ticket.subject || "استفسار من عميل",
-            actionText: "رد",
-            onAction: () => navigate(`/admin/messages`),
-          });
+          // Toast removed - functionality moved to AdminLayout navbar
+          console.log("New support ticket detected - Notification available in header");
         }
       });
     }, (err) => console.error("AdminNotif Tickets Error:", err));
@@ -119,27 +103,9 @@ export const AdminNotificationListener: React.FC = () => {
   // Show summary only once when all listeners are initialized
   useEffect(() => {
     if (isReady) {
-      const { orders, recharges, tickets } = initialCounts.current;
-      const total = orders + recharges + tickets;
-      
-      if (total > 0) {
-        // Debounce summary slightly to ensure it shows after initial rapid changes
-        const summaryTimer = setTimeout(() => {
-          showLuxuryToast("info", {
-            title: "ملخص الأعمال المعلقة 📊",
-            description: [
-              orders > 0 ? `${orders} طلبات` : "",
-              recharges > 0 ? `${recharges} شحن` : "",
-              tickets > 0 ? `${tickets} تذاكر` : ""
-            ].filter(Boolean).join(" | "),
-            actionText: "تصفح",
-            onAction: () => navigate("/admin"),
-          });
-        }, 1000);
-        return () => clearTimeout(summaryTimer);
-      }
+      console.log("Admin Notification System Ready - Alerts managed in header");
     }
-  }, [isReady, navigate]);
+  }, [isReady]);
 
   return null;
 };

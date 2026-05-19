@@ -238,15 +238,16 @@ export default React.memo(function Footer() {
         {/* Bottom Bar */}
         <div className="pt-8 border-t border-white/10 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex flex-col md:flex-row items-center gap-4 md:gap-6 text-sm text-slate-500">
-            <p className="flex items-center gap-1.5 text-sm text-slate-500" dir="rtl">
-              <FastLink to="/admin" className="hover:text-solar transition-colors" prefetchPage={undefined}>
-                ©
-              </FastLink>
-              <span>{new Date().getFullYear()}</span>
+            <div className="flex flex-col items-center md:flex-row md:items-center gap-1 md:gap-1.5 text-sm text-slate-500 text-center md:text-right" dir="rtl">
+              <div className="flex items-center gap-1">
+                <FastLink to="/admin" className="hover:text-solar transition-colors" prefetchPage={undefined}>
+                  ©
+                </FastLink>
+                <span>{new Date().getFullYear()}</span>
+                <span>جميع الحقوق محفوظة لـ</span>
+              </div>
               <span className="font-bold text-slate-400">{settings.storeName}</span>
-              <span className="text-slate-600 mx-0.5">|</span>
-              <span>جميع الحقوق محفوظة</span>
-            </p>
+            </div>
             <div className="flex items-center gap-4">
               <FastLink
                 to="/privacy"

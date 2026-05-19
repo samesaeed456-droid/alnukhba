@@ -212,60 +212,72 @@ const Analytics = () => {
       </div>
 
       {/* Hero Metrics Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
         {[
           {
             label: "إجمالي الإيرادات",
-            value: formatPrice(metrics.totalRevenue),
+            value: metrics.totalRevenue,
+            isPrice: true,
             icon: CreditCard,
-            color: "bg-gradient-to-br from-emerald-100 to-emerald-50 text-emerald-600 border-emerald-100",
-            desc: "مجموع قيمة المبيعات المكتملة",
+            color: "bg-emerald-50 text-emerald-600 border-emerald-100",
+            hoverColor: "hover:shadow-emerald-500/10",
           },
           {
             label: "إجمالي الطلبات",
             value: metrics.totalOrders,
             icon: ShoppingCart,
-            color: "bg-gradient-to-br from-blue-100 to-blue-50 text-blue-600 border-blue-100",
-            desc: "عدد الطلبات خلال الفترة",
+            color: "bg-blue-50 text-blue-600 border-blue-100",
+            hoverColor: "hover:shadow-blue-500/10",
           },
           {
             label: "حركة الزوار",
-            value: metrics.totalVisits.toLocaleString(),
+            value: metrics.totalVisits,
             icon: Users,
-            color: "bg-gradient-to-br from-purple-100 to-purple-50 text-purple-600 border-purple-100",
-            desc: "مرات زيارة المتجر",
+            color: "bg-purple-50 text-purple-600 border-purple-100",
+            hoverColor: "hover:shadow-purple-500/10",
           },
           {
             label: "متواجدون الآن",
             value: metrics.liveVisitors,
             icon: Activity,
-            color: "bg-gradient-to-br from-rose-100 to-rose-50 text-rose-600 border-rose-100",
-            desc: "الزوار النشطون في هذه اللحظة",
+            color: "bg-rose-50 text-rose-600 border-rose-100",
+            isLive: true,
+            hoverColor: "hover:shadow-rose-500/10",
           },
         ].map((stat, i) => (
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.05 }}
             key={stat.label}
-            className="group relative bg-white p-6 rounded-[32px] shadow-sm border border-slate-100 hover:shadow-xl hover:-translate-y-1 hover:border-slate-200 transition-all duration-500 overflow-hidden"
+            className={`group bg-white p-4 sm:p-6 rounded-[2rem] shadow-sm border border-slate-100 flex flex-col items-center sm:items-start text-center sm:text-right transition-all duration-500 ${stat.hoverColor} hover:shadow-xl`}
           >
-            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-slate-100/50 to-transparent rounded-bl-full opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
-            <div className="relative z-10">
-              <div className="flex justify-between items-start mb-6">
-                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center border shadow-sm group-hover:scale-110 transition-transform duration-500 ${stat.color}`}>
-                  <stat.icon className="w-6 h-6" />
+            <div className="flex justify-between items-start w-full mb-4">
+              <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-500 ${stat.color}`}>
+                <stat.icon className="w-5 h-5 sm:w-6 sm:h-6" />
+              </div>
+              {stat.isLive && (
+                <div className="bg-rose-100 text-rose-600 px-2 py-1 rounded-full text-[8px] sm:text-[10px] font-black tracking-wider flex items-center gap-1">
+                  <span>مباشر</span>
+                  <div className="w-1.5 h-1.5 rounded-full bg-rose-600 animate-pulse" />
                 </div>
+              )}
+            </div>
+            
+            <div className="w-full">
+              <span className="text-slate-400 text-[10px] sm:text-xs font-black uppercase tracking-widest block mb-1">
+                {stat.label}
+              </span>
+              <div className="flex items-baseline justify-center sm:justify-start gap-1">
+                <span className="text-lg sm:text-2xl font-black text-slate-900 leading-none">
+                  {stat.value.toLocaleString()}
+                </span>
+                {stat.isPrice && (
+                  <span className="text-[10px] sm:text-xs font-bold text-slate-400">
+                    ر.ي
+                  </span>
+                )}
               </div>
-              <div className="space-y-1">
-                <p className="text-sm font-bold text-slate-500">
-                  {stat.label}
-                </p>
-                <h3 className="text-3xl font-black text-carbon tracking-tight drop-shadow-sm">{stat.value}</h3>
-              </div>
-              <p className="text-xs text-slate-400 font-medium mt-4">
-                {stat.desc}
-              </p>
             </div>
           </motion.div>
         ))}

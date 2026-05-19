@@ -29,6 +29,7 @@ interface RechargeRequest {
   amount: number;
   reference: string;
   proof: string;
+  method?: string;
   status: "pending" | "approved" | "rejected";
   createdAt: any;
   updatedAt?: any;
@@ -84,6 +85,29 @@ export default function WalletRecharges() {
 
     fetchRecharges();
   }, [isAuthReady, adminUser?.uid]);
+
+  // Helper to format date nicely
+  const formatDateLocale = (dateObj: any) => {
+    if (!dateObj) return "غير متوفر";
+    const date = dateObj.toDate ? dateObj.toDate() : new Date(dateObj);
+    return date.toLocaleDateString("ar-YE", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success("تم نسخ المرجع بنجاح");
+  };
+
+  const getMethodIcon = (method?: string) => {
+    // Return a generic icon but could be customized
+    return <Wallet className="w-3.5 h-3.5" />;
+  };
 
   const filteredRecharges = useMemo(() => {
     return recharges.filter(r => {
@@ -322,9 +346,10 @@ export default function WalletRecharges() {
             <thead>
               <tr className="border-b border-slate-100/60">
                 <th className="text-right p-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">العميل</th>
+                <th className="text-right p-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">طريقة الدفع</th>
                 <th className="text-right p-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">المبلغ</th>
                 <th className="text-right p-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">رقم المرجع</th>
-                <th className="text-right p-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">التاريخ</th>
+                <th className="text-right p-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">التاريخ والوقت</th>
                 <th className="text-right p-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">الحالة</th>
                 <th className="text-center p-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">الإجراءات</th>
               </tr>
@@ -355,6 +380,16 @@ export default function WalletRecharges() {
                       </div>
                     </td>
                     <td className="p-6">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-500">
+                          {getMethodIcon(recharge.method)}
+                        </div>
+                        <span className="text-xs font-black text-slate-700">
+                          {recharge.method || "حوالة مباشرة"}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="p-6">
                       <PriceDisplay
                         price={recharge.amount}
                         numberClassName="font-black text-slate-900 text-base"
@@ -362,18 +397,26 @@ export default function WalletRecharges() {
                       />
                     </td>
                     <td className="p-6">
-                      <code className="bg-slate-100 text-slate-900 px-3 py-1.5 rounded-lg text-xs font-black tracking-widest">
-                        {recharge.reference}
-                      </code>
+                      <div className="flex items-center gap-2">
+                        <code className="bg-slate-100 text-slate-900 px-3 py-1.5 rounded-lg text-xs font-black tracking-widest">
+                          {recharge.reference}
+                        </code>
+                        <button 
+                          onClick={() => copyToClipboard(recharge.reference)}
+                          className="p-1.5 hover:bg-slate-200 rounded-md transition-colors text-slate-400 hover:text-slate-600"
+                        >
+                          <ArrowDownToLine className="w-3.5 h-3.5 rotate-180" />
+                        </button>
+                      </div>
                     </td>
                     <td className="p-6">
                       <div className="text-[11px] font-bold text-slate-500">
                         <div className="flex items-center gap-1.5 mb-1">
-                          <Calendar className="w-3.5 h-3.5 text-slate-300" />
-                          {recharge.createdAt?.toDate().toLocaleDateString("ar-YE")}
+                          <Calendar className="w-3.5 h-3.5 text-solar" />
+                          {recharge.createdAt?.toDate().toLocaleDateString("ar-YE", { day: 'numeric', month: 'short', year: 'numeric' })}
                         </div>
                         <div className="flex items-center gap-1.5">
-                          <Clock className="w-3.5 h-3.5 text-slate-300" />
+                          <Clock className="w-3.5 h-3.5 text-solar" />
                           {recharge.createdAt?.toDate().toLocaleTimeString("ar-YE", { hour: "2-digit", minute: "2-digit" })}
                         </div>
                       </div>
@@ -499,18 +542,38 @@ export default function WalletRecharges() {
                         currencyClassName="text-[11px] font-bold text-solar mr-1"
                       />
                     </div>
-                    <div className="bg-slate-50/50 p-3 rounded-2xl border border-slate-100">
-                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">رقم المرجع</p>
-                      <code className="text-xs font-black text-slate-900 tracking-wider block truncate">{recharge.reference}</code>
+                    <div className="bg-slate-50/50 p-3 rounded-2xl border border-slate-100 flex flex-col justify-between">
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">طريقة الدفع</p>
+                      <div className="flex items-center gap-1.5">
+                        <Wallet className="w-3 h-3 text-solar" />
+                        <p className="text-[11px] font-black text-slate-900">{recharge.method || "حوالة مباشرة"}</p>
+                      </div>
                     </div>
+                  </div>
+
+                  <div className="bg-slate-900 rounded-2xl p-4 flex items-center justify-between">
+                    <div>
+                      <p className="text-[8px] font-black text-white/40 uppercase tracking-[0.2em] mb-1">رقم المرجع</p>
+                      <code className="text-xs font-black text-solar tracking-widest block">{recharge.reference}</code>
+                    </div>
+                    <button 
+                      onClick={() => copyToClipboard(recharge.reference)}
+                      className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-white"
+                    >
+                      <ArrowDownToLine className="w-5 h-5 rotate-180" />
+                    </button>
                   </div>
 
                   {/* Actions & Timestamp */}
                   <div className="flex items-center justify-between pt-3 border-t border-slate-50">
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-600">
+                        <Calendar className="w-3.5 h-3.5 text-solar" />
+                        <span>{recharge.createdAt?.toDate().toLocaleDateString("ar-YE", { day: 'numeric', month: 'short' })}</span>
+                      </div>
                       <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400">
-                        <Calendar className="w-3.5 h-3.5 text-slate-300" />
-                        <span>{recharge.createdAt?.toDate().toLocaleDateString("ar-YE")}</span>
+                        <Clock className="w-3.5 h-3.5 text-slate-200" />
+                        <span>{recharge.createdAt?.toDate().toLocaleTimeString("ar-YE", { hour: "2-digit", minute: "2-digit" })}</span>
                       </div>
                     </div>
                     

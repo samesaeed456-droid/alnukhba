@@ -185,9 +185,10 @@ export default function AdminLayout() {
     });
 
     // Sort by timestamp descending
-    alerts.sort((a, b) => b.timestamp - a.timestamp);
-
-    return alerts.filter((alert) => !readNotifications.includes(alert.id));
+    const sortedAlerts = alerts.sort((a, b) => b.timestamp - a.timestamp);
+    
+    // Only show notifications that haven't been marked as read
+    return sortedAlerts.filter((alert) => !readNotifications.includes(alert.id));
   }, [orders, products, supportTickets, recharges, formatPrice, readNotifications]);
 
   const [isSyncing, setIsSyncing] = useState(false);
@@ -747,23 +748,23 @@ export default function AdminLayout() {
       {/* Main Content */}
       <main className="flex-1 min-w-0 overflow-y-auto flex flex-col h-screen w-full relative bg-[#FDFCFB]">
         <header className="bg-white/80 backdrop-blur-xl border-b border-slate-100 sticky top-0 z-30 shrink-0">
-          <div className="px-4 lg:px-8 py-3 flex justify-between items-center gap-4">
+          <div className="px-4 lg:px-8 py-2 sm:py-3 flex justify-between items-center gap-4">
             {/* Left: Mobile Toggle & Page Title */}
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
               <button
                 onClick={() => setIsMobileMenuOpen(true)}
-                className="lg:hidden p-2.5 text-slate-600 hover:bg-slate-50 rounded-xl transition-colors"
+                className="lg:hidden p-2 text-slate-600 hover:bg-slate-50 rounded-xl transition-colors"
               >
-                <Menu className="w-6 h-6" />
+                <Menu className="w-5 h-5" />
               </button>
 
               <div className="flex flex-col">
-                <h1 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight leading-none mb-1">
+                <h1 className="text-sm sm:text-lg font-black text-slate-900 tracking-tight leading-none">
                   {getPageTitle()}
                 </h1>
-                <div className="flex items-center gap-2 text-[10px] text-slate-400 font-bold uppercase tracking-widest">
+                <div className="hidden sm:flex items-center gap-2 text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-1">
                   <span>الرئيسية</span>
-                  <ChevronDown className="w-2.5 h-2.5 rotate-90" />
+                  <ChevronDown className="w-2 h-2 rotate-90" />
                   <span className="text-solar">{getPageTitle()}</span>
                 </div>
               </div>
@@ -846,7 +847,7 @@ export default function AdminLayout() {
                         className="fixed inset-x-6 top-16 sm:absolute sm:inset-auto sm:left-0 sm:mt-3 w-auto sm:w-80 bg-white rounded-[1.5rem] shadow-2xl border border-slate-100 overflow-hidden z-50 mx-auto max-w-[320px] sm:max-w-none"
                       >
                         <div className="p-4 border-b border-slate-50 flex items-center justify-between">
-                          <h3 className="text-sm font-black text-slate-900">
+                          <h3 className="text-xs sm:text-sm font-black text-slate-900">
                             الإشعارات
                           </h3>
                           <span className="bg-solar/10 text-solar px-2.5 py-1 rounded-lg text-[11px] font-black tracking-wider">
@@ -862,22 +863,22 @@ export default function AdminLayout() {
                                   key={notif.id}
                                   to={notif.link}
                                   onClick={() => setIsNotificationsOpen(false)}
-                                  className="flex items-start gap-4 p-5 hover:bg-slate-50/80 transition-all group border-r-4 border-transparent hover:border-solar"
+                                  className="flex items-start gap-3 p-4 sm:p-5 hover:bg-slate-50/80 transition-all group border-r-4 border-transparent hover:border-solar"
                                 >
                                   <div
-                                    className={`w-12 h-12 rounded-2xl ${notif.bg} ${notif.color} flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform shadow-sm`}
+                                    className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl ${notif.bg} ${notif.color} flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform shadow-sm`}
                                   >
-                                    <notif.icon className="w-6 h-6" />
+                                    <notif.icon className="w-5 h-5 sm:w-6 sm:h-6" />
                                   </div>
                                   <div className="flex-1 min-w-0">
-                                    <h4 className="text-[15px] font-black text-carbon line-clamp-1 leading-tight mb-1 group-hover:text-solar transition-colors">
+                                    <h4 className="text-[13px] sm:text-[15px] font-black text-carbon line-clamp-1 leading-tight mb-0.5 group-hover:text-solar transition-colors">
                                       {notif.title}
                                     </h4>
-                                    <p className="text-[13px] text-slate-600 font-bold line-clamp-2 leading-relaxed">
+                                    <p className="text-[11px] sm:text-[13px] text-slate-600 font-bold line-clamp-2 leading-relaxed">
                                       {notif.description}
                                     </p>
-                                    <div className="flex items-center gap-2 mt-2.5 text-xs text-slate-400 font-bold">
-                                      <Clock className="w-3.5 h-3.5" />
+                                    <div className="flex items-center gap-2 mt-2 text-[10px] sm:text-xs text-slate-400 font-bold">
+                                      <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                                       {notif.time}
                                     </div>
                                   </div>
@@ -903,7 +904,7 @@ export default function AdminLayout() {
                           <div className="p-3 bg-slate-50 border-t border-slate-100">
                             <button
                               onClick={markAllAsRead}
-                              className="w-full py-2 text-[10px] font-black text-slate-600 hover:text-slate-900 transition-colors"
+                              className="w-full py-2 text-[9px] sm:text-[10px] font-black text-slate-600 hover:text-slate-900 transition-colors"
                             >
                               تحديد الكل كمقروء
                             </button>

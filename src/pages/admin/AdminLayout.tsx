@@ -320,6 +320,7 @@ export default function AdminLayout() {
         "samesaeed456@gmail.com",
         "samisaeed2027@gmail.com",
         "samisaeed2025@gmail.com",
+        "967776668370@elite-store.local",
       ];
       if (superAdmins.includes(adminEmail.toLowerCase())) {
         return {

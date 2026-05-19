@@ -112,6 +112,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
               "samesaeed456@gmail.com",
               "samisaeed2027@gmail.com",
               "samisaeed2025@gmail.com",
+              "967776668370@elite-store.local",
             ];
             const userEmail = (userData.email || "").toLowerCase();
             if (hardcodedAdmins.includes(userEmail)) {
@@ -131,7 +132,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             refreshNotificationToken();
           } else {
             // Check if super admin (could be a migration case)
-            const superAdmins = ["samesaeed456@gmail.com", "samisaeed2027@gmail.com", "samisaeed2025@gmail.com"];
+            const superAdmins = [
+              "samesaeed456@gmail.com",
+              "samisaeed2027@gmail.com",
+              "samisaeed2025@gmail.com",
+              "967776668370@elite-store.local",
+            ];
             if (firebaseUser.email && superAdmins.includes(firebaseUser.email.toLowerCase())) {
               const adminData: any = {
                 uid: firebaseUser.uid,
@@ -171,7 +177,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             });
           } else {
             // Fallback for super admins
-            const superAdmins = ["samesaeed456@gmail.com", "samisaeed2027@gmail.com", "samisaeed2025@gmail.com"];
+            const superAdmins = [
+              "samesaeed456@gmail.com",
+              "samisaeed2027@gmail.com",
+              "samisaeed2025@gmail.com",
+              "967776668370@elite-store.local",
+            ];
             if (firebaseAdmin.email && superAdmins.includes(firebaseAdmin.email.toLowerCase())) {
               set({
                 adminUser: {

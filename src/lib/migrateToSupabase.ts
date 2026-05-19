@@ -71,6 +71,48 @@ export const migrateFirebaseToSupabaseWithProgress = async (
     { id: 'support_tickets', name: 'تذاكر الدعم الفني (Support Tickets)', collection: 'support_tickets', table: 'support_tickets', status: 'idle', count: 0 },
   ];
 
+  // Track uids of migrated users to safeguard foreign keys in dependent tables
+  const migratedUserUids = new Set<string>();
+
+  // Pre-load existing user uids from Supabase users table to prevent redundant placeholder insertion
+  try {
+    const { data: existingUsers, error } = await supabaseClient.from('users').select('uid');
+    if (!error && existingUsers) {
+      existingUsers.forEach((u: any) => {
+        if (u.uid) migratedUserUids.add(u.uid);
+      });
+      console.log(`[Migration] Loaded ${migratedUserUids.size} existing user uids from Supabase users table.`);
+    }
+  } catch (err) {
+    console.error("[Migration] Failed to load existing users from Supabase:", err);
+  }
+
+  // Helper inside the migration context to create skeleton placeholder users
+  const ensureUserExists = async (uid: string, displayName: string, phone?: string) => {
+    if (!uid || uid === 'guest') return;
+    if (migratedUserUids.has(uid)) return;
+
+    try {
+      console.log(`[Migration] Creating placeholder user record for referenced UID: ${uid}`);
+      const { error } = await supabaseClient.from('users').upsert({
+        uid,
+        displayName: displayName || 'عميل مسجل',
+        name: displayName || 'عميل مسجل',
+        phone: phone || '',
+        isActive: true,
+        role: 'customer'
+      }, { onConflict: 'uid' });
+
+      if (!error) {
+        migratedUserUids.add(uid);
+      } else {
+        console.warn(`[Migration] Warning creating placeholder user ${uid}:`, error.message);
+      }
+    } catch (err) {
+      console.warn(`[Migration] Exception creating placeholder user ${uid}:`, err);
+    }
+  };
+
   // Trigger initial idle state
   onStepProgress([...steps]);
 
@@ -90,6 +132,7 @@ export const migrateFirebaseToSupabaseWithProgress = async (
         // Map document ID to primary key where schemas vary
         if (step.id === 'users') {
           docData.uid = doc.id;
+          migratedUserUids.add(doc.id);
           delete docData.id;
         }
 
@@ -121,7 +164,8 @@ export const migrateFirebaseToSupabaseWithProgress = async (
           if (docData.inStock === undefined) docData.inStock = docData.stockCount > 0;
         }
         if (step.id === 'orders') {
-          docData.userId = docData.userId || docData.userUid || 'guest';
+          const rawId = docData.userId || docData.userUid;
+          docData.userId = rawId && rawId !== 'guest' ? rawId : null;
           if (docData.discountAmount === undefined) docData.discountAmount = docData.discount || docData.discountValue || 0;
         }
         if (step.id === 'coupons') {
@@ -147,6 +191,27 @@ export const migrateFirebaseToSupabaseWithProgress = async (
       });
 
       if (items.length > 0) {
+        // Safe check and insertion of placeholders before doing the bulk upsert to pass foreign key validations
+        if (step.id === 'orders') {
+          for (const item of items) {
+            if (item.userId) {
+              await ensureUserExists(item.userId, item.customerName || 'عميل طلب', item.customerPhone || '');
+            }
+          }
+        } else if (step.id === 'recharges') {
+          for (const item of items) {
+            if (item.userId) {
+              await ensureUserExists(item.userId, item.userName || 'عميل شحن', item.userPhone || '');
+            }
+          }
+        } else if (step.id === 'support_tickets') {
+          for (const item of items) {
+            if (item.customerId) {
+              await ensureUserExists(item.customerId, item.customerName || 'عميل تذكرة');
+            }
+          }
+        }
+
         // Run full Upsert operation to bypass duplicate insert faults
         const { error: upsertError } = await supabaseClient.from(step.table).upsert(items);
         if (upsertError) {

@@ -8,6 +8,7 @@ import {
   addDoc, 
   serverTimestamp,
   db,
+  getDocs,
   OperationType,
   handleFirestoreError
 } from "../lib/firebase";
@@ -38,7 +39,6 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ productId, productName 
     const fetchReviews = async () => {
       setIsLoading(true);
       try {
-        const { getDocs } = await import("firebase/firestore");
         const reviewsRef = collection(db, "products", productId, "reviews");
         const q = query(
           reviewsRef,
@@ -46,11 +46,17 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ productId, productName 
         );
         
         const snapshot = await getDocs(q);
-        const reviewsData = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
-          createdAt: doc.data().createdAt?.toDate()?.toISOString() || new Date().toISOString()
-        })) as Review[];
+        const reviewsData = snapshot.docs.map(doc => {
+          const rawDate = doc.data().createdAt;
+          const createdAt = (rawDate && typeof rawDate === 'object' && 'toDate' in rawDate)
+            ? (rawDate as any).toDate().toISOString()
+            : (typeof rawDate === 'string' ? rawDate : new Date().toISOString());
+          return {
+            id: doc.id,
+            ...doc.data(),
+            createdAt
+          };
+        }) as Review[];
         
         setReviews(reviewsData);
       } catch (error) {

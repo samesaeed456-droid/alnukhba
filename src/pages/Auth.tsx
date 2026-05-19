@@ -373,7 +373,7 @@ export default function Auth() {
           try {
             // Update Firebase Auth profile
             await import("firebase/auth").then(({ updateProfile }) => {
-              updateProfile(userCred.user, {
+              updateProfile(userCred.user as any, {
                 displayName: formData.name,
               }).catch(console.error);
             });
@@ -597,7 +597,7 @@ export default function Auth() {
             try {
               // Update Firebase Auth profile
               await import("firebase/auth").then(({ updateProfile }) => {
-                updateProfile(userCred.user, {
+                updateProfile(userCred.user as any, {
                   displayName: formData.name,
                 }).catch(console.error);
               });

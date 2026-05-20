@@ -1,5 +1,4 @@
-import { db } from "./firebase";
-import { collection, doc, setDoc, getDocs } from "firebase/firestore";
+import { db, collection, doc, setDoc, getDocs } from "./firebase";
 import { products as defaultProducts } from "../data";
 
 export const migrateLocalDataToFirebase = async () => {

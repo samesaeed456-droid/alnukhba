@@ -1,5 +1,4 @@
-import { db, adminDb, adminAuth } from "./firebase";
-import { collection, getDocs } from "firebase/firestore";
+import { db, adminDb, adminAuth, collection, getDocs } from "./firebase";
 import { supabase } from "./supabase";
 
 export interface MigrationStep {

@@ -159,7 +159,6 @@ export default defineConfig(({mode}) => {
         output: {
           manualChunks: {
             vendor: ['react', 'react-dom', 'react-router-dom'],
-            firebase: ['firebase/app', 'firebase/auth', 'firebase/firestore', 'firebase/storage'],
             ui: ['motion/react', 'lucide-react', 'sonner'],
             utils: ['recharts', 'date-fns']
           }

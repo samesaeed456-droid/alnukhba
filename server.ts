@@ -297,22 +297,6 @@ let globalSettingsCache: {
   timestamp: number;
 } | null = null;
 
-// Cache Firebase config
-let _cachedFirebaseConfig: any = null;
-function getFirebaseConfig() {
-  if (_cachedFirebaseConfig) return _cachedFirebaseConfig;
-  const configPath = path.join(process.cwd(), 'firebase-applet-config.json');
-  if (fs.existsSync(configPath)) {
-    try {
-      _cachedFirebaseConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-      return _cachedFirebaseConfig;
-    } catch (e) {
-      console.error("[Config] Error parsing firebase-applet-config.json:", e);
-    }
-  }
-  return null;
-}
-
 /**
  * Robust SEO Metadata Injection
  */
@@ -349,8 +333,7 @@ async function injectSEOMetadata(html: string, req: express.Request, db: any): P
 
   try {
     const fetchData = async () => {
-      // Determine whether to use Admin DB or REST API
-      if (getApps().length > 0 && db) {
+      if (db) {
         const promises: Promise<any>[] = [];
 
         // 1. Fetch Store Settings if not in cache
@@ -424,110 +407,6 @@ async function injectSEOMetadata(html: string, req: express.Request, db: any): P
         }
 
         await Promise.all(promises);
-      } else {
-        // Use REST API
-        const firebaseConfig = getFirebaseConfig();
-        if (firebaseConfig) {
-          const projectId = firebaseConfig.projectId;
-          const databaseId = firebaseConfig.firestoreDatabaseId || "(default)";
-          const apiKey = firebaseConfig.apiKey;
-          const firestoreApiBase = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents`;
-
-          const parseFirestoreValue = (val: any): any => {
-            if (!val) return null;
-            if (val.stringValue !== undefined) return val.stringValue;
-            if (val.integerValue !== undefined) return parseInt(val.integerValue);
-            if (val.doubleValue !== undefined) return parseFloat(val.doubleValue);
-            if (val.booleanValue !== undefined) return val.booleanValue;
-            if (val.arrayValue !== undefined) return (val.arrayValue.values || []).map(parseFirestoreValue);
-            if (val.mapValue !== undefined) {
-               const res: any = {};
-               for (const [k, v] of Object.entries<any>((val.mapValue.fields || {}))) {
-                  res[k] = parseFirestoreValue(v);
-               }
-               return res;
-            }
-             return null;
-          };
-
-          const fetchDoc = async (docPath: string) => {
-             try {
-                const url = `${firestoreApiBase}/${docPath}?key=${apiKey}`;
-                const res = await axios.get(url, { timeout: 4000 });
-                if (res.data && res.data.fields) {
-                    const result: any = {};
-                    for (const [key, val] of Object.entries<any>(res.data.fields)) {
-                       result[key] = parseFirestoreValue(val);
-                    }
-                    return result;
-                }
-             } catch (err: any) {
-                if (err.response?.status === 404) {
-                   // Silence 404s as they might be expected for some docs
-                   return null;
-                }
-                console.warn(`[SEO] REST fetchDoc failed for ${docPath}:`, err.response?.data?.error?.message || err.message);
-             }
-             return null;
-          };
-
-          const restPromises: Promise<any>[] = [];
-
-          if (!fetchedStoreName) {
-            restPromises.push((async () => {
-              try {
-                const settings = await fetchDoc('settings/store');
-                if (settings) {
-                  fetchedStoreName = settings.storeName || null;
-                  fetchedSeoSettings = settings.seo || null;
-                  fetchedSocialMedia = settings.socialMedia || null;
-                  
-                  globalSettingsCache = {
-                    storeName: fetchedStoreName,
-                    seo: fetchedSeoSettings,
-                    socialMedia: fetchedSocialMedia,
-                    timestamp: Date.now()
-                  };
-                  console.log("[SEO] Fetched and cached settings via REST API");
-                }
-              } catch (e: any) { 
-                console.warn("[SEO] REST store settings fetch error:", e.message); 
-              }
-            })());
-          }
-
-          const pathSegments = req.path.split('/').filter(Boolean);
-          if (pathSegments[0] === 'product' && pathSegments[1]) {
-             restPromises.push((async () => {
-               try {
-                  const productId = decodeURIComponent(pathSegments[1] || "");
-                  const product = await fetchDoc(`products/${productId}`);
-                  if (product) {
-                     const stripHtml = (html: any) => (html || '').toString().replace(/<[^>]*>?/gm, '').trim();
-                     routeTitle = product?.metaTitle || product?.name;
-                     const plainDesc = stripHtml(product?.description);
-                     routeDescription = stripHtml(product?.metaDescription) || plainDesc;
-                     routeImage = product?.image;
-                     if (!routeImage && product?.images && Array.isArray(product.images) && product.images.length > 0) {
-                        routeImage = product.images[0];
-                     }
-                     routePrice = product?.price;
-                     routeRating = product?.rating || product?.averageRating || 5;
-                     routeReviewCount = product?.reviewsCount || product?.reviewCount || 10;
-                     routeInStock = product?.inStock !== false && (product?.stockCount === undefined || product?.stockCount > 0);
-                  }
-               } catch (e: any) { 
-                  console.warn("[SEO] REST product fetch error:", e.message); 
-               }
-             })());
-          } else if (pathSegments[0] === 'category' && pathSegments[1]) {
-             const categoryName = decodeURIComponent(pathSegments[1] || "");
-             routeTitle = categoryName;
-             routeDescription = `تسوق أفضل منتجات ${categoryName} في ${fetchedStoreName || storeName}. جودة عالية وضمان حقيقي.`;
-          }
-
-          await Promise.all(restPromises);
-        }
       }
     };
 

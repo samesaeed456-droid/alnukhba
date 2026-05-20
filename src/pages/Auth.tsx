@@ -371,17 +371,6 @@ export default function Auth() {
             }
           }
 
-          if (!isSupabaseActive()) {
-            try {
-              // Update Firebase Auth profile
-              await import("firebase/auth").then(({ updateProfile }) => {
-                updateProfile(userCred.user as any, {
-                  displayName: formData.name,
-                }).catch(console.error);
-              });
-            } catch (e) {}
-          }
-
           const currentSessionId = localStorage.getItem("local_session_id");
           const newUserObj: any = {
             uid: userCred.user.uid,
@@ -597,17 +586,6 @@ export default function Auth() {
             const email = getDummyEmail(formData.countryCode, cleanPhone);
             const userCred = await signupWithEmail(email, formData.password);
             
-            if (!isSupabaseActive()) {
-              try {
-                // Update Firebase Auth profile
-                await import("firebase/auth").then(({ updateProfile }) => {
-                  updateProfile(userCred.user as any, {
-                    displayName: formData.name,
-                  }).catch(console.error);
-                });
-              } catch (e) {}
-            }
-
             const currentSessionId = localStorage.getItem("local_session_id");
             const newUserObj: any = {
               uid: userCred.user.uid,

@@ -495,7 +495,10 @@ export default function AdminLayout() {
       }
     };
 
-    const adminPermissions = currentAdmin.permissions || [];
+    const adminPermissions =
+      currentAdmin.permissions && currentAdmin.permissions.length > 0
+        ? currentAdmin.permissions
+        : getFallbackPermissions(currentAdmin.role || "admin");
     const isSuperAdmin =
       currentAdmin.role === "super_admin" || adminPermissions.includes("all");
 

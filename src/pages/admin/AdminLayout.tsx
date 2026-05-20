@@ -496,14 +496,23 @@ export default function AdminLayout() {
 
     if (!currentAdmin) return [];
 
+    const adminRoleValue = (currentAdmin as any).adminRole || currentAdmin.role || "admin";
     const adminPermissions =
       currentAdmin.permissions && currentAdmin.permissions.length > 0
         ? currentAdmin.permissions
-        : getFallbackPermissions(currentAdmin.role || "admin");
+        : getFallbackPermissions(adminRoleValue);
+
+    const emailLower = (currentAdmin.email || "").toLowerCase();
+    const superAdmins = [
+      "samesaeed456@gmail.com",
+      "samisaeed2027@gmail.com",
+      "samisaeed2025@gmail.com",
+      "967776668370@elite-store.local",
+    ];
     const isSuperAdmin =
       currentAdmin.role === "super_admin" ||
-      currentAdmin.role === "admin" ||
-      (currentAdmin as any).isAdmin === true ||
+      (currentAdmin as any).adminRole === "super_admin" ||
+      superAdmins.includes(emailLower) ||
       adminPermissions.includes("all");
 
     return groups
@@ -565,15 +574,23 @@ export default function AdminLayout() {
             return;
           }
 
+          const adminRoleValue = (currentAdmin as any).adminRole || currentAdmin.role || "admin";
           const adminPermissions =
             currentAdmin.permissions && currentAdmin.permissions.length > 0
               ? currentAdmin.permissions
-              : getFallbackPermissions(currentAdmin.role || "admin");
+              : getFallbackPermissions(adminRoleValue);
 
+          const emailLower = (currentAdmin.email || "").toLowerCase();
+          const superAdmins = [
+            "samesaeed456@gmail.com",
+            "samisaeed2027@gmail.com",
+            "samisaeed2025@gmail.com",
+            "967776668370@elite-store.local",
+          ];
           const isSuperAdmin =
             currentAdmin.role === "super_admin" ||
-            currentAdmin.role === "admin" ||
-            (currentAdmin as any).isAdmin === true ||
+            (currentAdmin as any).adminRole === "super_admin" ||
+            superAdmins.includes(emailLower) ||
             adminPermissions.includes("all");
 
           if (!isSuperAdmin) {
@@ -645,10 +662,14 @@ export default function AdminLayout() {
   const adminName =
     currentAdmin?.name || localStorage.getItem("admin_name") || "المدير العام";
   const adminRole =
-    currentAdmin?.role || localStorage.getItem("admin_role") || "super_admin";
+    (currentAdmin as any)?.adminRole ||
+    currentAdmin?.role ||
+    localStorage.getItem("admin_role") ||
+    "super_admin";
 
   const roleLabels: Record<string, string> = {
     super_admin: "مدير عام",
+    admin: "مدير عام",
     manager: "مدير",
     editor: "محرر",
     support: "دعم فني",

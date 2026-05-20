@@ -29,11 +29,9 @@ import {
   where,
   getDocs,
   limit,
-} from "../../lib/firebase";
-import {
   signInWithEmailAndPassword,
   signInWithCustomToken,
-} from "firebase/auth";
+} from "../../lib/firebase";
 import { getAdminDummyEmail } from "../../lib/adminAuth";
 import { parseSmartError } from "../../lib/errorUtils";
 import Logo from "../../components/Logo";

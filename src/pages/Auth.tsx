@@ -17,7 +17,6 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { startAuthentication } from "@simplewebauthn/browser";
-import { signInWithCustomToken } from "firebase/auth";
 import { useStore } from "../context/StoreContext";
 import { parseSmartError } from "../lib/errorUtils";
 import {
@@ -29,6 +28,8 @@ import {
   serverTimestamp,
   loginWithEmail,
   signupWithEmail,
+  isSupabaseActive,
+  signInWithCustomToken,
 } from "../lib/firebase";
 import FloatingInput from "../components/FloatingInput";
 
@@ -370,14 +371,16 @@ export default function Auth() {
             }
           }
 
-          try {
-            // Update Firebase Auth profile
-            await import("firebase/auth").then(({ updateProfile }) => {
-              updateProfile(userCred.user as any, {
-                displayName: formData.name,
-              }).catch(console.error);
-            });
-          } catch (e) {}
+          if (!isSupabaseActive()) {
+            try {
+              // Update Firebase Auth profile
+              await import("firebase/auth").then(({ updateProfile }) => {
+                updateProfile(userCred.user as any, {
+                  displayName: formData.name,
+                }).catch(console.error);
+              });
+            } catch (e) {}
+          }
 
           const currentSessionId = localStorage.getItem("local_session_id");
           const newUserObj: any = {
@@ -594,14 +597,16 @@ export default function Auth() {
             const email = getDummyEmail(formData.countryCode, cleanPhone);
             const userCred = await signupWithEmail(email, formData.password);
             
-            try {
-              // Update Firebase Auth profile
-              await import("firebase/auth").then(({ updateProfile }) => {
-                updateProfile(userCred.user as any, {
-                  displayName: formData.name,
-                }).catch(console.error);
-              });
-            } catch (e) {}
+            if (!isSupabaseActive()) {
+              try {
+                // Update Firebase Auth profile
+                await import("firebase/auth").then(({ updateProfile }) => {
+                  updateProfile(userCred.user as any, {
+                    displayName: formData.name,
+                  }).catch(console.error);
+                });
+              } catch (e) {}
+            }
 
             const currentSessionId = localStorage.getItem("local_session_id");
             const newUserObj: any = {

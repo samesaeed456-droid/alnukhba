@@ -53,14 +53,7 @@ import firebaseConfigJson from "../../firebase-applet-config.json";
 import { supabase } from "./supabase";
 
 // 1. Determine if Supabase is configured and active
-export const isSupabaseActive = () => {
-  try {
-    const client = supabase();
-    return client !== null;
-  } catch (e) {
-    return false;
-  }
-};
+export const isSupabaseActive = () => true;
 
 // Prioritize environment variables (Vite requires VITE_ prefix for client-side)
 export const firebaseConfig = {
@@ -90,37 +83,83 @@ let adminAuth: any = null;
 let db: any = null;
 let adminDb: any = null;
 
-try {
-  app = initializeApp(firebaseConfig);
-  adminApp = initializeApp(firebaseConfig, "admin-app");
-  auth = getAuth(app);
-  adminAuth = getAuth(adminApp);
-  
-  if (typeof window !== "undefined") {
-    setPersistence(adminAuth, browserLocalPersistence).catch((err) => {
-      console.warn("Failed to set adminAuth persistence:", err);
-    });
+class MockAuth {
+  private listeners = new Set<any>();
+  get currentUser() {
+    const saved = localStorage.getItem("supabase_auth_session");
+    if (saved) {
+      try {
+        const u = JSON.parse(saved);
+        return {
+          ...u,
+          uid: u.uid,
+          email: u.email,
+          role: u.role || 'customer',
+          displayName: u.displayName || u.name,
+          delete: async () => {
+            localStorage.removeItem("supabase_auth_session");
+            auth.trigger(null);
+            adminAuth.trigger(null);
+          }
+        };
+      } catch (e) {}
+    }
+    return null;
   }
+  onAuthStateChanged(callback: any) {
+    this.listeners.add(callback);
+    callback(this.currentUser);
+    return () => {
+      this.listeners.delete(callback);
+    };
+  }
+  trigger(user: any) {
+    this.listeners.forEach((cb) => typeof cb === 'function' && cb(user));
+  }
+  async signOut() {
+    localStorage.removeItem("supabase_auth_session");
+    this.trigger(null);
+  }
+}
 
-  db = initializeFirestore(
-    app,
-    {
-      experimentalForceLongPolling: true,
-      ignoreUndefinedProperties: true,
-    },
-    firebaseConfig.firestoreDatabaseId,
-  );
+if (isSupabaseActive()) {
+  auth = new MockAuth();
+  adminAuth = new MockAuth();
+  db = { type: 'db' };
+  adminDb = { type: 'db' };
+} else {
+  try {
+    app = initializeApp(firebaseConfig);
+    adminApp = initializeApp(firebaseConfig, "admin-app");
+    auth = getAuth(app);
+    adminAuth = getAuth(adminApp);
+    
+    if (typeof window !== "undefined") {
+      setPersistence(adminAuth, browserLocalPersistence).catch((err) => {
+        console.warn("Failed to set adminAuth persistence:", err);
+      });
+    }
 
-  adminDb = initializeFirestore(
-    adminApp,
-    {
-      experimentalForceLongPolling: true,
-      ignoreUndefinedProperties: true,
-    },
-    firebaseConfig.firestoreDatabaseId,
-  );
-} catch (error) {
-  console.warn("Firebase could not be initialized (using Supabase exclusively):", error);
+    db = initializeFirestore(
+      app,
+      {
+        experimentalForceLongPolling: true,
+        ignoreUndefinedProperties: true,
+      },
+      firebaseConfig.firestoreDatabaseId,
+    );
+
+    adminDb = initializeFirestore(
+      adminApp,
+      {
+        experimentalForceLongPolling: true,
+        ignoreUndefinedProperties: true,
+      },
+      firebaseConfig.firestoreDatabaseId,
+    );
+  } catch (error) {
+    console.warn("Firebase could not be initialized (using Supabase exclusively):", error);
+  }
 }
 
 export { app, adminApp, auth, adminAuth, db, adminDb };
@@ -201,37 +240,187 @@ export const setSupabaseUser = (user: any) => {
   } else {
     localStorage.removeItem("supabase_auth_session");
   }
-  authListeners.forEach(cb => cb(user));
+  if (auth && typeof auth.trigger === 'function') {
+    auth.trigger(user);
+  }
+  if (adminAuth && typeof adminAuth.trigger === 'function') {
+    adminAuth.trigger(user);
+  }
+};
+
+// Database schemas / columns allowed in Supabase
+const SUPABASE_ALLOWED_COLUMNS: Record<string, string[]> = {
+  categories: ['id', 'name', 'image', 'icon', 'description', 'isActive'],
+  products: [
+    'id', 'name', 'price', 'originalPrice', 'rating', 'reviews', 'image', 'images',
+    'category', 'isNew', 'brand', 'description', 'specs', 'colors', 'sizes',
+    'inStock', 'stockCount', 'costPrice', 'minStock', 'metaTitle', 'metaDescription',
+    'sku', 'status'
+  ],
+  users: [
+    'uid', 'displayName', 'photoURL', 'role', 'name', 'phone', 'email', 'countryCode',
+    'address', 'walletBalance', 'totalSpent', 'orderCount', 'lastOrderDate', 'joinDate',
+    'isBlocked', 'isActive', 'isAdmin', 'adminRole', 'adminName', 'preferences', 'tags'
+  ],
+  orders: [
+    'id', 'userId', 'customerName', 'customerPhone', 'customerImage', 'shippingAddress',
+    'city', 'district', 'date', 'items', 'subtotal', 'shippingFee', 'discountAmount',
+    'couponCode', 'total', 'status', 'paymentMethod', 'paymentReference', 'paymentProof',
+    'paymentAmount', 'shippingMethod', 'deliveryInstructions', 'currency'
+  ],
+  reviews: [
+    'id', 'productId', 'userId', 'userName', 'userImage', 'rating', 'comment', 'images',
+    'status', 'createdAt'
+  ],
+  coupons: [
+    'id', 'code', 'discountType', 'discountValue', 'minOrderValue', 'expiryDate',
+    'usageLimit', 'usedCount', 'isActive'
+  ],
+  banners: [
+    'id', 'image', 'images', 'title', 'subtitle', 'link', 'isActive', 'order',
+    'position', 'startDate', 'endDate', 'views', 'clicks'
+  ],
+  recharges: [
+    'id', 'userId', 'userName', 'userPhone', 'amount', 'reference', 'proof', 'status',
+    'createdAt', 'updatedAt', 'method'
+  ],
+  support_tickets: [
+    'id', 'customerId', 'customerName', 'subject', 'message', 'status', 'priority',
+    'createdAt', 'replies'
+  ]
+};
+
+// Check if a virtual/real table is stored purely in client-side fallback storage
+const isLocalTable = (table: string): boolean => {
+  const normTable = table.includes('/') ? table.split('/').pop() || '' : table;
+  return !Object.keys(SUPABASE_ALLOWED_COLUMNS).includes(normTable);
+};
+
+// Read local-fallback collections
+const getLocalCollectionItems = (table: string): any[] => {
+  const normKey = table.replace(/[^a-zA-Z0-9_]/g, '_');
+  const key = `store_fallback_${normKey}`;
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) {
+    console.error(`Error reading local storage for ${table}:`, e);
+    return [];
+  }
+};
+
+// Write local-fallback collections
+const saveLocalCollectionItems = (table: string, items: any[]) => {
+  const normKey = table.replace(/[^a-zA-Z0-9_]/g, '_');
+  const key = `store_fallback_${normKey}`;
+  try {
+    localStorage.setItem(key, JSON.stringify(items));
+  } catch (e) {
+    console.error(`Error writing local storage for ${table}:`, e);
+  }
+};
+
+// Clean database object keys based on the tables allowed in Supabase
+const filterDataForTable = (table: string, data: any): any => {
+  const allowed = SUPABASE_ALLOWED_COLUMNS[table];
+  if (!allowed) return data;
+
+  const result: any = {};
+  const inputCopy = { ...data };
+
+  // Common UI key mappings
+  if (table === 'users') {
+    if (inputCopy.createdAt && !inputCopy.joinDate) {
+      inputCopy.joinDate = typeof inputCopy.createdAt === 'object' ? new Date().toISOString() : String(inputCopy.createdAt);
+    }
+    if (inputCopy.name && !inputCopy.displayName) {
+      inputCopy.displayName = inputCopy.name;
+    }
+    if (inputCopy.displayName && !inputCopy.name) {
+      inputCopy.name = inputCopy.displayName;
+    }
+  }
+
+  for (const key of allowed) {
+    if (inputCopy[key] !== undefined) {
+      result[key] = inputCopy[key];
+    }
+  }
+
+  return result;
 };
 
 // Database queries runner for Supabase
 async function runSupabaseQuery(queryRef: any): Promise<FakeQuerySnapshot> {
   const client = supabase();
-  if (!client) {
-    return new FakeQuerySnapshot([]);
-  }
-
   const table = queryRef.collectionName;
 
-  // Static / Local mock handlers for settings, cities, shipping_zones
-  if (table === 'settings') {
-    const localSettings = localStorage.getItem("store_settings");
-    const data = localSettings ? JSON.parse(localSettings) : {};
-    return new FakeQuerySnapshot([new FakeDocSnapshot('store', data)]);
-  }
-  if (table === 'cities') {
-    const localCities = localStorage.getItem("store_cities");
-    const data = localCities ? JSON.parse(localCities) : [];
-    return new FakeQuerySnapshot(data.map((c: any) => {
-      const id = c.id || String(c);
-      const row = typeof c === 'object' ? c : { id, name: c };
-      return new FakeDocSnapshot(id, row);
+  // Local collection fallback
+  if (isLocalTable(table)) {
+    if (table === 'settings') {
+      const localSettings = localStorage.getItem("store_settings");
+      const data = localSettings ? JSON.parse(localSettings) : {};
+      return new FakeQuerySnapshot([new FakeDocSnapshot('store', data)]);
+    }
+    if (table === 'cities') {
+      const localCities = localStorage.getItem("store_cities");
+      const data = localCities ? JSON.parse(localCities) : [];
+      return new FakeQuerySnapshot(data.map((c: any) => {
+        const id = c.id || String(c);
+        const row = typeof c === 'object' ? c : { id, name: c };
+        return new FakeDocSnapshot(id, row);
+      }));
+    }
+    if (table === 'shipping_zones') {
+      const localZones = localStorage.getItem("store_shipping_zones");
+      const data = localZones ? JSON.parse(localZones) : [];
+      return new FakeQuerySnapshot(data.map((z: any) => new FakeDocSnapshot(z.id || String(z), z)));
+    }
+
+    let items = getLocalCollectionItems(table);
+
+    // Apply conditions
+    if (queryRef.conditions) {
+      for (const cond of queryRef.conditions) {
+        const { field, operator, value } = cond;
+        items = items.filter((item) => {
+          const itemVal = item[field];
+          if (operator === '==') return String(itemVal) === String(value);
+          if (operator === '>') return itemVal > value;
+          if (operator === '<') return itemVal < value;
+          if (operator === '>=') return itemVal >= value;
+          if (operator === '<=') return itemVal <= value;
+          return true;
+        });
+      }
+    }
+
+    // Apply sorting
+    if (queryRef.orderByFields) {
+      for (const order of queryRef.orderByFields) {
+        items.sort((a, b) => {
+          const valA = a[order.field];
+          const valB = b[order.field];
+          if (valA === valB) return 0;
+          const asc = order.direction === 'asc' ? 1 : -1;
+          return valA > valB ? asc : -asc;
+        });
+      }
+    }
+
+    // Apply limit
+    if (queryRef.limitVal !== null) {
+      items = items.slice(0, queryRef.limitVal);
+    }
+
+    return new FakeQuerySnapshot(items.map((item) => {
+      const id = item.id || item.uid || Math.random().toString(36).substring(2);
+      return new FakeDocSnapshot(id, item);
     }));
   }
-  if (table === 'shipping_zones') {
-    const localZones = localStorage.getItem("store_shipping_zones");
-    const data = localZones ? JSON.parse(localZones) : [];
-    return new FakeQuerySnapshot(data.map((z: any) => new FakeDocSnapshot(z.id || String(z), z)));
+
+  if (!client) {
+    return new FakeQuerySnapshot([]);
   }
 
   try {
@@ -361,21 +550,28 @@ export const getDoc = async (docRef: any) => {
     const table = docRef.collectionName;
     const id = docRef.id;
 
-    if (table === 'settings') {
-      const localSettings = localStorage.getItem("store_settings");
-      const data = localSettings ? JSON.parse(localSettings) : {};
-      return new FakeDocSnapshot(id, data);
-    }
-    if (table === 'cities') {
-      const localCities = localStorage.getItem("store_cities");
-      const data = localCities ? JSON.parse(localCities) : [];
-      const found = data.find((c: any) => (c.id || String(c)) === id);
-      return new FakeDocSnapshot(id, found || null);
-    }
-    if (table === 'shipping_zones') {
-      const localZones = localStorage.getItem("store_shipping_zones");
-      const data = localZones ? JSON.parse(localZones) : [];
-      const found = data.find((z: any) => z.id === id);
+    if (isLocalTable(table)) {
+      if (table === 'settings') {
+        const localSettings = localStorage.getItem("store_settings");
+        const data = localSettings ? JSON.parse(localSettings) : {};
+        return new FakeDocSnapshot(id, data);
+      }
+      if (table === 'cities') {
+        const localCities = localStorage.getItem("store_cities");
+        const data = localCities ? JSON.parse(localCities) : [];
+        const found = data.find((c: any) => (c.id || String(c)) === id);
+        return new FakeDocSnapshot(id, found || null);
+      }
+      if (table === 'shipping_zones') {
+        const localZones = localStorage.getItem("store_shipping_zones");
+        const data = localZones ? JSON.parse(localZones) : [];
+        const found = data.find((z: any) => z.id === id);
+        return new FakeDocSnapshot(id, found || null);
+      }
+
+      const items = getLocalCollectionItems(table);
+      const idColumn = table === 'users' ? 'uid' : 'id';
+      const found = items.find((x: any) => String(x[idColumn] || x.id || x.uid || '') === String(id));
       return new FakeDocSnapshot(id, found || null);
     }
 
@@ -409,22 +605,32 @@ export const addDoc = async (collectionRef: any, data: any) => {
   if (isSupabaseActive()) {
     const table = collectionRef.collectionName;
 
-    if (['settings', 'cities', 'shipping_zones'].includes(table)) {
-      const localKey = table === 'settings' ? 'store_settings' : `store_${table}`;
-      let current: any = [];
-      if (table !== 'settings') {
-        try { current = JSON.parse(localStorage.getItem(localKey) || '[]'); } catch(e) {}
-      } else {
-        current = {};
+    if (isLocalTable(table)) {
+      const fallbackKey = table === 'settings' ? 'store_settings' : table;
+      if (['settings', 'cities', 'shipping_zones'].includes(table)) {
+        const localKey = table === 'settings' ? 'store_settings' : `store_${table}`;
+        let current: any = [];
+        if (table !== 'settings') {
+          try { current = JSON.parse(localStorage.getItem(localKey) || '[]'); } catch(e) {}
+        } else {
+          current = {};
+        }
+        const id = Math.random().toString(36).substring(2) + Date.now().toString(36);
+        const newObj = { ...data, id };
+        if (Array.isArray(current)) {
+          current.push(newObj);
+        } else {
+          current = { ...current, ...data };
+        }
+        localStorage.setItem(localKey, JSON.stringify(current));
+        return { id };
       }
+
+      const items = getLocalCollectionItems(table);
       const id = Math.random().toString(36).substring(2) + Date.now().toString(36);
       const newObj = { ...data, id };
-      if (Array.isArray(current)) {
-        current.push(newObj);
-      } else {
-        current = { ...current, ...data };
-      }
-      localStorage.setItem(localKey, JSON.stringify(current));
+      items.push(newObj);
+      saveLocalCollectionItems(table, items);
       return { id };
     }
 
@@ -432,12 +638,8 @@ export const addDoc = async (collectionRef: any, data: any) => {
     if (!client) throw new Error("Supabase is not connected");
 
     const id = Math.random().toString(36).substring(2) + Date.now().toString(36);
-    const insertData = { ...data };
-    if (table === 'users') {
-      insertData.uid = id;
-    } else {
-      insertData.id = id;
-    }
+    const idColumn = table === 'users' ? 'uid' : 'id';
+    const insertData = filterDataForTable(table, { ...data, [idColumn]: id });
 
     // Convert serverTimestamp/FieldValues to compatible Dates
     for (const [k, v] of Object.entries(insertData)) {
@@ -447,7 +649,10 @@ export const addDoc = async (collectionRef: any, data: any) => {
     }
 
     const { error } = await client.from(table).insert(insertData);
-    if (error) throw error;
+    if (error) {
+      console.error(`Supabase INSERT error into table "${table}":`, error);
+      throw error;
+    }
     return { id };
   }
   return realAddDoc(collectionRef, data);
@@ -458,18 +663,32 @@ export const setDoc = async (docRef: any, data: any, options?: any) => {
     const table = docRef.collectionName;
     const id = docRef.id;
 
-    if (['settings', 'cities', 'shipping_zones'].includes(table)) {
-      const localKey = table === 'settings' ? 'store_settings' : `store_${table}`;
-      let current: any = [];
-      if (table !== 'settings') {
-        try { current = JSON.parse(localStorage.getItem(localKey) || '[]'); } catch(e) {}
-        const filtered = current.filter((x: any) => (x.id || String(x)) !== id);
-        filtered.push({ ...data, id });
-        current = filtered;
-      } else {
-        current = { ...data };
+    if (isLocalTable(table)) {
+      if (['settings', 'cities', 'shipping_zones'].includes(table)) {
+        const localKey = table === 'settings' ? 'store_settings' : `store_${table}`;
+        let current: any = [];
+        if (table !== 'settings') {
+          try { current = JSON.parse(localStorage.getItem(localKey) || '[]'); } catch(e) {}
+          const filtered = current.filter((x: any) => (x.id || String(x)) !== id);
+          filtered.push({ ...data, id });
+          current = filtered;
+        } else {
+          const prev = localStorage.getItem(localKey);
+          let prevObj = {};
+          try { if (prev) prevObj = JSON.parse(prev); } catch(e) {}
+          current = options?.merge ? { ...prevObj, ...data } : { ...data };
+        }
+        localStorage.setItem(localKey, JSON.stringify(current));
+        return;
       }
-      localStorage.setItem(localKey, JSON.stringify(current));
+
+      const items = getLocalCollectionItems(table);
+      const idColumn = table === 'users' ? 'uid' : 'id';
+      const filtered = items.filter((x: any) => String(x[idColumn] || x.id || x.uid || '') !== String(id));
+      const newObj = options?.merge ? { ...(items.find((x: any) => String(x[idColumn] || x.id || x.uid || '') === String(id)) || {}), ...data } : { ...data };
+      newObj[idColumn] = id;
+      filtered.push(newObj);
+      saveLocalCollectionItems(table, filtered);
       return;
     }
 
@@ -477,8 +696,21 @@ export const setDoc = async (docRef: any, data: any, options?: any) => {
     if (!client) throw new Error("Supabase is not connected");
 
     const idColumn = table === 'users' ? 'uid' : 'id';
-    const upsertData = { ...data };
-    upsertData[idColumn] = id;
+    
+    // In setDoc, we can retrieve existing fields first if options.merge is true for absolute correctness
+    let mergedData = { ...data };
+    if (options?.merge) {
+      try {
+        const { data: existing } = await client.from(table).select('*').eq(idColumn, id).maybeSingle();
+        if (existing) {
+          mergedData = { ...existing, ...data };
+        }
+      } catch (e) {
+        console.warn("Merge lookup failed, falling back to clean upsert:", e);
+      }
+    }
+
+    const upsertData = filterDataForTable(table, { ...mergedData, [idColumn]: id });
 
     // Convert values
     for (const [k, v] of Object.entries(upsertData)) {
@@ -488,10 +720,13 @@ export const setDoc = async (docRef: any, data: any, options?: any) => {
     }
 
     const { error } = await client.from(table).upsert(upsertData);
-    if (error) throw error;
+    if (error) {
+      console.error(`Supabase UPSERT error into table "${table}":`, error);
+      throw error;
+    }
     return;
   }
-  return realSetDoc(docRef, data);
+  return realSetDoc(docRef, data, options);
 };
 
 export const updateDoc = async (docRef: any, data: any) => {
@@ -499,17 +734,38 @@ export const updateDoc = async (docRef: any, data: any) => {
     const table = docRef.collectionName;
     const id = docRef.id;
 
-    if (['settings', 'cities', 'shipping_zones'].includes(table)) {
-      const localKey = table === 'settings' ? 'store_settings' : `store_${table}`;
-      let current: any = [];
-      if (table !== 'settings') {
-        try { current = JSON.parse(localStorage.getItem(localKey) || '[]'); } catch(e) {}
-        current = current.map((x: any) => (x.id || String(x)) === id ? { ...x, ...data } : x);
-      } else {
-        try { current = JSON.parse(localStorage.getItem(localKey) || '{}'); } catch(e) {}
-        current = { ...current, ...data };
+    if (isLocalTable(table)) {
+      if (['settings', 'cities', 'shipping_zones'].includes(table)) {
+        const localKey = table === 'settings' ? 'store_settings' : `store_${table}`;
+        let current: any = [];
+        if (table !== 'settings') {
+          try { current = JSON.parse(localStorage.getItem(localKey) || '[]'); } catch(e) {}
+          current = current.map((x: any) => (x.id || String(x)) === id ? { ...x, ...data } : x);
+        } else {
+          try { current = JSON.parse(localStorage.getItem(localKey) || '{}'); } catch(e) {}
+          current = { ...current, ...data };
+        }
+        localStorage.setItem(localKey, JSON.stringify(current));
+        return;
       }
-      localStorage.setItem(localKey, JSON.stringify(current));
+
+      const items = getLocalCollectionItems(table);
+      const idColumn = table === 'users' ? 'uid' : 'id';
+      const updatedItems = items.map((x: any) => {
+        const rowId = String(x[idColumn] || x.id || x.uid || '');
+        if (rowId === String(id)) {
+          // Increment fallback inside local
+          const freshData = { ...data };
+          for (const [k, v] of Object.entries(freshData)) {
+            if (v && typeof v === 'object' && (v as any).type === 'increment') {
+              freshData[k] = Number(x[k] || 0) + (v as any).amount;
+            }
+          }
+          return { ...x, ...freshData };
+        }
+        return x;
+      });
+      saveLocalCollectionItems(table, updatedItems);
       return;
     }
 
@@ -517,7 +773,7 @@ export const updateDoc = async (docRef: any, data: any) => {
     if (!client) throw new Error("Supabase is not connected");
 
     const idColumn = table === 'users' ? 'uid' : 'id';
-    const updateData = { ...data };
+    const updateData = filterDataForTable(table, { ...data });
 
     for (const [k, v] of Object.entries(updateData)) {
       if (v && typeof v === 'object' && ((v as any).type === 'serverTimestamp' || '_methodName' in v || v.constructor?.name === 'FieldValue')) {
@@ -535,8 +791,15 @@ export const updateDoc = async (docRef: any, data: any) => {
       }
     }
 
+    if (Object.keys(updateData).length === 0) {
+      return;
+    }
+
     const { error } = await client.from(table).update(updateData).eq(idColumn, id);
-    if (error) throw error;
+    if (error) {
+      console.error(`Supabase UPDATE error into table "${table}":`, error);
+      throw error;
+    }
     return;
   }
   return realUpdateDoc(docRef, data);
@@ -547,16 +810,24 @@ export const deleteDoc = async (docRef: any) => {
     const table = docRef.collectionName;
     const id = docRef.id;
 
-    if (['settings', 'cities', 'shipping_zones'].includes(table)) {
-      const localKey = table === 'settings' ? 'store_settings' : `store_${table}`;
-      if (table !== 'settings') {
-        let current: any = [];
-        try { current = JSON.parse(localStorage.getItem(localKey) || '[]'); } catch(e) {}
-        current = current.filter((x: any) => (x.id || String(x)) !== id);
-        localStorage.setItem(localKey, JSON.stringify(current));
-      } else {
-        localStorage.removeItem(localKey);
+    if (isLocalTable(table)) {
+      if (['settings', 'cities', 'shipping_zones'].includes(table)) {
+        const localKey = table === 'settings' ? 'store_settings' : `store_${table}`;
+        if (table !== 'settings') {
+          let current: any = [];
+          try { current = JSON.parse(localStorage.getItem(localKey) || '[]'); } catch(e) {}
+          current = current.filter((x: any) => (x.id || String(x)) !== id);
+          localStorage.setItem(localKey, JSON.stringify(current));
+        } else {
+          localStorage.removeItem(localKey);
+        }
+        return;
       }
+
+      const items = getLocalCollectionItems(table);
+      const idColumn = table === 'users' ? 'uid' : 'id';
+      const filtered = items.filter((x: any) => String(x[idColumn] || x.id || x.uid || '') !== String(id));
+      saveLocalCollectionItems(table, filtered);
       return;
     }
 
@@ -565,7 +836,10 @@ export const deleteDoc = async (docRef: any) => {
 
     const idColumn = table === 'users' ? 'uid' : 'id';
     const { error } = await client.from(table).delete().eq(idColumn, id);
-    if (error) throw error;
+    if (error) {
+      console.error(`Supabase DELETE error on table "${table}":`, error);
+      throw error;
+    }
     return;
   }
   return realDeleteDoc(docRef);
@@ -588,7 +862,7 @@ export const onSnapshot = (queryRef: any, callback: any, errorCallback?: any) =>
     run();
 
     const table = queryRef.collectionName;
-    if (table && !['settings', 'cities', 'shipping_zones'].includes(table)) {
+    if (table && !isLocalTable(table)) {
       try {
         const client = supabase();
         if (client) {
@@ -935,3 +1209,20 @@ export function handleFirestoreError(
   console.error("Firestore Error: ", JSON.stringify(errInfo));
   throw new Error(JSON.stringify(errInfo));
 }
+
+export const signInWithEmailAndPassword = async (authObj: any, email: string, pass: string) => {
+  return loginWithEmail(email, pass);
+};
+
+export const signInWithCustomToken = async (authObj: any, customToken: string) => {
+  try {
+    const user = JSON.parse(customToken);
+    setSupabaseUser(user);
+    return { user };
+  } catch (e) {
+    console.error("Failed to parse customToken:", e);
+    const fake = { uid: customToken, email: 'user@elite-store.local', role: 'customer' };
+    setSupabaseUser(fake);
+    return { user: fake };
+  }
+};

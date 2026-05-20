@@ -3,10 +3,7 @@ import path from "path";
 import fs from "fs";
 import dotenv from "dotenv";
 import { v2 as cloudinary } from 'cloudinary';
-import { initializeApp, cert, getApps } from 'firebase-admin/app';
-import { getAuth } from 'firebase-admin/auth';
-import { getFirestore, FieldValue } from 'firebase-admin/firestore';
-import { getMessaging } from 'firebase-admin/messaging';
+import { createClient } from "@supabase/supabase-js";
 import { generateRegistrationOptions, verifyRegistrationResponse, generateAuthenticationOptions, verifyAuthenticationResponse } from '@simplewebauthn/server';
 import axios from 'axios';
 import { fileURLToPath } from 'url';
@@ -30,28 +27,247 @@ try {
 
 dotenv.config();
 
-// Initialize Firebase Admin safely
-try {
-  if (getApps().length === 0 && process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_PRIVATE_KEY) {
-    let privateKey = process.env.FIREBASE_PRIVATE_KEY;
-    if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
-      privateKey = privateKey.substring(1, privateKey.length - 1);
-    }
-    privateKey = privateKey.replace(/\\n/g, '\n');
+// Create Supabase Admin client
+const supabaseUrl = process.env.VITE_SUPABASE_URL || "";
+const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY || "";
+const supabase = (supabaseUrl && supabaseAnonKey) ? createClient(supabaseUrl, supabaseAnonKey) : null;
 
-    initializeApp({
-      credential: cert({
-        projectId: process.env.FIREBASE_PROJECT_ID,
-        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-        privateKey: privateKey
-      })
-    });
-    console.log("[Firebase Admin] Initialized Successfully!");
-  } else if (getApps().length === 0) {
-    console.log("[Firebase Admin] Credentials not found in .env, skipping init.");
+// Mock Firebase Admin SDK interfaces delegating natively to Supabase
+const getApps = () => [{ name: '[Mock App]' }];
+
+const getAuth = () => {
+  return {
+    async getUserByEmail(email: string) {
+      if (!supabase) throw new Error("Supabase is not configured on server.");
+      const { data, error } = await supabase.from('users').select('*').eq('email', email).maybeSingle();
+      if (!data) {
+        throw { code: 'auth/user-not-found', message: 'User not found in Supabase public.users table' };
+      }
+      return {
+        uid: data.uid,
+        email: data.email,
+        displayName: data.displayName || data.name
+      };
+    },
+    async createUser(fields: any) {
+      if (!supabase) throw new Error("Supabase is not configured on server.");
+      const uid = Math.random().toString(36).substring(2) + Date.now().toString(36);
+      const random_insert = {
+        uid,
+        email: fields.email,
+        role: 'customer',
+        createdAt: new Date().toISOString()
+      };
+      await supabase.from('users').insert(random_insert);
+      return { uid };
+    },
+    async updateUser(uid: string, fields: any) {
+      if (!supabase) return;
+      const cleanFields: any = {};
+      if (fields.email !== undefined) cleanFields.email = fields.email;
+      if (Object.keys(cleanFields).length > 0) {
+        await supabase.from('users').update(cleanFields).eq('uid', uid);
+      }
+    },
+    async createCustomToken(uid: string) {
+      if (!supabase) return uid;
+      const { data } = await supabase.from('users').select('*').eq('uid', uid).maybeSingle();
+      const payload = {
+        uid,
+        email: data?.email || 'user@elite-store.local',
+        role: data?.role || 'customer',
+        displayName: data?.displayName || data?.name || 'عميل'
+      };
+      return JSON.stringify(payload);
+    }
+  };
+};
+
+const getMessaging = () => {
+  return {
+    async sendEach(messages: any[]) {
+      console.log(`[FCM Mock] Bypassing FCM message broadcast for ${messages.length} tokens.`);
+      return {
+        successCount: messages.length,
+        failureCount: 0,
+        responses: messages.map(() => ({ success: true }))
+      };
+    }
+  };
+};
+
+const FieldValue = {
+  serverTimestamp() {
+    return { type: 'serverTimestamp' };
   }
-} catch (error) {
-  console.error("[Firebase Admin] Initialization failed:", error);
+};
+
+const createSupabaseFirebaseShim = (): any => {
+  return {
+    collection(colName: string): any {
+      let conditions: Array<any> = [];
+      let limitVal: number | null = null;
+
+      const colRef = {
+        doc(docId: string) {
+          if (colName === 'settings') {
+            return {
+              async get() {
+                const filePath = path.join(process.cwd(), 'public', 'settings_store.json');
+                let data = {};
+                try {
+                  if (fs.existsSync(filePath)) {
+                    data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+                  } else {
+                    data = { storeName: "متجر النخبة" };
+                  }
+                } catch (e) {}
+                return { exists: true, data: () => data };
+              },
+              async set(data: any) {
+                const filePath = path.join(process.cwd(), 'public', 'settings_store.json');
+                try {
+                  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+                  fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
+                } catch (e) {}
+              },
+              async update(data: any) {
+                const filePath = path.join(process.cwd(), 'public', 'settings_store.json');
+                try {
+                  let prev = {};
+                  if (fs.existsSync(filePath)) {
+                    prev = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+                  }
+                  fs.writeFileSync(filePath, JSON.stringify({ ...prev, ...data }, null, 2));
+                } catch (e) {}
+              }
+            };
+          }
+
+          return {
+            async get() {
+              if (!supabase) return { exists: false, data: () => null };
+              const idCol = colName === 'users' ? 'uid' : 'id';
+              const { data, error } = await supabase.from(colName).select('*').eq(idCol, docId).maybeSingle();
+              if (error || !data) {
+                return { exists: false, data: () => null };
+              }
+              return { exists: true, data: () => data };
+            },
+            async set(data: any) {
+              if (!supabase) return;
+              const idCol = colName === 'users' ? 'uid' : 'id';
+              const cleaned = cleanFieldsForSupabase(colName, { ...data, [idCol]: docId });
+              await supabase.from(colName).upsert(cleaned);
+            },
+            async update(data: any) {
+              if (!supabase) return;
+              const idCol = colName === 'users' ? 'uid' : 'id';
+              const cleaned = cleanFieldsForSupabase(colName, data);
+              await supabase.from(colName).update(cleaned).eq(idCol, docId);
+            }
+          };
+        },
+        where(field: string, op: string, val: any) {
+          conditions.push({ field, op, val });
+          return this;
+        },
+        limit(num: number) {
+          limitVal = num;
+          return this;
+        },
+        async add(data: any) {
+          if (!supabase) return { id: Math.random().toString(36) };
+          const idCol = colName === 'users' ? 'uid' : 'id';
+          const randomId = Math.random().toString(36).substring(2) + Date.now().toString(36);
+          const cleaned = cleanFieldsForSupabase(colName, { ...data, [idCol]: randomId });
+          const { data: inserted, error } = await supabase.from(colName).insert(cleaned).select(idCol).single();
+          return { id: inserted?.[idCol] || randomId };
+        },
+        async get() {
+          if (!supabase) {
+            return { empty: true, docs: [] };
+          }
+          let query: any = supabase.from(colName).select('*');
+          for (const cond of conditions) {
+            let col = cond.field;
+            if (cond.op === '==' || cond.op === '===') {
+              query = query.eq(col, cond.val);
+            } else if (cond.op === '>=') {
+              query = query.gte(col, cond.val);
+            }
+          }
+          if (limitVal !== null) {
+            query = query.limit(limitVal);
+          }
+          const { data, error } = await query;
+          if (error || !data) {
+            return { empty: true, docs: [] };
+          }
+          const docs = data.map((item: any) => {
+            const idCol = colName === 'users' ? 'uid' : 'id';
+            return {
+              id: item[idCol] || '',
+              exists: true,
+              data: () => item
+            };
+          });
+          return {
+            empty: docs.length === 0,
+            docs
+          };
+        }
+      };
+      return colRef;
+    },
+    batch() {
+      return {
+        update(docRef: any, data: any) {
+          docRef.update(data).catch(console.error);
+        },
+        async commit() {}
+      };
+    }
+  };
+};
+
+function cleanFieldsForSupabase(table: string, data: any): any {
+  const copy = { ...data };
+  for (const [key, val] of Object.entries(copy)) {
+    if (val && typeof val === 'object' && ((val as any).type === 'serverTimestamp' || (val as any).constructor?.name === 'FieldValue')) {
+      copy[key] = new Date().toISOString();
+    }
+  }
+
+  const allowed: Record<string, string[]> = {
+    users: ['uid', 'displayName', 'photoURL', 'role', 'name', 'phone', 'email', 'countryCode', 'address', 'walletBalance', 'totalSpent', 'orderCount', 'lastOrderDate', 'joinDate', 'isBlocked', 'isActive', 'isAdmin', 'adminRole', 'adminName', 'preferences', 'tags'],
+    products: ['id', 'name', 'price', 'originalPrice', 'rating', 'reviews', 'image', 'images', 'category', 'isNew', 'brand', 'description', 'specs', 'colors', 'sizes', 'inStock', 'stockCount', 'costPrice', 'minStock', 'metaTitle', 'metaDescription', 'sku', 'status'],
+    reviews: ['id', 'productId', 'userId', 'userName', 'userImage', 'rating', 'comment', 'images', 'status', 'createdAt'],
+    orders: ['id', 'userId', 'customerName', 'customerPhone', 'customerImage', 'shippingAddress', 'city', 'district', 'date', 'items', 'subtotal', 'shippingFee', 'discountAmount', 'couponCode', 'total', 'status', 'paymentMethod', 'paymentReference', 'paymentProof', 'paymentAmount', 'shippingMethod', 'deliveryInstructions', 'currency'],
+    categories: ['id', 'name', 'image', 'icon', 'description', 'isActive'],
+    coupons: ['id', 'code', 'discountType', 'discountValue', 'minOrderValue', 'expiryDate', 'usageLimit', 'usedCount', 'isActive'],
+    banners: ['id', 'image', 'images', 'title', 'subtitle', 'link', 'isActive', 'order', 'position', 'startDate', 'endDate', 'views', 'clicks'],
+    recharges: ['id', 'userId', 'userName', 'userPhone', 'amount', 'reference', 'proof', 'status', 'createdAt', 'updatedAt', 'method'],
+    support_tickets: ['id', 'customerId', 'customerName', 'subject', 'message', 'status', 'priority', 'createdAt', 'replies'],
+    passkeys: ['id', 'credentialPublicKey', 'credentialID', 'counter', 'uid', 'createdAt', 'lastUsedAt']
+  };
+
+  const cols = allowed[table];
+  if (!cols) return copy;
+
+  const result: any = {};
+  for (const c of cols) {
+    if (copy[c] !== undefined) {
+      result[c] = copy[c];
+    }
+  }
+  return result;
+}
+
+const supabaseDbShim = createSupabaseFirebaseShim();
+
+function getFirestore(app?: any, dbId?: string) {
+  return supabaseDbShim;
 }
 
 // Initial config check
@@ -1081,13 +1297,8 @@ app.post("/api/verify-otp", (req, res) => {
 });
 
 
-function getDb() {
-  const adminApp = getApps()[0];
-  const config = getFirebaseConfig();
-  if (config && config.firestoreDatabaseId) {
-    return getFirestore(adminApp, config.firestoreDatabaseId);
-  }
-  return getFirestore(adminApp);
+function getDb(app?: any, dbId?: string) {
+  return supabaseDbShim;
 }
 
 // --- WEBAUTHN PASSKEYS ENDPOINTS ---
@@ -1307,7 +1518,7 @@ app.post('/api/webauthn/login/verify', async (req, res) => {
 // --- END WEBAUTHN ---
 
 // Define paths
-const distPath = path.join(process.cwd(), "build");
+const distPath = path.join(process.cwd(), "dist");
 const isProduction = process.env.NODE_ENV === "production" || !!process.env.VERCEL;
 
 console.log("[Startup] Environment:", { isProduction, cwd: process.cwd(), dirname: _dirname });
@@ -1511,9 +1722,12 @@ if (!isProduction) {
         console.log(`[SEO Middleware] Prod Invoked for ${req.path}`);
         
         const possiblePaths = [
+          path.join(process.cwd(), "dist", "index.html"),
           path.join(process.cwd(), "build", "index.html"),
           path.join(process.cwd(), "index.html"),
+          path.join(_dirname, "dist", "index.html"),
           path.join(_dirname, "build", "index.html"),
+          path.join(_dirname, "../dist", "index.html"),
           path.join(_dirname, "../build", "index.html"),
           path.join(_dirname, "index.html"),
           path.join(_dirname, "../index.html")

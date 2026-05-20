@@ -161,6 +161,17 @@ CREATE TABLE public.support_tickets (
   replies JSONB DEFAULT '[]'::jsonb
 );
 
+-- 10. Passkeys Table (WebAuthn)
+CREATE TABLE public.passkeys (
+  id TEXT PRIMARY KEY,
+  "credentialPublicKey" TEXT NOT NULL,
+  "credentialID" TEXT NOT NULL,
+  counter INTEGER DEFAULT 0,
+  uid TEXT REFERENCES public.users(uid) ON DELETE CASCADE,
+  "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  "lastUsedAt" TIMESTAMP WITH TIME ZONE
+);
+
 -- Enable Row Level Security (RLS) for all tables initially to public for easy migration
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
@@ -171,6 +182,7 @@ ALTER TABLE public.coupons ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.banners ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.recharges ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.support_tickets ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.passkeys ENABLE ROW LEVEL SECURITY;
 
 -- Create basic policies (Allowing all for now so the migration script doesn't fail; PLEASE SECURE LATER)
 CREATE POLICY "Allow all on users" ON public.users FOR ALL USING (true);
@@ -182,3 +194,4 @@ CREATE POLICY "Allow all on coupons" ON public.coupons FOR ALL USING (true);
 CREATE POLICY "Allow all on banners" ON public.banners FOR ALL USING (true);
 CREATE POLICY "Allow all on recharges" ON public.recharges FOR ALL USING (true);
 CREATE POLICY "Allow all on support_tickets" ON public.support_tickets FOR ALL USING (true);
+CREATE POLICY "Allow all on passkeys" ON public.passkeys FOR ALL USING (true);

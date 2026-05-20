@@ -430,7 +430,15 @@ async function runSupabaseQuery(queryRef: any): Promise<FakeQuerySnapshot> {
     if (queryRef.conditions) {
       for (const cond of queryRef.conditions) {
         const { field, operator, value } = cond;
-        const mappedField = field === 'id' && table === 'users' ? 'uid' : field;
+        let mappedField = field === 'id' && table === 'users' ? 'uid' : field;
+
+        // Defensive check to avoid 400 Bad Request error if the column does not exist
+        const allowed = SUPABASE_ALLOWED_COLUMNS[table];
+        if (allowed && !allowed.includes(mappedField)) {
+          console.warn(`[Supabase Shim] Skipping filter condition on non-existent column: ${table}.${mappedField}`);
+          continue;
+        }
+
         if (operator === '==') {
           builder = builder.eq(mappedField, value);
         } else if (operator === '>') {
@@ -448,7 +456,20 @@ async function runSupabaseQuery(queryRef: any): Promise<FakeQuerySnapshot> {
     // Apply sorting
     if (queryRef.orderByFields) {
       for (const order of queryRef.orderByFields) {
-        const mappedField = order.field === 'id' && table === 'users' ? 'uid' : order.field;
+        let mappedField = order.field === 'id' && table === 'users' ? 'uid' : order.field;
+
+        // Defensive check to avoid 400 Bad Request error if the column does not exist (e.g., createdAt on products)
+        const allowed = SUPABASE_ALLOWED_COLUMNS[table];
+        if (allowed && !allowed.includes(mappedField)) {
+          if (allowed.includes('id')) {
+            mappedField = 'id';
+          } else if (allowed.includes('uid')) {
+            mappedField = 'uid';
+          } else {
+            continue; // Skip sorting by this non-existent column
+          }
+        }
+
         builder = builder.order(mappedField, { ascending: order.direction === 'asc' });
       }
     }
@@ -852,8 +873,13 @@ export const onSnapshot = (queryRef: any, callback: any, errorCallback?: any) =>
 
     const run = async () => {
       try {
-        const snap = await runSupabaseQuery(queryRef);
-        if (active) callback(snap);
+        if (queryRef.type === 'doc') {
+          const snap = await getDoc(queryRef);
+          if (active) callback(snap);
+        } else {
+          const snap = await runSupabaseQuery(queryRef);
+          if (active) callback(snap);
+        }
       } catch (err) {
         if (active && errorCallback) errorCallback(err);
       }

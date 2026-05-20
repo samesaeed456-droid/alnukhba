@@ -43,6 +43,54 @@ import { FloatingInput } from "@/components/FloatingInput";
 import { AdminNotificationListener } from "@/components/admin/AdminNotificationListener";
 import { showLuxuryToast } from "@/lib/luxuryToast";
 
+const getFallbackPermissions = (role: string): any[] => {
+  switch (role) {
+    case "super_admin":
+    case "admin":
+      return [
+        "view_dashboard",
+        "manage_orders",
+        "manage_products",
+        "manage_customers",
+        "manage_marketing",
+        "manage_coupons",
+        "manage_settings",
+        "manage_security",
+        "view_logs",
+        "manage_logistics",
+        "manage_messages",
+      ];
+    case "manager":
+      return [
+        "view_dashboard",
+        "manage_orders",
+        "manage_products",
+        "manage_customers",
+        "manage_marketing",
+        "manage_coupons",
+        "manage_logistics",
+        "manage_messages",
+      ];
+    case "editor":
+      return [
+        "view_dashboard",
+        "manage_products",
+        "manage_marketing",
+        "manage_coupons",
+        "manage_messages",
+      ];
+    case "support":
+      return [
+        "view_dashboard",
+        "manage_orders",
+        "manage_customers",
+        "manage_messages",
+      ];
+    default:
+      return ["view_dashboard"];
+  }
+};
+
 export default function AdminLayout() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -448,59 +496,15 @@ export default function AdminLayout() {
 
     if (!currentAdmin) return [];
 
-    const getFallbackPermissions = (role: string): any[] => {
-      switch (role) {
-        case "super_admin":
-          return [
-            "view_dashboard",
-            "manage_orders",
-            "manage_products",
-            "manage_customers",
-            "manage_marketing",
-            "manage_coupons",
-            "manage_settings",
-            "manage_security",
-            "view_logs",
-            "manage_logistics",
-            "manage_messages",
-          ];
-        case "manager":
-          return [
-            "view_dashboard",
-            "manage_orders",
-            "manage_products",
-            "manage_customers",
-            "manage_marketing",
-            "manage_coupons",
-            "manage_logistics",
-            "manage_messages",
-          ];
-        case "editor":
-          return [
-            "view_dashboard",
-            "manage_products",
-            "manage_marketing",
-            "manage_coupons",
-            "manage_messages",
-          ];
-        case "support":
-          return [
-            "view_dashboard",
-            "manage_orders",
-            "manage_customers",
-            "manage_messages",
-          ];
-        default:
-          return ["view_dashboard"];
-      }
-    };
-
     const adminPermissions =
       currentAdmin.permissions && currentAdmin.permissions.length > 0
         ? currentAdmin.permissions
         : getFallbackPermissions(currentAdmin.role || "admin");
     const isSuperAdmin =
-      currentAdmin.role === "super_admin" || adminPermissions.includes("all");
+      currentAdmin.role === "super_admin" ||
+      currentAdmin.role === "admin" ||
+      (currentAdmin as any).isAdmin === true ||
+      adminPermissions.includes("all");
 
     return groups
       .map((group) => ({
@@ -561,9 +565,16 @@ export default function AdminLayout() {
             return;
           }
 
+          const adminPermissions =
+            currentAdmin.permissions && currentAdmin.permissions.length > 0
+              ? currentAdmin.permissions
+              : getFallbackPermissions(currentAdmin.role || "admin");
+
           const isSuperAdmin =
             currentAdmin.role === "super_admin" ||
-            (currentAdmin.permissions || []).includes("all");
+            currentAdmin.role === "admin" ||
+            (currentAdmin as any).isAdmin === true ||
+            adminPermissions.includes("all");
 
           if (!isSuperAdmin) {
             const allItems = navGroups.flatMap((g) => g.items);
@@ -577,7 +588,7 @@ export default function AdminLayout() {
             if (
               currentItem &&
               currentItem.permission &&
-              !(currentAdmin.permissions || []).includes(
+              !adminPermissions.includes(
                 currentItem.permission as any,
               )
             ) {

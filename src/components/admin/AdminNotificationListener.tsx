@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { collection, query, where, onSnapshot, limit, orderBy } from "firebase/firestore";
-import { adminDb as db } from "@/lib/firebase";
+import { adminDb as db, collection, query, where, onSnapshot, limit, orderBy } from "@/lib/firebase";
 import { showLuxuryToast } from "@/lib/luxuryToast";
 import { useNavigate } from "react-router-dom";
 import { useStore } from "@/context/StoreContext";

@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
-import { collection, onSnapshot, query } from "firebase/firestore";
-import { db } from "./firebase";
+import { db, collection, onSnapshot, query } from "./firebase";
 
 export function useFirestoreCollection<T>(
   collectionName: string,

@@ -1,7 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getMessaging, getToken, onMessage } from "firebase/messaging";
-import { db, auth } from "./firebase";
-import { doc, setDoc, arrayUnion, serverTimestamp } from "firebase/firestore";
+import { db, auth, doc, setDoc, arrayUnion, serverTimestamp } from "./firebase";
 
 // VAPID key is required for Web Push.
 const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY;

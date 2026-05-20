@@ -48,6 +48,8 @@ import {
   enableIndexedDbPersistence,
   writeBatch as realWriteBatch,
   runTransaction as realRunTransaction,
+  arrayUnion as realArrayUnion,
+  arrayRemove as realArrayRemove,
 } from "firebase/firestore";
 import firebaseConfigJson from "../../firebase-applet-config.json";
 import { supabase } from "./supabase";
@@ -706,7 +708,23 @@ export const setDoc = async (docRef: any, data: any, options?: any) => {
       const items = getLocalCollectionItems(table);
       const idColumn = table === 'users' ? 'uid' : 'id';
       const filtered = items.filter((x: any) => String(x[idColumn] || x.id || x.uid || '') !== String(id));
-      const newObj = options?.merge ? { ...(items.find((x: any) => String(x[idColumn] || x.id || x.uid || '') === String(id)) || {}), ...data } : { ...data };
+      const existingObj = items.find((x: any) => String(x[idColumn] || x.id || x.uid || '') === String(id)) || {};
+      const freshData = { ...data };
+      for (const [k, v] of Object.entries(freshData)) {
+        if (v && typeof v === 'object' && (v as any).type === 'arrayUnion') {
+          const currentArr = Array.isArray(existingObj[k]) ? [...existingObj[k]] : [];
+          for (const elem of (v as any).elements) {
+            if (!currentArr.includes(elem)) currentArr.push(elem);
+          }
+          freshData[k] = currentArr;
+        } else if (v && typeof v === 'object' && (v as any).type === 'arrayRemove') {
+          const currentArr = Array.isArray(existingObj[k]) ? [...existingObj[k]] : [];
+          freshData[k] = currentArr.filter((elem: any) => !(v as any).elements.includes(elem));
+        } else if (v && typeof v === 'object' && (v as any).type === 'increment') {
+          freshData[k] = Number(existingObj[k] || 0) + (v as any).amount;
+        }
+      }
+      const newObj = options?.merge ? { ...existingObj, ...freshData } : { ...freshData };
       newObj[idColumn] = id;
       filtered.push(newObj);
       saveLocalCollectionItems(table, filtered);
@@ -775,11 +793,19 @@ export const updateDoc = async (docRef: any, data: any) => {
       const updatedItems = items.map((x: any) => {
         const rowId = String(x[idColumn] || x.id || x.uid || '');
         if (rowId === String(id)) {
-          // Increment fallback inside local
           const freshData = { ...data };
           for (const [k, v] of Object.entries(freshData)) {
             if (v && typeof v === 'object' && (v as any).type === 'increment') {
               freshData[k] = Number(x[k] || 0) + (v as any).amount;
+            } else if (v && typeof v === 'object' && (v as any).type === 'arrayUnion') {
+              const currentArr = Array.isArray(x[k]) ? [...x[k]] : [];
+              for (const elem of (v as any).elements) {
+                if (!currentArr.includes(elem)) currentArr.push(elem);
+              }
+              freshData[k] = currentArr;
+            } else if (v && typeof v === 'object' && (v as any).type === 'arrayRemove') {
+              const currentArr = Array.isArray(x[k]) ? [...x[k]] : [];
+              freshData[k] = currentArr.filter((elem: any) => !(v as any).elements.includes(elem));
             }
           }
           return { ...x, ...freshData };
@@ -1020,6 +1046,20 @@ export const runTransaction = async (dbRef: any, callback: (transaction: any) =>
     return callback(transaction);
   }
   return realRunTransaction(dbRef, callback);
+};
+
+export const arrayUnion = (...elements: any[]) => {
+  if (isSupabaseActive()) {
+    return { type: 'arrayUnion', elements };
+  }
+  return realArrayUnion(...elements);
+};
+
+export const arrayRemove = (...elements: any[]) => {
+  if (isSupabaseActive()) {
+    return { type: 'arrayRemove', elements };
+  }
+  return realArrayRemove(...elements);
 };
 
 // Auth wrappers

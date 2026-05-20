@@ -19,9 +19,15 @@ export let app: any = { name: "mock-app" };
 export let adminApp: any = { name: "mock-admin-app" };
 
 class MockAuth {
+  private key: string;
   private listeners = new Set<any>();
+
+  constructor(type: "customer" | "admin") {
+    this.key = type === "customer" ? "supabase_auth_session" : "supabase_admin_auth_session";
+  }
+
   get currentUser() {
-    const saved = localStorage.getItem("supabase_auth_session");
+    const saved = localStorage.getItem(this.key);
     if (saved) {
       try {
         const u = JSON.parse(saved);
@@ -32,15 +38,14 @@ class MockAuth {
           role: u.role || 'customer',
           displayName: u.displayName || u.name,
           delete: async () => {
-            localStorage.removeItem("supabase_auth_session");
-            auth.trigger(null);
-            adminAuth.trigger(null);
+            this.clearUser();
           }
         };
       } catch (e) {}
     }
     return null;
   }
+
   onAuthStateChanged(callback: any) {
     this.listeners.add(callback);
     callback(this.currentUser);
@@ -48,17 +53,38 @@ class MockAuth {
       this.listeners.delete(callback);
     };
   }
+
   trigger(user: any) {
-    this.listeners.forEach((cb) => typeof cb === 'function' && cb(user));
+    this.listeners.forEach((cb) => {
+      try {
+        if (typeof cb === 'function') cb(user);
+      } catch (e) {
+        console.error("Error in auth listener:", e);
+      }
+    });
   }
-  async signOut() {
-    localStorage.removeItem("supabase_auth_session");
+
+  setUser(user: any) {
+    if (user) {
+      localStorage.setItem(this.key, JSON.stringify(user));
+    } else {
+      localStorage.removeItem(this.key);
+    }
+    this.trigger(this.currentUser);
+  }
+
+  clearUser() {
+    localStorage.removeItem(this.key);
     this.trigger(null);
+  }
+
+  async signOut() {
+    this.clearUser();
   }
 }
 
-export const auth = new MockAuth();
-export const adminAuth = new MockAuth();
+export const auth = new MockAuth("customer");
+export const adminAuth = new MockAuth("admin");
 export const db = { type: 'db' };
 export const adminDb = { type: 'db' };
 
@@ -113,33 +139,11 @@ const authListeners = new Set<any>();
 let currentSupabaseUser: any = null;
 
 export const supabaseOnAuthStateChanged = (callback: any) => {
-  authListeners.add(callback);
-  // Initially trigger with currently logged in user
-  const saved = localStorage.getItem("supabase_auth_session");
-  if (saved) {
-    try {
-      currentSupabaseUser = JSON.parse(saved);
-    } catch (e) {}
-  }
-  callback(currentSupabaseUser);
-  return () => {
-    authListeners.delete(callback);
-  };
+  return auth.onAuthStateChanged(callback);
 };
 
 export const setSupabaseUser = (user: any) => {
-  currentSupabaseUser = user;
-  if (user) {
-    localStorage.setItem("supabase_auth_session", JSON.stringify(user));
-  } else {
-    localStorage.removeItem("supabase_auth_session");
-  }
-  if (auth && typeof auth.trigger === 'function') {
-    auth.trigger(user);
-  }
-  if (adminAuth && typeof adminAuth.trigger === 'function') {
-    adminAuth.trigger(user);
-  }
+  auth.setUser(user);
 };
 
 const SUPABASE_ALLOWED_COLUMNS: Record<string, string[]> = {
@@ -890,10 +894,11 @@ const withRetry = <T extends (...args: any[]) => Promise<any>>(fn: T): T => {
 };
 
 export const onAuthStateChanged = (authObj: any, callback: any) => {
-  return supabaseOnAuthStateChanged(callback);
+  const targetAuth = authObj || auth;
+  return targetAuth.onAuthStateChanged(callback);
 };
 
-export const loginWithEmail = withRetry(async (email: string, pass: string) => {
+export const loginWithEmail = withRetry(async (email: string, pass: string, authObj: any = auth) => {
   const client = supabase();
   if (!client) throw new Error("Supabase is not connected");
   
@@ -912,11 +917,12 @@ export const loginWithEmail = withRetry(async (email: string, pass: string) => {
   }
 
   const fakeUser = { uid: userData.uid, email: userData.email, role: userData.role || 'customer' };
-  setSupabaseUser(fakeUser);
+  const targetAuth = authObj || auth;
+  targetAuth.setUser(fakeUser);
   return { user: fakeUser };
 });
 
-export const signupWithEmail = withRetry(async (email: string, pass: string) => {
+export const signupWithEmail = withRetry(async (email: string, pass: string, authObj: any = auth) => {
   const client = supabase();
   if (!client) throw new Error("Supabase is not connected");
 
@@ -927,14 +933,15 @@ export const signupWithEmail = withRetry(async (email: string, pass: string) => 
     .maybeSingle();
 
   if (existing) {
-    const fakeUser = { uid: existing.uid, email };
-    setSupabaseUser(fakeUser);
-    return { user: fakeUser };
+    const err: any = new Error("هذا الرقم مسجل مسبقاً، يرجى تسجيل الدخول بدلاً من إنشاء حساب جديد.");
+    err.code = "auth/email-already-in-use";
+    throw err;
   }
 
   const uid = Math.random().toString(36).substring(2) + Date.now().toString(36);
   const fakeUser = { uid, email };
-  setSupabaseUser(fakeUser);
+  const targetAuth = authObj || auth;
+  targetAuth.setUser(fakeUser);
   return { user: fakeUser };
 });
 
@@ -951,7 +958,7 @@ export const reauthenticate = withRetry(async (password: string) => {
 });
 
 export const logout = async () => {
-  setSupabaseUser(null);
+  auth.clearUser();
   return;
 };
 
@@ -1003,17 +1010,18 @@ export function handleFirestoreError(
 }
 
 export const signInWithEmailAndPassword = async (authObj: any, email: string, pass: string) => {
-  return loginWithEmail(email, pass);
+  return loginWithEmail(email, pass, authObj);
 };
 
 export const signInWithCustomToken = async (authObj: any, customToken: string) => {
+  const targetAuth = authObj || auth;
   try {
     const user = JSON.parse(customToken);
-    setSupabaseUser(user);
+    targetAuth.setUser(user);
     return { user };
   } catch (e) {
     const fake = { uid: customToken, email: 'user@elite-store.local', role: 'customer' };
-    setSupabaseUser(fake);
+    targetAuth.setUser(fake);
     return { user: fake };
   }
 };

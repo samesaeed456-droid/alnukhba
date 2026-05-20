@@ -3,5 +3,8 @@
   "description": "متجر النخبة للإلكترونيات ومنظومات الطاقة الشمسية - الوجهة الأولى للأجهزة التقنية والطاقة المتجددة",
   "requestFramePermissions": [
     "camera"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
   ]
 }

@@ -529,12 +529,39 @@ export const addDoc = async (collectionRef: any, data: any) => {
     }
   }
 
+  if (table === 'support_tickets' && insertData.customerId) {
+    await ensureUserExistsInSupabase(
+      client,
+      insertData.customerId,
+      insertData.customerName || 'عميل دعم'
+    );
+  }
+
   const { error } = await client.from(table).insert(insertData);
   if (error) {
     console.error(`Supabase INSERT error into table "${table}":`, error);
     throw error;
   }
   return { id };
+};
+
+const ensureUserExistsInSupabase = async (client: any, uid: string, name: string = 'عميل دعم', phone: string = '') => {
+  if (!uid) return;
+  try {
+    const { data: existing } = await client.from('users').select('uid').eq('uid', uid).maybeSingle();
+    if (!existing) {
+      await client.from('users').insert({
+        uid: uid,
+        displayName: name,
+        phone: phone || uid,
+        isActive: true,
+        role: 'customer',
+        walletBalance: 0
+      });
+    }
+  } catch (err) {
+    console.warn(`[Firebase Shim] Error ensuring user ${uid} exists:`, err);
+  }
 };
 
 export const setDoc = async (docRef: any, data: any, options?: any) => {
@@ -609,6 +636,14 @@ export const setDoc = async (docRef: any, data: any, options?: any) => {
     if (v && typeof v === 'object' && ((v as any).type === 'serverTimestamp' || '_methodName' in v)) {
       upsertData[k] = new Date().toISOString();
     }
+  }
+
+  if (table === 'support_tickets' && upsertData.customerId) {
+    await ensureUserExistsInSupabase(
+      client,
+      upsertData.customerId,
+      upsertData.customerName || 'عميل دعم'
+    );
   }
 
   const { error } = await client.from(table).upsert(upsertData);

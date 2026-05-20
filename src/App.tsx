@@ -50,6 +50,7 @@ const AdminAnalytics = lazy(() => import("./pages/admin/Analytics.tsx"));
 const AdminMarketing = lazy(() => import("./pages/admin/Marketing.tsx"));
 const AdminSecurity = lazy(() => import("./pages/admin/Security.tsx"));
 const AdminMessages = lazy(() => import("./pages/admin/Messages.tsx"));
+const AdminReviews = lazy(() => import("./pages/admin/Reviews.tsx"));
 const AdminLogistics = lazy(() => import("./pages/admin/Logistics.tsx"));
 const AdminCloud = lazy(() => import("./pages/admin/Cloud.tsx"));
 const AdminRecharges = lazy(() => import("./pages/admin/WalletRecharges.tsx"));
@@ -277,6 +278,7 @@ const MainRoutes = () => {
         <Route path="marketing" element={<AdminMarketing />} />
         <Route path="security" element={<AdminSecurity />} />
         <Route path="messages" element={<AdminMessages />} />
+        <Route path="reviews" element={<AdminReviews />} />
         <Route path="logistics" element={<AdminLogistics />} />
         <Route path="cloud" element={<AdminCloud />} />
         <Route path="coupons" element={<AdminCoupons />} />

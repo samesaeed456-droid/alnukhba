@@ -1,28 +1,6 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo } from "react";
 import { useStore } from "../../context/StoreContext";
-import { db, collectionGroup, getDocs, deleteDoc, doc, handleFirestoreError, OperationType } from "../../lib/firebase";
-import { deleteImagesFromCloudinary } from "../../lib/cloudinary";
-import { Review } from "../../types";
-import {
-  Search,
-  User,
-  Clock,
-  Trash2,
-  MessageCircle,
-  Inbox,
-  Copy,
-  CheckCircle2,
-  Mail,
-  ChevronDown,
-  X,
-  ListFilter,
-  Eye,
-  CheckSquare,
-  ArrowRight,
-  Filter,
-  MoreHorizontal,
-  Star
-} from "lucide-react";
+import { Mail, Search, MessageCircle, Inbox, Copy, X, CheckSquare, Eye, Clock, ChevronDown } from "lucide-react";
 import { motion, AnimatePresence, Variants } from "motion/react";
 import { showLuxuryToast } from "@/lib/luxuryToast";
 import { FloatingInput } from "../../components/FloatingInput";
@@ -47,74 +25,14 @@ const QUICK_REPLIES = [
 ];
 
 const Messages = () => {
-  const { supportTickets, updateTicketStatus, deleteTicket, products } = useStore();
+  const { supportTickets, updateTicketStatus, deleteTicket } = useStore();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<"الكل" | "غير مقروءة">("الكل");
-  const [activeTab, setActiveTab] = useState<"messages" | "reviews">("messages");
-  
-  const [allReviews, setAllReviews] = useState<Review[]>([]);
-  const [isFetchingReviews, setIsFetchingReviews] = useState(false);
-  const [selectedReview, setSelectedReview] = useState<Review | null>(null);
   
   const [selectedMessage, setSelectedMessage] = useState<any>(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [showQuickReplies, setShowQuickReplies] = useState(false);
   const [selectedTickets, setSelectedTickets] = useState<string[]>([]);
-
-  useEffect(() => {
-    if (activeTab === "reviews" && allReviews.length === 0) {
-      const fetchReviews = async () => {
-        setIsFetchingReviews(true);
-        try {
-          const qs = await getDocs(collectionGroup(db, "reviews"));
-          const reviewsData = qs.docs.map(
-            (docSnap) =>
-              ({
-                id: docSnap.id,
-                ...docSnap.data(),
-              }) as Review
-          );
-          // Sort by newest first
-          reviewsData.sort(
-            (a, b) =>
-              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-          );
-          setAllReviews(reviewsData);
-        } catch (error) {
-          console.error("Failed to fetch reviews", error);
-        } finally {
-          setIsFetchingReviews(false);
-        }
-      };
-      fetchReviews();
-    }
-  }, [activeTab]);
-
-  const handleDeleteReview = async (review: Review) => {
-    setConfirmModal({
-      isOpen: true,
-      title: "حذف التقييم",
-      message: "هل أنت متأكد من حذف هذا التقييم؟ لا يمكن التراجع عن هذا الإجراء.",
-      onConfirm: async () => {
-        try {
-          // Cleanup review images
-          if (review.images && review.images.length > 0) {
-            deleteImagesFromCloudinary(review.images);
-          }
-
-          // Identify product reference
-          await deleteDoc(doc(db, "products", review.productId, "reviews", review.id));
-          setAllReviews((prev) => prev.filter((r) => r.id !== review.id));
-          showLuxuryToast("success", {
-            title: "تم الحذف",
-            description: "تم حذف التقييم بنجاح من صفحة المنتج",
-          });
-        } catch (error) {
-          handleFirestoreError(error, OperationType.DELETE, `products/${review.productId}/reviews/${review.id}`);
-        }
-      },
-    });
-  };
 
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
@@ -132,12 +50,8 @@ const Messages = () => {
     return supportTickets
       .filter((msg) => {
         const matchesSearch =
-          (msg.customerName || "")
-            .toLowerCase()
-            .includes(searchTerm.toLowerCase()) ||
-          (msg.subject || "")
-            .toLowerCase()
-            .includes(searchTerm.toLowerCase()) ||
+          (msg.customerName || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (msg.subject || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
           (msg.message || "").toLowerCase().includes(searchTerm.toLowerCase());
 
         let matchesFilter = true;
@@ -147,8 +61,7 @@ const Messages = () => {
         return matchesSearch && matchesFilter;
       })
       .sort(
-        (a, b) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
   }, [supportTickets, searchTerm, statusFilter]);
 
@@ -165,7 +78,7 @@ const Messages = () => {
 
   const toggleTicketSelection = (id: string) => {
     setSelectedTickets((prev) =>
-      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id],
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
     );
   };
 
@@ -225,42 +138,17 @@ const Messages = () => {
           </div>
           <div>
             <h1 className="text-xl sm:text-3xl font-black text-carbon tracking-tight">
-              الرسائل والتقييمات
+              رسائل الدعم والاستفسارات
             </h1>
             <p className="text-[10px] sm:text-xs font-bold text-slate-400 mt-0.5 sm:mt-1">
-              إدارة استفسارات وشكاوى العملاء وآراءهم
+              إدارة استفسارات وشكاوى العملاء والتواصل معهم
             </p>
           </div>
         </div>
       </div>
 
-      <div className="px-4 sm:px-8 lg:px-12 mb-8 flex gap-4 border-b border-bg-hover">
-        <button
-          onClick={() => setActiveTab("messages")}
-          className={`py-3 px-6 font-black transition-all border-b-2 ${
-            activeTab === "messages"
-              ? "border-solar text-carbon"
-              : "border-transparent text-slate-400 hover:text-slate-600"
-          }`}
-        >
-          رسائل الدعم
-        </button>
-        <button
-          onClick={() => setActiveTab("reviews")}
-          className={`py-3 px-6 font-black transition-all border-b-2 ${
-            activeTab === "reviews"
-              ? "border-solar text-carbon"
-              : "border-transparent text-slate-400 hover:text-slate-600"
-          }`}
-        >
-          تقييمات المنتجات
-        </button>
-      </div>
-
-      {activeTab === "messages" ? (
-        <>
-          {/* Stats Cards - Elite Style (Shrinked) */}
       <div className="px-4 sm:px-8 lg:px-12 mb-8">
+        {/* Stats Cards - Elite Style (Shrinked) */}
         <div className="flex flex-wrap sm:flex-nowrap gap-3 sm:gap-4 overflow-x-auto pb-2 sm:pb-0 no-scrollbar">
           {[
             {
@@ -302,7 +190,7 @@ const Messages = () => {
               </div>
               <div>
                 <p
-                  className={`text-[8px] sm:text-[9px] font-black uppercase tracking-widest mb-0.5 ${statusFilter === stat.status ? "text-white/60" : "text-slate-400"}`}
+                  className={`text-[8px] sm:text-[99px] font-black uppercase tracking-widest mb-0.5 ${statusFilter === stat.status ? "text-white/60" : "text-slate-400"}`}
                 >
                   {stat.label}
                 </p>
@@ -443,7 +331,7 @@ const Messages = () => {
                                 weekday: "short",
                                 month: "short",
                                 day: "numeric",
-                              },
+                              }
                             )}
                           </span>
                         </div>
@@ -624,7 +512,7 @@ const Messages = () => {
                             day: "numeric",
                             hour: "2-digit",
                             minute: "2-digit",
-                          },
+                          }
                         )}
                       </span>
                     </div>
@@ -677,7 +565,7 @@ const Messages = () => {
                               onClick={() => {
                                 handleWhatsApp(
                                   selectedMessage.customerId,
-                                  reply.text,
+                                  reply.text
                                 );
                                 setShowQuickReplies(false);
                               }}
@@ -708,7 +596,7 @@ const Messages = () => {
                   </AnimatePresence>
                 </div>
 
-               <div className="flex items-center gap-3 sm:gap-4 w-full sm:w-auto order-1 sm:order-2">
+                <div className="flex items-center gap-3 sm:gap-4 w-full sm:w-auto order-1 sm:order-2">
                   <button
                     onClick={() => {
                       updateTicketStatus(selectedMessage.id, "open");
@@ -734,85 +622,6 @@ const Messages = () => {
           </div>
         )}
       </AnimatePresence>
-        </>
-      ) : (
-        <div className="px-4 sm:px-8 lg:px-12">
-          {/* Reviews List */}
-          <div className="bg-white rounded-[32px] sm:rounded-[40px] shadow-sm border border-bg-hover overflow-hidden">
-            <div className="p-6 sm:p-8 border-b border-bg-hover flex justify-between items-center bg-bg-general">
-              <h2 className="text-lg sm:text-xl font-black text-carbon">
-                تقييمات المنتجات
-              </h2>
-              {isFetchingReviews && (
-                <span className="text-xs text-slate-400 font-bold animate-pulse">جاري جلب التقييمات...</span>
-              )}
-            </div>
-
-            <div className="flex flex-col">
-              {allReviews.length === 0 && !isFetchingReviews ? (
-                <div className="py-24 text-center">
-                  <div className="w-16 h-16 bg-slate-50 flex items-center justify-center rounded-3xl mx-auto mb-4">
-                    <Star className="w-8 h-8 text-slate-200" />
-                  </div>
-                  <p className="text-slate-500 font-bold">لا يوجد أي تقييمات حالياً</p>
-                </div>
-              ) : (
-                <div className="divide-y divide-bg-hover relative">
-                  {allReviews.map((review) => (
-                    <motion.div
-                      key={review.id}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="p-6 sm:p-8 flex flex-col md:flex-row gap-6 items-start md:items-center hover:bg-slate-50/50 transition-colors"
-                    >
-                      {/* Review details */}
-                      <div className="flex-1">
-                         <div className="flex items-center gap-3 mb-2">
-                           <div className="w-10 h-10 rounded-full overflow-hidden bg-bg-general shrink-0 border border-bg-hover">
-                             <img src={review.userImage || `https://api.dicebear.com/7.x/avataaars/svg?seed=${review.userName}`} alt="Avatar" className="w-full h-full object-cover" />
-                           </div>
-                           <div>
-                             <h4 className="font-bold text-carbon text-sm">{review.userName || 'مستخدم مجهول'}</h4>
-                             <div className="flex items-center gap-1 text-solar mt-0.5">
-                               {[...Array(5)].map((_, i) => (
-                                 <Star key={i} className={`w-3.5 h-3.5 ${i < review.rating ? "fill-current" : "text-slate-200"}`} />
-                               ))}
-                             </div>
-                           </div>
-                         </div>
-                         <p className="text-carbon/80 text-sm font-medium pr-14 leading-relaxed line-clamp-3">
-                           {review.comment}
-                         </p>
-                         <p className="text-[10px] text-slate-400 font-bold mt-2 pr-14 flex items-center gap-2">
-                           <span className="flex items-center gap-1">
-                             <Clock className="w-3 h-3" />
-                             {new Date(review.createdAt).toLocaleDateString("ar-SA", { year: "numeric", month: "long", day: "numeric" })}
-                           </span>
-                           <span>•</span>
-                           <span className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded text-xs">
-                             منتج: {products.find(p => p.id === review.productId)?.name || 'غير معروف'}
-                           </span>
-                         </p>
-                      </div>
-
-                      {/* Actions */}
-                      <div className="flex items-center gap-2 pr-14 md:pr-0 self-end md:self-center shrink-0">
-                        <button
-                          onClick={() => handleDeleteReview(review)}
-                          className="px-4 py-2 bg-rose-50 text-rose-500 hover:bg-rose-500 hover:text-white rounded-xl text-xs font-black transition-colors"
-                          title="حذف التقييم"
-                        >
-                          حذف التقييم
-                        </button>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
 
       <ConfirmationModal
         isOpen={confirmModal.isOpen}

@@ -33,6 +33,7 @@ import {
   Clock,
   CheckCircle2,
   Fingerprint,
+  Star,
 } from "lucide-react";
 import { motion, AnimatePresence, Variants } from "motion/react";
 import { toast } from "sonner";
@@ -46,7 +47,6 @@ import { showLuxuryToast } from "@/lib/luxuryToast";
 const getFallbackPermissions = (role: string): any[] => {
   switch (role) {
     case "super_admin":
-    case "admin":
       return [
         "view_dashboard",
         "manage_orders",
@@ -60,6 +60,7 @@ const getFallbackPermissions = (role: string): any[] => {
         "manage_logistics",
         "manage_messages",
       ];
+    case "admin":
     case "manager":
       return [
         "view_dashboard",
@@ -467,9 +468,15 @@ export default function AdminLayout() {
             permission: "manage_logistics",
           },
           {
-            name: "الرسائل والتقييمات",
+            name: "الرسائل والدعم",
             path: "/admin/messages",
             icon: Inbox,
+            permission: "manage_messages",
+          },
+          {
+            name: "تقييمات المنتجات",
+            path: "/admin/reviews",
+            icon: Star,
             permission: "manage_messages",
           },
           {
@@ -669,7 +676,7 @@ export default function AdminLayout() {
 
   const roleLabels: Record<string, string> = {
     super_admin: "مدير عام",
-    admin: "مدير عام",
+    admin: "مدير",
     manager: "مدير",
     editor: "محرر",
     support: "دعم فني",

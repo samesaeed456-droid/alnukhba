@@ -691,6 +691,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         cities: setCities,
         inventory_logs: setInventoryLogs,
         recharges: setRecharges,
+        support_tickets: setSupportTickets,
       };
 
       const storageKeyMap: Record<string, string> = {
@@ -707,6 +708,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         cities: "store_cities",
         inventory_logs: "store_inventory_logs",
         recharges: "store_recharges",
+        support_tickets: "store_tickets",
       };
 
       if (!setterMap[colName]) {
@@ -757,7 +759,25 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           }));
 
           if (colName === "admin_users") {
-            data = data.filter((u: any) => u.role === "admin" || u.isAdmin === true);
+            data = data.filter((u: any) => {
+              const isAdminRole = u.adminRole !== undefined && u.adminRole !== null && String(u.adminRole).trim() !== "" && String(u.adminRole) !== "null" && String(u.adminRole) !== "undefined";
+              return (
+                u.role === "admin" || 
+                u.isAdmin === true || 
+                isAdminRole ||
+                ["super_admin", "admin", "manager", "editor", "support"].includes(u.role)
+              );
+            });
+          } else if (colName === "customers") {
+            data = data.filter((u: any) => {
+              const isAdminRole = u.adminRole !== undefined && u.adminRole !== null && String(u.adminRole).trim() !== "" && String(u.adminRole) !== "null" && String(u.adminRole) !== "undefined";
+              return (
+                u.role !== "admin" && 
+                u.isAdmin !== true && 
+                !isAdminRole &&
+                !["super_admin", "admin", "manager", "editor", "support"].includes(u.role)
+              );
+            });
           }
 
           setterMap[colName](data);

@@ -1518,7 +1518,7 @@ app.post('/api/webauthn/login/verify', async (req, res) => {
 // --- END WEBAUTHN ---
 
 // Define paths
-const distPath = path.join(process.cwd(), "dist");
+const distPath = path.join(process.cwd(), "build");
 const isProduction = process.env.NODE_ENV === "production" || !!process.env.VERCEL;
 
 console.log("[Startup] Environment:", { isProduction, cwd: process.cwd(), dirname: _dirname });

@@ -18,7 +18,7 @@ interface ToastOptions {
  * Premium Luxury Arabic Toast with Framer Motion
  */
 export const showLuxuryToast = (type: ToastType, options: ToastOptions) => {
-  const { title, description, image, actionText, onAction, duration = 5000 } = options;
+  const { title, description, image, actionText, onAction, duration = 2000 } = options;
 
   const getIcon = () => {
     switch (type) {
@@ -43,7 +43,8 @@ export const showLuxuryToast = (type: ToastType, options: ToastOptions) => {
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, scale: 0.9, y: -10 }}
       transition={{ type: "spring", stiffness: 300, damping: 25 }}
-      className={`flex items-center justify-between w-[92vw] max-w-sm bg-slate-900/95 text-white p-2.5 rounded-2xl shadow-2xl border ${getAccentColor()} backdrop-blur-xl`}
+      onClick={() => toast.dismiss(t)}
+      className={`flex items-center justify-between w-[92vw] max-w-sm bg-slate-900/95 text-white p-2.5 rounded-2xl shadow-2xl border ${getAccentColor()} backdrop-blur-xl cursor-pointer hover:bg-slate-900 active:scale-[0.98] transition-all duration-150`}
       dir="rtl"
     >
       <div className="flex items-center gap-3 min-w-0">
@@ -77,7 +78,8 @@ export const showLuxuryToast = (type: ToastType, options: ToastOptions) => {
 
       {actionText && (
         <button 
-          onClick={() => {
+          onClick={(e) => {
+            e.stopPropagation();
             onAction?.();
             toast.dismiss(t);
           }}

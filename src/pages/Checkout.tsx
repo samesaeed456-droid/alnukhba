@@ -455,7 +455,7 @@ export default function Checkout() {
     const paymentRef = selectedPaymentMethod
       ? formData.paymentReference
       : undefined;
-    const paymentProof = selectedPaymentMethod?.requiresProof
+    const paymentProof = selectedPaymentMethod
       ? formData.paymentProof
       : undefined;
 
@@ -1646,6 +1646,7 @@ export default function Checkout() {
                                   paymentReference={formData.paymentReference}
                                   paymentProof={formData.paymentProof}
                                   fieldErrors={fieldErrors}
+                                  requiresProof={selectedPaymentMethod.requiresProof}
                                   onAmountChange={(val) => {
                                     setFormData(prev => ({ ...prev, paymentAmount: val }));
                                     setFieldErrors(prev => prev.filter(f => f !== "paymentAmount"));

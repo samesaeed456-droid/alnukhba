@@ -23,6 +23,7 @@ interface PaymentConfirmationCardProps {
   onProofChange: (value: string | undefined) => void;
   onShowToast: (message: string, type: "success" | "error" | "info") => void;
   primaryColor?: string;
+  requiresProof?: boolean;
 }
 
 export function PaymentConfirmationCard({
@@ -34,7 +35,8 @@ export function PaymentConfirmationCard({
   onReferenceChange,
   onProofChange,
   onShowToast,
-  primaryColor = "#ea580c"
+  primaryColor = "#ea580c",
+  requiresProof = true
 }: PaymentConfirmationCardProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -166,6 +168,11 @@ export function PaymentConfirmationCard({
             <div className="flex items-center gap-2">
               <Camera className="w-3.5 h-3.5 text-titanium/30" />
               <span className="text-[10px] font-black text-titanium/60">صورة إشعار التحويل</span>
+              {requiresProof ? (
+                <span className="text-[9px] font-black bg-rose-50 text-rose-600 px-2 py-0.5 rounded-md border border-rose-100">إجباري</span>
+              ) : (
+                <span className="text-[9px] font-black bg-slate-50 text-slate-500 px-2 py-0.5 rounded-md border border-slate-100">اختياري</span>
+              )}
             </div>
             {paymentProof && (
               <button 
@@ -206,7 +213,11 @@ export function PaymentConfirmationCard({
                   </div>
                 </motion.div>
               ) : (
-                <div className="grid grid-cols-2 gap-3">
+                <div className={`grid grid-cols-2 gap-3 p-1 rounded-2xl transition-all ${
+                  requiresProof && fieldErrors.includes("paymentProof")
+                    ? "border border-red-500 ring-4 ring-red-500/10 scale-[0.99]"
+                    : ""
+                }`}>
                   <label className="flex flex-col items-center justify-center gap-2 p-4 bg-slate-50 border-2 border-dashed border-slate-100 rounded-2xl hover:bg-slate-100 hover:border-solar/30 transition-all cursor-pointer group/cam">
                     <input type="file" accept="image/*" capture="environment" onChange={handleFileUpload} className="hidden" />
                     <Camera className="w-5 h-5 text-solar mb-1" />

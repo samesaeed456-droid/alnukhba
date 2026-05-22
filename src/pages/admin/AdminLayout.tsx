@@ -505,7 +505,7 @@ export default function AdminLayout() {
 
     const adminRoleValue = (currentAdmin as any).adminRole || currentAdmin.role || "admin";
     const adminPermissions =
-      currentAdmin.permissions && currentAdmin.permissions.length > 0
+      currentAdmin.permissions !== undefined && currentAdmin.permissions !== null
         ? currentAdmin.permissions
         : getFallbackPermissions(adminRoleValue);
 
@@ -583,7 +583,7 @@ export default function AdminLayout() {
 
           const adminRoleValue = (currentAdmin as any).adminRole || currentAdmin.role || "admin";
           const adminPermissions =
-            currentAdmin.permissions && currentAdmin.permissions.length > 0
+            currentAdmin.permissions !== undefined && currentAdmin.permissions !== null
               ? currentAdmin.permissions
               : getFallbackPermissions(adminRoleValue);
 

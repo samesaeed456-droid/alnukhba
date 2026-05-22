@@ -67,8 +67,17 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   marketingNotifications: JSON.parse(localStorage.getItem("store_marketing_notifications") || "[]"),
 
   setSettings: (settings) => {
-    localStorage.setItem("store_settings", JSON.stringify(settings));
-    set({ settings });
+    // If we have custom colors nested in announcementSettings, pull them to flat top-level properties
+    const themeColors = settings.announcementSettings?.themeColors || {};
+    const mergedSettings = {
+      ...settings,
+      backgroundColor: themeColors.backgroundColor || settings.backgroundColor || "#FFFFFF",
+      cardColor: themeColors.cardColor || settings.cardColor || "#FFFFFF",
+      textColor: themeColors.textColor || settings.textColor || "#0F172A",
+      textMutedColor: themeColors.textMutedColor || settings.textMutedColor || "#64748B",
+    };
+    localStorage.setItem("store_settings", JSON.stringify(mergedSettings));
+    set({ settings: mergedSettings });
   },
   
   setBanners: (banners) => {
@@ -96,8 +105,31 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   },
 
   updateSettings: async (updates) => {
+    const dbUpdates: any = { ...updates };
+    
+    // Intercept design color updates and format them as nested JSON inside announcementSettings
+    if (
+      updates.primaryColor ||
+      updates.backgroundColor ||
+      updates.cardColor ||
+      updates.textColor ||
+      updates.textMutedColor
+    ) {
+      const currentAnnounce = updates.announcementSettings || get().settings.announcementSettings || {};
+      dbUpdates.announcementSettings = {
+        ...currentAnnounce,
+        themeColors: {
+          primaryColor: updates.primaryColor || get().settings.primaryColor || "#000000",
+          backgroundColor: updates.backgroundColor || get().settings.backgroundColor || "#FFFFFF",
+          cardColor: updates.cardColor || get().settings.cardColor || "#FFFFFF",
+          textColor: updates.textColor || get().settings.textColor || "#0F172A",
+          textMutedColor: updates.textMutedColor || get().settings.textMutedColor || "#64748B",
+        }
+      };
+    }
+
     await updateDoc(doc(db, "settings", "store"), {
-      ...updates,
+      ...dbUpdates,
       updatedAt: serverTimestamp(),
     });
     get().setSettings({ ...get().settings, ...updates });

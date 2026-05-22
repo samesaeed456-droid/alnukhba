@@ -353,6 +353,13 @@ export interface StoreSettings {
     backgroundColor: string;
     textColor: string;
     speed: number; // in seconds
+    themeColors?: {
+      primaryColor?: string;
+      backgroundColor?: string;
+      cardColor?: string;
+      textColor?: string;
+      textMutedColor?: string;
+    };
   };
   primaryColor: string;
   backgroundColor?: string;

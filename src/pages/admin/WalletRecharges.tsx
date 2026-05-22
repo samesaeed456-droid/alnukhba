@@ -86,10 +86,18 @@ export default function WalletRecharges() {
     fetchRecharges();
   }, [isAuthReady, adminUser?.uid]);
 
+  // Helper to get safe date object from Firestore Timestamp or JS Date string/obj
+  const getSafeDate = (dateObj: any): Date | null => {
+    if (!dateObj) return null;
+    if (typeof dateObj.toDate === "function") return dateObj.toDate();
+    const d = new Date(dateObj);
+    return isNaN(d.getTime()) ? null : d;
+  };
+
   // Helper to format date nicely
   const formatDateLocale = (dateObj: any) => {
-    if (!dateObj) return "غير متوفر";
-    const date = dateObj.toDate ? dateObj.toDate() : new Date(dateObj);
+    const date = getSafeDate(dateObj);
+    if (!date) return "غير متوفر";
     return date.toLocaleDateString("ar-YE", {
       year: "numeric",
       month: "long",
@@ -413,11 +421,11 @@ export default function WalletRecharges() {
                       <div className="text-[11px] font-bold text-slate-500">
                         <div className="flex items-center gap-1.5 mb-1">
                           <Calendar className="w-3.5 h-3.5 text-solar" />
-                          {recharge.createdAt?.toDate().toLocaleDateString("ar-YE", { day: 'numeric', month: 'short', year: 'numeric' })}
+                          {getSafeDate(recharge.createdAt)?.toLocaleDateString("ar-YE", { day: 'numeric', month: 'short', year: 'numeric' }) || "غير متوفر"}
                         </div>
                         <div className="flex items-center gap-1.5">
                           <Clock className="w-3.5 h-3.5 text-solar" />
-                          {recharge.createdAt?.toDate().toLocaleTimeString("ar-YE", { hour: "2-digit", minute: "2-digit" })}
+                          {getSafeDate(recharge.createdAt)?.toLocaleTimeString("ar-YE", { hour: "2-digit", minute: "2-digit" }) || "غير متوفر"}
                         </div>
                       </div>
                     </td>
@@ -569,11 +577,11 @@ export default function WalletRecharges() {
                     <div className="flex flex-col gap-1">
                       <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-600">
                         <Calendar className="w-3.5 h-3.5 text-solar" />
-                        <span>{recharge.createdAt?.toDate().toLocaleDateString("ar-YE", { day: 'numeric', month: 'short' })}</span>
+                        <span>{getSafeDate(recharge.createdAt)?.toLocaleDateString("ar-YE", { day: 'numeric', month: 'short' }) || "غير متوفر"}</span>
                       </div>
                       <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400">
                         <Clock className="w-3.5 h-3.5 text-slate-200" />
-                        <span>{recharge.createdAt?.toDate().toLocaleTimeString("ar-YE", { hour: "2-digit", minute: "2-digit" })}</span>
+                        <span>{getSafeDate(recharge.createdAt)?.toLocaleTimeString("ar-YE", { hour: "2-digit", minute: "2-digit" }) || "غير متوفر"}</span>
                       </div>
                     </div>
                     

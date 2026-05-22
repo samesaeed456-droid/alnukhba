@@ -125,6 +125,53 @@ const MainRoutes = () => {
     trackVisit(location.pathname);
   }, [location.pathname, trackVisit]);
 
+  // Dynamic color customization dynamically mapping brand colours to root CSS variables
+  useEffect(() => {
+    if (settings && settings.primaryColor) {
+      const root = document.documentElement;
+      const primaryHex = settings.primaryColor;
+
+      const hexToRgba = (hex: string, alpha: number) => {
+        let cleanHex = hex.replace("#", "");
+        if (cleanHex.length === 3) {
+          cleanHex = cleanHex.split("").map((c) => c + c).join("");
+        }
+        const r = parseInt(cleanHex.substring(0, 2), 16) || 0;
+        const g = parseInt(cleanHex.substring(2, 4), 16) || 0;
+        const b = parseInt(cleanHex.substring(4, 6), 16) || 0;
+        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+      };
+
+      const adjustBrightness = (hex: string, percent: number) => {
+        let cleanHex = hex.replace("#", "");
+        if (cleanHex.length === 3) {
+          cleanHex = cleanHex.split("").map((c) => c + c).join("");
+        }
+        let r = parseInt(cleanHex.substring(0, 2), 16) || 0;
+        let g = parseInt(cleanHex.substring(2, 4), 16) || 0;
+        let b = parseInt(cleanHex.substring(4, 6), 16) || 0;
+
+        r = Math.min(255, Math.max(0, Math.round(r * (1 + percent / 100))));
+        g = Math.min(255, Math.max(0, Math.round(g * (1 + percent / 100))));
+        b = Math.min(255, Math.max(0, Math.round(b * (1 + percent / 100))));
+
+        const rHex = r.toString(16).padStart(2, "0");
+        const gHex = g.toString(16).padStart(2, "0");
+        const bHex = b.toString(16).padStart(2, "0");
+
+        return `#${rHex}${gHex}${bHex}`;
+      };
+
+      root.style.setProperty("--primary-gold", primaryHex);
+
+      const hoverHex = adjustBrightness(primaryHex, -20);
+      root.style.setProperty("--primary-gold-hover", hoverHex);
+
+      const glowRgba = hexToRgba(primaryHex, 0.15);
+      root.style.setProperty("--primary-glow", glowRgba);
+    }
+  }, [settings?.primaryColor]);
+
   useEffect(() => {
     if (settings.seo) {
       // Update Title

@@ -32,6 +32,7 @@ import {
   ChevronDown,
   Search,
   Megaphone,
+  Palette,
 } from "lucide-react";
 import { motion, AnimatePresence, Variants } from "motion/react";
 import { showLuxuryToast } from "@/lib/luxuryToast";
@@ -109,6 +110,13 @@ const Settings = () => {
       shortLabel: "عام",
       icon: Globe,
       description: "معلومات المتجر الأساسية والهوية",
+    },
+    {
+      id: "design",
+      label: "الألوان والتصميم",
+      shortLabel: "تصميم",
+      icon: Palette,
+      description: "تخصيص الهوية البصرية، الألوان، والقوالب",
     },
     {
       id: "announcements",
@@ -974,6 +982,138 @@ const Settings = () => {
                           </div>
                         </div>
                       </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {activeSection === "design" && (
+                <div className="p-4 md:p-8 space-y-6 md:space-y-8">
+                  <SectionHeader
+                    icon={Palette}
+                    title="الهوية البصرية والألوان"
+                    description="تخصيص ثيم وألوان المتجر الأساسية لتناسب علامتك التجارية"
+                    bgClass="bg-purple-50"
+                    colorClass="text-purple-600"
+                  />
+
+                  {/* Built-in Premium Presets Grid */}
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-bold text-slate-700">قوالب الألوان الملكية الجاهزة</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {[
+                        { id: "royal", name: "الذهبي الملكي (الكلاسيكي)", hex: "#C5A059", description: "أناقة وفخامة كلاسيكية للمتاجر الراقية والمجوهرات" },
+                        { id: "maroon", name: "الملكي الماروني (العنابي)", hex: "#991B1B", description: "جذاب، دافئ ومناسب لمتاجر العطور والساعات الفاخرة" },
+                        { id: "emerald", name: "الزمرد النبيل", hex: "#065F46", description: "هادئ وممتاز للقهوة المختصة أو منتجات الصحة والعناية" },
+                        { id: "sapphire", name: "الأزرق الكوني (الساطع)", hex: "#1D4ED8", description: "حديث واحترافي، مثالي لمتاجر التقنية والإلكترونيات" },
+                        { id: "amethyst", name: "بنفسجي الملوك (الأميثيست)", hex: "#6D28D9", description: "مبتكر وفريد للمتاجر الترفيهية وملحقات الهواتف" },
+                        { id: "sunset", name: "البرتقالي الناري (الشمسي)", hex: "#EA580C", description: "حيوي ومثير للحماس ومناسب لمتاجر الألعاب والأحذية" },
+                        { id: "carbon", name: "البلاتيني الكربوني (الأسود)", hex: "#1E293B", description: "بسيط، ذكي وكلاسيكي لمختلف أنواع السلع والخدمات" },
+                      ].map((preset) => (
+                        <div
+                          key={preset.id}
+                          onClick={() => setFormData({ ...formData, primaryColor: preset.hex })}
+                          className={`relative p-5 rounded-3xl border-2 transition-all duration-300 cursor-pointer flex flex-col justify-between overflow-hidden group ${
+                            formData.primaryColor === preset.hex
+                              ? "border-slate-800 shadow-md scale-[1.01]"
+                              : "border-slate-100 hover:border-slate-200 hover:bg-slate-50/50"
+                          }`}
+                        >
+                          {/* Colored corner glow */}
+                          <div
+                            className="absolute -top-10 -left-10 w-24 h-24 rounded-full blur-2xl opacity-25 transition-all group-hover:scale-125"
+                            style={{ backgroundColor: preset.hex }}
+                          />
+
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-3">
+                              <div
+                                className="w-5 h-5 rounded-full border border-black/10 shadow-sm shrink-0 flex items-center justify-center text-white"
+                                style={{ backgroundColor: preset.hex }}
+                              >
+                                {formData.primaryColor === preset.hex && (
+                                  <Check className="w-3.5 h-3.5" />
+                                )}
+                              </div>
+                              <span className="font-bold text-xs md:text-sm text-slate-800">{preset.name}</span>
+                            </div>
+                            <p className="text-[11px] text-slate-500 leading-relaxed font-medium">
+                              {preset.description}
+                            </p>
+                          </div>
+
+                          <div className="mt-4 pt-3 border-t border-slate-50 flex items-center justify-between text-[10px] font-mono text-slate-400">
+                            <span>لون الثيم</span>
+                            <span className="font-bold select-all" style={{ color: preset.hex }}>{preset.hex}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Custom Color Selector Section */}
+                  <div className="bg-slate-50 p-6 rounded-[2rem] border border-slate-100/80 space-y-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-xl bg-purple-500/10 text-purple-600 flex items-center justify-center">
+                        <Palette className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-xs md:text-sm text-slate-800">أو حدد لوناً مخصصاً بالكامل</h4>
+                        <p className="text-[11px] text-slate-400 mt-0.5">يمكنك اختيار أي لون يعكس علامتك التجارية الفريدة</p>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 pt-2">
+                      <div className="flex items-center gap-3 bg-white p-3 rounded-2xl border border-slate-200 shadow-sm flex-1">
+                        <div className="relative w-12 h-12 rounded-xl overflow-hidden border border-slate-200 shrink-0">
+                          <input
+                            type="color"
+                            value={formData.primaryColor || "#C5A059"}
+                            onChange={(e) => setFormData({ ...formData, primaryColor: e.target.value })}
+                            className="absolute inset-0 w-full h-full p-0 border-0 cursor-pointer scale-150"
+                          />
+                        </div>
+                        <div className="flex-1 space-y-1">
+                          <label className="block text-[11px] font-bold text-slate-500">منتقي الألوان الفرعي</label>
+                          <input
+                            type="text"
+                            value={formData.primaryColor || ""}
+                            onChange={(e) => setFormData({ ...formData, primaryColor: e.target.value })}
+                            className="w-full text-xs font-mono font-bold text-slate-700 bg-transparent outline-none border-b border-dashed border-slate-300 focus:border-purple-600 transition-colors uppercase"
+                            placeholder="#000000"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="sm:w-1/3 flex flex-col justify-center gap-1.5 p-4 bg-white/60 rounded-2xl border border-slate-200/50">
+                        <span className="text-[10px] font-bold text-slate-400">معاينة الحيوية للمتجر</span>
+                        <div className="flex items-center gap-2">
+                          <button
+                            className="px-4 py-2 rounded-xl text-xs font-bold text-white shadow-md transition-all active:scale-95"
+                            style={{ backgroundColor: formData.primaryColor || "#C5A059" }}
+                          >
+                            مثال على زر
+                          </button>
+                          <span
+                            className="w-4 h-4 rounded-full"
+                            style={{ backgroundColor: formData.primaryColor || "#C5A059" }}
+                          />
+                          <span className="text-xs font-bold text-slate-600">نص مميز</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Prototyping Advice */}
+                  <div className="p-4 bg-purple-50 rounded-2xl border border-purple-100 flex gap-3">
+                    <Info className="w-5 h-5 text-purple-600 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-xs font-bold text-purple-900 leading-relaxed">
+                        سهولة التسويق والبيع للمتاجر الأخرى
+                      </p>
+                      <p className="text-[11px] text-purple-700 mt-1 leading-relaxed">
+                        عندما تختار قالب ألوان جديد، سيتم تطبيقه فوراً على كافة صفحات المتجر (من الأزرار، والروابط، وحركات التحميل، وأيقونة الحساب، إلى صفحة الدفع). يتيح لك هذا إعادة تخصيص المتجر بالكامل لعميلك القادم بضغطة زر واحدة فقط!
+                      </p>
                     </div>
                   </div>
                 </div>

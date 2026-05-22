@@ -1468,7 +1468,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         handleFirestoreError(error, OperationType.UPDATE, `banners/${id}`);
       }
     },
-    [showToast, logActivity],
+    [showToast, logActivity, banners],
   );
 
   const deleteBanner = React.useCallback(
@@ -1495,7 +1495,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         handleFirestoreError(error, OperationType.DELETE, `banners/${id}`);
       }
     },
-    [showToast, logActivity],
+    [showToast, logActivity, banners],
   );
 
   const sendMarketingNotification = React.useCallback(

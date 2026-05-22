@@ -240,9 +240,40 @@ const filterDataForTable = (table: string, data: any): any => {
     }
   }
 
+  // Convert empty string "" to null for date, timestamp, and numeric columns to prevent PostgreSQL syntax errors
+  const isNumericOrDateKey = (key: string): boolean => {
+    const k = key.toLowerCase();
+    return (
+      k.includes('date') ||
+      k.includes('at') ||
+      k.includes('time') ||
+      k === 'price' ||
+      k === 'rating' ||
+      k === 'reviews' ||
+      k === 'views' ||
+      k === 'clicks' ||
+      k === 'order' ||
+      k === 'amount' ||
+      k.includes('balance') ||
+      k.includes('spent') ||
+      k.includes('count') ||
+      k.includes('limit') ||
+      k.includes('value') ||
+      k.includes('fee') ||
+      k.includes('threshold') ||
+      k.includes('cost') ||
+      k.includes('min') ||
+      k.includes('stock')
+    );
+  };
+
   for (const key of allowed) {
     if (inputCopy[key] !== undefined) {
-      result[key] = inputCopy[key];
+      let val = inputCopy[key];
+      if (val === "" && isNumericOrDateKey(key)) {
+        val = null;
+      }
+      result[key] = val;
     }
   }
 

@@ -3,38 +3,20 @@ import {
   Image,
   Plus,
   Trash2,
-  Send,
-  Target,
-  History,
   Layout,
-  Bell,
   Save,
   X,
   Edit2,
-  MoveUp,
-  MoveDown,
-  Mail,
-  MessageSquare,
-  Zap,
   Eye,
   MousePointerClick,
-  Calendar,
-  Clock,
-  CheckCircle2,
-  AlertCircle,
-  RefreshCw,
 } from "lucide-react";
 import { useStore } from "../../context/StoreContext";
-import { toast } from "sonner";
 import { motion, AnimatePresence } from "motion/react";
-import { Banner, MarketingNotification } from "../../types";
+import { Banner } from "../../types";
 import { FloatingInput } from "../../components/FloatingInput";
-import { ImageUploadField } from "../../components/ImageUploadField";
 import ConfirmationModal from "../../components/ConfirmationModal";
 import { showLuxuryToast } from "@/lib/luxuryToast";
 import { deleteImagesFromCloudinary } from "@/lib/cloudinary";
-
-type TabType = "banners" | "notifications";
 
 export default function Marketing() {
   const {
@@ -42,19 +24,12 @@ export default function Marketing() {
     addBanner,
     updateBanner,
     deleteBanner,
-    marketingNotifications,
-    sendMarketingNotification,
-    customers,
     syncOnDemand,
   } = useStore();
 
   React.useEffect(() => {
     syncOnDemand("banners");
-    syncOnDemand("marketing_notifications");
-    syncOnDemand("customers");
   }, [syncOnDemand]);
-
-  const [activeTab, setActiveTab] = useState<TabType>("banners");
 
   // Banner State
   const [isBannerModalOpen, setIsBannerModalOpen] = useState(false);
@@ -72,17 +47,6 @@ export default function Marketing() {
     startDate: "",
     endDate: "",
     position: "hero",
-  });
-
-  // Notification State
-  const [notifForm, setNotifForm] = useState({
-    title: "",
-    message: "",
-    target: "all" as MarketingNotification["target"],
-    type: "push" as MarketingNotification["type"],
-    scheduledFor: "",
-    image: "",
-    link: "",
   });
 
   const [confirmModal, setConfirmModal] = useState<{
@@ -114,59 +78,6 @@ export default function Marketing() {
     }
     setIsBannerModalOpen(false);
     setEditingBanner(null);
-  };
-
-  const handleSendNotification = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (notifForm.type === "push") {
-      const loadingToast = toast.loading("جاري إرسال الإشعار لجميع الأجهزة...");
-      try {
-        const response = await fetch("/api/admin/notifications/send", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            title: notifForm.title,
-            message: notifForm.message,
-            image: notifForm.image,
-            url: notifForm.link,
-            target: notifForm.target,
-          }),
-        });
-
-        const data = await response.json();
-        toast.dismiss(loadingToast);
-
-        if (data.success) {
-          showLuxuryToast("success", {
-            title: "تم الإرسال!",
-            description: `تم الإرسال بنجاح لـ ${data.sentCount} جهاز`,
-          });
-        } else {
-          showLuxuryToast("error", {
-            title: "فشل الإرسال",
-            description: data.error || "تعذر إرسال الإشعار، يرجى التحقق من الإعدادات",
-          });
-        }
-      } catch (err) {
-        toast.dismiss(loadingToast);
-        showLuxuryToast("error", {
-          title: "خطأ فني",
-          description: "خطأ في الاتصال بالخادم، يرجى المحاولة لاحقاً",
-        });
-      }
-    }
-
-    sendMarketingNotification(notifForm);
-    setNotifForm({
-      title: "",
-      message: "",
-      target: "all",
-      type: "push",
-      scheduledFor: "",
-      image: "",
-      link: "",
-    });
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -216,518 +127,167 @@ export default function Marketing() {
     });
   };
 
-  const handleNotifImageUpload = async (
-    e: React.ChangeEvent<HTMLInputElement>,
-  ) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      try {
-        const loadingToast = toast.loading("جاري رفع صورة الإشعار...");
-        const { uploadToCloudinary } = await import("../../lib/cloudinary");
-        const secureUrl = await uploadToCloudinary(file);
-        setNotifForm((prev) => ({ ...prev, image: secureUrl }));
-        toast.dismiss(loadingToast);
-        showLuxuryToast("success", {
-          title: "تم رفع الصورة",
-          description: "صورة الإشعار جاهزة الآن للإرسال",
-        });
-      } catch (error: any) {
-        showLuxuryToast("error", {
-          title: "خطأ في الرفع",
-          description: "فشل في رفع صورة الإشعار للخادم",
-        });
-      }
-    }
-  };
-
-  const tabs = [
-    { id: "banners", label: "البنرات", icon: Layout },
-    { id: "notifications", label: "إشعارات التطبيق", icon: Bell },
-  ] as const;
-
   return (
     <div className="space-y-6 sm:space-y-8 pb-20">
-      {/* Header & Tabs */}
+      {/* Header */}
       <div className="flex flex-col gap-6">
         <div>
           <h1 className="text-2xl sm:text-3xl font-black text-carbon tracking-tight mb-2">
-            التسويق والحملات
+            التسويق والبنرات
           </h1>
-          <p className="text-gray-500 font-medium">
-            أدر حملاتك التسويقية، البنرات، وتواصل مع عملائك بفعالية.
+          <p className="text-gray-500 font-medium font-sans">
+            أدر حملاتك التسويقية والبنرات المعروضة في واجهة المتجر بفعالية.
           </p>
-        </div>
-
-        <div className="flex items-center gap-2 bg-white p-1.5 rounded-2xl border border-gray-100 w-full overflow-x-auto no-scrollbar shadow-sm">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 rounded-xl font-bold text-sm transition-all whitespace-nowrap ${
-                activeTab === tab.id
-                  ? "bg-carbon text-white shadow-md"
-                  : "text-gray-500 hover:bg-gray-50"
-              }`}
-            >
-              <tab.icon className="w-4 h-4" />
-              <span>{tab.label}</span>
-            </button>
-          ))}
         </div>
       </div>
 
-      {/* Banners Tab */}
-      {activeTab === "banners" && (
-        <div className="space-y-6">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 sm:p-6 rounded-[2rem] border border-gray-100 shadow-sm">
-            <div>
-              <h2 className="text-xl font-black text-carbon">
-                البنرات الإعلانية
-              </h2>
-              <p className="text-sm text-gray-500 mt-1">
-                تحكم في البنرات المعروضة في الصفحة الرئيسية للمتجر.
-              </p>
-            </div>
-            <button
-              onClick={() => {
-                setEditingBanner(null);
-                setBannerForm({
-                  image: "",
-                  images: [],
-                  title: "",
-                  subtitle: "",
-                  link: "",
-                  isActive: true,
-                  order: banners.length + 1,
-                  views: 0,
-                  clicks: 0,
-                  startDate: "",
-                  endDate: "",
-                  position: "hero",
-                });
-                setIsBannerModalOpen(true);
-              }}
-              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-carbon text-white px-6 py-3 rounded-xl font-bold hover:bg-carbon/90 transition-all shadow-lg shadow-carbon/20"
-            >
-              <Plus className="w-5 h-5" />
-              <span>إضافة بنر جديد</span>
-            </button>
+      {/* Banners Area */}
+      <div className="space-y-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 sm:p-6 rounded-[2rem] border border-gray-100 shadow-sm">
+          <div>
+            <h2 className="text-xl font-black text-carbon">
+              البنرات الإعلانية
+            </h2>
+            <p className="text-sm text-gray-500 mt-1">
+              تحكم في البنرات المعروضة في الصفحة الرئيسية للمتجر.
+            </p>
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {banners
-              .sort((a, b) => a.order - b.order)
-              .map((banner) => (
-                <motion.div
-                  key={banner.id}
-                  layout
-                  className="bg-white rounded-[2rem] border border-gray-100 overflow-hidden shadow-sm hover:shadow-xl hover:shadow-gray-200/50 transition-all group flex flex-col"
-                >
-                  <div className="relative aspect-[21/9] sm:aspect-video bg-gray-100 overflow-hidden">
-                    {banner.image ? (
-                      <img
-                        src={banner.image || undefined}
-                        alt={banner.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-gray-400">
-                        بدون صورة
-                      </div>
-                    )}
-                    <div className="absolute top-3 left-3 flex gap-2 z-10">
-                      <button
-                        onClick={() => {
-                          setEditingBanner(banner);
-                          setBannerForm(banner);
-                          setIsBannerModalOpen(true);
-                        }}
-                        className="p-2 bg-white/90 backdrop-blur-md rounded-xl text-carbon hover:bg-white shadow-sm transition-all"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => {
-                          const imagesToDelete: string[] = [];
-                          if (banner.image) imagesToDelete.push(banner.image);
-                          if (banner.images) imagesToDelete.push(...banner.images);
-
-                          setConfirmModal({
-                            isOpen: true,
-                            title: "حذف البنر",
-                            message: `هل أنت متأكد من حذف البنر "${banner.title || "بدون اسم"}"؟`,
-                            onConfirm: () => {
-                              if (imagesToDelete.length > 0) {
-                                deleteImagesFromCloudinary(imagesToDelete);
-                              }
-                              deleteBanner(banner.id);
-                            },
-                          });
-                        }}
-                        className="p-2 bg-red-50/90 backdrop-blur-md rounded-xl text-red-600 hover:bg-red-500 hover:text-white shadow-sm transition-all"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                    <div className="absolute top-3 right-3 flex gap-2">
-                      <div
-                        className={`text-xs px-3 py-1.5 rounded-lg font-black backdrop-blur-md ${banner.isActive ? "bg-emerald-500/90 text-white" : "bg-gray-500/90 text-white"}`}
-                      >
-                        {banner.isActive ? "نشط" : "معطل"}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="p-5 flex-1 flex flex-col">
-                    <div className="flex items-center justify-between mb-1">
-                      <h3 className="font-black text-lg text-carbon line-clamp-1">
-                        {banner.title || "بنر بدون اسم"}
-                      </h3>
-                      <div className="flex items-center gap-1 text-xs font-bold text-gray-400">
-                        <Layout className="w-3 h-3" />
-                        <span>الترتيب: {banner.order}</span>
-                      </div>
-                    </div>
-                    <p className="text-gray-500 text-sm mb-4 line-clamp-1">
-                      {banner.subtitle || "لا يوجد وصف إضافي"}
-                    </p>
-
-                    <div className="mt-auto pt-4 border-t border-gray-50 grid grid-cols-2 gap-4">
-                      <div className="flex items-center gap-2 text-sm">
-                        <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
-                          <Eye className="w-4 h-4" />
-                        </div>
-                        <div>
-                          <p className="text-xs text-gray-400 font-bold">
-                            المشاهدات
-                          </p>
-                          <p className="font-black text-carbon">
-                            {banner.views?.toLocaleString() || 0}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm">
-                        <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                          <MousePointerClick className="w-4 h-4" />
-                        </div>
-                        <div>
-                          <p className="text-xs text-gray-400 font-bold">
-                            النقرات
-                          </p>
-                          <p className="font-black text-carbon">
-                            {banner.clicks?.toLocaleString() || 0}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-          </div>
+          <button
+            onClick={() => {
+              setEditingBanner(null);
+              setBannerForm({
+                image: "",
+                images: [],
+                title: "",
+                subtitle: "",
+                link: "",
+                isActive: true,
+                order: banners.length + 1,
+                views: 0,
+                clicks: 0,
+                startDate: "",
+                endDate: "",
+                position: "hero",
+              });
+              setIsBannerModalOpen(true);
+            }}
+            className="w-full sm:w-auto flex items-center justify-center gap-2 bg-carbon text-white px-6 py-3 rounded-xl font-bold hover:bg-carbon/90 transition-all shadow-lg shadow-carbon/20"
+          >
+            <Plus className="w-5 h-5" />
+            <span>إضافة بنر جديد</span>
+          </button>
         </div>
-      )}
 
-      {/* Notifications Tab */}
-      {activeTab === "notifications" && (
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-          <div className="xl:col-span-1">
-            <div className="bg-white rounded-[2rem] border border-gray-100 p-6 shadow-sm sticky top-6">
-              <h2 className="text-xl font-black text-carbon mb-6 flex items-center gap-2">
-                <Send className="w-5 h-5 text-solar" />
-                <span>إرسال حملة جديدة</span>
-              </h2>
-              <form onSubmit={handleSendNotification} className="space-y-5">
-                <div>
-                  <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">
-                    نوع الحملة
-                  </label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {(["push", "email"] as const).map((type) => (
-                      <button
-                        key={type}
-                        type="button"
-                        onClick={() => setNotifForm({ ...notifForm, type })}
-                        className={`py-2 rounded-xl text-sm font-bold border transition-all ${notifForm.type === type ? "bg-carbon text-white border-carbon" : "bg-white text-gray-500 border-gray-200 hover:border-carbon/30"}`}
-                      >
-                        {type === "push" ? "إشعار" : "بريد"}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">
-                    عنوان الحملة
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={notifForm.title}
-                    onChange={(e) =>
-                      setNotifForm({ ...notifForm, title: e.target.value })
-                    }
-                    className="w-full px-4 py-3 bg-bg-general border border-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-carbon/20 focus:border-carbon font-bold text-carbon transition-all"
-                    placeholder="مثلاً: خصومات نهاية الأسبوع!"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">
-                    المحتوى
-                  </label>
-                  <textarea
-                    required
-                    rows={4}
-                    value={notifForm.message}
-                    onChange={(e) =>
-                      setNotifForm({ ...notifForm, message: e.target.value })
-                    }
-                    className="w-full px-4 py-3 bg-bg-general border border-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-carbon/20 focus:border-carbon font-bold text-carbon transition-all resize-none"
-                    placeholder="اكتب تفاصيل العرض هنا..."
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">
-                    الفئة المستهدفة
-                  </label>
-                  <select
-                    value={notifForm.target}
-                    onChange={(e) =>
-                      setNotifForm({
-                        ...notifForm,
-                        target: e.target.value as any,
-                      })
-                    }
-                    className="w-full px-4 py-3 bg-bg-general border border-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-carbon/20 focus:border-carbon font-bold text-carbon transition-all"
-                  >
-                    <option value="all">
-                      جميع العملاء ({customers.length})
-                    </option>
-                    <option value="vip">عملاء VIP فقط</option>
-                    <option value="new">العملاء الجدد (آخر 30 يوم)</option>
-                    <option value="inactive">
-                      العملاء الخاملين (لم يشتروا منذ 60 يوم)
-                    </option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">
-                    رابط التوجيه (Deep Link)
-                  </label>
-                  <input
-                    type="text"
-                    value={notifForm.link}
-                    onChange={(e) =>
-                      setNotifForm({ ...notifForm, link: e.target.value })
-                    }
-                    className="w-full px-4 py-3 bg-bg-general border border-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-carbon/20 focus:border-carbon font-bold text-carbon transition-all"
-                    placeholder="مثلاً: /product/123 أو /profile"
-                  />
-                  <p className="text-[10px] text-gray-400 mt-1 font-bold">
-                    سيتم توجيه المستخدم لهذا الرابط عند النقر على الإشعار.
-                  </p>
-                </div>
-
-                <div>
-                  <div className="mb-4">
-                    <ImageUploadField
-                      id="notif-image-upload"
-                      label="صورة الإشعار (Rich Media)"
-                      value={notifForm.image}
-                      onChange={(url) =>
-                        setNotifForm({ ...notifForm, image: url })
-                      }
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {banners
+            .sort((a, b) => a.order - b.order)
+            .map((banner) => (
+              <motion.div
+                key={banner.id}
+                layout
+                className="bg-white rounded-[2rem] border border-gray-100 overflow-hidden shadow-sm hover:shadow-xl hover:shadow-gray-200/50 transition-all group flex flex-col"
+              >
+                <div className="relative aspect-[21/9] sm:aspect-video bg-gray-100 overflow-hidden">
+                  {banner.image ? (
+                    <img
+                      src={banner.image || undefined}
+                      alt={banner.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">
-                    وقت الإرسال (اختياري)
-                  </label>
-                  <input
-                    type="datetime-local"
-                    value={notifForm.scheduledFor}
-                    onChange={(e) =>
-                      setNotifForm({
-                        ...notifForm,
-                        scheduledFor: e.target.value,
-                      })
-                    }
-                    className="w-full px-4 py-3 bg-bg-general border border-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-carbon/20 focus:border-carbon font-bold text-carbon transition-all"
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  className="w-full bg-carbon text-white py-3.5 rounded-xl font-black hover:bg-carbon/90 transition-all shadow-lg shadow-carbon/20 flex items-center justify-center gap-2 mt-4"
-                >
-                  {notifForm.scheduledFor ? (
-                    <Calendar className="w-5 h-5" />
                   ) : (
-                    <Send className="w-5 h-5" />
+                    <div className="w-full h-full flex items-center justify-center text-gray-400">
+                      بدون صورة
+                    </div>
                   )}
-                  <span>
-                    {notifForm.scheduledFor ? "جدولة الحملة" : "إرسال الآن"}
-                  </span>
-                </button>
-              </form>
-            </div>
-          </div>
-
-          <div className="xl:col-span-2">
-            <div className="bg-white rounded-[2rem] border border-gray-100 p-6 shadow-sm">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-black text-carbon flex items-center gap-2">
-                  <History className="w-5 h-5 text-solar" />
-                  <span>سجل الحملات</span>
-                </h2>
-                <button className="text-sm font-bold text-gray-500 hover:text-carbon flex items-center gap-1">
-                  <RefreshCw className="w-4 h-4" /> تحديث
-                </button>
-              </div>
-
-              <div className="space-y-4">
-                {marketingNotifications.length === 0 ? (
-                  <div className="text-center py-16 bg-gray-50 rounded-[2rem] border border-dashed border-gray-200">
-                    <Send className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                    <p className="font-bold text-gray-500">
-                      لا توجد حملات سابقة
-                    </p>
-                  </div>
-                ) : (
-                  marketingNotifications.map((notif) => (
-                    <div
-                      key={notif.id}
-                      className="p-5 rounded-[1.5rem] border border-gray-100 bg-white hover:shadow-lg hover:shadow-gray-100 transition-all group"
+                  <div className="absolute top-3 left-3 flex gap-2 z-10">
+                    <button
+                      onClick={() => {
+                        setEditingBanner(banner);
+                        setBannerForm(banner);
+                        setIsBannerModalOpen(true);
+                      }}
+                      className="p-2 bg-white/90 backdrop-blur-md rounded-xl text-carbon hover:bg-white shadow-sm transition-all"
                     >
-                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 mb-4">
-                        <div className="flex items-start gap-3">
-                          <div
-                            className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-                              notif.type === "push"
-                                ? "bg-purple-50 text-purple-600"
-                                : "bg-blue-50 text-blue-600"
-                            }`}
-                          >
-                            {notif.type === "push" ? (
-                              <Bell className="w-5 h-5" />
-                            ) : (
-                              <Mail className="w-5 h-5" />
-                            )}
-                          </div>
-                          <div>
-                            <h3 className="font-black text-carbon text-lg">
-                              {notif.title}
-                            </h3>
-                            <div className="flex items-center gap-2 mt-1">
-                              <span
-                                className={`text-[10px] font-black px-2 py-0.5 rounded-md uppercase tracking-wider ${
-                                  notif.status === "sent"
-                                    ? "bg-emerald-100 text-emerald-700"
-                                    : notif.status === "scheduled"
-                                      ? "bg-amber-100 text-amber-700"
-                                      : "bg-gray-100 text-gray-700"
-                                }`}
-                              >
-                                {notif.status === "sent"
-                                  ? "تم الإرسال"
-                                  : notif.status === "scheduled"
-                                    ? "مجدول"
-                                    : "مسودة"}
-                              </span>
-                              <span className="text-xs font-bold text-gray-400 flex items-center gap-1">
-                                <Clock className="w-3 h-3" />
-                                {(() => {
-                                  const dateVal =
-                                    notif.scheduledFor || notif.date;
-                                  const rawDate = (dateVal as any)?.seconds
-                                    ? new Date((dateVal as any).seconds * 1000)
-                                    : new Date(dateVal);
-                                  return rawDate.toLocaleString("ar-EG", {
-                                    dateStyle: "medium",
-                                    timeStyle: "short",
-                                  });
-                                })()}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="flex items-center gap-1.5 text-xs font-bold text-carbon bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100">
-                            <Target className="w-3.5 h-3.5 text-gray-400" />
-                            {notif.target === "all"
-                              ? "الجميع"
-                              : notif.target === "vip"
-                                ? "VIP"
-                                : notif.target === "inactive"
-                                  ? "خاملين"
-                                  : "جدد"}
-                          </span>
-                        </div>
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => {
+                        const imagesToDelete: string[] = [];
+                        if (banner.image) imagesToDelete.push(banner.image);
+                        if (banner.images) imagesToDelete.push(...banner.images);
+
+                        setConfirmModal({
+                          isOpen: true,
+                          title: "حذف البنر",
+                          message: `هل أنت متأكد من حذف البنر "${banner.title || "بدون اسم"}"؟`,
+                          onConfirm: () => {
+                            if (imagesToDelete.length > 0) {
+                              deleteImagesFromCloudinary(imagesToDelete);
+                            }
+                            deleteBanner(banner.id);
+                          },
+                        });
+                      }}
+                      className="p-2 bg-red-50/90 backdrop-blur-md rounded-xl text-red-600 hover:bg-red-500 hover:text-white shadow-sm transition-all"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <div className="absolute top-3 right-3 flex gap-2">
+                    <div
+                      className={`text-xs px-3 py-1.5 rounded-lg font-black backdrop-blur-md ${banner.isActive ? "bg-emerald-500/90 text-white" : "bg-gray-500/90 text-white"}`}
+                    >
+                      {banner.isActive ? "نشط" : "معطل"}
+                    </div>
+                  </div>
+                </div>
+                <div className="p-5 flex-1 flex flex-col">
+                  <div className="flex items-center justify-between mb-1">
+                    <h3 className="font-black text-lg text-carbon line-clamp-1">
+                      {banner.title || "بنر بدون اسم"}
+                    </h3>
+                    <div className="flex items-center gap-1 text-xs font-bold text-gray-400">
+                      <Layout className="w-3 h-3" />
+                      <span>الترتيب: {banner.order}</span>
+                    </div>
+                  </div>
+                  <p className="text-gray-500 text-sm mb-4 line-clamp-1">
+                    {banner.subtitle || "لا يوجد وصف إضافي"}
+                  </p>
+
+                  <div className="mt-auto pt-4 border-t border-gray-50 grid grid-cols-2 gap-4">
+                    <div className="flex items-center gap-2 text-sm">
+                      <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+                        <Eye className="w-4 h-4" />
                       </div>
-
-                      <p className="text-sm text-gray-600 mb-5 font-medium leading-relaxed bg-gray-50/50 p-3 rounded-xl border border-gray-50">
-                        {notif.message}
-                      </p>
-
-                      <div className="grid grid-cols-3 gap-4 pt-4 border-t border-gray-50">
-                        <div>
-                          <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1">
-                            المستلمين
-                          </p>
-                          <p className="font-black text-carbon text-lg">
-                            {notif.sentCount?.toLocaleString() || 0}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1">
-                            الفتح (Open Rate)
-                          </p>
-                          <div className="flex items-end gap-2">
-                            <p className="font-black text-carbon text-lg">
-                              {notif.openedCount?.toLocaleString() || 0}
-                            </p>
-                            <span className="text-xs font-bold text-emerald-500 mb-1">
-                              {notif.sentCount > 0
-                                ? Math.round(
-                                    ((notif.openedCount || 0) /
-                                      notif.sentCount) *
-                                      100,
-                                  )
-                                : 0}
-                              %
-                            </span>
-                          </div>
-                        </div>
-                        <div>
-                          <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1">
-                            النقر (CTR)
-                          </p>
-                          <div className="flex items-end gap-2">
-                            <p className="font-black text-carbon text-lg">
-                              {notif.clickedCount?.toLocaleString() || 0}
-                            </p>
-                            <span className="text-xs font-bold text-blue-500 mb-1">
-                              {(notif.openedCount || 0) > 0
-                                ? Math.round(
-                                    ((notif.clickedCount || 0) /
-                                      notif.openedCount) *
-                                      100,
-                                  )
-                                : 0}
-                              %
-                            </span>
-                          </div>
-                        </div>
+                      <div>
+                        <p className="text-xs text-gray-400 font-bold">
+                          المشاهدات
+                        </p>
+                        <p className="font-black text-carbon">
+                          {banner.views?.toLocaleString() || 0}
+                        </p>
                       </div>
                     </div>
-                  ))
-                )}
-              </div>
-            </div>
-          </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                        <MousePointerClick className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-400 font-bold">
+                          النقرات
+                        </p>
+                        <p className="font-black text-carbon">
+                          {banner.clicks?.toLocaleString() || 0}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
         </div>
-      )}
+      </div>
 
       {/* Banner Modal */}
       <AnimatePresence>
@@ -788,15 +348,18 @@ export default function Marketing() {
                               alt={`Preview ${idx}`}
                               className="w-full h-full object-cover"
                             />
-                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                              <button
-                                type="button"
-                                onClick={() => removeImage(idx)}
-                                className="p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </div>
+                            <button
+                              type="button"
+                              onClick={() => removeImage(idx)}
+                              className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                            {idx === 0 && (
+                              <span className="absolute bottom-2 left-2 text-[10px] font-black bg-carbon text-white px-2 py-0.5 rounded-md">
+                                الصورة الرئيسية
+                              </span>
+                            )}
                           </div>
                         ))}
 
@@ -938,7 +501,7 @@ export default function Marketing() {
                         onChange={(e) =>
                           setBannerForm({
                             ...bannerForm,
-                            order: parseInt(e.target.value),
+                            order: parseInt(e.target.value) || 0,
                           })
                         }
                         bgClass="bg-bg-general"

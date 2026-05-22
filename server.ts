@@ -113,6 +113,17 @@ const createSupabaseFirebaseShim = (): any => {
           if (colName === 'settings') {
             return {
               async get() {
+                if (supabase) {
+                  try {
+                    const idCol = 'id';
+                    const { data, error } = await supabase.from('settings').select('*').eq(idCol, docId).maybeSingle();
+                    if (!error && data) {
+                      return { exists: true, data: () => data };
+                    }
+                  } catch (e) {
+                    console.warn("[Server Shim] Supabase settings query failed, falling back to JSON:", e);
+                  }
+                }
                 const filePath = path.join(process.cwd(), 'public', 'settings_store.json');
                 let data = {};
                 try {
@@ -130,16 +141,36 @@ const createSupabaseFirebaseShim = (): any => {
                   fs.mkdirSync(path.dirname(filePath), { recursive: true });
                   fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
                 } catch (e) {}
+
+                if (supabase) {
+                  try {
+                    const idCol = 'id';
+                    const cleaned = cleanFieldsForSupabase('settings', { ...data, [idCol]: docId });
+                    await supabase.from('settings').upsert(cleaned);
+                  } catch (e) {
+                    console.warn("[Server Shim] Supabase settings save failed:", e);
+                  }
+                }
               },
               async update(data: any) {
                 const filePath = path.join(process.cwd(), 'public', 'settings_store.json');
+                let prev: any = {};
                 try {
-                  let prev = {};
                   if (fs.existsSync(filePath)) {
                     prev = JSON.parse(fs.readFileSync(filePath, 'utf8'));
                   }
                   fs.writeFileSync(filePath, JSON.stringify({ ...prev, ...data }, null, 2));
                 } catch (e) {}
+
+                if (supabase) {
+                  try {
+                    const idCol = 'id';
+                    const cleaned = cleanFieldsForSupabase('settings', data);
+                    await supabase.from('settings').update(cleaned).eq(idCol, docId);
+                  } catch (e) {
+                    console.warn("[Server Shim] Supabase settings update failed:", e);
+                  }
+                }
               }
             };
           }
@@ -249,7 +280,8 @@ function cleanFieldsForSupabase(table: string, data: any): any {
     banners: ['id', 'image', 'images', 'title', 'subtitle', 'link', 'isActive', 'order', 'position', 'startDate', 'endDate', 'views', 'clicks'],
     recharges: ['id', 'userId', 'userName', 'userPhone', 'amount', 'reference', 'proof', 'status', 'createdAt', 'updatedAt', 'method'],
     support_tickets: ['id', 'customerId', 'customerName', 'subject', 'message', 'status', 'priority', 'createdAt', 'replies'],
-    passkeys: ['id', 'credentialPublicKey', 'credentialID', 'counter', 'uid', 'createdAt', 'lastUsedAt']
+    passkeys: ['id', 'credentialPublicKey', 'credentialID', 'counter', 'uid', 'createdAt', 'lastUsedAt'],
+    settings: ['id', 'storeName', 'storeLogo', 'contactEmail', 'contactPhone', 'contactPhone2', 'address', 'socialMedia', 'shippingFee', 'freeShippingThreshold', 'currency', 'language', 'isMaintenanceMode', 'maintenanceMessage', 'announcementText', 'announcementSettings', 'primaryColor', 'fontFamily', 'homeSectionOrder', 'autoNotifications', 'paymentMethods', 'seo', 'updatedAt']
   };
 
   const cols = allowed[table];

@@ -1018,6 +1018,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         logActivity("تحديث الإعدادات", "قام المدير بتحديث إعدادات المتجر");
       } catch (error) {
         handleFirestoreError(error, OperationType.UPDATE, "settings/store");
+        throw error;
       }
     },
     [settings, showToast, logActivity],

@@ -184,6 +184,13 @@ const SUPABASE_ALLOWED_COLUMNS: Record<string, string[]> = {
   support_tickets: [
     'id', 'customerId', 'customerName', 'subject', 'message', 'status', 'priority',
     'createdAt', 'replies'
+  ],
+  settings: [
+    'id', 'storeName', 'storeLogo', 'contactEmail', 'contactPhone', 'contactPhone2',
+    'address', 'socialMedia', 'shippingFee', 'freeShippingThreshold', 'currency',
+    'language', 'isMaintenanceMode', 'maintenanceMessage', 'announcementText',
+    'announcementSettings', 'primaryColor', 'fontFamily', 'homeSectionOrder',
+    'autoNotifications', 'paymentMethods', 'seo', 'updatedAt'
   ]
 };
 
@@ -364,7 +371,18 @@ async function runSupabaseQuery(queryRef: any): Promise<FakeQuerySnapshot> {
     const { data, error } = await builder;
     if (error) {
       console.warn(`Supabase query warning for ${table}:`, error.message);
+      if (table === 'settings') {
+        const localSettings = localStorage.getItem("store_settings");
+        const localData = localSettings ? JSON.parse(localSettings) : {};
+        return new FakeQuerySnapshot([new FakeDocSnapshot('store', localData)]);
+      }
       return new FakeQuerySnapshot([]);
+    }
+
+    if (table === 'settings' && (!data || data.length === 0)) {
+      const localSettings = localStorage.getItem("store_settings");
+      const localData = localSettings ? JSON.parse(localSettings) : {};
+      return new FakeQuerySnapshot([new FakeDocSnapshot('store', localData)]);
     }
 
     return new FakeQuerySnapshot(
@@ -465,19 +483,46 @@ export const getDoc = async (docRef: any) => {
   }
 
   const client = supabase();
-  if (!client) return new FakeDocSnapshot(id, null);
-
-  const idColumn = table === 'users' ? 'uid' : 'id';
-  const { data, error } = await client
-    .from(table)
-    .select('*')
-    .eq(idColumn, id)
-    .maybeSingle();
-
-  if (error) {
-    console.warn(`Supabase error fetching document in ${table}:`, error.message);
+  if (!client) {
+    if (table === 'settings') {
+      const localSettings = localStorage.getItem("store_settings");
+      const data = localSettings ? JSON.parse(localSettings) : {};
+      return new FakeDocSnapshot(id, data);
+    }
     return new FakeDocSnapshot(id, null);
   }
+
+  const idColumn = table === 'users' ? 'uid' : 'id';
+  let data = null;
+  let error = null;
+  try {
+    const response = await client
+      .from(table)
+      .select('*')
+      .eq(idColumn, id)
+      .maybeSingle();
+    data = response.data;
+    error = response.error;
+  } catch (e: any) {
+    error = e;
+  }
+
+  if (error) {
+    console.warn(`Supabase error fetching document in ${table}:`, error?.message || error);
+    if (table === 'settings') {
+      const localSettings = localStorage.getItem("store_settings");
+      const localData = localSettings ? JSON.parse(localSettings) : {};
+      return new FakeDocSnapshot(id, localData);
+    }
+    return new FakeDocSnapshot(id, null);
+  }
+
+  if (table === 'settings' && !data) {
+    const localSettings = localStorage.getItem("store_settings");
+    const localData = localSettings ? JSON.parse(localSettings) : {};
+    return new FakeDocSnapshot(id, localData);
+  }
+
   return new FakeDocSnapshot(id, data);
 };
 
@@ -646,10 +691,19 @@ export const setDoc = async (docRef: any, data: any, options?: any) => {
     );
   }
 
-  const { error } = await client.from(table).upsert(upsertData);
-  if (error) {
-    console.error(`Supabase UPSERT error into table "${table}":`, error);
-    throw error;
+  if (table === 'settings') {
+    localStorage.setItem("store_settings", JSON.stringify(upsertData));
+  }
+
+  try {
+    const { error } = await client.from(table).upsert(upsertData);
+    if (error) {
+      console.error(`Supabase UPSERT error into table "${table}":`, error);
+      throw error;
+    }
+  } catch (err) {
+    console.error(`Supabase UPSERT exception into table "${table}":`, err);
+    throw err;
   }
   return;
 };
@@ -727,10 +781,22 @@ export const updateDoc = async (docRef: any, data: any) => {
     return;
   }
 
-  const { error } = await client.from(table).update(updateData).eq(idColumn, id);
-  if (error) {
-    console.error(`Supabase UPDATE error into table "${table}":`, error);
-    throw error;
+  if (table === 'settings') {
+    const prev = localStorage.getItem("store_settings");
+    let prevObj = {};
+    try { if (prev) prevObj = JSON.parse(prev || '{}'); } catch(e) {}
+    localStorage.setItem("store_settings", JSON.stringify({ ...prevObj, ...updateData }));
+  }
+
+  try {
+    const { error } = await client.from(table).update(updateData).eq(idColumn, id);
+    if (error) {
+      console.error(`Supabase UPDATE error into table "${table}":`, error);
+      throw error;
+    }
+  } catch (err) {
+    console.error(`Supabase UPDATE exception into table "${table}":`, err);
+    throw err;
   }
   return;
 };

@@ -90,10 +90,12 @@ const Settings = () => {
         title: "تم الحفظ بنجاح!",
         description: "تم تحديث كافة إعدادات النظام وتطبيقها عالمياً.",
       });
-    } catch (error) {
+    } catch (error: any) {
+      console.error("Failed to save settings to Supabase/Firebase:", error);
+      const errMsg = error?.message || error?.details || "حدث خطأ غير متوقع أثناء محاولة حفظ الإعدادات.";
       showLuxuryToast("error", {
         title: "فشل الحفظ",
-        description: "حدث خطأ غير متوقع أثناء محاولة حفظ الإعدادات.",
+        description: errMsg,
       });
     } finally {
       setIsSaving(false);

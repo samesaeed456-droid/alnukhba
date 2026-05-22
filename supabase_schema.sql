@@ -184,6 +184,54 @@ ALTER TABLE public.recharges ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.support_tickets ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.passkeys ENABLE ROW LEVEL SECURITY;
 
+-- 11. Store Settings Table
+CREATE TABLE IF NOT EXISTS public.settings (
+  id TEXT PRIMARY KEY,
+  "storeName" TEXT NOT NULL,
+  "storeLogo" TEXT,
+  "contactEmail" TEXT,
+  "contactPhone" TEXT,
+  "contactPhone2" TEXT,
+  address TEXT,
+  "socialMedia" JSONB DEFAULT '{}'::jsonb,
+  "shippingFee" NUMERIC DEFAULT 0,
+  "freeShippingThreshold" NUMERIC DEFAULT 0,
+  currency TEXT DEFAULT 'YER',
+  language TEXT DEFAULT 'ar',
+  "isMaintenanceMode" BOOLEAN DEFAULT false,
+  "maintenanceMessage" TEXT,
+  "announcementText" TEXT,
+  "announcementSettings" JSONB DEFAULT '{}'::jsonb,
+  "primaryColor" TEXT DEFAULT '#000000',
+  "fontFamily" TEXT DEFAULT 'Inter',
+  "homeSectionOrder" JSONB DEFAULT '["hero", "categories", "deals", "featured", "new_arrivals"]'::jsonb,
+  "autoNotifications" JSONB DEFAULT '{}'::jsonb,
+  "paymentMethods" JSONB DEFAULT '[]'::jsonb,
+  seo JSONB DEFAULT '{}'::jsonb,
+  "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Insert default settings row if it doesn't exist
+INSERT INTO public.settings (
+  id, "storeName", "contactEmail", "contactPhone", address, "shippingFee", "freeShippingThreshold", currency, language, "isMaintenanceMode", "primaryColor", "fontFamily", "announcementSettings"
+) VALUES (
+  'store',
+  'متجر النخبة',
+  'support@elite-store.local',
+  '777777777',
+  'اليمن، صنعاء',
+  0,
+  0,
+  'YER',
+  'ar',
+  false,
+  '#00bbff',
+  'Inter',
+  '{"enabled": true, "announcements": [{"id": "1", "text": "توصيل مجاني وسريع — للطلبات فوق 50 ألف ﷼", "isActive": true}], "isMarquee": true, "backgroundColor": "#F8FAFC", "textColor": "#0F172A", "speed": 15}'::jsonb
+) ON CONFLICT (id) DO NOTHING;
+
+ALTER TABLE public.settings ENABLE ROW LEVEL SECURITY;
+
 -- Create basic policies (Allowing all for now so the migration script doesn't fail; PLEASE SECURE LATER)
 CREATE POLICY "Allow all on users" ON public.users FOR ALL USING (true);
 CREATE POLICY "Allow all on products" ON public.products FOR ALL USING (true);
@@ -195,3 +243,4 @@ CREATE POLICY "Allow all on banners" ON public.banners FOR ALL USING (true);
 CREATE POLICY "Allow all on recharges" ON public.recharges FOR ALL USING (true);
 CREATE POLICY "Allow all on support_tickets" ON public.support_tickets FOR ALL USING (true);
 CREATE POLICY "Allow all on passkeys" ON public.passkeys FOR ALL USING (true);
+CREATE POLICY "Allow all on settings" ON public.settings FOR ALL USING (true);

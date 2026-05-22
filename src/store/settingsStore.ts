@@ -38,6 +38,10 @@ const DEFAULT_SETTINGS: StoreSettings = {
   language: "ar",
   isMaintenanceMode: false,
   primaryColor: "#000000",
+  backgroundColor: "#FFFFFF",
+  cardColor: "#FFFFFF",
+  textColor: "#0F172A",
+  textMutedColor: "#64748B",
   fontFamily: "Inter",
   homeSectionOrder: ["hero", "categories", "deals", "featured", "new_arrivals"],
   announcementSettings: {

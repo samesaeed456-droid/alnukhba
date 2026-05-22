@@ -189,7 +189,7 @@ const SUPABASE_ALLOWED_COLUMNS: Record<string, string[]> = {
     'id', 'storeName', 'storeLogo', 'contactEmail', 'contactPhone', 'contactPhone2',
     'address', 'socialMedia', 'shippingFee', 'freeShippingThreshold', 'currency',
     'language', 'isMaintenanceMode', 'maintenanceMessage', 'announcementText',
-    'announcementSettings', 'primaryColor', 'fontFamily', 'homeSectionOrder',
+    'announcementSettings', 'primaryColor', 'backgroundColor', 'cardColor', 'textColor', 'textMutedColor', 'fontFamily', 'homeSectionOrder',
     'autoNotifications', 'paymentMethods', 'seo', 'updatedAt'
   ]
 };

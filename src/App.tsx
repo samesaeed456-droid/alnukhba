@@ -169,8 +169,49 @@ const MainRoutes = () => {
 
       const glowRgba = hexToRgba(primaryHex, 0.15);
       root.style.setProperty("--primary-glow", glowRgba);
+
+      if (settings.backgroundColor) {
+        root.style.setProperty("--bg-general", settings.backgroundColor);
+        
+        // Dynamic helper to judge dark/light and compute contrasting backgrounds for nesting components
+        const isDarkColor = (hex: string) => {
+          let cleanHex = hex.replace("#", "");
+          if (cleanHex.length === 3) {
+            cleanHex = cleanHex.split("").map((c) => c + c).join("");
+          }
+          const r = parseInt(cleanHex.substring(0, 2), 16) || 0;
+          const g = parseInt(cleanHex.substring(2, 4), 16) || 0;
+          const b = parseInt(cleanHex.substring(4, 6), 16) || 0;
+          const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+          return brightness < 128;
+        };
+
+        const backgroundIsDark = isDarkColor(settings.backgroundColor);
+        const sectionBg = adjustBrightness(settings.backgroundColor, backgroundIsDark ? 10 : -4);
+        const hoverBg = adjustBrightness(settings.backgroundColor, backgroundIsDark ? 15 : -6);
+        root.style.setProperty("--bg-section", sectionBg);
+        root.style.setProperty("--bg-hover", hoverBg);
+      }
+
+      if (settings.cardColor) {
+        root.style.setProperty("--bg-card", settings.cardColor);
+      }
+
+      if (settings.textColor) {
+        root.style.setProperty("--text-main", settings.textColor);
+      }
+
+      if (settings.textMutedColor) {
+        root.style.setProperty("--text-muted", settings.textMutedColor);
+      }
     }
-  }, [settings?.primaryColor]);
+  }, [
+    settings?.primaryColor,
+    settings?.backgroundColor,
+    settings?.cardColor,
+    settings?.textColor,
+    settings?.textMutedColor,
+  ]);
 
   useEffect(() => {
     if (settings.seo) {

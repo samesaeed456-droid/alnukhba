@@ -355,6 +355,10 @@ export interface StoreSettings {
     speed: number; // in seconds
   };
   primaryColor: string;
+  backgroundColor?: string;
+  cardColor?: string;
+  textColor?: string;
+  textMutedColor?: string;
   fontFamily: string;
   homeSectionOrder: string[];
   autoNotifications?: {

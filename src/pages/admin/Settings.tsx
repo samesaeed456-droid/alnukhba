@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useStore } from "../../context/StoreContext";
 import { FloatingInput } from "../../components/FloatingInput";
 import { ImageUploadField } from "../../components/ImageUploadField";
@@ -81,6 +81,86 @@ const Settings = () => {
     hidden: { opacity: 0, x: 20 },
     visible: { opacity: 1, x: 0 },
   };
+
+  // Sync settings when they are loaded from firebase real-time listeners (if form is pristine)
+  useEffect(() => {
+    if (JSON.stringify(formData) === JSON.stringify(settings)) {
+      setFormData(settings);
+    }
+  }, [settings]);
+
+  const colorPresets = [
+    {
+      id: "royal",
+      name: "أوف وايت والذهبي الملكي",
+      primary: "#C5A059",
+      bg: "#FFFFFF",
+      card: "#FFFFFF",
+      text: "#0F172A",
+      textMuted: "#64748B",
+      description: "الهوية الكلاسيكية للمتجر. فخامة وأناقة ملكية تناسب المجوهرات والسلع الفاخرة."
+    },
+    {
+      id: "dark-gold",
+      name: "الوضع المظلم الملكي",
+      primary: "#C5A059",
+      bg: "#0B0F19",
+      card: "#141B2D",
+      text: "#FAFAF9",
+      textMuted: "#94A3B8",
+      description: "مزيج فاخر وغامض من الأسود النجمي والذهبي اللامع، مثالي لتجربة ليلية راقية."
+    },
+    {
+      id: "emerald",
+      name: "الزمرد والوردي النبيل",
+      primary: "#065F46",
+      bg: "#F0FDF4",
+      card: "#FFFFFF",
+      text: "#064E3B",
+      textMuted: "#374151",
+      description: "هوية مريحة ومنعشة ممتازة للقهوة المختصة، العناية بالبشرة، والمنتجات العضوية."
+    },
+    {
+      id: "maroon",
+      name: "العنابي الكلاسيكي الدافئ",
+      primary: "#991B1B",
+      bg: "#FAF7F5",
+      card: "#FFFFFF",
+      text: "#450A0A",
+      textMuted: "#78350F",
+      description: "جاذبية فريدة بالألوان الترابية والنبيذي الفخم، ممتاز للعطور والموضة الوعرة."
+    },
+    {
+      id: "sapphire",
+      name: "الأزرق الإلكتروني الساطع",
+      primary: "#1D4ED8",
+      bg: "#F8FAFC",
+      card: "#FFFFFF",
+      text: "#0F172A",
+      textMuted: "#475569",
+      description: "هوية تقنية حيوية ونظيفة تناسب متاجر الهواتف، التكنولوجيا والإلكترونيات الذكية."
+    },
+    {
+      id: "sunset-orange",
+      name: "الغروب الناري الحركي",
+      primary: "#EA580C",
+      bg: "#FFF7ED",
+      card: "#FFFFFF",
+      text: "#431407",
+      textMuted: "#7C2D12",
+      description: "لون مليء بالحماس والسرعة، ممتاز لمتاجر الألعاب والتسليم السريع ومنتجات الشباب."
+    },
+    {
+      id: "carbon-charcoal",
+      name: "البلاتيني المينيماليست",
+      primary: "#18181B",
+      bg: "#FAFAFA",
+      card: "#FFFFFF",
+      text: "#09090B",
+      textMuted: "#52525B",
+      description: "تصميم عصري بسيط جداً يعتمد على التباين والخطوط الفضية النظيفة، يناسب كل شيء."
+    }
+  ];
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -988,117 +1068,281 @@ const Settings = () => {
               )}
 
               {activeSection === "design" && (
-                <div className="p-4 md:p-8 space-y-6 md:space-y-8">
+                <div className="p-4 md:p-8 space-y-8 md:space-y-12">
                   <SectionHeader
                     icon={Palette}
-                    title="الهوية البصرية والألوان"
-                    description="تخصيص ثيم وألوان المتجر الأساسية لتناسب علامتك التجارية"
+                    title="مستودع الألوان وتصميم الهوية"
+                    description="تحكم بكافة تفاصيل ألوان متجرك لتطبيقه لعملائك أو علامتك التجارية بسهولة مطلقة"
                     bgClass="bg-purple-50"
                     colorClass="text-purple-600"
                   />
 
-                  {/* Built-in Premium Presets Grid */}
+                  {/* 1. Fully-Fledged Theme Presets */}
                   <div className="space-y-4">
-                    <h3 className="text-sm font-bold text-slate-700">قوالب الألوان الملكية الجاهزة</h3>
+                    <div className="flex flex-col gap-1">
+                      <h3 className="text-sm md:text-base font-bold text-slate-800">1. قوالب الألوان المتكاملة الجاهزة (كبسة زر واحدة)</h3>
+                      <p className="text-xs text-slate-400">اختر قالباً شاملاً يقوم بضبط كافة ألوان خلفية الموقع، البطاقات، اللمسات التفاعلية والنصوص تلقائياً لستايل سحري ومبهر كلياً:</p>
+                    </div>
+
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {[
-                        { id: "royal", name: "الذهبي الملكي (الكلاسيكي)", hex: "#C5A059", description: "أناقة وفخامة كلاسيكية للمتاجر الراقية والمجوهرات" },
-                        { id: "maroon", name: "الملكي الماروني (العنابي)", hex: "#991B1B", description: "جذاب، دافئ ومناسب لمتاجر العطور والساعات الفاخرة" },
-                        { id: "emerald", name: "الزمرد النبيل", hex: "#065F46", description: "هادئ وممتاز للقهوة المختصة أو منتجات الصحة والعناية" },
-                        { id: "sapphire", name: "الأزرق الكوني (الساطع)", hex: "#1D4ED8", description: "حديث واحترافي، مثالي لمتاجر التقنية والإلكترونيات" },
-                        { id: "amethyst", name: "بنفسجي الملوك (الأميثيست)", hex: "#6D28D9", description: "مبتكر وفريد للمتاجر الترفيهية وملحقات الهواتف" },
-                        { id: "sunset", name: "البرتقالي الناري (الشمسي)", hex: "#EA580C", description: "حيوي ومثير للحماس ومناسب لمتاجر الألعاب والأحذية" },
-                        { id: "carbon", name: "البلاتيني الكربوني (الأسود)", hex: "#1E293B", description: "بسيط، ذكي وكلاسيكي لمختلف أنواع السلع والخدمات" },
-                      ].map((preset) => (
-                        <div
-                          key={preset.id}
-                          onClick={() => setFormData({ ...formData, primaryColor: preset.hex })}
-                          className={`relative p-5 rounded-3xl border-2 transition-all duration-300 cursor-pointer flex flex-col justify-between overflow-hidden group ${
-                            formData.primaryColor === preset.hex
-                              ? "border-slate-800 shadow-md scale-[1.01]"
-                              : "border-slate-100 hover:border-slate-200 hover:bg-slate-50/50"
-                          }`}
-                        >
-                          {/* Colored corner glow */}
+                      {colorPresets.map((preset) => {
+                        const isSelected =
+                          formData.primaryColor === preset.primary &&
+                          formData.backgroundColor === preset.bg &&
+                          formData.cardColor === preset.card &&
+                          formData.textColor === preset.text;
+
+                        return (
                           <div
-                            className="absolute -top-10 -left-10 w-24 h-24 rounded-full blur-2xl opacity-25 transition-all group-hover:scale-125"
-                            style={{ backgroundColor: preset.hex }}
-                          />
-
-                          <div className="space-y-2">
-                            <div className="flex items-center gap-3">
-                              <div
-                                className="w-5 h-5 rounded-full border border-black/10 shadow-sm shrink-0 flex items-center justify-center text-white"
-                                style={{ backgroundColor: preset.hex }}
-                              >
-                                {formData.primaryColor === preset.hex && (
-                                  <Check className="w-3.5 h-3.5" />
-                                )}
+                            key={preset.id}
+                            onClick={() =>
+                              setFormData({
+                                ...formData,
+                                primaryColor: preset.primary,
+                                backgroundColor: preset.bg,
+                                cardColor: preset.card,
+                                textColor: preset.text,
+                                textMutedColor: preset.textMuted
+                              })
+                            }
+                            className={`relative p-5 rounded-[2rem] border-2 transition-all duration-300 cursor-pointer flex flex-col justify-between overflow-hidden group ${
+                              isSelected
+                                ? "border-slate-800 bg-slate-50/50 shadow-md scale-[1.01]"
+                                : "border-slate-100/90 hover:border-slate-200 hover:bg-slate-50/20"
+                            }`}
+                          >
+                            <div className="space-y-3">
+                              {/* Selection Indicator & Name */}
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-2.5">
+                                  <div
+                                    className="w-4.5 h-4.5 rounded-full border border-black/10 flex items-center justify-center text-white shrink-0"
+                                    style={{ backgroundColor: preset.primary }}
+                                  >
+                                    {isSelected && <Check className="w-2.5 h-2.5" />}
+                                  </div>
+                                  <span className="font-bold text-xs md:text-sm text-slate-800 line-clamp-1">
+                                    {preset.name}
+                                  </span>
+                                </div>
+                                <span className="text-[10px] font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">
+                                  {preset.bg === "#FFFFFF" ? "فاتح" : "مظلم"}
+                                </span>
                               </div>
-                              <span className="font-bold text-xs md:text-sm text-slate-800">{preset.name}</span>
-                            </div>
-                            <p className="text-[11px] text-slate-500 leading-relaxed font-medium">
-                              {preset.description}
-                            </p>
-                          </div>
 
-                          <div className="mt-4 pt-3 border-t border-slate-50 flex items-center justify-between text-[10px] font-mono text-slate-400">
-                            <span>لون الثيم</span>
-                            <span className="font-bold select-all" style={{ color: preset.hex }}>{preset.hex}</span>
+                              {/* Description */}
+                              <p className="text-[11px] text-slate-400 leading-relaxed font-medium">
+                                {preset.description}
+                              </p>
+
+                              {/* Visualization Bubbles Row */}
+                              <div className="flex items-center gap-1.5 bg-white/40 p-2 rounded-xl border border-slate-100/60 w-fit">
+                                <div className="text-[10px] text-slate-400 pl-1 font-bold">لوحة اللون:</div>
+                                <div className="w-4 h-4 rounded-full border border-black/10" style={{ backgroundColor: preset.bg }} title="الخلفية" />
+                                <div className="w-4 h-4 rounded-full border border-black/10" style={{ backgroundColor: preset.card }} title="البطاقات" />
+                                <div className="w-4 h-4 rounded-full border border-black/10" style={{ backgroundColor: preset.primary }} title="الأساسي" />
+                                <div className="w-4 h-4 rounded-full border border-black/10" style={{ backgroundColor: preset.text }} title="النصوص" />
+                              </div>
+                            </div>
+
+                            {/* Preset HEX Footer info */}
+                            <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[10px] font-mono text-slate-400">
+                              <span>المفتاح الأساسي</span>
+                              <span className="font-bold uppercase" style={{ color: preset.primary }}>
+                                {preset.primary}
+                              </span>
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
 
-                  {/* Custom Color Selector Section */}
-                  <div className="bg-slate-50 p-6 rounded-[2rem] border border-slate-100/80 space-y-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-xl bg-purple-500/10 text-purple-600 flex items-center justify-center">
-                        <Palette className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-xs md:text-sm text-slate-800">أو حدد لوناً مخصصاً بالكامل</h4>
-                        <p className="text-[11px] text-slate-400 mt-0.5">يمكنك اختيار أي لون يعكس علامتك التجارية الفريدة</p>
-                      </div>
+                  {/* 2. Advanced Individual Custom Color Selectors */}
+                  <div className="space-y-6">
+                    <div className="flex flex-col gap-1">
+                      <h3 className="text-sm md:text-base font-bold text-slate-800">2. لوحة التحكم بالألوان بالتفصيل (تخصيص حر)</h3>
+                      <p className="text-xs text-slate-400">اضغط على أي منتقي ألوان بالأسفل لتغيير خيارات المتجر الدقيقة أو اكتب رمز اللون الـ HEX يدوياً:</p>
                     </div>
 
-                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 pt-2">
-                      <div className="flex items-center gap-3 bg-white p-3 rounded-2xl border border-slate-200 shadow-sm flex-1">
-                        <div className="relative w-12 h-12 rounded-xl overflow-hidden border border-slate-200 shrink-0">
-                          <input
-                            type="color"
-                            value={formData.primaryColor || "#C5A059"}
-                            onChange={(e) => setFormData({ ...formData, primaryColor: e.target.value })}
-                            className="absolute inset-0 w-full h-full p-0 border-0 cursor-pointer scale-150"
-                          />
-                        </div>
-                        <div className="flex-1 space-y-1">
-                          <label className="block text-[11px] font-bold text-slate-500">منتقي الألوان الفرعي</label>
-                          <input
-                            type="text"
-                            value={formData.primaryColor || ""}
-                            onChange={(e) => setFormData({ ...formData, primaryColor: e.target.value })}
-                            className="w-full text-xs font-mono font-bold text-slate-700 bg-transparent outline-none border-b border-dashed border-slate-300 focus:border-purple-600 transition-colors uppercase"
-                            placeholder="#000000"
-                          />
-                        </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+                      {/* Left Side: Color Pickers controls */}
+                      <div className="space-y-5 bg-slate-50/60 p-5 md:p-6 rounded-[2.5rem] border border-slate-100/70">
+                        {[
+                          {
+                            key: "primaryColor",
+                            label: "اللون التفاعلي الأساسي (Primary Color)",
+                            desc: "يُستخدم كرموز للهوية، الحساب، أيقونات السعر، الأزرار والتفاعل الأساسي.",
+                            def: "#C5A059"
+                          },
+                          {
+                            key: "backgroundColor",
+                            label: "لون خلفية المتجر الرئيسية (Background Color)",
+                            desc: "الخلفية العريضة لجميع صفحات المتجر الممتدة.",
+                            def: "#FFFFFF"
+                          },
+                          {
+                            key: "cardColor",
+                            label: "لون خلفية بطاقات السلع والعناصر (Card Color)",
+                            desc: "لون خلفية أقسام المنتجات، الحقول، وصناديق الحاويات.",
+                            def: "#FFFFFF"
+                          },
+                          {
+                            key: "textColor",
+                            label: "لون النصوص الرئيسي (Text Color)",
+                            desc: "لون عناوين المنتجات وتفاصيل الشراء العميقة العريضة.",
+                            def: "#0F172A"
+                          },
+                          {
+                            key: "textMutedColor",
+                            label: "لون النصوص الثانوية والمساعدة (Muted Text Color)",
+                            desc: "يُستخدم للوصف الفرعي المساعد والخصائص وأسماء الفئات.",
+                            def: "#64748B"
+                          }
+                        ].map((picker) => {
+                          const val = (formData as any)[picker.key] || picker.def;
+                          return (
+                            <div key={picker.key} className="space-y-2 bg-white p-4 rounded-2xl border border-slate-200/60 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors hover:border-purple-200">
+                              <div className="flex-1 space-y-1 pr-1">
+                                <label className="block text-xs font-bold text-slate-700">{picker.label}</label>
+                                <p className="text-[10px] text-slate-400 leading-normal">{picker.desc}</p>
+                              </div>
+
+                              {/* Inputs wrapper */}
+                              <div className="flex items-center gap-2.5 bg-slate-50 p-2 rounded-xl border border-slate-100 self-end sm:self-center">
+                                {/* Hex input text */}
+                                <input
+                                  type="text"
+                                  value={val}
+                                  onChange={(e) => setFormData({ ...formData, [picker.key]: e.target.value })}
+                                  className="w-16 text-center text-xs font-mono font-bold text-slate-700 bg-transparent outline-none uppercase"
+                                  placeholder="#000000"
+                                />
+                                
+                                {/* Standard Color circle selector */}
+                                <div className="relative w-7 h-7 rounded-full overflow-hidden border border-slate-300 shadow-inner flex items-center justify-center shrink-0">
+                                  <input
+                                    type="color"
+                                    value={val}
+                                    onChange={(e) => setFormData({ ...formData, [picker.key]: e.target.value })}
+                                    className="absolute inset-0 w-full h-full p-0 border-0 cursor-pointer scale-150"
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
 
-                      <div className="sm:w-1/3 flex flex-col justify-center gap-1.5 p-4 bg-white/60 rounded-2xl border border-slate-200/50">
-                        <span className="text-[10px] font-bold text-slate-400">معاينة الحيوية للمتجر</span>
-                        <div className="flex items-center gap-2">
-                          <button
-                            className="px-4 py-2 rounded-xl text-xs font-bold text-white shadow-md transition-all active:scale-95"
-                            style={{ backgroundColor: formData.primaryColor || "#C5A059" }}
-                          >
-                            مثال على زر
-                          </button>
-                          <span
-                            className="w-4 h-4 rounded-full"
-                            style={{ backgroundColor: formData.primaryColor || "#C5A059" }}
-                          />
-                          <span className="text-xs font-bold text-slate-600">نص مميز</span>
+                      {/* Right Side: Dynamic Interactive Live Shop Preview (Extremely Impressive Sandbox) */}
+                      <div className="p-6 rounded-[2.5rem] border-2 border-dashed border-slate-200/80 flex flex-col gap-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="flex h-2 w-2 relative">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                            </span>
+                            <span className="text-xs font-bold text-slate-600">لوحة محاكاة مباشرة لمتجر المشتري (Live Store Sandbox Preview)</span>
+                          </div>
+                          <span className="text-[10px] font-mono text-slate-400">تحديث فوري</span>
+                        </div>
+
+                        {/* Miniature Shop Simulation Container */}
+                        <div
+                          className="w-full h-fit rounded-[2rem] border shadow-md p-6 overflow-hidden transition-all duration-300"
+                          style={{
+                            backgroundColor: formData.backgroundColor || "#FFFFFF",
+                            borderColor: `${formData.textColor || "#0F172A"}15`
+                          }}
+                        >
+                          {/* 1. Shop Top Header Block */}
+                          <div className="flex items-center justify-between pb-4 border-b mb-5" style={{ borderColor: `${formData.textColor || "#0F172A"}15` }}>
+                            <div className="flex items-center gap-2">
+                              <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: formData.primaryColor || "#C5A059" }} />
+                              <span className="text-xs font-extrabold" style={{ color: formData.textColor || "#0F172A" }}>
+                                {formData.storeName || "متجر الفخامة"}
+                              </span>
+                            </div>
+                            
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-1.5 rounded-full" style={{ backgroundColor: formData.textMutedColor || "#64748B", opacity: 0.25 }} />
+                              <div className="w-8 h-1.5 rounded-full" style={{ backgroundColor: formData.textMutedColor || "#64748B", opacity: 0.25 }} />
+                              <div className="w-6 h-5 rounded-lg flex items-center justify-center border text-[10px]" style={{ borderColor: `${formData.textColor || "#0F172A"}15`, color: formData.textColor || "#0F172A" }}>🛒</div>
+                            </div>
+                          </div>
+
+                          {/* 2. Mini Banner Block */}
+                          <div className="w-full py-4 px-5 rounded-2xl mb-5 text-center flex flex-col items-center justify-center gap-1.5 transition-all"
+                               style={{
+                                 backgroundColor: `${formData.primaryColor || "#C5A059"}10`,
+                                 border: `1.5px dashed ${formData.primaryColor || "#C5A059"}30`
+                               }}>
+                            <span className="text-[10px] font-bold" style={{ color: formData.primaryColor || "#C5A059" }}>عرض الصيف النبيل والمحدود</span>
+                            <div className="h-1.5 w-24 rounded-full" style={{ backgroundColor: formData.primaryColor || "#C5A059", opacity: 0.4 }} />
+                          </div>
+
+                          {/* 3. Product Display Card Showcase Grid */}
+                          <div className="grid grid-cols-2 gap-3">
+                            {/* Product Item 1 */}
+                            <div
+                              className="p-3.5 rounded-2xl border transition-all shadow-sm"
+                              style={{
+                                backgroundColor: formData.cardColor || "#FFFFFF",
+                                borderColor: `${formData.textColor || "#0F172A"}10`
+                              }}
+                            >
+                              {/* Product Image placeholder */}
+                              <div className="w-full aspect-square rounded-xl bg-slate-100 flex items-center justify-center mb-3 relative overflow-hidden">
+                                <span className="text-lg">💎</span>
+                                <div className="absolute top-1 right-1 px-1.5 py-0.5 rounded text-[9px] font-bold text-white shadow-sm"
+                                     style={{ backgroundColor: formData.primaryColor || "#C5A059" }}>
+                                  رائج
+                                </div>
+                              </div>
+                              {/* Product label & prices */}
+                              <span className="block text-[11px] font-bold" style={{ color: formData.textColor || "#0F172A" }}>عطر العود الخاص</span>
+                              <span className="block text-[9px] mt-0.5" style={{ color: formData.textMutedColor || "#64748B" }}>عطور رجالية</span>
+                              
+                              <div className="flex items-center justify-between mt-3.5 pt-2 border-t" style={{ borderColor: `${formData.textColor || "#0F172A"}08` }}>
+                                <span className="text-[10px] font-bold" style={{ color: formData.primaryColor || "#C5A059" }}>18,500 ريال</span>
+                                <div className="w-5 h-5 rounded-md flex items-center justify-center text-white text-[10px]" style={{ backgroundColor: formData.primaryColor || "#C5A059" }}>
+                                  +
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Product Item 2 */}
+                            <div
+                              className="p-3.5 rounded-2xl border transition-all shadow-sm"
+                              style={{
+                                backgroundColor: formData.cardColor || "#FFFFFF",
+                                borderColor: `${formData.textColor || "#0F172A"}10`
+                              }}
+                            >
+                              {/* Product Image placeholder */}
+                              <div className="w-full aspect-square rounded-xl bg-slate-100 flex items-center justify-center mb-3 relative overflow-hidden">
+                                <span className="text-lg">⌚</span>
+                              </div>
+                              {/* Product label & prices */}
+                              <span className="block text-[11px] font-bold" style={{ color: formData.textColor || "#0F172A" }}>ساعة رويال كلاسيك</span>
+                              <span className="block text-[9px] mt-0.5" style={{ color: formData.textMutedColor || "#64748B" }}>اكسسوارات فاخرة</span>
+                              
+                              <div className="flex items-center justify-between mt-3.5 pt-2 border-t" style={{ borderColor: `${formData.textColor || "#0F172A"}08` }}>
+                                <span className="text-[10px] font-bold" style={{ color: formData.primaryColor || "#C5A059" }}>45,200 ريال</span>
+                                <div className="w-5 h-5 rounded-md flex items-center justify-center text-white text-[10px]" style={{ backgroundColor: formData.primaryColor || "#C5A059" }}>
+                                  +
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Interactive tips for developer sale */}
+                        <div className="p-4 bg-slate-100/60 rounded-2xl border border-slate-200/50 flex gap-2.5 items-start">
+                          <Palette className="w-4 h-4 text-slate-500 shrink-0 mt-0.5" />
+                          <p className="text-[10px] text-slate-500 leading-relaxed font-medium">
+                            <strong className="text-slate-700">لماذا هذا مبهر؟</strong> يمكنك الدخول إلى هذا المحاكي واختيار لون مخصص تماماً للعلامة التجارية لعميلك القادم. متجر السلع الفريد هذا مبني ليعكس هذه المتغيرات تلقائياً عبر صفحات الشراء والأرصدة بالكامل، مما يضاعف من قيمة بيعك للبرنامج وسرعة تخصيصه!
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -1109,10 +1353,10 @@ const Settings = () => {
                     <Info className="w-5 h-5 text-purple-600 shrink-0 mt-0.5" />
                     <div>
                       <p className="text-xs font-bold text-purple-900 leading-relaxed">
-                        سهولة التسويق والبيع للمتاجر الأخرى
+                        نصيحة لتجهيز المتجر في أي مشروع بيع
                       </p>
                       <p className="text-[11px] text-purple-700 mt-1 leading-relaxed">
-                        عندما تختار قالب ألوان جديد، سيتم تطبيقه فوراً على كافة صفحات المتجر (من الأزرار، والروابط، وحركات التحميل، وأيقونة الحساب، إلى صفحة الدفع). يتيح لك هذا إعادة تخصيص المتجر بالكامل لعميلك القادم بضغطة زر واحدة فقط!
+                        عندما تبرز للعميل هذه اللوحة وتطبيق الهوية الشامل بنقرة زر، سيرى فوراً مرونة النظام الفائقة. سيتم حفظ خيارات الألوان وتنسيقها على الـ Cloud مباشرة حتى تظل مستقرة عبر جميع هواتف زوار المتجر والواجهات.
                       </p>
                     </div>
                   </div>

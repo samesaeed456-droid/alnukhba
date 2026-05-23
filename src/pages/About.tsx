@@ -85,7 +85,7 @@ export default function About() {
     >
       <SEO 
         title={`من نحن | ${settings?.storeName || "متجر النخبة الإلكتروني"}`} 
-        description={`تعرف على متجر النخبة، الذراع الرقمي لمحلات النخبة للإلكترونيات تحت قيادة الأستاذ حسين عبد الكريم هزاع، ورؤيتنا في تقديم أفضل المنتجات الكهربائية والتقنية المضمونة في اليمن.`}
+        description={`تعرف على متجر النخبة، الذراع الرقمي لمحلات النخبة للإلكترونيات تحت قيادة الأستاذ ${settings?.ownerName || "حسين عبد الكريم هزاع"}، ورؤيتنا في تقديم أفضل المنتجات الكهربائية والتقنية المضمونة في اليمن.`}
         canonical="https://alnukhba.store/about"
       />
 
@@ -201,7 +201,7 @@ export default function About() {
             <div className="relative rounded-full overflow-hidden w-24 h-24 sm:w-28 sm:h-28 border-2 border-white bg-slate-100">
               <img 
                 src={founderImg} 
-                alt="حسين عبد الكريم هزاع - صاحب متجر النخبة" 
+                alt={`${settings?.ownerName || "حسين عبد الكريم هزاع"} - صاحب ${settings?.storeName || "متجر النخبة"}`} 
                 className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                 referrerPolicy="no-referrer"
               />
@@ -212,8 +212,8 @@ export default function About() {
             قسم المالك و الإدارة
           </span>
           
-          <h3 className="text-base sm:text-lg font-black text-carbon mt-2 mb-0.5">حسين عبد الكريم هزاع</h3>
-          <p className="text-[11px] text-cool-gray font-bold mb-3">صاحب ومؤسس متجر ومحلات النخبة للإلكترونيات</p>
+          <h3 className="text-base sm:text-lg font-black text-carbon mt-2 mb-0.5">{settings?.ownerName || "حسين عبد الكريم هزاع"}</h3>
+          <p className="text-[11px] text-cool-gray font-bold mb-3">صاحب ومؤسس {settings?.storeName || "متجر ومحلات النخبة للإلكترونيات"}</p>
 
           <blockquote className="text-xs text-cool-gray leading-relaxed italic bg-slate-50 p-3 rounded-lg border border-slate-100/50 mb-0">
             "شعارنا الدائم هو تزويد عملائنا بالنوعية الممتازة لا بالكمية العابرة، وبناء جسور من الثقة الصلبة معكم أينما كنتم في اليمن."

@@ -32,6 +32,7 @@ const DEFAULT_SETTINGS: StoreSettings = {
   contactEmail: "",
   contactPhone: "",
   address: "",
+  ownerName: "حسين عبد الكريم هزاع",
   shippingFee: 0,
   freeShippingThreshold: 0,
   currency: "YER",

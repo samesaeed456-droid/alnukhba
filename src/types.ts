@@ -330,6 +330,7 @@ export interface StoreSettings {
   contactPhone: string;
   contactPhone2?: string;
   address: string;
+  ownerName?: string;
   socialMedia?: {
     instagram?: string;
     twitter?: string;

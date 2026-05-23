@@ -151,7 +151,7 @@ export default defineConfig(({mode}) => {
       },
     },
     build: {
-      outDir: 'build',
+      outDir: 'dist',
       emptyOutDir: true,
       reportCompressedSize: false,
       chunkSizeWarningLimit: 1000,

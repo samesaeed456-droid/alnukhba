@@ -509,6 +509,22 @@ const Settings = () => {
                     </div>
 
                     <div className="space-y-2">
+                      <FloatingInput
+                        id="ownerName"
+                        label="اسم مالك المتجر"
+                        type="text"
+                        value={formData.ownerName || ""}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            ownerName: e.target.value,
+                          })
+                        }
+                        bgClass="bg-slate-50"
+                      />
+                    </div>
+
+                    <div className="md:col-span-2 space-y-2">
                       <ImageUploadField
                         id="storeLogo"
                         label="شعار المتجر"

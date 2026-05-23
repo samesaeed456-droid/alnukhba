@@ -13,6 +13,7 @@ import {
   Calendar,
   ExternalLink,
   ChevronDown,
+  Trash2,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { Toaster, toast } from "sonner";
@@ -38,6 +39,7 @@ interface RechargeRequest {
 export default function WalletRecharges() {
   const { formatPrice, logActivity, isAuthReady, adminUser } = useStore();
   const [recharges, setRecharges] = useState<RechargeRequest[]>([]);
+  const [userBalances, setUserBalances] = useState<Record<string, number>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "approved" | "rejected">("all");
@@ -49,13 +51,17 @@ export default function WalletRecharges() {
   useEffect(() => {
     if (!isAuthReady) return;
 
-    const fetchRecharges = async () => {
+    let unsubscribeRecharges: (() => void) | null = null;
+    let unsubscribeUsers: (() => void) | null = null;
+
+    const setupListeners = async () => {
       try {
         const { db, adminDb, adminAuth, collection, query, orderBy, onSnapshot } = await import("@/lib/firebase");
         const activeDb = adminAuth.currentUser ? adminDb : db;
-        const q = query(collection(activeDb, "recharges"), orderBy("createdAt", "desc"));
         
-        const unsubscribe = onSnapshot(q, (snapshot) => {
+        // 1. Listen to recharges
+        const q = query(collection(activeDb, "recharges"), orderBy("createdAt", "desc"));
+        unsubscribeRecharges = onSnapshot(q, (snapshot) => {
           const data = snapshot.docs.map(doc => ({
             id: doc.id,
             ...doc.data()
@@ -63,28 +69,59 @@ export default function WalletRecharges() {
           setRecharges(data);
           setIsLoading(false);
         }, (error) => {
-          const errInfo = {
-            error: error instanceof Error ? error.message : String(error),
-            operationType: "list",
-            path: "recharges",
-            authInfo: {
-              userId: null, // We'll get it from context if we really needed it here
-            }
-          };
-          console.error("Firestore Error [WalletRecharges]:", JSON.stringify(errInfo));
+          console.error("Firestore Error [WalletRecharges]:", error);
           showLuxuryToast("error", { title: "خطأ في التحميل", description: "فشل تحميل طلبات الإيداع من الخادم" });
           setIsLoading(false);
         });
 
-        return unsubscribe;
+        // 2. Listen to users for real-time balances
+        unsubscribeUsers = onSnapshot(collection(activeDb, "users"), (snapshot) => {
+          const balances: Record<string, number> = {};
+          snapshot.docs.forEach(doc => {
+            const data = doc.data();
+            balances[doc.id] = data.walletBalance || 0;
+          });
+          setUserBalances(balances);
+        }, (error) => {
+          console.error("Firestore Error [UserBalances]:", error);
+        });
+
       } catch (error) {
-        console.error("Error setting up recharges listener:", error);
+        console.error("Error setting up listeners:", error);
         setIsLoading(false);
       }
     };
 
-    fetchRecharges();
+    setupListeners();
+
+    return () => {
+      if (unsubscribeRecharges) unsubscribeRecharges();
+      if (unsubscribeUsers) unsubscribeUsers();
+    };
   }, [isAuthReady, adminUser?.uid]);
+
+  const handleDelete = async (recharge: RechargeRequest) => {
+    if (!window.confirm(`هل أنت متأكد من حذف طلب الشحن الخاص بـ ${recharge.userName} بشكل نهائي؟`)) return;
+    try {
+      const { db, adminDb, adminAuth, doc, deleteDoc } = await import("@/lib/firebase");
+      const activeDb = adminAuth.currentUser ? adminDb : db;
+      const rechargeRef = doc(activeDb, "recharges", recharge.id);
+      await deleteDoc(rechargeRef);
+      
+      logActivity(
+        "حذف سجل شحن",
+        `تم حذف طلب الشحن للعميل ${recharge.userName} بقيمة ${recharge.amount}`
+      );
+      
+      showLuxuryToast("success", { 
+        title: "تم الحذف!", 
+        description: "تم حذف سجل طلب الشحن بنجاح" 
+      });
+    } catch (error) {
+      console.error("Error deleting recharge request:", error);
+      showLuxuryToast("error", { title: "فشل الحذف", description: "تعذر حذف السجل، يرجى المحاولة لاحقاً" });
+    }
+  };
 
   // Helper to get safe date object from Firestore Timestamp or JS Date string/obj
   const getSafeDate = (dateObj: any): Date | null => {
@@ -378,8 +415,15 @@ export default function WalletRecharges() {
                         <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400 font-bold overflow-hidden shadow-sm">
                           <User className="w-5 h-5" />
                         </div>
-                        <div>
-                          <p className="font-bold text-slate-900 text-sm leading-none mb-1">{recharge.userName}</p>
+                        <div className="space-y-1">
+                          <p className="font-bold text-slate-900 text-sm leading-none flex items-center gap-1.5 shrink-0">
+                            <span>{recharge.userName}</span>
+                            {userBalances[recharge.userId] !== undefined && (
+                              <span className="text-[10px] font-black bg-emerald-50 text-emerald-600 border border-emerald-100/50 rounded-md px-1.5 py-0.5" dir="rtl">
+                                رصيده: <PriceDisplay price={userBalances[recharge.userId]} />
+                              </span>
+                            )}
+                          </p>
                           <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400">
                             <Phone className="w-3 h-3" />
                             <span>{recharge.userPhone}</span>
@@ -456,32 +500,39 @@ export default function WalletRecharges() {
                             <Eye className="w-4 h-4" />
                           </a>
                         )}
-                        {recharge.status === "pending" && (
-                          <>
-                            <button
-                              onClick={() => {
-                                setSelectedRecharge(recharge);
-                                setActionType("approve");
-                                setIsConfirmModalOpen(true);
-                              }}
-                              className="p-2.5 rounded-xl bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white transition-all shadow-sm"
-                              title="موافقة"
-                            >
-                              <CheckCircle2 className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => {
-                                setSelectedRecharge(recharge);
-                                setActionType("reject");
-                                setIsConfirmModalOpen(true);
-                              }}
-                              className="p-2.5 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white transition-all shadow-sm"
-                              title="رفض"
-                            >
-                              <XCircle className="w-4 h-4" />
-                            </button>
-                          </>
+                        {(recharge.status === "pending" || recharge.status === "rejected") && (
+                          <button
+                            onClick={() => {
+                              setSelectedRecharge(recharge);
+                              setActionType("approve");
+                              setIsConfirmModalOpen(true);
+                            }}
+                            className="p-2.5 rounded-xl bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white transition-all shadow-sm"
+                            title="موافقة وشحن الرصيد"
+                          >
+                            <CheckCircle2 className="w-4 h-4" />
+                          </button>
                         )}
+                        {recharge.status === "pending" && (
+                          <button
+                            onClick={() => {
+                              setSelectedRecharge(recharge);
+                              setActionType("reject");
+                              setIsConfirmModalOpen(true);
+                            }}
+                            className="p-2.5 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white transition-all shadow-sm"
+                            title="رفض"
+                          >
+                            <XCircle className="w-4 h-4" />
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleDelete(recharge)}
+                          className="p-2.5 rounded-xl bg-red-50 text-red-600 hover:bg-red-600 hover:text-white transition-all shadow-sm"
+                          title="حذف السجل"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
                     </td>
                   </motion.tr>
@@ -521,6 +572,11 @@ export default function WalletRecharges() {
                       </div>
                       <div className="min-w-0">
                         <p className="font-black text-slate-900 text-sm leading-tight truncate mb-1">{recharge.userName}</p>
+                        {userBalances[recharge.userId] !== undefined && (
+                          <p className="text-[10px] font-bold text-emerald-600 mb-1" dir="rtl">
+                            الرصيد الحالي: <PriceDisplay price={userBalances[recharge.userId]} />
+                          </p>
+                        )}
                         <div className="flex items-center gap-1.5">
                           <Phone className="w-3 h-3 text-slate-400" />
                           <p className="text-[11px] font-bold text-slate-400" dir="ltr">{recharge.userPhone}</p>
@@ -598,8 +654,8 @@ export default function WalletRecharges() {
                         </a>
                       )}
                       
-                      {recharge.status === "pending" && (
-                        <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-1.5 font-sans">
+                        {(recharge.status === "pending" || recharge.status === "rejected") && (
                           <button
                             onClick={() => {
                               setSelectedRecharge(recharge);
@@ -607,10 +663,12 @@ export default function WalletRecharges() {
                               setIsConfirmModalOpen(true);
                             }}
                             className="w-10 h-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center active:scale-95 transition-all shadow-md shadow-emerald-500/20"
-                            title="موافق"
+                            title="موافقة وشحن الرصيد"
                           >
                             <CheckCircle2 className="w-5 h-5" />
                           </button>
+                        )}
+                        {recharge.status === "pending" && (
                           <button
                             onClick={() => {
                               setSelectedRecharge(recharge);
@@ -622,8 +680,15 @@ export default function WalletRecharges() {
                           >
                             <XCircle className="w-5 h-5" />
                           </button>
-                        </div>
-                      )}
+                        )}
+                        <button
+                          onClick={() => handleDelete(recharge)}
+                          className="w-10 h-10 rounded-xl bg-red-500 text-white flex items-center justify-center active:scale-95 transition-all shadow-md shadow-red-500/20"
+                          title="حذف"
+                        >
+                          <Trash2 className="w-5 h-5" />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>

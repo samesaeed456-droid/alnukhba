@@ -1,9 +1,9 @@
 {
   "version": 2,
-  "outputDirectory": "build",
+  "outputDirectory": "dist",
   "functions": {
     "api/index.ts": {
-      "includeFiles": "{build/**,firebase-applet-config.json,metadata.json}"
+      "includeFiles": "{dist/**,firebase-applet-config.json,metadata.json}"
     }
   },
   "rewrites": [

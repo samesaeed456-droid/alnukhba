@@ -30,6 +30,8 @@ import {
   Check,
   X,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Search,
   Megaphone,
   Palette,
@@ -161,6 +163,44 @@ const Settings = () => {
       description: "تصميم عصري بسيط جداً يعتمد على التباين والخطوط الفضية النظيفة، يناسب كل شيء."
     }
   ];
+
+  const presetsRef = React.useRef<HTMLDivElement>(null);
+  const [activeSlide, setActiveSlide] = useState(0);
+
+  const handlePresetsScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const container = e.currentTarget;
+    const scrollPosition = container.scrollLeft;
+    const cardWidth = container.clientWidth - 32;
+    if (cardWidth > 0) {
+      const sl = Math.abs(scrollPosition);
+      const index = Math.round(sl / cardWidth);
+      if (index !== activeSlide && index >= 0 && index < colorPresets.length) {
+        setActiveSlide(index);
+      }
+    }
+  };
+
+  const scrollToPresetIndex = (index: number) => {
+    if (presetsRef.current) {
+      const container = presetsRef.current;
+      const children = container.children;
+      if (children && children[index]) {
+        children[index].scrollIntoView({
+          behavior: "smooth",
+          block: "nearest",
+          inline: "center",
+        });
+        setActiveSlide(index);
+      }
+    }
+  };
+
+  const scrollPresets = (direction: "right" | "left") => {
+    const newIndex = direction === "right"
+      ? Math.max(activeSlide - 1, 0) // RTL reversed logic for intuitive slider swipe
+      : Math.min(activeSlide + 1, colorPresets.length - 1);
+    scrollToPresetIndex(newIndex);
+  };
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -1079,82 +1119,125 @@ const Settings = () => {
 
                   {/* 1. Fully-Fledged Theme Presets */}
                   <div className="space-y-4">
-                    <div className="flex flex-col gap-1">
-                      <h3 className="text-sm md:text-base font-bold text-slate-800">1. قوالب الألوان المتكاملة الجاهزة (كبسة زر واحدة)</h3>
-                      <p className="text-xs text-slate-400">اختر قالباً شاملاً يقوم بضبط كافة ألوان خلفية الموقع، البطاقات، اللمسات التفاعلية والنصوص تلقائياً لستايل سحري ومبهر كلياً:</p>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="flex flex-col gap-1">
+                        <h3 className="text-sm md:text-base font-bold text-slate-800">1. قوالب الألوان المتكاملة الجاهزة (كبسة زر واحدة)</h3>
+                        <p className="text-xs text-slate-400">اختر قالباً شاملاً يقوم بضبط كافة ألوان خلفية الموقع، البطاقات، اللمسات التفاعلية والنصوص تلقائياً لستايل سحري ومبهر كلياً:</p>
+                      </div>
+
+                      {/* Display Navigation buttons only on mobile */}
+                      <div className="flex md:hidden items-center gap-1.5 self-end">
+                        <button
+                          type="button"
+                          onClick={() => scrollPresets("right")}
+                          className="w-8 h-8 rounded-full bg-white border border-slate-100 flex items-center justify-center text-slate-600 hover:bg-slate-50 transition-colors shadow-sm"
+                        >
+                          <ChevronRight className="w-4 h-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => scrollPresets("left")}
+                          className="w-8 h-8 rounded-full bg-white border border-slate-100 flex items-center justify-center text-slate-600 hover:bg-slate-50 transition-colors shadow-sm"
+                        >
+                          <ChevronLeft className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {colorPresets.map((preset) => {
-                        const isSelected =
-                          formData.primaryColor === preset.primary &&
-                          formData.backgroundColor === preset.bg &&
-                          formData.cardColor === preset.card &&
-                          formData.textColor === preset.text;
+                    {/* Responsive Container: Horizontally scrollable on mobile with snap-scrolling, beautiful bento on desktop */}
+                    <div className="relative">
+                      <div
+                        ref={presetsRef}
+                        onScroll={handlePresetsScroll}
+                        className="flex md:grid md:grid-cols-2 lg:grid-cols-3 overflow-x-auto md:overflow-visible snap-x snap-mandatory gap-4 pb-4 px-1 scrollbar-none scroll-smooth touch-pan-x"
+                      >
+                        {colorPresets.map((preset, index) => {
+                          const isSelected =
+                            formData.primaryColor === preset.primary &&
+                            formData.backgroundColor === preset.bg &&
+                            formData.cardColor === preset.card &&
+                            formData.textColor === preset.text;
 
-                        return (
-                          <div
-                            key={preset.id}
-                            onClick={() =>
-                              setFormData({
-                                ...formData,
-                                primaryColor: preset.primary,
-                                backgroundColor: preset.bg,
-                                cardColor: preset.card,
-                                textColor: preset.text,
-                                textMutedColor: preset.textMuted
-                              })
-                            }
-                            className={`relative p-5 rounded-[2rem] border-2 transition-all duration-300 cursor-pointer flex flex-col justify-between overflow-hidden group ${
-                              isSelected
-                                ? "border-slate-800 bg-slate-50/50 shadow-md scale-[1.01]"
-                                : "border-slate-100/90 hover:border-slate-200 hover:bg-slate-50/20"
-                            }`}
-                          >
-                            <div className="space-y-3">
-                              {/* Selection Indicator & Name */}
-                              <div className="flex items-center justify-between gap-2">
-                                <div className="flex items-center gap-2.5">
-                                  <div
-                                    className="w-4.5 h-4.5 rounded-full border border-black/10 flex items-center justify-center text-white shrink-0"
-                                    style={{ backgroundColor: preset.primary }}
-                                  >
-                                    {isSelected && <Check className="w-2.5 h-2.5" />}
+                          return (
+                            <div
+                              key={preset.id}
+                              onClick={() => {
+                                setFormData({
+                                  ...formData,
+                                  primaryColor: preset.primary,
+                                  backgroundColor: preset.bg,
+                                  cardColor: preset.card,
+                                  textColor: preset.text,
+                                  textMutedColor: preset.textMuted
+                                });
+                                setActiveSlide(index);
+                              }}
+                              className={`relative p-5 rounded-[2rem] border-2 transition-all duration-300 cursor-pointer flex flex-col justify-between overflow-hidden group shrink-0 w-[85%] sm:w-[60%] md:w-auto snap-center ${
+                                isSelected
+                                  ? "border-slate-800 bg-slate-50/50 shadow-md scale-[1.01]"
+                                  : "border-slate-100/90 hover:border-slate-200 hover:bg-slate-50/20"
+                              }`}
+                            >
+                              <div className="space-y-3">
+                                {/* Selection Indicator & Name */}
+                                <div className="flex items-center justify-between gap-2">
+                                  <div className="flex items-center gap-2.5">
+                                    <div
+                                      className="w-4.5 h-4.5 rounded-full border border-black/10 flex items-center justify-center text-white shrink-0"
+                                      style={{ backgroundColor: preset.primary }}
+                                    >
+                                      {isSelected && <Check className="w-2.5 h-2.5" />}
+                                    </div>
+                                    <span className="font-bold text-xs md:text-sm text-slate-800 line-clamp-1">
+                                      {preset.name}
+                                    </span>
                                   </div>
-                                  <span className="font-bold text-xs md:text-sm text-slate-800 line-clamp-1">
-                                    {preset.name}
+                                  <span className="text-[10px] font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">
+                                    {preset.bg === "#FFFFFF" ? "فاتح" : "مظلم"}
                                   </span>
                                 </div>
-                                <span className="text-[10px] font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">
-                                  {preset.bg === "#FFFFFF" ? "فاتح" : "مظلم"}
+
+                                {/* Description */}
+                                <p className="text-[11px] text-slate-400 leading-relaxed font-medium">
+                                  {preset.description}
+                                </p>
+
+                                {/* Visualization Bubbles Row */}
+                                <div className="flex items-center gap-1.5 bg-white/40 p-2 rounded-xl border border-slate-100/60 w-fit">
+                                  <div className="text-[10px] text-slate-400 pl-1 font-bold">لوحة اللون:</div>
+                                  <div className="w-4 h-4 rounded-full border border-black/10" style={{ backgroundColor: preset.bg }} title="الخلفية" />
+                                  <div className="w-4 h-4 rounded-full border border-black/10" style={{ backgroundColor: preset.card }} title="البطاقات" />
+                                  <div className="w-4 h-4 rounded-full border border-black/10" style={{ backgroundColor: preset.primary }} title="الأساسي" />
+                                  <div className="w-4 h-4 rounded-full border border-black/10" style={{ backgroundColor: preset.text }} title="النصوص" />
+                                </div>
+                              </div>
+
+                              {/* Preset HEX Footer info */}
+                              <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[10px] font-mono text-slate-400">
+                                <span>المفتاح الأساسي</span>
+                                <span className="font-bold uppercase" style={{ color: preset.primary }}>
+                                  {preset.primary}
                                 </span>
                               </div>
-
-                              {/* Description */}
-                              <p className="text-[11px] text-slate-400 leading-relaxed font-medium">
-                                {preset.description}
-                              </p>
-
-                              {/* Visualization Bubbles Row */}
-                              <div className="flex items-center gap-1.5 bg-white/40 p-2 rounded-xl border border-slate-100/60 w-fit">
-                                <div className="text-[10px] text-slate-400 pl-1 font-bold">لوحة اللون:</div>
-                                <div className="w-4 h-4 rounded-full border border-black/10" style={{ backgroundColor: preset.bg }} title="الخلفية" />
-                                <div className="w-4 h-4 rounded-full border border-black/10" style={{ backgroundColor: preset.card }} title="البطاقات" />
-                                <div className="w-4 h-4 rounded-full border border-black/10" style={{ backgroundColor: preset.primary }} title="الأساسي" />
-                                <div className="w-4 h-4 rounded-full border border-black/10" style={{ backgroundColor: preset.text }} title="النصوص" />
-                              </div>
                             </div>
+                          );
+                        })}
+                      </div>
 
-                            {/* Preset HEX Footer info */}
-                            <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[10px] font-mono text-slate-400">
-                              <span>المفتاح الأساسي</span>
-                              <span className="font-bold uppercase" style={{ color: preset.primary }}>
-                                {preset.primary}
-                              </span>
-                            </div>
-                          </div>
-                        );
-                      })}
+                      {/* Professional slide indicator pills below the slider on mobile devices */}
+                      <div className="flex md:hidden items-center justify-center gap-1.5 mt-2">
+                        {colorPresets.map((_, index) => (
+                          <button
+                            key={index}
+                            type="button"
+                            onClick={() => scrollToPresetIndex(index)}
+                            className={`h-1.5 rounded-full transition-all duration-300 ${
+                              activeSlide === index ? "w-6 bg-slate-800" : "w-1.5 bg-slate-200"
+                            }`}
+                            aria-label={`Go to slide ${index + 1}`}
+                          />
+                        ))}
+                      </div>
                     </div>
                   </div>
 

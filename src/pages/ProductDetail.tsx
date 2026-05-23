@@ -739,7 +739,7 @@ export default function ProductDetail() {
                       className={`w-full h-14 rounded-2xl font-black text-sm transition-all flex items-center justify-center gap-2 shadow-lg ${
                         isAdded
                           ? "bg-emerald-500 text-white shadow-emerald-500/20"
-                          : "bg-carbon hover:bg-black text-white shadow-carbon/20"
+                          : "bg-gold-gradient hover:shadow-gold shadow-gold/20"
                       }`}
                     >
                       {isAdded ? (

@@ -170,20 +170,38 @@ const MainRoutes = () => {
       const glowRgba = hexToRgba(primaryHex, 0.15);
       root.style.setProperty("--primary-glow", glowRgba);
 
+      // Compute premium gradient stops for luxury gold buttons
+      const gradientStart = adjustBrightness(primaryHex, 35);
+      const gradientEnd = adjustBrightness(primaryHex, -35);
+      root.style.setProperty("--primary-gold-start", gradientStart);
+      root.style.setProperty("--primary-gold-end", gradientEnd);
+
+      // Simple luminance calculation to decide whether button text should be light or dark
+      const getLuminance = (hex: string) => {
+        let cleanHex = hex.replace("#", "");
+        if (cleanHex.length === 3) {
+          cleanHex = cleanHex.split("").map((c) => c + c).join("");
+        }
+        const r = parseInt(cleanHex.substring(0, 2), 16) || 0;
+        const g = parseInt(cleanHex.substring(2, 4), 16) || 0;
+        const b = parseInt(cleanHex.substring(4, 6), 16) || 0;
+        return (r * 299 + g * 587 + b * 114) / 1000;
+      };
+
+      const primaryLuminance = getLuminance(primaryHex);
+      const isPrimaryLight = primaryLuminance > 155;
+      root.style.setProperty("--button-text", isPrimaryLight ? "#0F172A" : "#FFFFFF");
+
+      // Dynamic header / footer deep dark contrast tones
+      let primaryDark = "#0F172A"; // Default slate
+      let textHeader = "#FFFFFF";
+
       if (settings.backgroundColor) {
         root.style.setProperty("--bg-general", settings.backgroundColor);
         
         // Dynamic helper to judge dark/light and compute contrasting backgrounds for nesting components
         const isDarkColor = (hex: string) => {
-          let cleanHex = hex.replace("#", "");
-          if (cleanHex.length === 3) {
-            cleanHex = cleanHex.split("").map((c) => c + c).join("");
-          }
-          const r = parseInt(cleanHex.substring(0, 2), 16) || 0;
-          const g = parseInt(cleanHex.substring(2, 4), 16) || 0;
-          const b = parseInt(cleanHex.substring(4, 6), 16) || 0;
-          const brightness = (r * 299 + g * 587 + b * 114) / 1000;
-          return brightness < 128;
+          return getLuminance(hex) < 128;
         };
 
         const backgroundIsDark = isDarkColor(settings.backgroundColor);
@@ -191,7 +209,21 @@ const MainRoutes = () => {
         const hoverBg = adjustBrightness(settings.backgroundColor, backgroundIsDark ? 15 : -6);
         root.style.setProperty("--bg-section", sectionBg);
         root.style.setProperty("--bg-hover", hoverBg);
+
+        if (backgroundIsDark) {
+          // In a dark theme, headers and footers blend with cardColor or a deep shade of background
+          primaryDark = settings.cardColor || settings.backgroundColor;
+          textHeader = settings.textColor || "#FFFFFF";
+        } else {
+          // In a light theme, we create a very classy ultra-deep dark shade matching the chosen primary color
+          // This ensures header/footer contrast remains gorgeous while color-matching the store perfectly!
+          primaryDark = adjustBrightness(primaryHex, -85);
+          textHeader = "#FFFFFF";
+        }
       }
+
+      root.style.setProperty("--primary-dark", primaryDark);
+      root.style.setProperty("--text-header", textHeader);
 
       if (settings.cardColor) {
         root.style.setProperty("--bg-card", settings.cardColor);

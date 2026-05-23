@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Bell,
@@ -43,6 +43,14 @@ export default function Notifications() {
     string | null
   >(null);
   const [activeTab, setActiveTab] = useState<NotificationType>("all");
+
+  // Automatically mark all notifications as read when visiting the Notifications page
+  useEffect(() => {
+    const unread = notifications.filter((n) => !n.isRead);
+    if (unread.length > 0) {
+      unread.forEach((n) => markNotificationAsRead(n.id));
+    }
+  }, [notifications, markNotificationAsRead]);
 
   const filteredNotifications = useMemo(() => {
     let result = notifications;

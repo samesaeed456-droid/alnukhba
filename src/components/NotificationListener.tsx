@@ -81,20 +81,12 @@ export default function NotificationListener() {
           newNotifs.push(notif);
           
           if (!data.isRead) {
-            if (isInitialLoad) {
-              if (!latestUnreadRef || new Date(notif.date) > new Date(latestUnreadRef.date)) {
-                latestUnreadRef = { notif, data, docId: change.doc.id };
-              }
-            } else {
+            if (!isInitialLoad) {
               showStandardToast(data, change.doc.id);
             }
           }
         }
       });
-      
-      if (isInitialLoad && latestUnreadRef) {
-        showStandardToast(latestUnreadRef.data, latestUnreadRef.docId);
-      }
 
       if (newNotifs.length > 0) {
         setNotifications((prev) => {

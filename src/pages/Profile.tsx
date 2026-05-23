@@ -58,6 +58,59 @@ import PriceDisplay from "../components/PriceDisplay";
 import FloatingInput from "../components/FloatingInput";
 import { PaymentConfirmationCard } from "../components/PaymentConfirmationCard";
 
+const Section = ({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) => (
+  <div className="flex flex-col">
+    <h3 className="text-xs font-bold text-titanium/50 mb-3 px-2 uppercase tracking-wider">
+      {title}
+    </h3>
+    <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+      {children}
+    </div>
+  </div>
+);
+
+const MenuItem = ({
+  icon: Icon,
+  label,
+  onClick,
+  color = "text-carbon",
+  bg = "bg-slate-50",
+  iconColor = "text-titanium/60",
+  isDestructive = false,
+  rightElement,
+}: any) => (
+  <button
+    onClick={onClick}
+    className={`w-full flex items-center justify-between p-3 sm:p-4 hover:bg-slate-50 transition-all group border-b border-slate-50 last:border-0 cursor-pointer`}
+  >
+    <div className="flex items-center gap-3 sm:gap-4">
+      <div
+        className={`w-10 h-10 shrink-0 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110 ${isDestructive ? "bg-red-50" : bg}`}
+      >
+        <Icon
+          className={`w-5 h-5 ${isDestructive ? "text-red-500" : iconColor}`}
+        />
+      </div>
+      <span
+        className={`font-bold text-sm sm:text-base text-right ${isDestructive ? "text-red-600" : color}`}
+      >
+        {label}
+      </span>
+    </div>
+    {rightElement ? (
+      rightElement
+    ) : (
+      <ChevronLeft className="w-5 h-5 shrink-0 text-slate-300 group-hover:-translate-x-1 transition-transform" />
+    )}
+  </button>
+);
+
 export default function Profile() {
   const {
     user,
@@ -846,59 +899,6 @@ export default function Profile() {
       </motion.div>
     );
   }
-
-  const Section = ({
-    title,
-    children,
-  }: {
-    title: string;
-    children: React.ReactNode;
-  }) => (
-    <div className="flex flex-col">
-      <h3 className="text-xs font-bold text-titanium/50 mb-3 px-2 uppercase tracking-wider">
-        {title}
-      </h3>
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-        {children}
-      </div>
-    </div>
-  );
-
-  const MenuItem = ({
-    icon: Icon,
-    label,
-    onClick,
-    color = "text-carbon",
-    bg = "bg-slate-50",
-    iconColor = "text-titanium/60",
-    isDestructive = false,
-    rightElement,
-  }: any) => (
-    <button
-      onClick={onClick}
-      className={`w-full flex items-center justify-between p-3 sm:p-4 hover:bg-slate-50 transition-all group border-b border-slate-50 last:border-0`}
-    >
-      <div className="flex items-center gap-3 sm:gap-4">
-        <div
-          className={`w-10 h-10 shrink-0 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110 ${isDestructive ? "bg-red-50" : bg}`}
-        >
-          <Icon
-            className={`w-5 h-5 ${isDestructive ? "text-red-500" : iconColor}`}
-          />
-        </div>
-        <span
-          className={`font-bold text-sm sm:text-base text-right ${isDestructive ? "text-red-600" : color}`}
-        >
-          {label}
-        </span>
-      </div>
-      {rightElement ? (
-        rightElement
-      ) : (
-        <ChevronLeft className="w-5 h-5 shrink-0 text-slate-300 group-hover:-translate-x-1 transition-transform" />
-      )}
-    </button>
-  );
 
   const containerVariants = {
     hidden: { opacity: 0 },

@@ -437,7 +437,9 @@ const MainRoutes = () => {
   }
 
   return (
-    <Routes>
+    <>
+      {!isAdminPath && <NotificationListener />}
+      <Routes>
       {/* Admin Login Route */}
       <Route
         path="/admin/login"
@@ -501,6 +503,7 @@ const MainRoutes = () => {
         }
       />
     </Routes>
+    </>
   );
 };
 
@@ -508,7 +511,6 @@ export default function App() {
   return (
     <HelmetProvider>
       <StoreProvider>
-        <NotificationListener />
         <OfflineStatus />
         <SystemAlert />
         <BlockedOverlay />

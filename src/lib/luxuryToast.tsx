@@ -15,10 +15,26 @@ interface ToastOptions {
 }
 
 /**
+ * Global cache to deduplicate identical toast notifications appearing in quick succession
+ */
+let lastToastCache = {
+  key: "",
+  timestamp: 0,
+};
+
+/**
  * Premium Luxury Arabic Toast with Framer Motion
  */
 export const showLuxuryToast = (type: ToastType, options: ToastOptions) => {
   const { title, description, image, actionText, onAction, duration = 2000 } = options;
+
+  // Deduplicate rapid identical toasts (within 600ms)
+  const toastKey = `${type}-${title}-${description || ""}`;
+  const now = Date.now();
+  if (toastKey === lastToastCache.key && now - lastToastCache.timestamp < 600) {
+    return;
+  }
+  lastToastCache = { key: toastKey, timestamp: now };
 
   const getIcon = () => {
     switch (type) {

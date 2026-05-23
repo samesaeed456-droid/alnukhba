@@ -8,16 +8,18 @@ import {
   Cpu, 
   ShieldCheck, 
   Sparkles,
-  ArrowRight,
   CheckCircle,
   Clock,
   ThumbsUp
 } from "lucide-react";
 import { motion } from "motion/react";
 import SEO from "../components/SEO";
+import { useStore } from "../context/StoreContext";
 import founderImg from "../assets/images/founder_avatar_1779541619999.png";
 
 export default function About() {
+  const { settings } = useStore();
+
   const containerVariants: any = {
     hidden: { opacity: 0 },
     visible: {
@@ -36,30 +38,39 @@ export default function About() {
   const trustStats = [
     { icon: CheckCircle, value: "١٠٠٪", text: "أصلية ومضمونة" },
     { icon: Clock, value: "٢٤/٧", text: "دعم فني استشاري" },
-    { icon: ThumbsUp, value: "النخبة", text: "ضمان محلاتنا الحقيقي" },
+    { icon: ThumbsUp, value: settings?.storeName || "النخبة", text: "ضمان محلاتنا الحقيقي" },
     { icon: MapPin, value: "اليمن", text: "توصيل آمن للمحافظات" }
   ];
+
+  // Helper to format whatsapp link smoothly based on dynamic contact settings
+  const formattedWhatsapp = settings?.socialMedia?.whatsapp
+    ? settings.socialMedia.whatsapp.startsWith("http")
+      ? settings.socialMedia.whatsapp
+      : `https://wa.me/${settings.socialMedia.whatsapp.replace(/\D/g, "")}`
+    : settings?.contactPhone
+    ? `https://wa.me/${settings.contactPhone.replace(/\D/g, "")}`
+    : "https://wa.me/967770000000";
 
   const contactOptions = [
     {
       icon: MessageSquare,
       label: "محادثة واتساب مباشرة Support",
       value: "تواصل فوري",
-      link: "https://wa.me/967770000000",
+      link: formattedWhatsapp,
       color: "bg-emerald-50 text-emerald-600 hover:bg-emerald-100/60 border-emerald-100",
     },
     {
       icon: Phone,
       label: "اتصال هاتفي مباشر",
-      value: "+967 770 000 000",
-      link: "tel:+967770000000",
+      value: settings?.contactPhone || "+967 770 000 000",
+      link: settings?.contactPhone ? `tel:${settings.contactPhone.replace(/\s+/g, "")}` : "tel:+967770000000",
       color: "bg-blue-50 text-blue-600 hover:bg-blue-100/60 border-blue-100",
     },
     {
       icon: Mail,
       label: "راسل المؤسس والشركة",
-      value: "samesaeed456@gmail.com",
-      link: "mailto:samesaeed456@gmail.com",
+      value: settings?.contactEmail || "samesaeed456@gmail.com",
+      link: `mailto:${settings?.contactEmail || "samesaeed456@gmail.com"}`,
       color: "bg-amber-50 text-solar-dark hover:bg-amber-100/60 border-amber-100",
     }
   ];
@@ -73,8 +84,8 @@ export default function About() {
       dir="rtl"
     >
       <SEO 
-        title="من نحن | متجر النخبة الإلكتروني" 
-        description="تعرف على متجر النخبة، الذراع الرقمي لمحلات النخبة للإلكترونيات تحت قيادة المهندس أسامة سعيد، ورؤيتنا في تقديم أفضل المنتجات الكهربائية والتقنية المضمونة في اليمن."
+        title={`من نحن | ${settings?.storeName || "متجر النخبة الإلكتروني"}`} 
+        description={`تعرف على متجر النخبة، الذراع الرقمي لمحلات النخبة للإلكترونيات تحت قيادة الأستاذ حسين عبد الكريم هزاع، ورؤيتنا في تقديم أفضل المنتجات الكهربائية والتقنية المضمونة في اليمن.`}
         canonical="https://alnukhba.store/about"
       />
 
@@ -93,7 +104,7 @@ export default function About() {
         <h1 className="text-2xl sm:text-4xl md:text-5xl font-black text-carbon mb-4 leading-tight">
           من نحن في <br className="sm:hidden" />
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-solar via-amber-600 to-solar-dark">
-            متجر النخبة للإلكترونيات
+            {settings?.storeName || "متجر النخبة للإلكترونيات"}
           </span>
         </h1>
         
@@ -106,7 +117,7 @@ export default function About() {
         </p>
       </motion.div>
 
-      {/* Trust Highlights Ribbon under Hero - Compact & Visual (Was a giant box at the bottom) */}
+      {/* Trust Highlights Ribbon under Hero - Compact & Visual */}
       <motion.div 
         variants={itemVariants}
         className="bg-white border border-slate-100/80 rounded-2xl p-4 sm:p-6 mb-12 shadow-sm grid grid-cols-2 md:grid-cols-4 gap-4"
@@ -124,7 +135,7 @@ export default function About() {
         ))}
       </motion.div>
 
-      {/* Master 2-Column Split Layout - MERGED Founder & Entity & Message (دمج وتوفير مساحة هائل) */}
+      {/* Master 2-Column Split Layout - MERGED Founder & Entity & Message */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start mb-14">
         
         {/* RIGHT COLUMN: The Core Identity & Store Story */}
@@ -142,7 +153,7 @@ export default function About() {
           </h2>
 
           <p className="text-xs sm:text-sm text-cool-gray leading-relaxed text-justify">
-            تأسست <strong>محلات النخبة للإلكترونيات</strong> لخدمة السوق بروح الأمانة والالتزام بالتكنولوجيا العالية. مع تسارع التقنية وتزايد طلب زوارنا من كافة المحافظات على كابلات النحاس الأصلية ومعدات الطاقة دون تكاليف السفر العالية؛ بادرنا بابتكار هذا المتجر كواجهة إلكترونية راقية تقدم جميع القطع والحلول مباشرة بضغطة زر.
+            تأسست <strong>محلات النخبة للإلكترونيات</strong> لخدمة السوق بروح الأمانة والالتزام بالتكنولوجيا العالية. مع تسارع التقنية وتزايد طلب زوارنا من كافة المحافظات على الأجهزة والقطع الأصلية ومعدات الطاقة دون تكاليف السفر العالية؛ بادرنا بابتكار هذا المتجر كواجهة إلكترونية راقية تقدم جميع القطع والحلول مباشرة بضغطة زر.
           </p>
 
           {/* Key Value Cards */}
@@ -177,7 +188,7 @@ export default function About() {
           </div>
         </motion.div>
 
-        {/* LEFT COLUMN: Premium Master Owner Card & Message (The Human Touch - Compact & Sleek) */}
+        {/* LEFT COLUMN: Premium Master Owner Card & Message */}
         <motion.div 
           variants={itemVariants}
           className="lg:col-span-4 lg:sticky lg:top-4 bg-white rounded-2xl border border-slate-100 p-5 shadow-md flex flex-col items-center text-center relative overflow-hidden"
@@ -190,7 +201,7 @@ export default function About() {
             <div className="relative rounded-full overflow-hidden w-24 h-24 sm:w-28 sm:h-28 border-2 border-white bg-slate-100">
               <img 
                 src={founderImg} 
-                alt="المهندس أسامة سعيد - صاحب متجر النخبة" 
+                alt="حسين عبد الكريم هزاع - صاحب متجر النخبة" 
                 className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                 referrerPolicy="no-referrer"
               />
@@ -201,7 +212,7 @@ export default function About() {
             قسم المالك و الإدارة
           </span>
           
-          <h3 className="text-base sm:text-lg font-black text-carbon mt-2 mb-0.5">المهندس أسامة سعيد</h3>
+          <h3 className="text-base sm:text-lg font-black text-carbon mt-2 mb-0.5">حسين عبد الكريم هزاع</h3>
           <p className="text-[11px] text-cool-gray font-bold mb-3">صاحب ومؤسس متجر ومحلات النخبة للإلكترونيات</p>
 
           <blockquote className="text-xs text-cool-gray leading-relaxed italic bg-slate-50 p-3 rounded-lg border border-slate-100/50 mb-0">
@@ -223,7 +234,7 @@ export default function About() {
           نحن هنا لتلقي أسئلتكم، وإعطائكم استفسارات بخصوص الأجهزة والأصناف أو صيانة منتج سابق بشكل فوري.
         </p>
 
-        {/* Contacts Option Row (Slimmer & Modern than 4 big cards) */}
+        {/* Contacts Option Row */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {contactOptions.map((opt, key) => (
             <a

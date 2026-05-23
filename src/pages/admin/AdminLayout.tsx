@@ -145,11 +145,11 @@ export default function AdminLayout() {
     );
   }, [readNotifications]);
 
-  // Generate Admin Notifications
+  // Generate Admin Notifications with Priority Levels
   const adminNotifications = useMemo(() => {
     const alerts: any[] = [];
 
-    // 1. New Orders (Pending)
+    // 1. New Orders (Pending) - High Priority (Priority 1)
     const pendingOrders = orders.filter((o) => o.status === "pending");
     pendingOrders.forEach((order) => {
       const orderDate = (order.date as any)?.seconds
@@ -165,53 +165,16 @@ export default function AdminLayout() {
           minute: "2-digit",
         }),
         icon: ShoppingCart,
-        color: "text-solar",
-        bg: "bg-solar/10",
+        color: "text-[#d2af37]",
+        bg: "bg-[#d2af37]/10",
         link: `/admin/orders?id=${order.id}`,
+        priority: 1,
+        priorityLabel: "عاجل - طلب جديد",
+        priorityColor: "bg-rose-50 text-rose-600 border-rose-100",
       });
     });
 
-    // 2. Low Stock
-    const lowStockProducts = products.filter(
-      (p) => p.inStock && (p.stockCount || 0) <= (p.minStock || 5),
-    );
-    lowStockProducts.slice(0, 5).forEach((product) => {
-      alerts.push({
-        id: `stock-${product.id}`,
-        title: "تنبيه مخزون منخفض",
-        description: `المنتج: ${product.name} - المتبقي: ${product.stockCount}`,
-        timestamp: Date.now(),
-        time: "الآن",
-        icon: AlertCircle,
-        color: "text-rose-600",
-        bg: "bg-rose-50",
-        link: `/admin/products?id=${product.id}`,
-      });
-    });
-
-    // 3. Support Tickets
-    const openTickets = supportTickets.filter((t) => t.status === "open");
-    openTickets.forEach((ticket) => {
-      const ticketDate = (ticket.createdAt as any)?.seconds
-        ? new Date((ticket.createdAt as any).seconds * 1000)
-        : ticket.createdAt ? new Date(ticket.createdAt) : new Date();
-      alerts.push({
-        id: `ticket-${ticket.id}`,
-        title: "رسالة دعم فني جديدة",
-        description: ticket.subject,
-        timestamp: ticketDate.getTime(),
-        time: ticketDate.toLocaleTimeString("ar-SA", {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-        icon: MessageSquare,
-        color: "text-blue-600",
-        bg: "bg-blue-50",
-        link: "/admin/messages",
-      });
-    });
-
-    // 4. Wallet Recharges
+    // 4. Wallet Recharges (Pending) - High Priority (Priority 1)
     const pendingRecharges = recharges.filter((r) => r.status === "pending");
     pendingRecharges.forEach((recharge) => {
       const rechargeDate = (recharge.createdAt as any)?.seconds
@@ -230,11 +193,65 @@ export default function AdminLayout() {
         color: "text-emerald-600",
         bg: "bg-emerald-50",
         link: "/admin/recharges",
+        priority: 1,
+        priorityLabel: "عاجل - شحن رصيد",
+        priorityColor: "bg-emerald-50 text-emerald-600 border-emerald-100",
       });
     });
 
-    // Sort by timestamp descending
-    const sortedAlerts = alerts.sort((a, b) => b.timestamp - a.timestamp);
+    // 3. Support Tickets (Open) - Medium Priority (Priority 2)
+    const openTickets = supportTickets.filter((t) => t.status === "open");
+    openTickets.forEach((ticket) => {
+      const ticketDate = (ticket.createdAt as any)?.seconds
+        ? new Date((ticket.createdAt as any).seconds * 1000)
+        : ticket.createdAt ? new Date(ticket.createdAt) : new Date();
+      alerts.push({
+        id: `ticket-${ticket.id}`,
+        title: "رسالة دعم فني جديدة",
+        description: ticket.subject,
+        timestamp: ticketDate.getTime(),
+        time: ticketDate.toLocaleTimeString("ar-SA", {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+        icon: MessageSquare,
+        color: "text-blue-600",
+        bg: "bg-blue-50",
+        link: "/admin/messages",
+        priority: 2,
+        priorityLabel: "دعم فني",
+        priorityColor: "bg-blue-50 text-blue-600 border-blue-100",
+      });
+    });
+
+    // 2. Low Stock - Normal/Low Priority (Priority 3)
+    const lowStockProducts = products.filter(
+      (p) => p.inStock && (p.stockCount || 0) <= (p.minStock || 5),
+    );
+    lowStockProducts.slice(0, 5).forEach((product) => {
+      alerts.push({
+        id: `stock-${product.id}`,
+        title: "تنبيه مخزون منخفض",
+        description: `المنتج: ${product.name} - المتبقي: ${product.stockCount}`,
+        timestamp: Date.now(),
+        time: "الآن",
+        icon: AlertCircle,
+        color: "text-rose-600",
+        bg: "bg-rose-50",
+        link: `/admin/products?id=${product.id}`,
+        priority: 3,
+        priorityLabel: "مخزون منخفض",
+        priorityColor: "bg-slate-50 text-slate-500 border-slate-200",
+      });
+    });
+
+    // Sort by priority ascending (1 is highest), then by timestamp descending (newest first)
+    const sortedAlerts = alerts.sort((a, b) => {
+      if (a.priority !== b.priority) {
+        return a.priority - b.priority;
+      }
+      return b.timestamp - a.timestamp;
+    });
     
     // Only show notifications that haven't been marked as read
     return sortedAlerts.filter((alert) => !readNotifications.includes(alert.id));
@@ -914,9 +931,14 @@ export default function AdminLayout() {
                                     <notif.icon className="w-5 h-5 sm:w-6 sm:h-6" />
                                   </div>
                                   <div className="flex-1 min-w-0">
-                                    <h4 className="text-[13px] sm:text-[15px] font-black text-carbon line-clamp-1 leading-tight mb-0.5 group-hover:text-solar transition-colors">
-                                      {notif.title}
-                                    </h4>
+                                    <div className="flex items-center justify-between gap-1.5 mb-1">
+                                      <h4 className="text-[12px] sm:text-[14px] font-black text-carbon line-clamp-1 leading-tight group-hover:text-solar transition-colors">
+                                        {notif.title}
+                                      </h4>
+                                      <span className={`text-[9px] font-black px-2 py-0.5 rounded-full border shrink-0 ${notif.priorityColor}`}>
+                                        {notif.priorityLabel}
+                                      </span>
+                                    </div>
                                     <p className="text-[11px] sm:text-[13px] text-slate-600 font-bold line-clamp-2 leading-relaxed">
                                       {notif.description}
                                     </p>

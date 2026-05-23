@@ -45,8 +45,35 @@ export default function Notifications() {
   const [activeTab, setActiveTab] = useState<NotificationType>("all");
 
   const filteredNotifications = useMemo(() => {
-    if (activeTab === "all") return notifications;
-    return notifications.filter((n) => n.type === activeTab);
+    let result = notifications;
+    if (activeTab !== "all") {
+      result = notifications.filter((n) => n.type === activeTab);
+    }
+
+    const getPriority = (type: string) => {
+      switch (type) {
+        case "order": return 4;
+        case "system": return 3;
+        case "stock": return 2;
+        case "sale": return 1;
+        default: return 0;
+      }
+    };
+
+    return [...result].sort((a, b) => {
+      if (a.isRead !== b.isRead) {
+        return a.isRead ? 1 : -1;
+      }
+      const priorityA = getPriority(a.type);
+      const priorityB = getPriority(b.type);
+      if (priorityA !== priorityB) {
+        return priorityB - priorityA;
+      }
+      
+      const dateA = (a.date as any)?.seconds ? (a.date as any).seconds * 1000 : a.date;
+      const dateB = (b.date as any)?.seconds ? (b.date as any).seconds * 1000 : b.date;
+      return dateB - dateA;
+    });
   }, [notifications, activeTab]);
 
   const unreadCount = useMemo(

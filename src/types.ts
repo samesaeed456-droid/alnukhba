@@ -367,6 +367,7 @@ export interface StoreSettings {
   textColor?: string;
   textMutedColor?: string;
   fontFamily: string;
+  borderRadius?: "sharp" | "soft" | "curved";
   homeSectionOrder: string[];
   autoNotifications?: {
     enabled: boolean;

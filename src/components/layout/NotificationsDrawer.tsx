@@ -71,7 +71,7 @@ export default function NotificationsDrawer() {
       
       const dateA = (a.date as any)?.seconds ? (a.date as any).seconds * 1000 : a.date;
       const dateB = (b.date as any)?.seconds ? (b.date as any).seconds * 1000 : b.date;
-      return dateB - dateA;
+      return new Date(dateB).getTime() - new Date(dateA).getTime();
     });
   }, [notifications, activeTab]);
 

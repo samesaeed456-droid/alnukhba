@@ -245,6 +245,65 @@ const MainRoutes = () => {
     settings?.textMutedColor,
   ]);
 
+  // Dynamic font loading and border-radius override logic
+  useEffect(() => {
+    if (!settings) return;
+    const root = document.documentElement;
+
+    // 1. Handle Font Family Setup & Google Font Dynamic Import
+    const font = settings.fontFamily || "Cairo";
+    root.style.setProperty("--font-sans", `'${font}', "Cairo", ui-sans-serif, system-ui, sans-serif`);
+    document.body.style.fontFamily = `'${font}', "Cairo", sans-serif`;
+
+    // Dynamic Google Fonts Loader
+    if (font !== "Cairo") {
+      const fontId = `google-font-${font.toLowerCase().replace(/\s+/g, "-")}`;
+      if (!document.getElementById(fontId)) {
+        const link = document.createElement("link");
+        link.id = fontId;
+        link.rel = "stylesheet";
+        
+        let fontApiName = font;
+        if (font === "El Messiri") fontApiName = "El+Messiri";
+        else if (font === "Playfair Display") fontApiName = "Playfair+Display";
+        else if (font === "Space Grotesk") fontApiName = "Space+Grotesk";
+        else if (font === "JetBrains Mono") fontApiName = "JetBrains+Mono";
+        
+        link.href = `https://fonts.googleapis.com/css2?family=${fontApiName}:wght@300;400;500;600;700;800;900&display=swap`;
+        document.head.appendChild(link);
+      }
+    }
+
+    // 2. Handle Border Rounding Customization
+    const rounding = settings.borderRadius || "soft";
+    if (rounding === "sharp") {
+      root.style.setProperty("--radius-sm", "0px");
+      root.style.setProperty("--radius-md", "0px");
+      root.style.setProperty("--radius-lg", "0px");
+      root.style.setProperty("--radius-xl", "0px");
+      root.style.setProperty("--radius-2xl", "0px");
+      root.style.setProperty("--radius-3xl", "0px");
+      root.style.setProperty("--radius-base", "0px");
+    } else if (rounding === "curved") {
+      root.style.setProperty("--radius-sm", "6px");
+      root.style.setProperty("--radius-md", "12px");
+      root.style.setProperty("--radius-lg", "16px");
+      root.style.setProperty("--radius-xl", "24px");
+      root.style.setProperty("--radius-2xl", "32px");
+      root.style.setProperty("--radius-3xl", "40px");
+      root.style.setProperty("--radius-base", "12px");
+    } else {
+      // "soft" (Default balanced premium look)
+      root.style.setProperty("--radius-sm", "4px");
+      root.style.setProperty("--radius-md", "8px");
+      root.style.setProperty("--radius-lg", "12px");
+      root.style.setProperty("--radius-xl", "16px");
+      root.style.setProperty("--radius-2xl", "24px");
+      root.style.setProperty("--radius-3xl", "32px");
+      root.style.setProperty("--radius-base", "8px");
+    }
+  }, [settings?.fontFamily, settings?.borderRadius]);
+
   useEffect(() => {
     if (settings.seo) {
       // Update Title

@@ -92,6 +92,28 @@ const Settings = () => {
     }
   }, [settings]);
 
+  // Load selected font for the interactive live sandbox preview dynamically
+  useEffect(() => {
+    const font = formData.fontFamily;
+    if (font && font !== "Cairo") {
+      const fontId = `google-font-preview-${font.toLowerCase().replace(/\s+/g, "-")}`;
+      if (!document.getElementById(fontId)) {
+        const link = document.createElement("link");
+        link.id = fontId;
+        link.rel = "stylesheet";
+        
+        let fontApiName = font;
+        if (font === "El Messiri") fontApiName = "El+Messiri";
+        else if (font === "Playfair Display") fontApiName = "Playfair+Display";
+        else if (font === "Space Grotesk") fontApiName = "Space+Grotesk";
+        else if (font === "JetBrains Mono") fontApiName = "JetBrains+Mono";
+        
+        link.href = `https://fonts.googleapis.com/css2?family=${fontApiName}:wght@300;400;500;600;700;800;900&display=swap`;
+        document.head.appendChild(link);
+      }
+    }
+  }, [formData.fontFamily]);
+
   const colorPresets = [
     {
       id: "royal",
@@ -1369,7 +1391,7 @@ const Settings = () => {
                               </div>
 
                               {/* Inputs wrapper */}
-                              <div className="flex items-center gap-2.5 bg-slate-50 p-2 rounded-xl border border-slate-100 self-end sm:self-center">
+                              <div className="flex items-center gap-2.5 bg-slate-50 p-2 rounded-xl border border-slate-100 self-end sm:sm:self-center">
                                 {/* Hex input text */}
                                 <input
                                   type="text"
@@ -1392,6 +1414,70 @@ const Settings = () => {
                             </div>
                           );
                         })}
+
+                        {/* 3. Typography & Reading Experience */}
+                        <div className="pt-5 border-t border-slate-100 space-y-3">
+                          <label className="block text-xs font-black text-slate-700">3. نمط ونوع الخط البصري للمتجر (Store Typography)</label>
+                          <p className="text-[10px] text-slate-400">اختر الخط الأنسب لهوية وتصميم متجرك:</p>
+                          <div className="grid grid-cols-2 gap-2">
+                            {[
+                              { id: "Cairo", name: "خط جيرو (Cairo)", desc: "عصري وجريء ومقروء جداً" },
+                              { id: "Tajawal", name: "خط تجول (Tajawal)", desc: "ناعم وأنيق كلاسيكي للسلع" },
+                              { id: "Almarai", name: "المراعي (Almarai)", desc: "بسيط ومريح للعين وهادئ" },
+                              { id: "Alexandria", name: "الإسكندرية (Alexandria)", desc: "هندسي ومبتكر ومتميز" },
+                              { id: "El Messiri", name: "المسيري (El Messiri)", desc: "فني ومموج فريد وأدبي" },
+                              { id: "Space Grotesk", name: "سبايس غروتسك (Eng)", desc: "رياضي تقني عصري إنجليزي" },
+                            ].map((f) => {
+                              const isFontSelected = (formData.fontFamily || "Cairo") === f.id;
+                              return (
+                                <button
+                                  key={f.id}
+                                  type="button"
+                                  onClick={() => setFormData({ ...formData, fontFamily: f.id })}
+                                  className={`p-3 rounded-2xl border text-right transition-all duration-300 ${
+                                    isFontSelected
+                                      ? "border-slate-800 bg-white shadow-md scale-[1.01]"
+                                      : "border-slate-200 bg-transparent hover:border-slate-300 hover:bg-white/40"
+                                  }`}
+                                  style={{ fontFamily: `'${f.id}', 'Cairo', sans-serif` }}
+                                >
+                                  <span className="block text-xs font-bold text-slate-800">{f.name}</span>
+                                  <span className="block text-[10px] text-slate-400 mt-0.5">{f.desc}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* 4. Rounded Corner Style Selection */}
+                        <div className="pt-5 border-t border-slate-100 space-y-3">
+                          <label className="block text-xs font-black text-slate-700">4. نمط انحناء الحواف والزوايا (Border Corners)</label>
+                          <p className="text-[10px] text-slate-400">يتحكم في زوايا الأزرار وحقول المدخلات والسلع:</p>
+                          <div className="flex flex-col sm:flex-row gap-2.5">
+                            {[
+                              { id: "sharp", name: "زوايا حادة", label: "Sharp / حاد", desc: "كلاسيكي مستقيم" },
+                              { id: "soft", name: "انحناء متزن", label: "Soft / ناعم", desc: "تصميم أبل الكلاسيكي" },
+                              { id: "curved", name: "دوران ممتد", label: "Curved / دوراني", desc: "عصري وجريء جداً" },
+                            ].map((r) => {
+                              const isRoundingSelected = (formData.borderRadius || "soft") === r.id;
+                              return (
+                                <button
+                                  key={r.id}
+                                  type="button"
+                                  onClick={() => setFormData({ ...formData, borderRadius: r.id as any })}
+                                  className={`flex-1 p-3 rounded-2xl border text-center transition-all duration-300 ${
+                                    isRoundingSelected
+                                      ? "border-slate-800 bg-white shadow-md scale-[1.01]"
+                                      : "border-slate-200 bg-transparent hover:border-slate-300"
+                                  }`}
+                                >
+                                  <span className="block text-xs font-black text-slate-800">{r.name}</span>
+                                  <span className="block text-[10px] text-slate-400 mt-0.5">{r.desc}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
                       </div>
 
                       {/* Right Side: Dynamic Interactive Live Shop Preview (Extremely Impressive Sandbox) */}
@@ -1408,103 +1494,132 @@ const Settings = () => {
                         </div>
 
                         {/* Miniature Shop Simulation Container */}
-                        <div
-                          className="w-full h-fit rounded-[2.5rem] border shadow-2xl p-6 overflow-hidden transition-all duration-700 relative"
-                          style={{
-                            backgroundColor: formData.backgroundColor || "#FFFFFF",
-                            borderColor: `${formData.textColor || "#0F172A"}15`
-                          }}
-                        >
-                          {/* Top Decorative bar */}
-                          <div className="absolute top-0 inset-x-0 h-1.5" style={{ backgroundColor: formData.primaryColor || "#C5A059" }} />
+                        {(() => {
+                          const getRadiusVal = (type: "sm" | "md" | "lg" | "xl" | "container") => {
+                            const rounding = formData.borderRadius || "soft";
+                            if (rounding === "sharp") return "0px";
+                            if (rounding === "curved") {
+                              switch(type) {
+                                case "sm": return "8px";
+                                case "md": return "16px";
+                                case "lg": return "24px";
+                                case "xl": return "32px";
+                                case "container": return "40px";
+                              }
+                            }
+                            switch(type) {
+                              case "sm": return "4px";
+                              case "md": return "8px";
+                              case "lg": return "12px";
+                              case "xl": return "16px";
+                              case "container": return "24px";
+                            }
+                          };
                           
-                          {/* 1. Shop Top Header Block (Glassmorphic) */}
-                          <div className="flex items-center justify-between pb-4 border-b mb-6 border-dashed" style={{ borderColor: `${formData.textColor || "#0F172A"}20` }}>
-                            <div className="flex items-center gap-2.5">
-                              <div className="w-4 h-4 rounded-lg flex items-center justify-center text-white" style={{ backgroundColor: formData.primaryColor || "#C5A059", boxShadow: `0 4px 12px ${formData.primaryColor || '#C5A059'}40` }}>
-                                <Hexagon className="w-2.5 h-2.5 fill-white" />
-                              </div>
-                              <span className="text-xs font-black tracking-tight" style={{ color: formData.textColor || "#0F172A" }}>
-                                {formData.storeName || "متجر الفخامة"}
-                              </span>
-                            </div>
-                            
-                            <div className="flex items-center gap-3">
-                              <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: formData.textColor || "#0F172A", opacity: 0.1 }} />
-                              <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: formData.textColor || "#0F172A", opacity: 0.1 }} />
-                              <div className="w-6 h-6 rounded-lg flex items-center justify-center border text-[10px]" style={{ borderColor: `${formData.textColor || "#0F172A"}20`, color: formData.textColor || "#0F172A" }}>🛒</div>
-                            </div>
-                          </div>
-
-                          {/* 2. Mini Banner Block */}
-                          <div className="w-full py-5 px-6 rounded-[1.5rem] mb-6 text-center flex flex-col items-center justify-center gap-2 transition-all relative overflow-hidden"
-                               style={{ backgroundColor: `${formData.primaryColor || "#C5A059"}10` }}>
-                            {/* Decorative element bg */}
-                            <div className="absolute top-0 right-0 w-24 h-24 rounded-full translate-x-12 -translate-y-12 blur-2xl" style={{ backgroundColor: formData.primaryColor || "#C5A059", opacity: 0.15 }} />
-                            
-                            <span className="text-[12px] font-black z-10" style={{ color: formData.primaryColor || "#C5A059" }}>خصومات الموسم النبيلة</span>
-                            <div className="h-1.5 w-16 rounded-full z-10" style={{ backgroundColor: formData.primaryColor || "#C5A059", opacity: 0.5 }} />
-                          </div>
-
-                          {/* 3. Product Display Card Showcase Grid */}
-                          <div className="grid grid-cols-2 gap-3">
-                            {/* Product Item 1 */}
+                          return (
                             <div
-                              className="p-3.5 rounded-2xl border transition-all shadow-sm flex flex-col justify-between"
+                              className="w-full h-fit border shadow-2xl p-6 overflow-hidden transition-all duration-700 relative"
                               style={{
-                                backgroundColor: formData.cardColor || "#FFFFFF",
-                                borderColor: `${formData.textColor || "#0F172A"}10`
+                                backgroundColor: formData.backgroundColor || "#FFFFFF",
+                                borderColor: `${formData.textColor || "#0F172A"}15`,
+                                fontFamily: `'${formData.fontFamily || "Cairo"}', 'Cairo', sans-serif`,
+                                borderRadius: getRadiusVal("container")
                               }}
                             >
-                              <div>
-                                {/* Product Image placeholder */}
-                                <div className="w-full aspect-square rounded-xl flex items-center justify-center mb-3 relative overflow-hidden" style={{ backgroundColor: `${formData.textColor || "#0F172A"}05` }}>
-                                  <span className="text-[2rem]">💎</span>
-                                  <div className="absolute top-1.5 right-1.5 px-2 py-0.5 rounded text-[8px] font-bold text-white shadow-sm tracking-wider"
-                                       style={{ backgroundColor: formData.primaryColor || "#C5A059" }}>
-                                    رائج
+                              {/* Top Decorative bar */}
+                              <div className="absolute top-0 inset-x-0 h-1.5" style={{ backgroundColor: formData.primaryColor || "#C5A059" }} />
+                              
+                              {/* 1. Shop Top Header Block (Glassmorphic) */}
+                              <div className="flex items-center justify-between pb-4 border-b mb-6 border-dashed" style={{ borderColor: `${formData.textColor || "#0F172A"}20` }}>
+                                <div className="flex items-center gap-2.5">
+                                  <div style={{ backgroundColor: formData.primaryColor || "#C5A059", boxShadow: `0 4px 12px ${formData.primaryColor || '#C5A059'}40`, borderRadius: getRadiusVal("md") }} className="w-5 h-5 flex items-center justify-center text-white">
+                                    <Hexagon className="w-3 h-3 fill-white" />
+                                  </div>
+                                  <span className="text-xs font-black tracking-tight" style={{ color: formData.textColor || "#0F172A" }}>
+                                    {formData.storeName || "متجر الفخامة"}
+                                  </span>
+                                </div>
+                                
+                                <div className="flex items-center gap-3">
+                                  <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: formData.textColor || "#0F172A", opacity: 0.1 }} />
+                                  <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: formData.textColor || "#0F172A", opacity: 0.1 }} />
+                                  <div className="w-6 h-6 flex items-center justify-center border text-[10px]" style={{ borderColor: `${formData.textColor || "#0F172A"}20`, color: formData.textColor || "#0F172A", borderRadius: getRadiusVal("md") }}>🛒</div>
+                                </div>
+                              </div>
+
+                              {/* 2. Mini Banner Block */}
+                              <div className="w-full py-5 px-6 mb-6 text-center flex flex-col items-center justify-center gap-2 transition-all relative overflow-hidden"
+                                   style={{ backgroundColor: `${formData.primaryColor || "#C5A059"}10`, borderRadius: getRadiusVal("lg") }}>
+                                {/* Decorative element bg */}
+                                <div className="absolute top-0 right-0 w-24 h-24 rounded-full translate-x-12 -translate-y-12 blur-2xl" style={{ backgroundColor: formData.primaryColor || "#C5A059", opacity: 0.15 }} />
+                                
+                                <span className="text-[12px] font-black z-10" style={{ color: formData.primaryColor || "#C5A059" }}>خصومات الموسم النبيلة</span>
+                                <div className="h-1.5 w-16 rounded-full z-10" style={{ backgroundColor: formData.primaryColor || "#C5A059", opacity: 0.5 }} />
+                              </div>
+
+                              {/* 3. Product Display Card Showcase Grid */}
+                              <div className="grid grid-cols-2 gap-3">
+                                {/* Product Item 1 */}
+                                <div
+                                  className="p-3.5 border transition-all shadow-sm flex flex-col justify-between"
+                                  style={{
+                                    backgroundColor: formData.cardColor || "#FFFFFF",
+                                    borderColor: `${formData.textColor || "#0F172A"}10`,
+                                    borderRadius: getRadiusVal("lg")
+                                  }}
+                                >
+                                  <div>
+                                    {/* Product Image placeholder */}
+                                    <div className="w-full aspect-square flex items-center justify-center mb-3 relative overflow-hidden" style={{ backgroundColor: `${formData.textColor || "#0F172A"}05`, borderRadius: getRadiusVal("md") }}>
+                                      <span className="text-[2rem]">💎</span>
+                                      <div className="absolute top-1.5 right-1.5 px-2 py-0.5 text-[8px] font-bold text-white shadow-sm tracking-wider"
+                                           style={{ backgroundColor: formData.primaryColor || "#C5A059", borderRadius: getRadiusVal("sm") }}>
+                                        رائج
+                                      </div>
+                                    </div>
+                                    {/* Product label & prices */}
+                                    <span className="block text-[11px] font-black line-clamp-1" style={{ color: formData.textColor || "#0F172A" }}>عطر العود الخاص</span>
+                                    <span className="block text-[9px] mt-1 font-bold" style={{ color: formData.textMutedColor || "#64748B" }}>عطور رجالية</span>
+                                  </div>
+                                  
+                                  <div className="flex items-center justify-between mt-4 pt-3 border-t border-dashed" style={{ borderColor: `${formData.textColor || "#0F172A"}15` }}>
+                                    <span className="text-[12px] font-black" style={{ color: formData.primaryColor || "#C5A059" }}>18,500</span>
+                                    <div className="w-6 h-6 flex items-center justify-center text-white text-[12px] shadow-sm transform hover:scale-105 transition-transform" style={{ backgroundColor: formData.primaryColor || "#C5A059", borderRadius: getRadiusVal("md") }}>
+                                      <Plus className="w-3 h-3" />
+                                    </div>
                                   </div>
                                 </div>
-                                {/* Product label & prices */}
-                                <span className="block text-[11px] font-black line-clamp-1" style={{ color: formData.textColor || "#0F172A" }}>عطر العود الخاص</span>
-                                <span className="block text-[9px] mt-1 font-bold" style={{ color: formData.textMutedColor || "#64748B" }}>عطور رجالية</span>
-                              </div>
-                              
-                              <div className="flex items-center justify-between mt-4 pt-3 border-t border-dashed" style={{ borderColor: `${formData.textColor || "#0F172A"}15` }}>
-                                <span className="text-[12px] font-black" style={{ color: formData.primaryColor || "#C5A059" }}>18,500</span>
-                                <div className="w-6 h-6 rounded-lg flex items-center justify-center text-white text-[12px] shadow-sm transform hover:scale-105 transition-transform" style={{ backgroundColor: formData.primaryColor || "#C5A059" }}>
-                                  <Plus className="w-3 h-3" />
-                                </div>
-                              </div>
-                            </div>
 
-                            {/* Product Item 2 */}
-                            <div
-                              className="p-3.5 rounded-2xl border transition-all shadow-sm flex flex-col justify-between"
-                              style={{
-                                backgroundColor: formData.cardColor || "#FFFFFF",
-                                borderColor: `${formData.textColor || "#0F172A"}10`
-                              }}
-                            >
-                              <div>
-                                {/* Product Image placeholder */}
-                                <div className="w-full aspect-square rounded-xl flex items-center justify-center mb-3 relative overflow-hidden" style={{ backgroundColor: `${formData.textColor || "#0F172A"}05` }}>
-                                  <span className="text-[2rem]">⌚</span>
-                                </div>
-                                {/* Product label & prices */}
-                                <span className="block text-[11px] font-black line-clamp-1" style={{ color: formData.textColor || "#0F172A" }}>ساعة رويال كلاسيك</span>
-                                <span className="block text-[9px] mt-1 font-bold" style={{ color: formData.textMutedColor || "#64748B" }}>اكسسوارات فاخرة</span>
-                              </div>
-                              
-                              <div className="flex items-center justify-between mt-4 pt-3 border-t border-dashed" style={{ borderColor: `${formData.textColor || "#0F172A"}15` }}>
-                                <span className="text-[12px] font-black" style={{ color: formData.primaryColor || "#C5A059" }}>45,200</span>
-                                <div className="w-6 h-6 rounded-lg flex items-center justify-center text-white text-[12px] shadow-sm transform hover:scale-105 transition-transform" style={{ backgroundColor: formData.primaryColor || "#C5A059" }}>
-                                  <Plus className="w-3 h-3" />
+                                {/* Product Item 2 */}
+                                <div
+                                  className="p-3.5 border transition-all shadow-sm flex flex-col justify-between"
+                                  style={{
+                                    backgroundColor: formData.cardColor || "#FFFFFF",
+                                    borderColor: `${formData.textColor || "#0F172A"}10`,
+                                    borderRadius: getRadiusVal("lg")
+                                  }}
+                                >
+                                  <div>
+                                    {/* Product Image placeholder */}
+                                    <div className="w-full aspect-square flex items-center justify-center mb-3 relative overflow-hidden" style={{ backgroundColor: `${formData.textColor || "#0F172A"}05`, borderRadius: getRadiusVal("md") }}>
+                                      <span className="text-[2rem]">⌚</span>
+                                    </div>
+                                    {/* Product label & prices */}
+                                    <span className="block text-[11px] font-black line-clamp-1" style={{ color: formData.textColor || "#0F172A" }}>ساعة رويال كلاسيك</span>
+                                    <span className="block text-[9px] mt-1 font-bold" style={{ color: formData.textMutedColor || "#64748B" }}>اكسسوارات فاخرة</span>
+                                  </div>
+                                  
+                                  <div className="flex items-center justify-between mt-4 pt-3 border-t border-dashed" style={{ borderColor: `${formData.textColor || "#0F172A"}15` }}>
+                                    <span className="text-[12px] font-black" style={{ color: formData.primaryColor || "#C5A059" }}>45,200</span>
+                                    <div className="w-6 h-6 flex items-center justify-center text-white text-[12px] shadow-sm transform hover:scale-105 transition-transform" style={{ backgroundColor: formData.primaryColor || "#C5A059", borderRadius: getRadiusVal("md") }}>
+                                      <Plus className="w-3 h-3" />
+                                    </div>
+                                  </div>
                                 </div>
                               </div>
                             </div>
-                          </div>
-                        </div>
+                          );
+                        })()}
 
                         {/* Interactive tips for developer sale */}
                         <div className="p-4 bg-slate-100/60 rounded-2xl border border-slate-200/50 flex gap-2.5 items-start">

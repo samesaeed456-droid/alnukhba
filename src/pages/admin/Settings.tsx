@@ -35,6 +35,7 @@ import {
   Search,
   Megaphone,
   Palette,
+  Hexagon,
 } from "lucide-react";
 import { motion, AnimatePresence, Variants } from "motion/react";
 import { showLuxuryToast } from "@/lib/luxuryToast";
@@ -94,73 +95,146 @@ const Settings = () => {
   const colorPresets = [
     {
       id: "royal",
-      name: "أوف وايت والذهبي الملكي",
-      primary: "#C5A059",
-      bg: "#FFFFFF",
+      name: "ذهبي ملكي وأوف وايت",
+      primary: "#D4AF37",
+      bg: "#FAFAFA",
       card: "#FFFFFF",
-      text: "#0F172A",
-      textMuted: "#64748B",
-      description: "الهوية الكلاسيكية للمتجر. فخامة وأناقة ملكية تناسب المجوهرات والسلع الفاخرة."
+      text: "#171717",
+      textMuted: "#737373",
+      description: "الهوية الكلاسيكية للمتجر. فخامة وأناقة تناسب المجوهرات والسلع الفاخرة.",
+      gradient: "from-[#D4AF37]/20 to-transparent"
     },
     {
       id: "dark-gold",
-      name: "الوضع المظلم الملكي",
-      primary: "#C5A059",
-      bg: "#0B0F19",
-      card: "#141B2D",
-      text: "#FAFAF9",
-      textMuted: "#94A3B8",
-      description: "مزيج فاخر وغامض من الأسود النجمي والذهبي اللامع، مثالي لتجربة ليلية راقية."
+      name: "ليالي عربية (مظلم)",
+      primary: "#EAB308",
+      bg: "#09090B",
+      card: "#18181B",
+      text: "#FAFAFA",
+      textMuted: "#A1A1AA",
+      description: "الغموض والفخامة. مزيج من الأسود النجمي والذهبي اللامع لتجربة تسوق ليلية راقية.",
+      gradient: "from-[#EAB308]/10 to-[#09090B]"
     },
     {
       id: "emerald",
-      name: "الزمرد والوردي النبيل",
-      primary: "#065F46",
+      name: "زمردي ووردي نبيل",
+      primary: "#059669",
       bg: "#F0FDF4",
       card: "#FFFFFF",
       text: "#064E3B",
-      textMuted: "#374151",
-      description: "هوية مريحة ومنعشة ممتازة للقهوة المختصة، العناية بالبشرة، والمنتجات العضوية."
+      textMuted: "#166534",
+      description: "هوية مريحة ومنعشة ممتازة للقهوة المختصة، العناية بالبشرة، والمنتجات العضوية.",
+      gradient: "from-[#059669]/15 to-transparent"
     },
     {
       id: "maroon",
-      name: "العنابي الكلاسيكي الدافئ",
+      name: "عنابي دافئ",
       primary: "#991B1B",
-      bg: "#FAF7F5",
+      bg: "#FEF2F2",
       card: "#FFFFFF",
       text: "#450A0A",
-      textMuted: "#78350F",
-      description: "جاذبية فريدة بالألوان الترابية والنبيذي الفخم، ممتاز للعطور والموضة الوعرة."
+      textMuted: "#7F1D1D",
+      description: "جاذبية فريدة بالألوان الترابية والنبيذي الفخم، ممتاز للعطور والموضة.",
+      gradient: "from-[#991B1B]/15 to-transparent"
     },
     {
       id: "sapphire",
-      name: "الأزرق الإلكتروني الساطع",
-      primary: "#1D4ED8",
-      bg: "#F8FAFC",
+      name: "أزرق ياقوتي ساطع",
+      primary: "#2563EB",
+      bg: "#F0F9FF",
       card: "#FFFFFF",
       text: "#0F172A",
-      textMuted: "#475569",
-      description: "هوية تقنية حيوية ونظيفة تناسب متاجر الهواتف، التكنولوجيا والإلكترونيات الذكية."
+      textMuted: "#334155",
+      description: "هوية تقنية حيوية ونظيفة تناسب متاجر الهواتف والإلكترونيات الذكية.",
+      gradient: "from-[#2563EB]/15 to-transparent"
     },
     {
       id: "sunset-orange",
-      name: "الغروب الناري الحركي",
+      name: "أورنج ناري",
       primary: "#EA580C",
       bg: "#FFF7ED",
       card: "#FFFFFF",
       text: "#431407",
       textMuted: "#7C2D12",
-      description: "لون مليء بالحماس والسرعة، ممتاز لمتاجر الألعاب والتسليم السريع ومنتجات الشباب."
+      description: "لون مليء بالحماس والسرعة، ممتاز لمتاجر الألعاب والتسليم السريع.",
+      gradient: "from-[#EA580C]/15 to-transparent"
     },
     {
-      id: "carbon-charcoal",
-      name: "البلاتيني المينيماليست",
-      primary: "#18181B",
+      id: "mid-night-blue",
+      name: "أزرق منتصف الليل (مظلم)",
+      primary: "#38BDF8",
+      bg: "#020617",
+      card: "#0F172A",
+      text: "#F8FAFC",
+      textMuted: "#94A3B8",
+      description: "تصميم عصري مظلم بنغمات زرقاء سماوية، لتجربة تقنية مريحة للعين.",
+      gradient: "from-[#38BDF8]/15 to-[#020617]"
+    },
+    {
+      id: "blush-pink",
+      name: "وردي ناعم",
+      primary: "#EC4899",
+      bg: "#FDF2F8",
+      card: "#FFFFFF",
+      text: "#831843",
+      textMuted: "#9D174D",
+      description: "لمسة أنثوية ناعمة ومشرقة، مثالي لمنتجات التجميل، الأزياء النسائية والهدايا.",
+      gradient: "from-[#EC4899]/15 to-transparent"
+    },
+    {
+      id: "monochrome-light",
+      name: "أبيض وأسود مطلق (فاتح)",
+      primary: "#000000",
       bg: "#FAFAFA",
       card: "#FFFFFF",
-      text: "#09090B",
+      text: "#000000",
       textMuted: "#52525B",
-      description: "تصميم عصري بسيط جداً يعتمد على التباين والخطوط الفضية النظيفة، يناسب كل شيء."
+      description: "مينيماليزم المطلق. تباين عالٍ جداً وخطوط نظيفة تعطي الأولوية لصور منتجاتك.",
+      gradient: "from-black/5 to-transparent"
+    },
+    {
+      id: "monochrome-dark",
+      name: "أبيض وأسود مطلق (مظلم)",
+      primary: "#FFFFFF",
+      bg: "#000000",
+      card: "#09090B",
+      text: "#FFFFFF",
+      textMuted: "#A1A1AA",
+      description: "أناقة مظلمة وتباين حاد، يناسب البراندات العصرية والمودرن.",
+      gradient: "from-white/10 to-[#000000]"
+    },
+    {
+      id: "lavender",
+      name: "لافندر حالم",
+      primary: "#8B5CF6",
+      bg: "#F5F3FF",
+      card: "#FFFFFF",
+      text: "#2E1065",
+      textMuted: "#4C1D95",
+      description: "نغمات بنفسجية فاتحة توفر شعوراً بالهدوء والإبداع، مناسب للمتاجر الفنية والشموع.",
+      gradient: "from-[#8B5CF6]/15 to-transparent"
+    },
+    {
+      id: "forest-dark",
+      name: "غابة كلاسيكية (مظلم)",
+      primary: "#10B981",
+      bg: "#064E3B",
+      card: "#022C22",
+      text: "#ECFDF5",
+      textMuted: "#6EE7B7",
+      description: "ظلال خضراء عميقة مظلمة مستوحاة من الطبيعة الفاخرة للعلامات التجارية الفريدة.",
+      gradient: "from-[#10B981]/20 to-[#064E3B]"
+    },
+    {
+      id: "mocha-latte",
+      name: "موكا ولاتيه ترابي",
+      primary: "#9A3412",
+      bg: "#FEFCE8",
+      card: "#FFFFFF",
+      text: "#422006",
+      textMuted: "#713F12",
+      description: "ألوان دافئة وترابية مثل القهوة، تبث إحساساً مريحاً ومناسباً للمخابز والمقاهي.",
+      gradient: "from-[#9A3412]/15 to-transparent"
     }
   ];
 
@@ -1172,52 +1246,55 @@ const Settings = () => {
                                 });
                                 setActiveSlide(index);
                               }}
-                              className={`relative p-5 rounded-[2rem] border-2 transition-all duration-300 cursor-pointer flex flex-col justify-between overflow-hidden group shrink-0 w-[85%] sm:w-[60%] md:w-auto snap-center ${
+                              className={`relative p-6 rounded-[2rem] border-2 transition-all duration-300 cursor-pointer flex flex-col justify-between overflow-hidden group shrink-0 w-[85%] sm:w-[60%] md:w-auto snap-center min-h-[220px] ${
                                 isSelected
-                                  ? "border-slate-800 bg-slate-50/50 shadow-md scale-[1.01]"
-                                  : "border-slate-100/90 hover:border-slate-200 hover:bg-slate-50/20"
+                                  ? "border-slate-800 bg-white shadow-xl shadow-slate-200/50 scale-[1.02] z-10"
+                                  : "border-slate-200/60 hover:border-slate-400 hover:bg-white hover:shadow-lg hover:shadow-slate-200/20"
                               }`}
                             >
-                              <div className="space-y-3">
-                                {/* Selection Indicator & Name */}
-                                <div className="flex items-center justify-between gap-2">
-                                  <div className="flex items-center gap-2.5">
+                              {/* Background Gradient Effect */}
+                              <div className={`absolute inset-0 bg-gradient-to-br ${preset.gradient || 'from-slate-100 to-transparent'} opacity-30 pointer-events-none group-hover:opacity-50 transition-opacity duration-500`} />
+                              
+                              <div className="relative space-y-4">
+                                {/* Header: Color dots & Name */}
+                                <div className="flex items-start justify-between gap-3">
+                                  <div className="flex items-center gap-3">
                                     <div
-                                      className="w-4.5 h-4.5 rounded-full border border-black/10 flex items-center justify-center text-white shrink-0"
+                                      className={`w-10 h-10 rounded-2xl flex items-center justify-center text-white shrink-0 shadow-sm border ${isSelected ? 'border-transparent' : 'border-black/5'}`}
                                       style={{ backgroundColor: preset.primary }}
                                     >
-                                      {isSelected && <Check className="w-2.5 h-2.5" />}
+                                      {isSelected && <Check className="w-5 h-5 drop-shadow-md" />}
                                     </div>
-                                    <span className="font-bold text-xs md:text-sm text-slate-800 line-clamp-1">
-                                      {preset.name}
-                                    </span>
+                                    <div className="flex flex-col gap-0.5">
+                                      <span className="font-black text-sm md:text-base text-slate-800 tracking-tight">
+                                        {preset.name}
+                                      </span>
+                                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                        {(preset.bg === "#FFFFFF" || preset.bg === "#FAFAFA" || preset.bg === "#F0FDF4" || preset.bg === "#FEF2F2" || preset.bg === "#F0F9FF" || preset.bg === "#FFF7ED" || preset.bg === "#FDF2F8" || preset.bg === "#F5F3FF" || preset.bg === "#FEFCE8") ? "فاتح / LIGHT" : "مظلم / DARK"}
+                                      </span>
+                                    </div>
                                   </div>
-                                  <span className="text-[10px] font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">
-                                    {preset.bg === "#FFFFFF" ? "فاتح" : "مظلم"}
-                                  </span>
                                 </div>
 
                                 {/* Description */}
-                                <p className="text-[11px] text-slate-400 leading-relaxed font-medium">
+                                <p className="text-xs text-slate-500 leading-relaxed font-medium min-h-[40px]">
                                   {preset.description}
                                 </p>
 
-                                {/* Visualization Bubbles Row */}
-                                <div className="flex items-center gap-1.5 bg-white/40 p-2 rounded-xl border border-slate-100/60 w-fit">
-                                  <div className="text-[10px] text-slate-400 pl-1 font-bold">لوحة اللون:</div>
-                                  <div className="w-4 h-4 rounded-full border border-black/10" style={{ backgroundColor: preset.bg }} title="الخلفية" />
-                                  <div className="w-4 h-4 rounded-full border border-black/10" style={{ backgroundColor: preset.card }} title="البطاقات" />
-                                  <div className="w-4 h-4 rounded-full border border-black/10" style={{ backgroundColor: preset.primary }} title="الأساسي" />
-                                  <div className="w-4 h-4 rounded-full border border-black/10" style={{ backgroundColor: preset.text }} title="النصوص" />
+                                {/* Aesthetic Palette Preview (Circles overlapping) */}
+                                <div className="flex items-center pt-2 justify-between">
+                                  <div className="flex -space-x-3 space-x-reverse">
+                                    <div className="w-8 h-8 rounded-full border-2 border-white shadow-sm z-[4]" style={{ backgroundColor: preset.primary }} title="الأساسي (Primary)" />
+                                    <div className="w-8 h-8 rounded-full border-2 border-white shadow-sm z-[3]" style={{ backgroundColor: preset.text }} title="النصوص (Text)" />
+                                    <div className="w-8 h-8 rounded-full border-2 border-white shadow-sm z-[2]" style={{ backgroundColor: preset.card }} title="البطاقات (Card)" />
+                                    <div className="w-8 h-8 rounded-full border-2 border-white shadow-sm z-[1]" style={{ backgroundColor: preset.bg }} title="الخلفية (Background)" />
+                                  </div>
+                                  
+                                  {/* Preset HEX Footer info purely for visual */}
+                                  <div className="font-mono text-[10px] font-bold text-slate-400 tracking-wider">
+                                    {preset.primary.toUpperCase()}
+                                  </div>
                                 </div>
-                              </div>
-
-                              {/* Preset HEX Footer info */}
-                              <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[10px] font-mono text-slate-400">
-                                <span>المفتاح الأساسي</span>
-                                <span className="font-bold uppercase" style={{ color: preset.primary }}>
-                                  {preset.primary}
-                                </span>
                               </div>
                             </div>
                           );
@@ -1332,88 +1409,97 @@ const Settings = () => {
 
                         {/* Miniature Shop Simulation Container */}
                         <div
-                          className="w-full h-fit rounded-[2rem] border shadow-md p-6 overflow-hidden transition-all duration-300"
+                          className="w-full h-fit rounded-[2.5rem] border shadow-2xl p-6 overflow-hidden transition-all duration-700 relative"
                           style={{
                             backgroundColor: formData.backgroundColor || "#FFFFFF",
                             borderColor: `${formData.textColor || "#0F172A"}15`
                           }}
                         >
-                          {/* 1. Shop Top Header Block */}
-                          <div className="flex items-center justify-between pb-4 border-b mb-5" style={{ borderColor: `${formData.textColor || "#0F172A"}15` }}>
-                            <div className="flex items-center gap-2">
-                              <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: formData.primaryColor || "#C5A059" }} />
-                              <span className="text-xs font-extrabold" style={{ color: formData.textColor || "#0F172A" }}>
+                          {/* Top Decorative bar */}
+                          <div className="absolute top-0 inset-x-0 h-1.5" style={{ backgroundColor: formData.primaryColor || "#C5A059" }} />
+                          
+                          {/* 1. Shop Top Header Block (Glassmorphic) */}
+                          <div className="flex items-center justify-between pb-4 border-b mb-6 border-dashed" style={{ borderColor: `${formData.textColor || "#0F172A"}20` }}>
+                            <div className="flex items-center gap-2.5">
+                              <div className="w-4 h-4 rounded-lg flex items-center justify-center text-white" style={{ backgroundColor: formData.primaryColor || "#C5A059", boxShadow: `0 4px 12px ${formData.primaryColor || '#C5A059'}40` }}>
+                                <Hexagon className="w-2.5 h-2.5 fill-white" />
+                              </div>
+                              <span className="text-xs font-black tracking-tight" style={{ color: formData.textColor || "#0F172A" }}>
                                 {formData.storeName || "متجر الفخامة"}
                               </span>
                             </div>
                             
                             <div className="flex items-center gap-3">
-                              <div className="w-10 h-1.5 rounded-full" style={{ backgroundColor: formData.textMutedColor || "#64748B", opacity: 0.25 }} />
-                              <div className="w-8 h-1.5 rounded-full" style={{ backgroundColor: formData.textMutedColor || "#64748B", opacity: 0.25 }} />
-                              <div className="w-6 h-5 rounded-lg flex items-center justify-center border text-[10px]" style={{ borderColor: `${formData.textColor || "#0F172A"}15`, color: formData.textColor || "#0F172A" }}>🛒</div>
+                              <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: formData.textColor || "#0F172A", opacity: 0.1 }} />
+                              <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: formData.textColor || "#0F172A", opacity: 0.1 }} />
+                              <div className="w-6 h-6 rounded-lg flex items-center justify-center border text-[10px]" style={{ borderColor: `${formData.textColor || "#0F172A"}20`, color: formData.textColor || "#0F172A" }}>🛒</div>
                             </div>
                           </div>
 
                           {/* 2. Mini Banner Block */}
-                          <div className="w-full py-4 px-5 rounded-2xl mb-5 text-center flex flex-col items-center justify-center gap-1.5 transition-all"
-                               style={{
-                                 backgroundColor: `${formData.primaryColor || "#C5A059"}10`,
-                                 border: `1.5px dashed ${formData.primaryColor || "#C5A059"}30`
-                               }}>
-                            <span className="text-[10px] font-bold" style={{ color: formData.primaryColor || "#C5A059" }}>عرض الصيف النبيل والمحدود</span>
-                            <div className="h-1.5 w-24 rounded-full" style={{ backgroundColor: formData.primaryColor || "#C5A059", opacity: 0.4 }} />
+                          <div className="w-full py-5 px-6 rounded-[1.5rem] mb-6 text-center flex flex-col items-center justify-center gap-2 transition-all relative overflow-hidden"
+                               style={{ backgroundColor: `${formData.primaryColor || "#C5A059"}10` }}>
+                            {/* Decorative element bg */}
+                            <div className="absolute top-0 right-0 w-24 h-24 rounded-full translate-x-12 -translate-y-12 blur-2xl" style={{ backgroundColor: formData.primaryColor || "#C5A059", opacity: 0.15 }} />
+                            
+                            <span className="text-[12px] font-black z-10" style={{ color: formData.primaryColor || "#C5A059" }}>خصومات الموسم النبيلة</span>
+                            <div className="h-1.5 w-16 rounded-full z-10" style={{ backgroundColor: formData.primaryColor || "#C5A059", opacity: 0.5 }} />
                           </div>
 
                           {/* 3. Product Display Card Showcase Grid */}
                           <div className="grid grid-cols-2 gap-3">
                             {/* Product Item 1 */}
                             <div
-                              className="p-3.5 rounded-2xl border transition-all shadow-sm"
+                              className="p-3.5 rounded-2xl border transition-all shadow-sm flex flex-col justify-between"
                               style={{
                                 backgroundColor: formData.cardColor || "#FFFFFF",
                                 borderColor: `${formData.textColor || "#0F172A"}10`
                               }}
                             >
-                              {/* Product Image placeholder */}
-                              <div className="w-full aspect-square rounded-xl bg-slate-100 flex items-center justify-center mb-3 relative overflow-hidden">
-                                <span className="text-lg">💎</span>
-                                <div className="absolute top-1 right-1 px-1.5 py-0.5 rounded text-[9px] font-bold text-white shadow-sm"
-                                     style={{ backgroundColor: formData.primaryColor || "#C5A059" }}>
-                                  رائج
+                              <div>
+                                {/* Product Image placeholder */}
+                                <div className="w-full aspect-square rounded-xl flex items-center justify-center mb-3 relative overflow-hidden" style={{ backgroundColor: `${formData.textColor || "#0F172A"}05` }}>
+                                  <span className="text-[2rem]">💎</span>
+                                  <div className="absolute top-1.5 right-1.5 px-2 py-0.5 rounded text-[8px] font-bold text-white shadow-sm tracking-wider"
+                                       style={{ backgroundColor: formData.primaryColor || "#C5A059" }}>
+                                    رائج
+                                  </div>
                                 </div>
+                                {/* Product label & prices */}
+                                <span className="block text-[11px] font-black line-clamp-1" style={{ color: formData.textColor || "#0F172A" }}>عطر العود الخاص</span>
+                                <span className="block text-[9px] mt-1 font-bold" style={{ color: formData.textMutedColor || "#64748B" }}>عطور رجالية</span>
                               </div>
-                              {/* Product label & prices */}
-                              <span className="block text-[11px] font-bold" style={{ color: formData.textColor || "#0F172A" }}>عطر العود الخاص</span>
-                              <span className="block text-[9px] mt-0.5" style={{ color: formData.textMutedColor || "#64748B" }}>عطور رجالية</span>
                               
-                              <div className="flex items-center justify-between mt-3.5 pt-2 border-t" style={{ borderColor: `${formData.textColor || "#0F172A"}08` }}>
-                                <span className="text-[10px] font-bold" style={{ color: formData.primaryColor || "#C5A059" }}>18,500 ريال</span>
-                                <div className="w-5 h-5 rounded-md flex items-center justify-center text-white text-[10px]" style={{ backgroundColor: formData.primaryColor || "#C5A059" }}>
-                                  +
+                              <div className="flex items-center justify-between mt-4 pt-3 border-t border-dashed" style={{ borderColor: `${formData.textColor || "#0F172A"}15` }}>
+                                <span className="text-[12px] font-black" style={{ color: formData.primaryColor || "#C5A059" }}>18,500</span>
+                                <div className="w-6 h-6 rounded-lg flex items-center justify-center text-white text-[12px] shadow-sm transform hover:scale-105 transition-transform" style={{ backgroundColor: formData.primaryColor || "#C5A059" }}>
+                                  <Plus className="w-3 h-3" />
                                 </div>
                               </div>
                             </div>
 
                             {/* Product Item 2 */}
                             <div
-                              className="p-3.5 rounded-2xl border transition-all shadow-sm"
+                              className="p-3.5 rounded-2xl border transition-all shadow-sm flex flex-col justify-between"
                               style={{
                                 backgroundColor: formData.cardColor || "#FFFFFF",
                                 borderColor: `${formData.textColor || "#0F172A"}10`
                               }}
                             >
-                              {/* Product Image placeholder */}
-                              <div className="w-full aspect-square rounded-xl bg-slate-100 flex items-center justify-center mb-3 relative overflow-hidden">
-                                <span className="text-lg">⌚</span>
+                              <div>
+                                {/* Product Image placeholder */}
+                                <div className="w-full aspect-square rounded-xl flex items-center justify-center mb-3 relative overflow-hidden" style={{ backgroundColor: `${formData.textColor || "#0F172A"}05` }}>
+                                  <span className="text-[2rem]">⌚</span>
+                                </div>
+                                {/* Product label & prices */}
+                                <span className="block text-[11px] font-black line-clamp-1" style={{ color: formData.textColor || "#0F172A" }}>ساعة رويال كلاسيك</span>
+                                <span className="block text-[9px] mt-1 font-bold" style={{ color: formData.textMutedColor || "#64748B" }}>اكسسوارات فاخرة</span>
                               </div>
-                              {/* Product label & prices */}
-                              <span className="block text-[11px] font-bold" style={{ color: formData.textColor || "#0F172A" }}>ساعة رويال كلاسيك</span>
-                              <span className="block text-[9px] mt-0.5" style={{ color: formData.textMutedColor || "#64748B" }}>اكسسوارات فاخرة</span>
                               
-                              <div className="flex items-center justify-between mt-3.5 pt-2 border-t" style={{ borderColor: `${formData.textColor || "#0F172A"}08` }}>
-                                <span className="text-[10px] font-bold" style={{ color: formData.primaryColor || "#C5A059" }}>45,200 ريال</span>
-                                <div className="w-5 h-5 rounded-md flex items-center justify-center text-white text-[10px]" style={{ backgroundColor: formData.primaryColor || "#C5A059" }}>
-                                  +
+                              <div className="flex items-center justify-between mt-4 pt-3 border-t border-dashed" style={{ borderColor: `${formData.textColor || "#0F172A"}15` }}>
+                                <span className="text-[12px] font-black" style={{ color: formData.primaryColor || "#C5A059" }}>45,200</span>
+                                <div className="w-6 h-6 rounded-lg flex items-center justify-center text-white text-[12px] shadow-sm transform hover:scale-105 transition-transform" style={{ backgroundColor: formData.primaryColor || "#C5A059" }}>
+                                  <Plus className="w-3 h-3" />
                                 </div>
                               </div>
                             </div>

@@ -411,6 +411,7 @@ export default function Products() {
   // ==========================================
   const { settings } = useStore();
   const [isStudioOpen, setIsStudioOpen] = useState(false);
+  const [activeStudioTab, setActiveStudioTab] = useState<"filters" | "background" | "sliders" | "watermark">("filters");
   const [studioImgSrc, setStudioImgSrc] = useState("");
   const [studioTargetType, setStudioTargetType] = useState<"main" | "gallery">("main");
   const [studioGalleryIndex, setStudioGalleryIndex] = useState<number>(-1);
@@ -437,6 +438,7 @@ export default function Products() {
     setStudioFilter("none");
     setStudioWatermark(false);
     setStudioWatermarkType("seal");
+    setActiveStudioTab("filters");
     setIsStudioOpen(true);
   };
 
@@ -2170,39 +2172,38 @@ export default function Products() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-carbon/95 backdrop-blur-md p-4 sm:p-6 select-none overflow-y-auto"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-carbon/95 backdrop-blur-md p-3 sm:p-6 select-none overflow-y-auto"
             dir="rtl"
           >
             <motion.div
-              initial={{ scale: 0.95, y: 20 }}
+              initial={{ scale: 0.95, y: 15 }}
               animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.95, y: 20 }}
-              className="bg-[#0b0f19] border border-white/10 rounded-[2.5rem] w-full max-w-5xl shadow-2xl overflow-hidden flex flex-col lg:flex-row h-auto lg:h-[85vh]"
+              exit={{ scale: 0.95, y: 15 }}
+              className="bg-[#080c14] border border-white/10 rounded-[2rem] w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col h-auto max-h-[92vh] sm:h-auto"
             >
-              {/* Left Column: Interactive Canvas Preview */}
-              <div className="flex-1 bg-carbon/40 p-6 flex flex-col justify-between items-center relative min-h-[350px] lg:min-h-0 border-b lg:border-b-0 lg:border-l border-white/10">
-                {/* Header info */}
-                <div className="w-full flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-solar/10 border border-solar/25 flex items-center justify-center text-solar">
-                      <Sparkles className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h3 className="text-white text-sm font-black tracking-wide">معمل معالجة صور النخبة</h3>
-                      <p className="text-[10px] font-bold text-slate-400 mt-0.5">معالجة ورسم وتعديل بالتقنيات الفورية</p>
-                    </div>
+              {/* Header section with minimal branding */}
+              <div className="p-4 bg-carbon/60 flex items-center justify-between border-b border-white/10">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-solar/10 border border-solar/20 flex items-center justify-center text-solar">
+                    <Sparkles className="w-4 h-4" />
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setIsStudioOpen(false)}
-                    className="p-2 ml-1 text-slate-400 hover:text-white hover:bg-white/5 rounded-xl transition-colors"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
+                  <div>
+                    <h3 className="text-white text-xs font-black tracking-wide">أستوديو النخبة الذكي</h3>
+                    <p className="text-[9px] font-bold text-slate-400 mt-0.5">معالجة فورية وتعديل خلفيات وتطريز الصور</p>
+                  </div>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => setIsStudioOpen(false)}
+                  className="p-2 text-slate-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
 
-                {/* Canvas Render Panel Wrapper */}
-                <div className="relative w-full max-w-[400px] aspect-square rounded-[2rem] overflow-hidden border border-white/10 bg-[#070a13] shadow-inner flex items-center justify-center">
+              {/* Main Canvas visual frame */}
+              <div className="flex-1 bg-[#04070d] p-4 flex flex-col items-center justify-center relative min-h-[260px] sm:min-h-[320px] max-h-[40vh] border-b border-white/5">
+                <div className="relative w-full max-w-[300px] sm:max-w-[340px] aspect-square rounded-2xl overflow-hidden border border-white/10 bg-[#070a13] shadow-inner flex items-center justify-center">
                   <canvas
                     ref={canvasRef}
                     className="max-w-full max-h-full object-contain"
@@ -2210,75 +2211,96 @@ export default function Products() {
                   />
                   {isStudioProcessing && (
                     <div className="absolute inset-0 bg-[#070a13]/80 backdrop-blur-sm z-30 flex flex-col items-center justify-center gap-4">
-                      <RefreshCw className="w-10 h-10 text-solar animate-spin" />
+                      <RefreshCw className="w-8 h-8 text-solar animate-spin" />
                       <div className="text-center">
                         <p className="text-white text-xs font-black">جاري المعالجة والرفع...</p>
-                        <p className="text-[10px] text-slate-400 mt-1">يتم تحسين أداء الصورة وتثبيتها سحابياً</p>
+                        <p className="text-[10px] text-slate-400 mt-1">يتم تثبيت الصورة سحابياً بالخادم</p>
                       </div>
                     </div>
                   )}
                 </div>
-
-                {/* Bottom indicators */}
-                <div className="w-full text-center mt-4">
-                  <span className="text-[9px] font-bold text-slate-400 bg-white/5 py-1.5 px-3 rounded-full border border-white/5 inline-flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                    دقة التصدير الذكي: 800 * 800 بكسل (مثالي للمتاجر)
+                
+                {/* Compact export info badge under preview */}
+                <div className="text-center mt-2.5">
+                  <span className="text-[8px] font-bold text-slate-500 bg-white/5 py-1 px-2.5 rounded-full border border-white/5 inline-flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    أبعاد تصدير المتجر: 800 × 800 (مربع متطابق تلقائياً)
                   </span>
                 </div>
               </div>
 
-              {/* Right Column: Custom Control Options */}
-              <div className="w-full lg:w-[380px] p-6 flex flex-col justify-between overflow-y-auto max-h-[50vh] lg:max-h-full custom-scrollbar">
-                <div className="space-y-6">
-                  {/* Preset filters */}
-                  <div>
-                    <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest mb-3">
-                      الفلاتر والمظهر الجاهز
-                    </label>
+              {/* Interactive bottom category tab picker */}
+              <div className="bg-carbon/60 p-2 border-b border-white/10 flex gap-1.5 overflow-x-auto justify-start sm:justify-center scrollbar-none">
+                {[
+                  { id: "filters", name: "الفلاتر الجاهزة", icon: Sparkles },
+                  { id: "background", name: "تغيير الخلفية", icon: Layers },
+                  { id: "sliders", name: "الألوان والضبط", icon: Sliders },
+                  { id: "watermark", name: "علامة الملكية", icon: ShieldCheck }
+                ].map((tab) => {
+                  const IconComponent = tab.icon;
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => setActiveStudioTab(tab.id as any)}
+                      className={`px-3 py-2 rounded-xl text-[10px] font-black whitespace-nowrap flex items-center gap-1.5 transition-all cursor-pointer ${
+                        activeStudioTab === tab.id
+                          ? "bg-solar text-carbon font-extrabold shadow-md shadow-solar/10"
+                          : "bg-white/5 text-slate-300 hover:bg-white/10"
+                      }`}
+                    >
+                      <IconComponent className="w-3.5 h-3.5" />
+                      <span>{tab.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Dynamic Feature options container */}
+              <div className="p-4 sm:p-5 bg-[#0a0e18] overflow-y-auto max-h-[30vh] sm:max-h-[250px] custom-scrollbar">
+                {activeStudioTab === "filters" && (
+                  <div className="space-y-2">
                     <div className="grid grid-cols-2 gap-2">
                       {[
-                        { id: "none", name: "النمط الافتراضي", desc: "بدون تأثيرات" },
-                        { id: "auto", name: "تحسين تلقائي", desc: "توازن تلقائي للألوان" },
-                        { id: "warm-gold", name: "وهج دافئ فاخر", desc: "دافئ ومحدد" },
-                        { id: "royal", name: "الشكل الملكي", desc: "تباين وإضاءة ساطعة" },
-                        { id: "mono", name: "أحادية الفخامة", desc: "أبيض وأسود كلاسيك" },
+                        { id: "none", name: "النمط الافتراضي", desc: "ألوان الصورة الطبيعية" },
+                        { id: "auto", name: "تحسين احترافي تلقائي", desc: "وزن مستويات الإنارة والحدة" },
+                        { id: "warm-gold", name: "وهج دافئ ذهبي", desc: "لون هادئ ودافئ ونقي" },
+                        { id: "royal", name: "النمط الملكي البارز", desc: "تباين عميق للمجوهرات والقطع" },
+                        { id: "mono", name: "أحادية فاخرة كلاسيك", desc: "أبيض وأسود كلاسيكي فاخر" },
                       ].map((filt) => (
                         <button
                           key={filt.id}
                           type="button"
                           onClick={() => setStudioFilter(filt.id as any)}
-                          className={`p-3 rounded-2xl flex flex-col items-start gap-1 text-right border transition-all cursor-pointer ${
+                          className={`p-2.5 rounded-xl flex flex-col items-start gap-0.5 text-right border transition-all cursor-pointer ${
                             studioFilter === filt.id
                               ? "bg-solar/10 border-solar text-solar"
                               : "bg-white/5 border-white/5 hover:border-white/10 text-slate-300"
                           }`}
                         >
                           <span className="text-xs font-black">{filt.name}</span>
-                          <span className="text-[9px] text-slate-400 line-clamp-1">{filt.desc}</span>
+                          <span className="text-[8.5px] text-slate-400 line-clamp-1">{filt.desc}</span>
                         </button>
                       ))}
                     </div>
                   </div>
+                )}
 
-                  {/* Dynamic background swap */}
-                  <div>
-                    <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest mb-3">
-                      تعديل خلفية المنتج
-                    </label>
-                    <div className="grid grid-cols-2 gap-2">
+                {activeStudioTab === "background" && (
+                  <div className="space-y-2">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                       {[
-                        { id: "original", name: "الخلفية الأصلية" },
-                        { id: "transparent", name: "فلتر شفاف (PNG)" },
-                        { id: "luxe-dark", name: "داكن النخبة الفاخر" },
-                        { id: "white", name: "أبيض ملكي ناصع" },
-                        { id: "gray", name: "رمادي الاستوديو الناعم" },
+                        { id: "original", name: "إبقاء الخلفية الأصلية" },
+                        { id: "transparent", name: "تفريغ وتصدير شفاف PNG" },
+                        { id: "luxe-dark", name: "خلفية داكن النخبة الفاخر" },
+                        { id: "white", name: "خلفية أبيض ناصع ملكي" },
+                        { id: "gray", name: "خلفية رمادي استوديو ناعم" },
                       ].map((bg) => (
                         <button
                           key={bg.id}
                           type="button"
                           onClick={() => setStudioBackground(bg.id as any)}
-                          className={`p-2.5 rounded-xl text-right text-xs font-bold border transition-all cursor-pointer ${
+                          className={`p-2.5 rounded-xl text-center text-xs font-bold border transition-all cursor-pointer ${
                             studioBackground === bg.id
                               ? "bg-solar/10 border-solar text-solar"
                               : "bg-white/5 border-white/5 hover:border-white/10 text-slate-300"
@@ -2289,13 +2311,12 @@ export default function Products() {
                       ))}
                     </div>
                   </div>
+                )}
 
-                  {/* Precision sliders adjustment */}
-                  <div>
-                    <div className="flex justify-between items-center mb-3">
-                      <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest">
-                        لوحة الضبط اليدوي والدقيق
-                      </label>
+                {activeStudioTab === "sliders" && (
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-[10px] font-black text-slate-400 uppercase">ضبط الأبعاد بالتفصيل</span>
                       <button
                         type="button"
                         onClick={() => {
@@ -2303,17 +2324,17 @@ export default function Products() {
                           setStudioContrast(100);
                           setStudioSaturation(100);
                         }}
-                        className="text-[9px] font-bold text-solar hover:underline"
+                        className="text-[9px] font-black text-solar hover:underline"
                       >
-                        إعادة تعيين الضبط
+                        إعادة تعيين الضبط الطبيعي
                       </button>
                     </div>
-                    
-                    <div className="space-y-4 bg-white/5 border border-white/5 rounded-2xl p-4">
-                      {/* Brightness slider */}
-                      <div className="space-y-1.5">
+
+                    <div className="grid grid-cols-1 gap-3.5 bg-white/5 border border-white/5 rounded-xl p-3.5">
+                      {/* Range Control for Brightness */}
+                      <div className="space-y-1">
                         <div className="flex justify-between text-[10px] font-bold text-slate-400">
-                          <span>السطوع (الإنارة)</span>
+                          <span>السطوع والإنارة</span>
                           <span className="text-solar font-mono">{studioBrightness}%</span>
                         </div>
                         <input
@@ -2322,14 +2343,14 @@ export default function Products() {
                           max="160"
                           value={studioBrightness}
                           onChange={(e) => setStudioBrightness(Number(e.target.value))}
-                          className="w-full accent-solar cursor-pointer"
+                          className="w-full h-1.5 bg-white/10 accent-solar rounded-lg cursor-pointer appearance-none"
                         />
                       </div>
 
-                      {/* Contrast slider */}
-                      <div className="space-y-1.5">
+                      {/* Range Control for Contrast */}
+                      <div className="space-y-1">
                         <div className="flex justify-between text-[10px] font-bold text-slate-400">
-                          <span>التباين (عمق الألوان)</span>
+                          <span>التباين والعمق اللوني</span>
                           <span className="text-solar font-mono">{studioContrast}%</span>
                         </div>
                         <input
@@ -2338,14 +2359,14 @@ export default function Products() {
                           max="160"
                           value={studioContrast}
                           onChange={(e) => setStudioContrast(Number(e.target.value))}
-                          className="w-full accent-solar cursor-pointer"
+                          className="w-full h-1.5 bg-white/10 accent-solar rounded-lg cursor-pointer appearance-none"
                         />
                       </div>
 
-                      {/* Saturation slider */}
-                      <div className="space-y-1.5">
+                      {/* Range Control for Saturation */}
+                      <div className="space-y-1">
                         <div className="flex justify-between text-[10px] font-bold text-slate-400">
-                          <span>التشبع لوني</span>
+                          <span>نسبة التشبع اللوني</span>
                           <span className="text-solar font-mono">{studioSaturation}%</span>
                         </div>
                         <input
@@ -2354,34 +2375,32 @@ export default function Products() {
                           max="160"
                           value={studioSaturation}
                           onChange={(e) => setStudioSaturation(Number(e.target.value))}
-                          className="w-full accent-solar cursor-pointer"
+                          className="w-full h-1.5 bg-white/10 accent-solar rounded-lg cursor-pointer appearance-none"
                         />
                       </div>
                     </div>
                   </div>
+                )}
 
-                  {/* Copyrights protection watermark & seal */}
-                  <div>
-                    <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest mb-3">
-                      حماية الملكية والحقوق الفاخرة
-                    </label>
-                    <div className="bg-white/5 border border-white/5 rounded-2xl p-4 space-y-4">
+                {activeStudioTab === "watermark" && (
+                  <div className="space-y-3">
+                    <div className="bg-white/5 border border-white/5 rounded-xl p-3.5 space-y-3.5">
                       <label className="flex items-center gap-3 cursor-pointer text-slate-300">
                         <input
                           type="checkbox"
                           checked={studioWatermark}
                           onChange={(e) => setStudioWatermark(e.target.checked)}
-                          className="w-5 h-5 rounded border-white/10 text-solar focus:ring-solar/20 bg-transparent transition-all cursor-pointer"
+                          className="w-4 h-4 rounded border-white/10 text-solar focus:ring-solar/20 bg-transparent transition-all cursor-pointer"
                         />
-                        <span className="text-xs font-black">إضافة حماية لضمان الحقوق</span>
+                        <span className="text-xs font-black">حقوق الملكية الحصري للمتجر</span>
                       </label>
 
                       {studioWatermark && (
-                        <div className="grid grid-cols-2 gap-2 pt-2 border-t border-white/5">
+                        <div className="grid grid-cols-2 gap-2 pt-2 border-t border-white/5 animate-fadeIn">
                           <button
                             type="button"
                             onClick={() => setStudioWatermarkType("seal")}
-                            className={`p-2.5 rounded-xl text-center text-[10px] font-bold border transition-all ${
+                            className={`p-2.5 rounded-xl text-center text-[10px] font-bold border transition-all cursor-pointer ${
                               studioWatermarkType === "seal"
                                 ? "bg-solar/15 border-solar text-solar"
                                 : "bg-white/5 border-white/5 text-slate-400 hover:text-slate-200"
@@ -2392,7 +2411,7 @@ export default function Products() {
                           <button
                             type="button"
                             onClick={() => setStudioWatermarkType("text")}
-                            className={`p-2.5 rounded-xl text-center text-[10px] font-bold border transition-all ${
+                            className={`p-2.5 rounded-xl text-center text-[10px] font-bold border transition-all cursor-pointer ${
                               studioWatermarkType === "text"
                                 ? "bg-solar/15 border-solar text-solar"
                                 : "bg-white/5 border-white/5 text-slate-400 hover:text-slate-200"
@@ -2404,36 +2423,36 @@ export default function Products() {
                       )}
                     </div>
                   </div>
-                </div>
+                )}
+              </div>
 
-                {/* Apply/Save Action Controls */}
-                <div className="mt-8 flex gap-3 border-t border-white/5 pt-4">
-                  <button
-                    type="button"
-                    onClick={() => setIsStudioOpen(false)}
-                    className="flex-1 py-3 bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-black rounded-2xl transition-colors active:scale-95"
-                  >
-                    تراجع
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleSaveStudioImage}
-                    disabled={isStudioProcessing}
-                    className="flex-[2] py-3 bg-solar text-carbon text-xs font-black rounded-2xl transition-all shadow-xl shadow-solar/10 hover:shadow-solar/20 hover:scale-102 active:scale-95 flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isStudioProcessing ? (
-                      <>
-                        <RefreshCw className="w-4 h-4 animate-spin text-carbon" />
-                        <span>جاري الحفظ...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Check className="w-4 h-4 text-carbon" />
-                        <span>تطبيق وحفظ التعديلات</span>
-                      </>
-                    )}
-                  </button>
-                </div>
+              {/* Bottom footer button bar */}
+              <div className="p-4 bg-carbon/60 flex gap-3 border-t border-white/10">
+                <button
+                  type="button"
+                  onClick={() => setIsStudioOpen(false)}
+                  className="flex-1 py-3 bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-black rounded-xl transition-colors active:scale-95 cursor-pointer"
+                >
+                  إلغاء التغييرات
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveStudioImage}
+                  disabled={isStudioProcessing}
+                  className="flex-[2] py-3 bg-solar text-carbon text-xs font-black rounded-xl transition-all shadow-xl shadow-solar/10 hover:shadow-solar/25 hover:scale-102 active:scale-95 flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  {isStudioProcessing ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin text-carbon" />
+                      <span>جاري الحفظ...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-3.5 h-3.5 text-carbon" />
+                      <span>تم، تطبيق وحفظ الصورة</span>
+                    </>
+                  )}
+                </button>
               </div>
             </motion.div>
           </motion.div>

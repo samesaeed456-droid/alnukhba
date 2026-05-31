@@ -7,12 +7,23 @@ import {
   Instagram,
   Twitter,
   Facebook,
-  Youtube,
-  Globe
+  Youtube
 } from "lucide-react";
 import { useStore } from "../context/StoreContext";
 import Logo from "../components/Logo";
 import { motion, AnimatePresence } from "motion/react";
+
+const TiktokIcon = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
+    <path d="M19.589 6.686a4.793 4.793 0 0 1-3.77-4.245V2h-3.445v13.672a2.892 2.892 0 0 1-5.201 1.743 2.892 2.892 0 0 1 2.308-4.642c.307 0 .604.05.88.143v-3.41a6.845 6.845 0 0 0-1.04-.057c-3.572 0-6.467 2.895-6.467 6.467 0 3.572 2.895 6.467 6.467 6.467 3.566 0 6.456-2.884 6.467-6.446V7.073A8.157 8.157 0 0 0 20 8.59V5.191a4.805 4.805 0 0 1-2.434-.848 4.773 4.773 0 0 1-1.03-.834c.002-.276.012-.55.053-.823z" />
+  </svg>
+);
+
+const WhatsappIcon = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
+    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.611-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+  </svg>
+);
 
 interface MaintenanceProps {
   onBypass?: () => void;
@@ -53,15 +64,60 @@ export default function Maintenance({ onBypass }: MaintenanceProps) {
     return () => clearInterval(interval);
   }, []);
 
-  // Filter and build social media networks
-  const socialMedia = settings?.socialMedia || {};
+  // Filter and build social media networks exactly like Footer.tsx
   const socials = [
-    { icon: Instagram, url: socialMedia.instagram || "https://instagram.com", name: "إنستغرام" },
-    { icon: Twitter, url: socialMedia.twitter || "https://twitter.com", name: "تويتر" },
-    { icon: Facebook, url: socialMedia.facebook || "https://facebook.com", name: "فيسبوك" },
-    { icon: Youtube, url: socialMedia.youtube || "https://youtube.com", name: "يوتيوب" },
-    { icon: Globe, url: socialMedia.snapchat || "https://google.com", name: "الموقع" }
-  ];
+    {
+      icon: Facebook,
+      url: settings?.socialMedia?.facebook,
+      color: "hover:bg-[#1877F2]/20 hover:border-[#1877F2]/50 hover:text-[#1877F2]",
+      name: "فيسبوك",
+    },
+    {
+      icon: Twitter,
+      url: settings?.socialMedia?.twitter,
+      color: "hover:bg-[#1DA1F2]/20 hover:border-[#1DA1F2]/50 hover:text-[#1DA1F2]",
+      name: "تويتر",
+    },
+    {
+      icon: Instagram,
+      url: settings?.socialMedia?.instagram,
+      color: "hover:bg-[#E4405F]/20 hover:border-[#E4405F]/50 hover:text-[#E4405F]",
+      name: "إنستغرام",
+    },
+    {
+      icon: TiktokIcon,
+      url: settings?.socialMedia?.tiktok,
+      color: "hover:bg-white/10 hover:border-white/20 text-[#ff0050] hover:text-white",
+      name: "تيك توك",
+    },
+    {
+      icon: Youtube,
+      url: settings?.socialMedia?.youtube,
+      color: "hover:bg-[#FF0000]/20 hover:border-[#FF0000]/50 hover:text-[#FF0000]",
+      name: "يوتيوب",
+    },
+    {
+      icon: WhatsappIcon,
+      url: settings?.socialMedia?.whatsapp
+        ? settings.socialMedia.whatsapp.startsWith("http")
+          ? settings.socialMedia.whatsapp
+          : `https://wa.me/${settings.socialMedia.whatsapp.replace(/\D/g, "")}`
+        : settings?.contactPhone
+          ? `https://wa.me/${settings.contactPhone.replace(/\D/g, "")}`
+          : undefined,
+      color: "hover:bg-[#25D366]/20 hover:border-[#25D366]/50 hover:text-[#25D366]",
+      name: "واتساب",
+    },
+  ].filter((s) => s.url && s.url !== "#");
+
+  // Format Whatsapp contact phone appropriately
+  const calculatedWhatsapp = settings?.socialMedia?.whatsapp
+    ? settings.socialMedia.whatsapp.startsWith("http")
+      ? settings.socialMedia.whatsapp
+      : `https://wa.me/${settings.socialMedia.whatsapp.replace(/\D/g, "")}`
+    : settings?.contactPhone
+      ? `https://wa.me/${settings.contactPhone.replace(/\D/g, "")}`
+      : "https://wa.me/966";
 
   return (
     <div
@@ -172,13 +228,13 @@ export default function Maintenance({ onBypass }: MaintenanceProps) {
               <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-white tracking-tight pt-0.5">
                 نعمل على ترقية تجربتكم الرقمية!
               </h1>
-              <p className="text-xs sm:text-sm text-gray-400 font-medium leading-relaxed max-w-sm sm:max-w-md mx-auto">
+              <p className="text-xs sm:text-sm text-gray-300 font-medium leading-relaxed max-w-sm sm:max-w-md mx-auto">
                 {settings?.maintenanceMessage ||
                   "نقوم الآن بوضع اللمسات والتحسينات النهائية لنقدم لكم واجهة فارهة ومستقرة تماماً للهواتف والأجهزة."}
               </p>
             </div>
 
-            {/* Countdown Grid (Elegant, clean spacing) */}
+            {/* Countdown Grid (Elegant, clean spacing with bright white labels) */}
             <div className="grid grid-cols-4 gap-2 sm:gap-3 max-w-xs sm:max-w-sm mx-auto">
               {[
                 { label: "أيام", value: timeLeft.days },
@@ -190,7 +246,7 @@ export default function Maintenance({ onBypass }: MaintenanceProps) {
                   <div className="text-base sm:text-xl md:text-2xl font-black text-white font-mono leading-none mb-1">
                     {String(item.value).padStart(2, '0')}
                   </div>
-                  <div className="text-[9px] sm:text-[11px] text-gray-450 font-bold">
+                  <div className="text-[10px] sm:text-xs text-white font-black drop-shadow-sm tracking-wider">
                     {item.label}
                   </div>
                 </div>
@@ -199,7 +255,7 @@ export default function Maintenance({ onBypass }: MaintenanceProps) {
 
             {/* Contact Channels with Micro-Interactions */}
             <div className="border-t border-white/5 pt-5 sm:pt-6 text-right space-y-3">
-              <h3 className="text-[11px] sm:text-xs font-black text-white flex items-center gap-1.5">
+              <h3 className="text-[11px] sm:text-xs font-black text-white flex items-center gap-1.5 font-bold">
                 <span className="w-1.5 h-1.5 rounded-full bg-solar inline-block animate-ping" />
                 تواصل مباشر لخدمة العملاء واللوجستيات:
               </h3>
@@ -207,7 +263,7 @@ export default function Maintenance({ onBypass }: MaintenanceProps) {
               <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
                 {/* WhatsApp Button with Glow & Scale Transition */}
                 <motion.a
-                  href={`https://wa.me/${settings?.contactPhone?.replace(/\D/g, '') || '966'}`}
+                  href={calculatedWhatsapp}
                   target="_blank"
                   rel="noreferrer"
                   className="flex items-center gap-2.5 p-2.5 sm:p-3 bg-emerald-500/5 border border-emerald-500/10 rounded-xl transition-all group text-right relative overflow-hidden"
@@ -224,7 +280,7 @@ export default function Maintenance({ onBypass }: MaintenanceProps) {
                   </div>
                   <div className="overflow-hidden z-10">
                     <h4 className="text-[10px] sm:text-xs font-bold text-white whitespace-nowrap">عبر الواتساب</h4>
-                    <span className="text-[8px] sm:text-[10px] text-gray-500 block font-mono truncate">{settings?.contactPhone || "+966"}</span>
+                    <span className="text-[8px] sm:text-[10px] text-gray-200 block font-mono truncate">{settings?.socialMedia?.whatsapp || settings?.contactPhone || "+966"}</span>
                   </div>
                   
                   {/* Subtle sweep shimmer highlight */}
@@ -258,7 +314,7 @@ export default function Maintenance({ onBypass }: MaintenanceProps) {
                   </div>
                   <div className="overflow-hidden z-10">
                     <h4 className="text-[10px] sm:text-xs font-bold text-white whitespace-nowrap">الاتصال المباشر</h4>
-                    <span className="text-[8px] sm:text-[10px] text-gray-500 block font-mono truncate">{settings?.contactPhone || "+966"}</span>
+                    <span className="text-[8px] sm:text-[10px] text-gray-200 block font-mono truncate">{settings?.contactPhone || "+966"}</span>
                   </div>
 
                   {/* Subtle sweep shimmer highlight */}
@@ -279,22 +335,26 @@ export default function Maintenance({ onBypass }: MaintenanceProps) {
 
             {/* Mini Social Media Icons Section with smooth hover effects */}
             <div className="border-t border-white/5 pt-5 text-center space-y-3">
-              <span className="text-[9px] sm:text-[10px] text-gray-500 font-bold block">تابعنا عبر وسائل التواصل لقرب الافتتاح:</span>
+              <span className="text-[10px] sm:text-xs text-gray-200 font-bold block">تابعنا عبر وسائل التواصل لقرب الافتتاح:</span>
               <div className="flex justify-center items-center gap-3">
-                {socials.map((social, index) => (
-                  <motion.a
-                    key={index}
-                    href={social.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="p-2 sm:p-2.5 bg-white/5 hover:bg-solar/10 text-gray-400 hover:text-solar border border-white/5 hover:border-solar/20 rounded-full transition-colors relative"
-                    whileHover={{ y: -3, scale: 1.15, boxShadow: "0 4px 12px rgba(197, 160, 89, 0.1)" }}
-                    whileTap={{ scale: 0.95 }}
-                    title={social.name}
-                  >
-                    <social.icon className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
-                  </motion.a>
-                ))}
+                {socials.length > 0 ? (
+                  socials.map((social, index) => (
+                    <motion.a
+                      key={index}
+                      href={social.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className={`p-2 sm:p-2.5 bg-white/5 text-gray-300 border border-white/5 rounded-full transition-all relative flex items-center justify-center ${social.color}`}
+                      whileHover={{ y: -3, scale: 1.15, boxShadow: "0 4px 12px rgba(197, 160, 89, 0.1)" }}
+                      whileTap={{ scale: 0.95 }}
+                      title={social.name}
+                    >
+                      <social.icon className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
+                    </motion.a>
+                  ))
+                ) : (
+                  <span className="text-xs text-gray-400 italic">سعداء بقرب تواصلكم قريباً</span>
+                )}
               </div>
             </div>
 
@@ -302,8 +362,8 @@ export default function Maintenance({ onBypass }: MaintenanceProps) {
         </div>
       </div>
 
-      {/* Footer Branding Bar (Perfect fit without scrolling) */}
-      <div className="w-full max-w-md sm:max-w-lg mt-3 relative z-10 flex items-center justify-between border-t border-white/5 pt-3 text-[9px] sm:text-xs text-gray-500">
+      {/* Footer Branding Bar (Perfect fit without scrolling with brilliant high contrast white) */}
+      <div className="w-full max-w-md sm:max-w-lg mt-3 relative z-10 flex items-center justify-between border-t border-white/5 pt-3 text-[9px] sm:text-xs text-gray-200">
         <span>&copy; {new Date().getFullYear()} {settings?.storeName || "متجر النخبة"}. جميع الحقوق محفوظة.</span>
         <span className="text-[8px] sm:text-[10px] font-black uppercase text-solar border border-solar/20 px-2 py-0.5 rounded-md tracking-wider leading-none">
           LUXURY EDITION

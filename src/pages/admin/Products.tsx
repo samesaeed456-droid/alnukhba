@@ -37,6 +37,8 @@ import {
   Save,
   RefreshCw,
   Check,
+  Sliders,
+  Sparkles,
 } from "lucide-react";
 import { motion, AnimatePresence, Variants } from "motion/react";
 import { Toaster, toast } from "sonner";
@@ -403,6 +405,251 @@ export default function Products() {
       }
     }
   };
+
+  // ==========================================
+  // IMAGE STUDIO (معمل معالجة صور منتجات النخبة)
+  // ==========================================
+  const { settings } = useStore();
+  const [isStudioOpen, setIsStudioOpen] = useState(false);
+  const [studioImgSrc, setStudioImgSrc] = useState("");
+  const [studioTargetType, setStudioTargetType] = useState<"main" | "gallery">("main");
+  const [studioGalleryIndex, setStudioGalleryIndex] = useState<number>(-1);
+  const [studioBrightness, setStudioBrightness] = useState(100);
+  const [studioContrast, setStudioContrast] = useState(100);
+  const [studioSaturation, setStudioSaturation] = useState(100);
+  const [studioBackground, setStudioBackground] = useState<"original" | "transparent" | "luxe-dark" | "white" | "gray">("original");
+  const [studioFilter, setStudioFilter] = useState<"none" | "auto" | "warm-gold" | "royal" | "mono">("none");
+  const [studioWatermark, setStudioWatermark] = useState(false);
+  const [studioWatermarkType, setStudioWatermarkType] = useState<"seal" | "text">("seal");
+  const [isStudioProcessing, setIsStudioProcessing] = useState(false);
+
+  const canvasRef = React.useRef<HTMLCanvasElement | null>(null);
+
+  const handleOpenImageStudio = (imgSrc: string, targetType: "main" | "gallery", index = -1) => {
+    if (!imgSrc) return;
+    setStudioImgSrc(imgSrc);
+    setStudioTargetType(targetType);
+    setStudioGalleryIndex(index);
+    setStudioBrightness(100);
+    setStudioContrast(100);
+    setStudioSaturation(100);
+    setStudioBackground("original");
+    setStudioFilter("none");
+    setStudioWatermark(false);
+    setStudioWatermarkType("seal");
+    setIsStudioOpen(true);
+  };
+
+  useEffect(() => {
+    if (!isStudioOpen || !studioImgSrc) return;
+
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.src = studioImgSrc;
+
+    img.onload = () => {
+      const size = 800;
+      canvas.width = size;
+      canvas.height = size;
+
+      ctx.clearRect(0, 0, size, size);
+
+      if (studioBackground === "luxe-dark") {
+        const grad = ctx.createRadialGradient(size / 2, size / 2, 80, size / 2, size / 2, size * 0.7);
+        grad.addColorStop(0, "#121829");
+        grad.addColorStop(1, "#070A13");
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, size, size);
+      } else if (studioBackground === "white") {
+        ctx.fillStyle = "#FFFFFF";
+        ctx.fillRect(0, 0, size, size);
+      } else if (studioBackground === "gray") {
+        ctx.fillStyle = "#F8FAFC";
+        ctx.fillRect(0, 0, size, size);
+      } else {
+        ctx.fillStyle = "transparent";
+        ctx.clearRect(0, 0, size, size);
+      }
+
+      let filterString = `brightness(${studioBrightness}%) contrast(${studioContrast}%) saturate(${studioSaturation}%)`;
+      if (studioFilter === "auto") {
+        filterString += " contrast(110%) brightness(102%) saturate(105%)";
+      } else if (studioFilter === "warm-gold") {
+        filterString += " sepia(15%) hue-rotate(-10deg) saturate(112%) brightness(102%) contrast(105%)";
+      } else if (studioFilter === "royal") {
+        filterString += " brightness(106%) contrast(115%) saturate(100%)";
+      } else if (studioFilter === "mono") {
+        filterString += " grayscale(100%) contrast(125%) brightness(100%)";
+      }
+      ctx.filter = filterString;
+
+      const imgWidth = img.width;
+      const imgHeight = img.height;
+      const margin = 40;
+      const scale = Math.min((size - margin * 2) / imgWidth, (size - margin * 2) / imgHeight);
+      const drawWidth = imgWidth * scale;
+      const drawHeight = imgHeight * scale;
+      const drawX = (size - drawWidth) / 2;
+      const drawY = (size - drawHeight) / 2;
+
+      ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
+
+      ctx.filter = "none";
+
+      if (studioWatermark) {
+        if (studioWatermarkType === "text") {
+          ctx.save();
+          ctx.fillStyle = "rgba(148, 163, 184, 0.15)";
+          ctx.font = "bold 22px system-ui, -apple-system, sans-serif";
+          ctx.textAlign = "center";
+          ctx.translate(size / 2, size / 2);
+          ctx.rotate(-Math.PI / 6);
+          const watermarkText = settings?.storeName || "متجر النخبة";
+          for (let xOffset = -size; xOffset < size; xOffset += 240) {
+            for (let yOffset = -size; yOffset < size; yOffset += 140) {
+              ctx.fillText(watermarkText, xOffset, yOffset);
+            }
+          }
+          ctx.restore();
+        } else if (studioWatermarkType === "seal") {
+          ctx.save();
+          const stampRadius = 55;
+          const stampMargin = 40;
+          const cx = size - stampRadius - stampMargin;
+          const cy = stampRadius + stampMargin;
+
+          ctx.shadowColor = "rgba(197,160,89, 0.25)";
+          ctx.shadowBlur = 12;
+
+          const outerGold = ctx.createLinearGradient(cx - stampRadius, cy - stampRadius, cx + stampRadius, cy + stampRadius);
+          outerGold.addColorStop(0, "#F5E3C3");
+          outerGold.addColorStop(0.5, "#C5A059");
+          outerGold.addColorStop(1, "#8A6929");
+
+          ctx.strokeStyle = outerGold;
+          ctx.lineWidth = 3.5;
+          ctx.beginPath();
+          ctx.arc(cx, cy, stampRadius, 0, Math.PI * 2);
+          ctx.fillStyle = "rgba(7, 10, 19, 0.92)";
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.strokeStyle = "rgba(197, 160, 89, 0.5)";
+          ctx.lineWidth = 1;
+          ctx.setLineDash([3, 3]);
+          ctx.beginPath();
+          ctx.arc(cx, cy, stampRadius - 7, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.setLineDash([]);
+
+          ctx.shadowBlur = 0;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+
+          ctx.fillStyle = "#EAD7B3";
+          ctx.font = "900 11px system-ui, -apple-system, sans-serif";
+          const displayStoreName = (settings?.storeName || "متجر النخبة").substring(0, 15);
+          ctx.fillText(displayStoreName, cx, cy - 16);
+
+          ctx.fillStyle = "#C5A059";
+          ctx.font = "bold 9px system-ui";
+          ctx.fillText("★ ★ ★", cx, cy - 2);
+
+          ctx.fillStyle = "#FFFFFF";
+          ctx.font = "bold 9px system-ui, -apple-system, sans-serif";
+          ctx.fillText("أصلي ومضمون", cx, cy + 12);
+
+          ctx.fillStyle = "rgba(197, 160, 89, 0.9)";
+          ctx.font = "800 6.5px system-ui, sans-serif";
+          ctx.fillText("LUXURY QUALITY", cx, cy + 24);
+
+          ctx.restore();
+        }
+      }
+    };
+
+    img.onerror = () => {
+      console.warn("Failed to load image in Studio Canvas. Image URL might restrict CORS.");
+    };
+  }, [
+    isStudioOpen,
+    studioImgSrc,
+    studioBrightness,
+    studioContrast,
+    studioSaturation,
+    studioBackground,
+    studioFilter,
+    studioWatermark,
+    studioWatermarkType,
+    settings?.storeName
+  ]);
+
+  const handleSaveStudioImage = async () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    setIsStudioProcessing(true);
+    try {
+      showLuxuryToast("info", { title: "تنبيه", description: "جاري معالجة ورفع الصورة للغيمة..." });
+
+      const mimeType = studioBackground === "transparent" || studioBackground === "original" ? "image/png" : "image/jpeg";
+      const dataUrl = canvas.toDataURL(mimeType, 0.95);
+
+      const randomNum = Math.floor(1000 + Math.random() * 9000);
+      const filename = `luxury_edited_${randomNum}.${mimeType === "image/png" ? "png" : "jpg"}`;
+      const file = dataURLtoFile(dataUrl, filename);
+
+      const { uploadToCloudinary } = await import("../../lib/cloudinary");
+      const secureUrl = await uploadToCloudinary(file);
+
+      if (studioTargetType === "main") {
+        const oldImage = formData.image;
+        setFormData((prev) => ({ ...prev, image: secureUrl }));
+        if (oldImage && oldImage.includes("res.cloudinary.com")) {
+          deleteImagesFromCloudinary([oldImage]);
+        }
+      } else {
+        setFormData((prev) => {
+          const updatedImages = [...(prev.images || [])];
+          const oldImage = updatedImages[studioGalleryIndex];
+          updatedImages[studioGalleryIndex] = secureUrl;
+
+          if (oldImage && oldImage.includes("res.cloudinary.com")) {
+            deleteImagesFromCloudinary([oldImage]);
+          }
+
+          return { ...prev, images: updatedImages };
+        });
+      }
+
+      showLuxuryToast("success", { title: "تم بنجاح!", description: "تم تحسين الصورة وحفظها بنجاح واحترافية" });
+      setIsStudioOpen(false);
+    } catch (err: any) {
+      console.error("Studio image processing fail:", err);
+      showLuxuryToast("error", { title: "فشل الحفظ", description: err.message || "فشل رفع الصورة المعدلة" });
+    } finally {
+      setIsStudioProcessing(false);
+    }
+  };
+
+  const dataURLtoFile = (dataurl: string, filename: string): File => {
+    const arr = dataurl.split(",");
+    const mime = arr[0].match(/:(.*?);/)?.[1] || "image/png";
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) {
+      u8arr[n] = bstr.charCodeAt(n);
+    }
+    return new File([u8arr], filename, { type: mime });
+  };
+  // ==========================================
 
   return (
     <motion.div
@@ -1181,35 +1428,53 @@ export default function Products() {
                   {/* Left Column: Images */}
                   <div className="lg:col-span-4 space-y-6">
                     <div className="flex flex-col items-center gap-4">
-                      <label className="flex flex-col items-center justify-center w-full aspect-square max-w-[280px] border-2 border-slate-200 border-dashed rounded-3xl cursor-pointer bg-slate-50 hover:bg-slate-100 transition-all relative overflow-hidden group shadow-sm">
-                        {formData.image ? (
-                          <>
-                            <img
-                              src={formData.image || undefined}
-                              alt="Preview"
-                              className="w-full h-full object-cover"
-                            />
-                            <div className="absolute inset-0 bg-carbon/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                              <Upload className="w-6 h-6 text-white" />
+                      <div className="relative w-full aspect-square max-w-[280px]">
+                        <label className="flex flex-col items-center justify-center w-full h-full border-2 border-slate-200 border-dashed rounded-3xl cursor-pointer bg-slate-50 hover:bg-slate-100 transition-all relative overflow-hidden group shadow-sm mb-0">
+                          {formData.image ? (
+                            <>
+                              <img
+                                src={formData.image || undefined}
+                                alt="Preview"
+                                className="w-full h-full object-cover"
+                              />
+                              <div className="absolute inset-0 bg-carbon/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                <Upload className="w-6 h-6 text-white" />
+                              </div>
+                            </>
+                          ) : (
+                            <div className="flex flex-col items-center justify-center text-slate-400">
+                              <ImageIcon className="w-8 h-8 mb-2 opacity-50" />
+                              <span className="text-[10px] font-bold uppercase tracking-widest">
+                                صورة المنتج الرئيسية
+                              </span>
                             </div>
-                          </>
-                        ) : (
-                          <div className="flex flex-col items-center justify-center text-slate-400">
-                            <ImageIcon className="w-8 h-8 mb-2 opacity-50" />
-                            <span className="text-[10px] font-bold uppercase tracking-widest">
-                              صورة المنتج الرئيسية
-                            </span>
-                          </div>
-                        )}
-                        <input
-                          type="file"
-                          className="hidden"
-                          accept="image/*"
-                          onChange={handleImageChange}
-                        />
-                      </label>
+                          )}
+                          <input
+                            type="file"
+                            className="hidden"
+                            accept="image/*"
+                            onChange={handleImageChange}
+                          />
+                        </label>
 
-                      <div className="w-full">
+                        {formData.image && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleOpenImageStudio(formData.image!, "main");
+                            }}
+                            className="absolute bottom-3 right-3 z-20 bg-carbon/90 hover:bg-solar hover:text-carbon text-solar py-2 px-3.5 rounded-2xl border border-white/5 flex items-center justify-center gap-1.5 shadow-xl transition-all font-bold active:scale-95"
+                            title="تحسين ومعالجة الصورة بميزات ذكية"
+                          >
+                            <Sparkles className="w-4 h-4 text-solar animate-pulse" />
+                            <span className="text-[10px] tracking-wide">الاستوديو الذكي</span>
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="w-full row-span-1">
                         <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-3">
                           معرض الصور
                         </label>
@@ -1234,9 +1499,21 @@ export default function Products() {
                                     ),
                                   }));
                                 }}
-                                className="absolute inset-0 bg-red-500/80 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                className="absolute top-1 left-1 bg-red-500 text-white rounded-lg p-1 opacity-0 group-hover:opacity-100 transition-opacity z-10"
                               >
-                                <X className="w-4 h-4" />
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  handleOpenImageStudio(img, "gallery", idx);
+                                }}
+                                className="absolute bottom-1 right-1 bg-carbon/90 hover:bg-solar hover:text-carbon text-solar border border-white/10 rounded-lg p-1 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-10 shadow-md"
+                                title="تحسين الصورة"
+                              >
+                                <Sparkles className="w-3 h-3" />
                               </button>
                             </div>
                           ))}
@@ -1882,6 +2159,283 @@ export default function Products() {
                 </button>
               </div>
             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* معمل معالجة وتحسين صور منتجات النخبة */}
+      <AnimatePresence>
+        {isStudioOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-carbon/95 backdrop-blur-md p-4 sm:p-6 select-none overflow-y-auto"
+            dir="rtl"
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 20 }}
+              className="bg-[#0b0f19] border border-white/10 rounded-[2.5rem] w-full max-w-5xl shadow-2xl overflow-hidden flex flex-col lg:flex-row h-auto lg:h-[85vh]"
+            >
+              {/* Left Column: Interactive Canvas Preview */}
+              <div className="flex-1 bg-carbon/40 p-6 flex flex-col justify-between items-center relative min-h-[350px] lg:min-h-0 border-b lg:border-b-0 lg:border-l border-white/10">
+                {/* Header info */}
+                <div className="w-full flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-solar/10 border border-solar/25 flex items-center justify-center text-solar">
+                      <Sparkles className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="text-white text-sm font-black tracking-wide">معمل معالجة صور النخبة</h3>
+                      <p className="text-[10px] font-bold text-slate-400 mt-0.5">معالجة ورسم وتعديل بالتقنيات الفورية</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsStudioOpen(false)}
+                    className="p-2 ml-1 text-slate-400 hover:text-white hover:bg-white/5 rounded-xl transition-colors"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                {/* Canvas Render Panel Wrapper */}
+                <div className="relative w-full max-w-[400px] aspect-square rounded-[2rem] overflow-hidden border border-white/10 bg-[#070a13] shadow-inner flex items-center justify-center">
+                  <canvas
+                    ref={canvasRef}
+                    className="max-w-full max-h-full object-contain"
+                    style={{ width: "100%", height: "100%" }}
+                  />
+                  {isStudioProcessing && (
+                    <div className="absolute inset-0 bg-[#070a13]/80 backdrop-blur-sm z-30 flex flex-col items-center justify-center gap-4">
+                      <RefreshCw className="w-10 h-10 text-solar animate-spin" />
+                      <div className="text-center">
+                        <p className="text-white text-xs font-black">جاري المعالجة والرفع...</p>
+                        <p className="text-[10px] text-slate-400 mt-1">يتم تحسين أداء الصورة وتثبيتها سحابياً</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Bottom indicators */}
+                <div className="w-full text-center mt-4">
+                  <span className="text-[9px] font-bold text-slate-400 bg-white/5 py-1.5 px-3 rounded-full border border-white/5 inline-flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    دقة التصدير الذكي: 800 * 800 بكسل (مثالي للمتاجر)
+                  </span>
+                </div>
+              </div>
+
+              {/* Right Column: Custom Control Options */}
+              <div className="w-full lg:w-[380px] p-6 flex flex-col justify-between overflow-y-auto max-h-[50vh] lg:max-h-full custom-scrollbar">
+                <div className="space-y-6">
+                  {/* Preset filters */}
+                  <div>
+                    <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest mb-3">
+                      الفلاتر والمظهر الجاهز
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {[
+                        { id: "none", name: "النمط الافتراضي", desc: "بدون تأثيرات" },
+                        { id: "auto", name: "تحسين تلقائي", desc: "توازن تلقائي للألوان" },
+                        { id: "warm-gold", name: "وهج دافئ فاخر", desc: "دافئ ومحدد" },
+                        { id: "royal", name: "الشكل الملكي", desc: "تباين وإضاءة ساطعة" },
+                        { id: "mono", name: "أحادية الفخامة", desc: "أبيض وأسود كلاسيك" },
+                      ].map((filt) => (
+                        <button
+                          key={filt.id}
+                          type="button"
+                          onClick={() => setStudioFilter(filt.id as any)}
+                          className={`p-3 rounded-2xl flex flex-col items-start gap-1 text-right border transition-all cursor-pointer ${
+                            studioFilter === filt.id
+                              ? "bg-solar/10 border-solar text-solar"
+                              : "bg-white/5 border-white/5 hover:border-white/10 text-slate-300"
+                          }`}
+                        >
+                          <span className="text-xs font-black">{filt.name}</span>
+                          <span className="text-[9px] text-slate-400 line-clamp-1">{filt.desc}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Dynamic background swap */}
+                  <div>
+                    <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest mb-3">
+                      تعديل خلفية المنتج
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {[
+                        { id: "original", name: "الخلفية الأصلية" },
+                        { id: "transparent", name: "فلتر شفاف (PNG)" },
+                        { id: "luxe-dark", name: "داكن النخبة الفاخر" },
+                        { id: "white", name: "أبيض ملكي ناصع" },
+                        { id: "gray", name: "رمادي الاستوديو الناعم" },
+                      ].map((bg) => (
+                        <button
+                          key={bg.id}
+                          type="button"
+                          onClick={() => setStudioBackground(bg.id as any)}
+                          className={`p-2.5 rounded-xl text-right text-xs font-bold border transition-all cursor-pointer ${
+                            studioBackground === bg.id
+                              ? "bg-solar/10 border-solar text-solar"
+                              : "bg-white/5 border-white/5 hover:border-white/10 text-slate-300"
+                          }`}
+                        >
+                          {bg.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Precision sliders adjustment */}
+                  <div>
+                    <div className="flex justify-between items-center mb-3">
+                      <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest">
+                        لوحة الضبط اليدوي والدقيق
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setStudioBrightness(100);
+                          setStudioContrast(100);
+                          setStudioSaturation(100);
+                        }}
+                        className="text-[9px] font-bold text-solar hover:underline"
+                      >
+                        إعادة تعيين الضبط
+                      </button>
+                    </div>
+                    
+                    <div className="space-y-4 bg-white/5 border border-white/5 rounded-2xl p-4">
+                      {/* Brightness slider */}
+                      <div className="space-y-1.5">
+                        <div className="flex justify-between text-[10px] font-bold text-slate-400">
+                          <span>السطوع (الإنارة)</span>
+                          <span className="text-solar font-mono">{studioBrightness}%</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="50"
+                          max="160"
+                          value={studioBrightness}
+                          onChange={(e) => setStudioBrightness(Number(e.target.value))}
+                          className="w-full accent-solar cursor-pointer"
+                        />
+                      </div>
+
+                      {/* Contrast slider */}
+                      <div className="space-y-1.5">
+                        <div className="flex justify-between text-[10px] font-bold text-slate-400">
+                          <span>التباين (عمق الألوان)</span>
+                          <span className="text-solar font-mono">{studioContrast}%</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="50"
+                          max="160"
+                          value={studioContrast}
+                          onChange={(e) => setStudioContrast(Number(e.target.value))}
+                          className="w-full accent-solar cursor-pointer"
+                        />
+                      </div>
+
+                      {/* Saturation slider */}
+                      <div className="space-y-1.5">
+                        <div className="flex justify-between text-[10px] font-bold text-slate-400">
+                          <span>التشبع لوني</span>
+                          <span className="text-solar font-mono">{studioSaturation}%</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="50"
+                          max="160"
+                          value={studioSaturation}
+                          onChange={(e) => setStudioSaturation(Number(e.target.value))}
+                          className="w-full accent-solar cursor-pointer"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Copyrights protection watermark & seal */}
+                  <div>
+                    <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest mb-3">
+                      حماية الملكية والحقوق الفاخرة
+                    </label>
+                    <div className="bg-white/5 border border-white/5 rounded-2xl p-4 space-y-4">
+                      <label className="flex items-center gap-3 cursor-pointer text-slate-300">
+                        <input
+                          type="checkbox"
+                          checked={studioWatermark}
+                          onChange={(e) => setStudioWatermark(e.target.checked)}
+                          className="w-5 h-5 rounded border-white/10 text-solar focus:ring-solar/20 bg-transparent transition-all cursor-pointer"
+                        />
+                        <span className="text-xs font-black">إضافة حماية لضمان الحقوق</span>
+                      </label>
+
+                      {studioWatermark && (
+                        <div className="grid grid-cols-2 gap-2 pt-2 border-t border-white/5">
+                          <button
+                            type="button"
+                            onClick={() => setStudioWatermarkType("seal")}
+                            className={`p-2.5 rounded-xl text-center text-[10px] font-bold border transition-all ${
+                              studioWatermarkType === "seal"
+                                ? "bg-solar/15 border-solar text-solar"
+                                : "bg-white/5 border-white/5 text-slate-400 hover:text-slate-200"
+                            }`}
+                          >
+                            ختم النخبة الذهبي
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setStudioWatermarkType("text")}
+                            className={`p-2.5 rounded-xl text-center text-[10px] font-bold border transition-all ${
+                              studioWatermarkType === "text"
+                                ? "bg-solar/15 border-solar text-solar"
+                                : "bg-white/5 border-white/5 text-slate-400 hover:text-slate-200"
+                            }`}
+                          >
+                            علامة مائية مكررة ومخفية
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Apply/Save Action Controls */}
+                <div className="mt-8 flex gap-3 border-t border-white/5 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setIsStudioOpen(false)}
+                    className="flex-1 py-3 bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-black rounded-2xl transition-colors active:scale-95"
+                  >
+                    تراجع
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSaveStudioImage}
+                    disabled={isStudioProcessing}
+                    className="flex-[2] py-3 bg-solar text-carbon text-xs font-black rounded-2xl transition-all shadow-xl shadow-solar/10 hover:shadow-solar/20 hover:scale-102 active:scale-95 flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isStudioProcessing ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 animate-spin text-carbon" />
+                        <span>جاري الحفظ...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Check className="w-4 h-4 text-carbon" />
+                        <span>تطبيق وحفظ التعديلات</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

@@ -2436,6 +2436,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const deleteOrder = React.useCallback(
     async (id: string) => {
+      // Optimistic UI update
+      const previousOrders = [...orders];
+      setOrders((prev) => prev.filter((o) => o.id !== id));
+
       try {
         const orderToDelete = orders.find((o) => o.id === id);
         if (orderToDelete && orderToDelete.paymentProof) {
@@ -2447,10 +2451,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         showToast("تم حذف الطلب بنجاح", "success");
         logActivity("حذف طلب", `تم حذف الطلب رقم: ${id}`);
       } catch (error) {
+        console.error("Delete order failed, rolling back", error);
+        setOrders(previousOrders); // Rollback
+        syncOnDemand("orders");
         handleFirestoreError(error, OperationType.DELETE, `orders/${id}`);
       }
     },
-    [orders, showToast, logActivity],
+    [orders, setOrders, showToast, logActivity, syncOnDemand],
   );
 
   const toggleWishlist = React.useCallback(
@@ -3509,16 +3516,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     async (id: string) => {
       if (!window.confirm("هل أنت متأكد من حذف هذا المنتج؟")) return;
 
-      const productToDelete = products.find((p) => p.id === id);
-
-      // Optimistic UI update
+      // Optimistic UI update: Remove immediately from all relevant stores
       setProducts((prev) => prev.filter((p) => p.id !== id));
       setRecentlyViewed((prev) => prev.filter((p) => p.id !== id));
       setWishlist((prev) => prev.filter((p) => p.id !== id));
       setCart((prev) => prev.filter((item) => item.product.id !== id));
 
+      const productToDelete = products.find((p) => p.id === id);
+
       try {
-        // Automatic Cloud Cleanup
         if (productToDelete) {
           deleteImagesFromCloudinary([
             productToDelete.image,
@@ -3527,17 +3533,24 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         }
 
         const activeDb = adminAuth.currentUser ? adminDb : db;
+        
+        // Execute deletion
         await deleteDoc(doc(activeDb, "products", String(id)));
-        await setDoc(doc(activeDb, "settings", "store_meta"), {
-          products_updated_at: Date.now()
-        }, { merge: true }).catch(() => {});
-        showToast("تم حذف المنتج بنجاح");
+        
+        // Log activity
         logActivity("حذف منتج", `تم حذف المنتج ID: ${id}`);
+        showToast("تم حذف المنتج بنجاح", "success");
+
+        // We do NOT manually update store_meta here to prevent re-triggering a re-fetch.
+        // If necessary, syncOnDemand can be used later or trust the local state removal.
       } catch (error) {
+        // Rollback: Re-fetch if deletion fails
+        console.error("Delete failed, rolling back", error);
+        syncOnDemand("products");
         handleFirestoreError(error, OperationType.DELETE, `products/${id}`);
       }
     },
-    [showToast, logActivity],
+    [products, setProducts, setRecentlyViewed, setWishlist, setCart, showToast, logActivity, syncOnDemand],
   );
 
   const addCategory = React.useCallback(

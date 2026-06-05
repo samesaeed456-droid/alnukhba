@@ -2995,9 +2995,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const deleteCustomer = React.useCallback(
     async (identifier: string) => {
+      // Optimistic UI update
+      const previousCustomers = [...customers];
+      setCustomers((prev) =>
+        prev.filter((c) => c.phone !== identifier && c.uid !== identifier),
+      );
+
       try {
         if (!identifier) {
           showToast("معرف العميل غير صالح", "error");
+          setCustomers(previousCustomers); // Rollback
           return;
         }
 
@@ -3029,6 +3036,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
         if (!docRef) {
           showToast("العميل غير موجود", "error");
+          setCustomers(previousCustomers); // Rollback
           return;
         }
 
@@ -3046,9 +3054,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         }
 
         await deleteDoc(docRef);
-        showToast("تم حذف العميل بنجاح");
+        showToast("تم حذف العميل بنجاح", "success");
         logActivity("حذف عميل", `تم حذف العميل: ${identifier}`);
       } catch (error) {
+        console.error("Delete customer failed, rolling back", error);
+        setCustomers(previousCustomers); // Rollback
+        syncOnDemand("customers");
         handleFirestoreError(
           error,
           OperationType.DELETE,
@@ -3056,7 +3067,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         );
       }
     },
-    [showToast, logActivity],
+    [customers, setCustomers, showToast, logActivity, syncOnDemand],
   );
 
   const addCoupon = React.useCallback(

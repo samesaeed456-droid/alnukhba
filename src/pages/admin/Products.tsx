@@ -342,9 +342,13 @@ export default function Products() {
 
     // Auto-calculate price from sizes if sizes exist
     if (finalFormData.sizes && finalFormData.sizes.length > 0 && finalFormData.sizePrices) {
-      const prices = Object.values(finalFormData.sizePrices);
-      if (prices.length > 0) {
-        finalFormData.price = Math.min(...prices);
+      if (finalFormData.activeSize && finalFormData.sizePrices[finalFormData.activeSize]) {
+          finalFormData.price = finalFormData.sizePrices[finalFormData.activeSize];
+      } else {
+        const prices = Object.values(finalFormData.sizePrices);
+        if (prices.length > 0) {
+          finalFormData.price = Math.min(...prices);
+        }
       }
     }
 

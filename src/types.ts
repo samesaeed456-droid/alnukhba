@@ -28,6 +28,7 @@ export interface Product {
   reviewsList: Review[];
   colors?: string[];
   sizes?: string[];
+  activeSize?: string;
   inStock?: boolean;
   stockCount?: number;
   costPrice?: number;

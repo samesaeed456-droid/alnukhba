@@ -95,8 +95,8 @@ export default function Customers() {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("الكل");
-  const [sortBy, setSortBy] = useState<"name" | "orders" | "spent">("name");
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+  const [sortBy, setSortBy] = useState<"name" | "orders" | "spent" | "joinDate">("joinDate");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [selectedCustomer, setSelectedCustomer] = useState<UserType | null>(
     null,
   );
@@ -473,6 +473,7 @@ export default function Customers() {
           comparison = (a.displayName || "").localeCompare(b.displayName || "");
         if (sortBy === "orders") comparison = a.orderCount - b.orderCount;
         if (sortBy === "spent") comparison = a.totalSpent - b.totalSpent;
+        if (sortBy === "joinDate") comparison = new Date(a.joinDate || 0).getTime() - new Date(b.joinDate || 0).getTime();
         return sortOrder === "asc" ? comparison : -comparison;
       });
   }, [customerMetrics, searchTerm, statusFilter, sortBy, sortOrder]);

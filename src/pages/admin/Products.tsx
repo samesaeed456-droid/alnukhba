@@ -135,9 +135,9 @@ export default function Products() {
   const [categoryFilter, setCategoryFilter] = useState("الكل");
   const [stockFilter, setStockFilter] = useState("الكل");
   const [sortBy, setSortBy] = useState<
-    "name" | "price" | "stockCount" | "rating"
-  >("name");
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+    "name" | "price" | "stockCount" | "rating" | "createdAt"
+  >("createdAt");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [stockEdits, setStockEdits] = useState<Record<string, number>>({});
   const [isSavingStock, setIsSavingStock] = useState(false);
 
@@ -261,6 +261,7 @@ export default function Products() {
         if (sortBy === "stockCount")
           comparison = (a.stockCount || 0) - (b.stockCount || 0);
         if (sortBy === "rating") comparison = a.rating - b.rating;
+        if (sortBy === "createdAt") comparison = new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime();
         return sortOrder === "asc" ? comparison : -comparison;
       });
   }, [products, searchTerm, categoryFilter, stockFilter, sortBy, sortOrder]);

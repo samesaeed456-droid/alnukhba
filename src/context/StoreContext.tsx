@@ -2078,7 +2078,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           }
 
           let userRef = null;
-          if (paymentMethod === "المحفظة الرقمية" && auth.currentUser) {
+          if (auth.currentUser) {
             userRef = doc(db, "users", auth.currentUser.uid);
           }
 
@@ -2287,12 +2287,28 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             transaction.update(pu.ref, { stockCount: pu.newStock }),
           );
 
-          // 4. Update Wallet
+          // 4. Update Wallet / Transactions
           if (userRef) {
-            transaction.update(userRef, {
-              walletBalance: newUserBalance,
+            const currentUserData = userSnap?.data() as UserProfile;
+            const newTransaction: Transaction = {
+              id: id,
+              amount: total,
+              type: "purchase",
+              date: new Date().toISOString(),
+              status: "completed",
+              description: `طلب رقم: ${id}`,
+            };
+
+            const updateData: any = {
+              transactions: [newTransaction, ...(currentUserData?.transactions || [])],
               updatedAt: serverTimestamp(),
-            });
+            };
+
+            if (paymentMethod === "المحفظة الرقمية") {
+                updateData.walletBalance = newUserBalance;
+            }
+
+            transaction.update(userRef, updateData);
           }
 
           // 5. Update Coupon

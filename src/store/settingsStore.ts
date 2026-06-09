@@ -152,18 +152,17 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       console.error("Firestore Error [settingsStore:initializeSettings]: ", JSON.stringify(errInfo));
     });
 
-    // 2. Fetch marketing notifications
-    const fetchMarketing = async () => {
-      try {
-        const snap = await getDocs(query(collection(db, "marketing_notifications"), orderBy("date", "desc"), limit(50)));
-        const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as MarketingNotification));
-        get().setMarketingNotifications(data);
-      } catch (e) {}
-    };
-    fetchMarketing();
+    // 2. Sync marketing notifications in real-time
+    const unsubMarketing = onSnapshot(query(collection(db, "marketing_notifications"), orderBy("date", "desc"), limit(50)), (snapshot) => {
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as MarketingNotification));
+      get().setMarketingNotifications(data);
+    }, (error) => {
+      console.error("Firestore Error [settingsStore:initializeMarketing]: ", error);
+    });
 
     return () => {
       unsubSettings();
+      unsubMarketing();
     };
   }
 }));

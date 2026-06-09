@@ -32,6 +32,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { useStore } from "@/context/StoreContext";
+import { useUIStore } from "@/store/uiStore";
 import {
   BarChart,
   Bar,
@@ -346,6 +347,8 @@ export default function Dashboard() {
     return customers.filter((user) => user.role !== "admin" && user.isAdmin !== true);
   }, [customers]);
 
+  const liveVisitorsCount = useUIStore((state) => state.liveVisitorsCount);
+
   useEffect(() => {
     // Check if greeting was already shown in this session
     const greetingShown = sessionStorage.getItem("admin_greeting_shown");
@@ -525,10 +528,10 @@ export default function Dashboard() {
           </div>
           <div>
             <span className="text-slate-400 text-xs font-black uppercase tracking-widest block mb-1">
-              إجمالي العملاء
+              إجمالي العملاء / حالياً في المتجر
             </span>
             <span className="text-3xl font-black text-slate-900">
-              {regularCustomers.length}
+              {regularCustomers.length} <span className="text-sm font-normal text-slate-400">/ {liveVisitorsCount}</span>
             </span>
           </div>
         </div>

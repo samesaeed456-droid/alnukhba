@@ -23,6 +23,8 @@ interface UIState {
   setCanInstallPWA: (can: boolean) => void;
   deferredPrompt: any;
   setDeferredPrompt: (prompt: any) => void;
+  liveVisitorsCount: number;
+  setLiveVisitorsCount: (count: number) => void;
   installPWA: () => Promise<void>;
   showToast: (
     message: string,
@@ -49,6 +51,8 @@ export const useUIStore = create<UIState>((set, get) => ({
   setCanInstallPWA: (canInstallPWA) => set({ canInstallPWA }),
   deferredPrompt: null,
   setDeferredPrompt: (deferredPrompt) => set({ deferredPrompt }),
+  liveVisitorsCount: 0,
+  setLiveVisitorsCount: (liveVisitorsCount) => set({ liveVisitorsCount }),
   
   installPWA: async () => {
     const { deferredPrompt, showToast } = get();

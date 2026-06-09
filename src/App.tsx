@@ -57,6 +57,7 @@ const AdminRecharges = lazy(() => import("./pages/admin/WalletRecharges.tsx"));
 import Maintenance from "./pages/Maintenance";
 import BlockedOverlay from "./components/BlockedOverlay";
 import OfflineStatus from "./components/OfflineStatus";
+import { VisitorTracker } from "./components/VisitorTracker";
 import NotificationGatingModal from "./components/NotificationGatingModal";
 import InstallAppBanner from "./components/InstallAppBanner";
 import { AlertCircle, X, Bell } from "lucide-react";
@@ -512,6 +513,7 @@ export default function App() {
     <HelmetProvider>
       <StoreProvider>
         <OfflineStatus />
+        <VisitorTracker />
         <SystemAlert />
         <BlockedOverlay />
         <InstallAppBanner />

@@ -79,43 +79,23 @@ export const useProductStore = create<ProductState>((set, get) => ({
     const startedLoading = get().products.length === 0;
     if (startedLoading) set({ isLoading: true });
 
-    const activeDb = db; // Simplified for now, in context it handles adminDb too
-    
+    const activeDb = db; 
+
     // Set static categories
     get().fetchCategories();
 
-    const unsubMeta = onSnapshot(doc(activeDb, "settings", "store_meta"), async (docSnap) => {
-      const meta = docSnap.data() || {};
-      const serverProductsTs = meta.products_updated_at || 0;
+    const q = query(collection(activeDb, "products"), orderBy("createdAt", "desc"), limit(300));
 
-      const localProductsTs = parseInt(localStorage.getItem("store_meta_products_ts") || "0");
-      const hasLocalProducts = !!localStorage.getItem("store_products");
-
-      if (serverProductsTs > localProductsTs || !hasLocalProducts) {
-        try {
-          const q = query(collection(activeDb, "products"), orderBy("createdAt", "desc"), limit(300));
-          const snapshot = await getDocs(q);
-          const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
-          get().setProducts(data);
-          localStorage.setItem("store_meta_products_ts", serverProductsTs.toString());
-        } catch (e) {
-          console.error("Products fallback:", e);
-        }
-      }
-      
+    const unsub = onSnapshot(q, (snapshot) => {
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
+      get().setProducts(data);
       set({ isLoading: false });
     }, (error) => {
-      const errInfo = {
-        error: error instanceof Error ? error.message : String(error),
-        operationType: "get",
-        path: "settings/store_meta",
-        authInfo: { userId: null }
-      };
-      console.error("Firestore Error [productStore:initializeProducts]: ", JSON.stringify(errInfo));
+      console.error("Firestore Error [productStore:initializeProducts]: ", error);
       set({ isLoading: false });
     });
 
-    return unsubMeta;
+    return unsub;
   },
 
   fetchCategories: async () => {

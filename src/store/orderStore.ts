@@ -27,15 +27,18 @@ export const useOrderStore = create<OrderState>((set, get) => ({
 
   setIsLoading: (isLoading) => set({ isLoading }),
 
-  fetchOrders: async () => {
+  fetchOrders: () => {
     set({ isLoading: true });
-    try {
-      const snap = await getDocs(query(collection(db, "orders"), orderBy("date", "desc"), limit(100)));
-      const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order));
+    const q = query(collection(db, "orders"), orderBy("date", "desc"), limit(100));
+    const unsub = onSnapshot(q, (snapshot) => {
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order));
       get().setOrders(data);
-    } finally {
       set({ isLoading: false });
-    }
+    }, (error) => {
+      console.error("Firestore Error [orderStore:fetchOrders]: ", error);
+      set({ isLoading: false });
+    });
+    return unsub;
   },
 
   updateOrderStatus: async (id, status) => {

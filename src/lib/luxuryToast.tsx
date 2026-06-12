@@ -1,6 +1,6 @@
 import { toast } from "sonner";
 import React from "react";
-import { Check, X, AlertCircle, Info } from "lucide-react";
+import { Check, X, AlertCircle, Info, Package } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
 type ToastType = "success" | "error" | "info" | "warning";
@@ -106,4 +106,41 @@ export const showLuxuryToast = (type: ToastType, options: ToastOptions) => {
       )}
     </motion.div>
   ), { duration, position: 'top-center' });
+};
+
+/**
+ * Beautiful Order Shipped Notification
+ */
+export const showOrderShippedToast = (title: string, description: string, onAction?: () => void) => {
+  toast.custom((t) => (
+    <motion.div 
+      initial={{ opacity: 0, y: -50, rotateX: -45 }}
+      animate={{ opacity: 1, y: 0, rotateX: 0 }}
+      exit={{ opacity: 0, scale: 0.9, y: -10 }}
+      transition={{ type: "spring", stiffness: 300, damping: 20 }}
+      onClick={() => toast.dismiss(t)}
+      className="flex items-center gap-4 w-[90vw] max-w-sm bg-gradient-to-br from-amber-500 to-amber-700 text-white p-4 rounded-3xl shadow-[0_20px_50px_rgba(217,119,6,0.5)] border border-amber-400 backdrop-blur-xl cursor-pointer"
+      dir="rtl"
+    >
+      <div className="bg-white/20 p-3 rounded-2xl backdrop-blur-sm">
+        <Package className="w-7 h-7 text-white" />
+      </div>
+      
+      <div className="flex-1 min-w-0">
+        <h4 className="text-sm font-bold text-white">{title}</h4>
+        <p className="text-xs text-amber-100 truncate mt-1">{description}</p>
+      </div>
+
+      <button 
+        onClick={(e) => {
+          e.stopPropagation();
+          onAction?.();
+          toast.dismiss(t);
+        }}
+        className="bg-white text-amber-800 text-xs font-bold px-4 py-2 rounded-full hover:bg-amber-50 transition-colors shrink-0"
+      >
+        تفاصيل
+      </button>
+    </motion.div>
+  ), { duration: 5000, position: 'top-center' });
 };

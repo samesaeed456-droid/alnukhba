@@ -783,10 +783,19 @@ app.post("/api/admin/notifications/send", async (req, res) => {
       clickedCount: 0
     });
 
-    // Save to user individual inboxes if it's a small target, or handle background
-    // (For thousands of users, we'd handle this differently, but let's implement for small targets)
-    if (target !== 'all' && tokens.length < 50) {
-      // Find UIDs for these tokens
+    // Save to user individual inboxes if a specific user target is provided
+    if (target === 'specific_user' && targetUserId) {
+      await db.collection('users').doc(targetUserId).collection('notifications').add({
+        title,
+        body: message,
+        image: image || null,
+        url: url || null,
+        isRead: false,
+        type: 'order',
+        createdAt: new Date().toISOString()
+      });
+    } else if (target !== 'all' && tokens.length < 50) {
+      // Find UIDs for these tokens (legacy logic)
       const userTokensSnap = await db.collection('notification_tokens')
         .where('token', 'in', tokens.slice(0, 10)) // Firestore limit for 'in'
         .get();

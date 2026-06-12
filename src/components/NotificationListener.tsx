@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from "react";
 import { onSnapshot, collection, query, orderBy, limit, db } from "../lib/firebase";
 import { useAuthStore } from "../store/authStore";
 import { useStore } from "../context/StoreContext";
-import { showLuxuryToast } from "../lib/luxuryToast";
+import { showLuxuryToast, showOrderShippedToast } from "../lib/luxuryToast";
 import { motion } from "motion/react";
 import { Sparkles, Package, Wallet } from "lucide-react";
 import confetti from "canvas-confetti";
@@ -137,17 +137,22 @@ export default function NotificationListener() {
     // If it's a recharge success, trigger confetti
     const isRecharge = data.title.includes("شحن") || data.body?.includes("رصيد") || data.type === 'wallet';
     const isOrder = data.type === 'order' || data.title.includes("طلب");
+    const isShipping = data.title.includes("شحن") || data.body?.includes("شحن") || data.type === 'shipping';
     
     if (isRecharge) {
       setTimeout(triggerConfetti, 500);
     }
 
-    showLuxuryToast(isRecharge ? "success" : "info", {
-      title: data.title,
-      description: data.body || data.message,
-      actionText: isRecharge ? "رائع!" : isOrder ? "متابعة" : "فهمت",
-      onAction: () => markNotificationAsRead(id),
-    });
+    if (isShipping) {
+      showOrderShippedToast(data.title, data.body || data.message, () => markNotificationAsRead(id));
+    } else {
+      showLuxuryToast(isRecharge ? "success" : "info", {
+        title: data.title,
+        description: data.body || data.message,
+        actionText: isRecharge ? "رائع!" : isOrder ? "متابعة" : "فهمت",
+        onAction: () => markNotificationAsRead(id),
+      });
+    }
   };
 
   return null;

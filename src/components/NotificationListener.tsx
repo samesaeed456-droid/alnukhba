@@ -1,8 +1,9 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { onSnapshot, collection, query, orderBy, limit, db } from "../lib/firebase";
 import { useAuthStore } from "../store/authStore";
 import { useStore } from "../context/StoreContext";
-import { showLuxuryToast, showOrderShippedToast } from "../lib/luxuryToast";
+import { showLuxuryToast } from "../lib/luxuryToast";
+import OrderShippedModal from "./OrderShippedModal";
 import { motion } from "motion/react";
 import { Sparkles, Package, Wallet } from "lucide-react";
 import confetti from "canvas-confetti";
@@ -11,6 +12,13 @@ export default function NotificationListener() {
   const { user } = useAuthStore();
   const { setNotifications, formatPrice, markNotificationAsRead } = useStore();
   const isFirstLoadProducts = useRef(true);
+  
+  // Shipping Modal State
+  const [shippingModal, setShippingModal] = useState<{ isOpen: boolean; data: any; id: string | null }>({
+    isOpen: false,
+    data: null,
+    id: null
+  });
 
   // 1. Listen for new products (Awesome Window)
   useEffect(() => {
@@ -64,7 +72,6 @@ export default function NotificationListener() {
 
     const unsub = onSnapshot(q, (snapshot) => {
       const newNotifs: any[] = [];
-      let latestUnreadRef: any = null;
 
       snapshot.docChanges().forEach((change) => {
         const data = change.doc.data();
@@ -144,7 +151,7 @@ export default function NotificationListener() {
     }
 
     if (isShipping) {
-      showOrderShippedToast(data.title, data.body || data.message, () => markNotificationAsRead(id));
+      setShippingModal({ isOpen: true, data, id });
     } else {
       showLuxuryToast(isRecharge ? "success" : "info", {
         title: data.title,
@@ -155,5 +162,17 @@ export default function NotificationListener() {
     }
   };
 
-  return null;
+  return (
+    <>
+      <OrderShippedModal
+        isOpen={shippingModal.isOpen}
+        onClose={() => {
+            if (shippingModal.id) markNotificationAsRead(shippingModal.id);
+            setShippingModal({ isOpen: false, data: null, id: null });
+        }}
+        title={shippingModal.data?.title || "تم قبول طلبك"}
+        description={shippingModal.data?.body || shippingModal.data?.message || "تمت الموافقة عليه وجارٍ تجهيزه للشحن"}
+      />
+    </>
+  );
 }

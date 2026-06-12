@@ -12,6 +12,7 @@ import MobileMenu from "./MobileMenu";
 import CartDrawer from "./layout/CartDrawer";
 import WishlistDrawer from "./layout/WishlistDrawer";
 import NotificationsDrawer from "./layout/NotificationsDrawer";
+import NotificationListener from "./NotificationListener";
 import FloatingActions from "./layout/FloatingActions";
 import { useStore, useStoreUI } from "../context/StoreContext";
 import { auth } from "../lib/firebase";
@@ -128,6 +129,7 @@ export default function Layout({ children }: LayoutProps) {
       <CartDrawer />
       <WishlistDrawer />
       <NotificationsDrawer />
+      <NotificationListener />
 
       <MobileMenu
         isOpen={isMobileMenuOpen}

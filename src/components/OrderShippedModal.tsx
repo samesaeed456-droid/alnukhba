@@ -17,7 +17,6 @@ export default function OrderShippedModal({ isOpen, onClose, title, description 
         particleCount: 100,
         spread: 70,
         origin: { y: 0.6 },
-        duration: 2000,
       });
     }
   }, [isOpen]);

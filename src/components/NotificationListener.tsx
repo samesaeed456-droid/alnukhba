@@ -142,9 +142,17 @@ export default function NotificationListener() {
   // Helper to show professional luxury toast
   const showStandardToast = (data: any, id: string) => {
     // If it's a recharge success, trigger confetti
-    const isRecharge = data.type === 'wallet' || data.title.includes("رصيد") || data.body?.includes("رصيد");
+    const isRecharge = data.type === 'wallet' || data.title.includes("رصيد") || data.body?.includes("رصيد") || data.message?.includes("رصيد");
     const isOrder = data.type === 'order' || data.title.includes("طلب");
-    const isShipping = data.type === 'shipping' || data.title.includes("شحن") || data.body?.includes("شحن");
+    
+    // Broad shipping detection: anything with "شحن", "تجهيز", "تم قبول", etc.
+    const isShipping = data.type === 'shipping' || 
+                       data.title.includes("شحن") || 
+                       data.body?.includes("شحن") || 
+                       data.message?.includes("شحن") ||
+                       data.title.includes("تم قبول") ||
+                       data.body?.includes("تجهيز") ||
+                       data.message?.includes("تجهيز");
     
     if (isRecharge) {
       setTimeout(triggerConfetti, 500);

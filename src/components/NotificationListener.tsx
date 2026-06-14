@@ -71,6 +71,9 @@ export default function NotificationListener() {
     );
 
     const unsub = onSnapshot(q, (snapshot) => {
+      console.log("DEBUG: Notification snapshot size:", snapshot.size);
+      console.log("DEBUG: Notification docChanges:", snapshot.docChanges());
+      
       const newNotifs: any[] = [];
 
       snapshot.docChanges().forEach((change) => {

@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { Order } from "../types";
-import { db, doc, updateDoc, deleteDoc, serverTimestamp, getDocs, collection, query, orderBy, limit } from "../lib/firebase";
+import { db, doc, updateDoc, deleteDoc, serverTimestamp, getDocs, collection, query, orderBy, limit, onSnapshot } from "../lib/firebase";
 
 interface OrderState {
   orders: Order[];
@@ -10,7 +10,7 @@ interface OrderState {
   setOrders: (orders: Order[] | ((prev: Order[]) => Order[])) => void;
   setIsLoading: (loading: boolean) => void;
   
-  fetchOrders: () => Promise<void>;
+  fetchOrders: () => (() => void);
   updateOrderStatus: (id: string, status: Order["status"], isRevert?: boolean) => Promise<void>;
   deleteOrder: (id: string) => Promise<void>;
 }

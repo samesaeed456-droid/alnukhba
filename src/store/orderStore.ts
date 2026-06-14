@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { Order } from "../types";
-import { db, doc, updateDoc, deleteDoc, serverTimestamp, getDocs, collection, query, orderBy, limit, onSnapshot } from "../lib/firebase";
+import { db, doc, updateDoc, deleteDoc, serverTimestamp, getDocs, collection, query, orderBy, limit, onSnapshot, addDoc } from "../lib/firebase";
 
 interface OrderState {
   orders: Order[];
@@ -42,10 +42,23 @@ export const useOrderStore = create<OrderState>((set, get) => ({
   },
 
   updateOrderStatus: async (id, status) => {
+    const order = get().orders.find(o => o.id === id);
+    
     await updateDoc(doc(db, "orders", id), {
       status,
       updatedAt: serverTimestamp(),
     });
+
+    if (order?.userId) {
+      await addDoc(collection(db, `users/${order.userId}/notifications`), {
+          title: "تحديث حالة الطلب",
+          body: `تم تغيير حالة طلبك إلى ${status === 'processing' ? 'قيد المعالجة' : status === 'shipped' ? 'تم الشحن' : status === 'delivered' ? 'تم التوصيل' : status}`,
+          type: 'order',
+          createdAt: serverTimestamp(),
+          isRead: false
+      });
+    }
+
     const updatedOrders = get().orders.map(o => o.id === id ? { ...o, status } : o);
     get().setOrders(updatedOrders);
   },

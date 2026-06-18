@@ -543,6 +543,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return saved ? JSON.parse(saved) : [];
   });
 
+  useEffect(() => {
+    const q = collection(db, "coupons");
+    const unsub = onSnapshot(q, (snapshot) => {
+      const data = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as Coupon[];
+      setCoupons(data);
+      localStorage.setItem("store_coupons", JSON.stringify(data));
+    });
+    return () => unsub();
+  }, []);
+
   // settings
 
   const [supportTickets, setSupportTickets] = useState<SupportTicket[]>(() => {

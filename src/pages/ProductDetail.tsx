@@ -405,7 +405,7 @@ export default function ProductDetail() {
                       وصول جديد
                     </motion.div>
                   )}
-                  {product.originalPrice && (
+                  {product.originalPrice !== undefined && product.originalPrice > 0 && (
                     <motion.div
                       initial={{ x: 20, opacity: 0 }}
                       animate={{ x: 0, opacity: 1 }}
@@ -415,7 +415,7 @@ export default function ProductDetail() {
                       وفر{" "}
                       {Math.round(
                         ((product.originalPrice - currentPrice) /
-                          product.originalPrice) *
+                          (product.originalPrice > 0 ? product.originalPrice : 1)) *
                           100,
                       )}
                       %
@@ -477,7 +477,7 @@ export default function ProductDetail() {
                       {formatPrice(currentPrice).split(" ").slice(1).join(" ")}
                     </span>
                   </div>
-                  {currentOriginalPrice && (
+                  {currentOriginalPrice !== undefined && currentOriginalPrice > 0 && (
                     <div className="flex flex-col gap-1.5">
                       <div className="relative inline-flex items-center justify-center self-start">
                         <span className="text-base sm:text-lg text-slate-400 font-medium px-1">
@@ -489,7 +489,7 @@ export default function ProductDetail() {
                         خصم{" "}
                         {Math.round(
                           ((currentOriginalPrice - currentPrice) /
-                            currentOriginalPrice) *
+                            (currentOriginalPrice > 0 ? currentOriginalPrice : 1)) *
                             100,
                         )}
                         %

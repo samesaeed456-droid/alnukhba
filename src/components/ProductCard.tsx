@@ -248,7 +248,7 @@ const ProductCardInner = React.memo(function ProductCardInner({
                   {formatPrice(displayPrice).split(" ").slice(1).join(" ")}
                 </span>
               </div>
-              {p.originalPrice && (
+              {p.originalPrice !== undefined && p.originalPrice > 0 && (
                 <div className="relative inline-flex items-center justify-center mt-1 sm:mt-1.5">
                   <span className="text-[10px] sm:text-xs text-slate-400 font-medium px-1 leading-none line-through">
                     {formatPrice(p.originalPrice)}

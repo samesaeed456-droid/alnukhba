@@ -384,7 +384,11 @@ export default function Products() {
         }
         
         setFormData((prev) => ({ ...prev, image: secureUrl }));
-        showLuxuryToast("success", { title: "تم بنجاح!", description: "تم الرفع بنجاح" });
+        setRemoveBackground(false);
+        showLuxuryToast("success", { 
+          title: "تم بنجاح!", 
+          description: removeBackground ? "تم رفع الصورة وإزالة الخلفية بنجاح" : "تم الرفع بنجاح" 
+        });
       } catch (error: any) {
         console.error("Image upload failed:", error);
         showLuxuryToast("error", { title: "فشل الرفع", description: error.message || "فشل في رفع الصورة" });

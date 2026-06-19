@@ -80,6 +80,18 @@ export const uploadToCloudinary = async (file: File): Promise<string> => {
 };
 
 /**
+ * Transforms a Cloudinary URL (e.g., adds background removal)
+ */
+export const getCloudinaryUrlWithTransform = (
+  url: string,
+  transform: string = "e_background_removal",
+): string => {
+  if (!url || !url.includes("res.cloudinary.com")) return url;
+  if (url.includes(`/upload/${transform}/`)) return url; // Already transformed
+  return url.replace("/upload/", `/upload/${transform}/`);
+};
+
+/**
  * Extracts the Public ID from a Cloudinary URL
  */
 export const getPublicIdFromUrl = (url: string): string | null => {

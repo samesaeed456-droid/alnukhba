@@ -44,7 +44,7 @@ import { useStore } from "@/context/StoreContext";
 import { Product } from "@/types";
 import ConfirmationModal from "@/components/ConfirmationModal";
 import { FloatingInput } from "@/components/FloatingInput";
-import { deleteImagesFromCloudinary } from "@/lib/cloudinary";
+import { deleteImagesFromCloudinary, getCloudinaryUrlWithTransform } from "@/lib/cloudinary";
 import { showLuxuryToast } from "@/lib/luxuryToast";
 
 const PREDEFINED_COLORS = [
@@ -159,6 +159,7 @@ export default function Products() {
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [removeBackground, setRemoveBackground] = useState(false);
   const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
@@ -376,7 +377,12 @@ export default function Products() {
       try {
         showLuxuryToast("info", { title: "تنبيه", description: "جاري رفع الصورة للخادم..." });
         const { uploadToCloudinary } = await import("../../lib/cloudinary");
-        const secureUrl = await uploadToCloudinary(file);
+        let secureUrl = await uploadToCloudinary(file);
+        
+        if (removeBackground) {
+          secureUrl = getCloudinaryUrlWithTransform(secureUrl);
+        }
+        
         setFormData((prev) => ({ ...prev, image: secureUrl }));
         showLuxuryToast("success", { title: "تم بنجاح!", description: "تم الرفع بنجاح" });
       } catch (error: any) {
@@ -1212,6 +1218,15 @@ export default function Products() {
                           accept="image/*"
                           onChange={handleImageChange}
                         />
+                      </label>
+                      <label className="flex items-center gap-2 text-[10px] uppercase tracking-widest font-bold text-slate-500 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={removeBackground}
+                          onChange={(e) => setRemoveBackground(e.target.checked)}
+                          className="rounded border-slate-300 text-solar focus:ring-solar"
+                        />
+                        إزالة الخلفية (شفاف)
                       </label>
 
                       <div className="w-full">

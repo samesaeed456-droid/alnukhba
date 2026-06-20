@@ -24,6 +24,7 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onCance
           audio={false}
           ref={webcamRef}
           screenshotFormat="image/jpeg"
+          videoConstraints={{ facingMode: "environment" }}
           className="w-full aspect-square object-cover"
         />
         <div className="p-4 flex gap-4">

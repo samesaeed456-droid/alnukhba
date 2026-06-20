@@ -47,6 +47,7 @@ import ConfirmationModal from "@/components/ConfirmationModal";
 import { FloatingInput } from "@/components/FloatingInput";
 import { deleteImagesFromCloudinary, getCloudinaryUrlWithTransform, base64ToFile } from "@/lib/cloudinary";
 import { CameraCapture } from "@/components/admin/CameraCapture";
+import { VoiceInput } from "@/components/admin/VoiceInput";
 import { showLuxuryToast } from "@/lib/luxuryToast";
 
 const PREDEFINED_COLORS = [
@@ -1773,13 +1774,12 @@ export default function Products() {
                       <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-2">
                         الوصف (اختياري)
                       </label>
-                      <textarea
-                        rows={3}
-                        value={formData.description}
-                        onChange={(e) =>
+                      <VoiceInput
+                        value={formData.description || ""}
+                        onChange={(val) =>
                           setFormData({
                             ...formData,
-                            description: e.target.value,
+                            description: val,
                           })
                         }
                         className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-solar/20 focus:border-solar outline-none transition-all font-bold text-carbon text-sm resize-none"

@@ -37,6 +37,7 @@ import {
   Save,
   RefreshCw,
   Check,
+  Camera,
 } from "lucide-react";
 import { motion, AnimatePresence, Variants } from "motion/react";
 import { Toaster, toast } from "sonner";

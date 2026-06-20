@@ -26,6 +26,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { useStore } from "../context/StoreContext";
+import { calculateOrderTotals } from "../utils/orderCalculations";
 import { motion, AnimatePresence } from "motion/react";
 import { QRCodeSVG } from "qrcode.react";
 import confetti from "canvas-confetti";
@@ -315,7 +316,7 @@ export default function Checkout() {
     [calculateDiscount],
   );
   const total = useMemo(
-    () => Math.max(0, subtotal + shipping - discountAmount),
+    () => calculateOrderTotals(subtotal, shipping, discountAmount),
     [subtotal, shipping, discountAmount],
   );
 

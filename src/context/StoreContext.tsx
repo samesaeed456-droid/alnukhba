@@ -2211,9 +2211,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             }
           }
 
-          const total = roundMoney(
-            Math.max(0, subtotal + shipping - discountAmount),
-          );
+          const { calculateOrderTotals } = await import("../utils/orderCalculations");
+          const total = calculateOrderTotals(subtotal, shipping, discountAmount);
 
           // E. Validate Wallet Balance
           let newUserBalance = 0;
@@ -2244,9 +2243,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             return newObj;
           };
 
+          const orderRef = doc(collection(db, "orders"));
+
           // 1. Create Order
           const newOrderData = cleanData({
             id: id,
+            orderDocId: orderRef.id,
             userId: auth.currentUser?.uid || "guest",
             customerName:
               customerName ||
@@ -2290,7 +2292,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             currency: BASE_CURRENCY_CODE || "YER",
           });
 
-          transaction.set(doc(db, "orders", id), newOrderData);
+          transaction.set(orderRef, newOrderData);
 
           // 2. Update Counter
           transaction.set(

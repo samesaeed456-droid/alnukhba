@@ -20,6 +20,7 @@ import { useNavigate } from "react-router-dom";
 import confetti from "canvas-confetti";
 import { useStore } from "../context/StoreContext";
 import FloatingInput from "../components/FloatingInput";
+import { VoiceButton } from "../components/admin/VoiceButton";
 import SEO from "../components/SEO";
 
 const MAX_MESSAGE_LENGTH = 500;

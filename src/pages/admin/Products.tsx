@@ -48,6 +48,7 @@ import { FloatingInput } from "@/components/FloatingInput";
 import { deleteImagesFromCloudinary, getCloudinaryUrlWithTransform, base64ToFile } from "@/lib/cloudinary";
 import { CameraCapture } from "@/components/admin/CameraCapture";
 import { VoiceInput } from "@/components/admin/VoiceInput";
+import { VoiceButton } from "@/components/admin/VoiceButton";
 import { showLuxuryToast } from "@/lib/luxuryToast";
 
 const PREDEFINED_COLORS = [
@@ -1319,6 +1320,7 @@ export default function Products() {
                           }
                           bgClass="bg-slate-50"
                           placeholder="مثال: آيفون 15 برو"
+                          endElement={<VoiceButton onTranscript={(tr) => setFormData({...formData, name: (formData.name || "") + " " + tr})} />}
                         />
                       </div>
 

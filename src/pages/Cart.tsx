@@ -224,16 +224,16 @@ export default function Cart() {
       variants={containerVariants}
       initial="hidden"
       animate="visible"
-      className="max-w-7xl mx-auto px-2 sm:px-6 py-4 sm:py-12"
+      className="max-w-7xl mx-auto px-4 py-6"
     >
       <motion.h1
         variants={itemVariants}
-        className="text-xl sm:text-3xl font-black text-carbon mb-6 sm:mb-12 px-1"
+        className="text-2xl font-black text-carbon mb-6"
       >
         سلة التسوق
       </motion.h1>
 
-      <div className="flex flex-col lg:flex-row gap-8">
+      <div className="flex flex-col lg:flex-row gap-6">
         {/* Cart Items */}
         <div className="w-full lg:w-2/3 flex flex-col gap-4">
           <AnimatePresence mode="popLayout">
@@ -244,11 +244,11 @@ export default function Cart() {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, scale: 0.95, x: -20 }}
                 transition={{ delay: index * 0.05 }}
-                className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-slate-100 flex flex-col sm:flex-row gap-4 sm:gap-6 group"
+                className="bg-white rounded-xl p-4 shadow-sm border border-slate-100 flex gap-4 group"
               >
                 <Link
                   to={`/product/${item.product?.id || ""}`}
-                  className="w-full sm:w-32 h-32 bg-white rounded-lg overflow-hidden shrink-0 p-2 relative"
+                  className="w-24 h-24 sm:w-32 sm:h-32 bg-slate-50 rounded-lg overflow-hidden shrink-0"
                 >
                   <img
                     src={item.product?.image || undefined}
@@ -262,27 +262,23 @@ export default function Cart() {
                     <div>
                       <Link
                         to={`/product/${item.product?.id || ""}`}
-                        className="font-bold text-carbon text-sm sm:text-base hover:text-solar transition-colors line-clamp-2"
+                        className="font-bold text-sm text-carbon hover:text-solar transition-colors line-clamp-2"
                       >
-                        <p className="text-sm sm:text-base font-bold text-carbon mb-1">
-                          {item.product?.name || "منتج غير متوفر حالياً"}
-                        </p>
+                        {item.product?.name || "منتج غير متوفر حالياً"}
                       </Link>
                     </div>
-                    <motion.button
-                      whileHover={{ scale: 1.1, color: "#ef4444" }}
-                      whileTap={{ scale: 0.9 }}
+                    <button
                       onClick={() => handleRemoveItem(item.id)}
-                      className="text-titanium/40 transition-colors p-1"
+                      className="text-slate-400 hover:text-red-500 transition-colors p-1"
                     >
-                      <Trash2 className="w-5 h-5" />
-                    </motion.button>
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
 
-                  <div className="flex flex-wrap gap-3 mb-4">
+                  <div className="flex flex-wrap gap-2 mb-3">
                     {item.selectedColor && (
-                      <div className="flex items-center gap-1.5 text-xs text-titanium/80">
-                        <span className="text-titanium/40">اللون:</span>
+                      <div className="flex items-center gap-1 text-[10px] sm:text-xs text-slate-500">
+                        <span className="text-slate-400">اللون:</span>
                         <div
                           className="w-3 h-3 rounded-full border border-slate-100"
                           style={{ backgroundColor: item.selectedColor }}
@@ -290,16 +286,16 @@ export default function Cart() {
                       </div>
                     )}
                     {item.selectedSize && (
-                      <div className="flex items-center gap-1.5 text-xs text-titanium/80">
-                        <span className="text-titanium/40">المقاس:</span>
-                        <span className="font-bold">{item.selectedSize}</span>
+                      <div className="flex items-center gap-1 text-[10px] sm:text-xs text-slate-500">
+                        <span className="text-slate-400">المقاس:</span>
+                        <span className="font-bold text-slate-900">{item.selectedSize}</span>
                       </div>
                     )}
                   </div>
 
                   <div className="mt-auto flex items-center justify-between">
                     <div className="flex flex-col">
-                      <div className="font-black text-lg">
+                      <div className="font-black text-base sm:text-lg">
                         <PriceDisplay
                           price={getItemPrice(item)}
                           numberClassName="text-slate-900"
@@ -307,30 +303,28 @@ export default function Cart() {
                         />
                       </div>
                       {getItemOriginalPrice(item) && (
-                        <div className="text-[10px] sm:text-xs text-slate-400 font-medium line-through">
+                        <div className="text-[10px] text-slate-400 font-medium line-through">
                           {formatPrice(getItemOriginalPrice(item))}
                         </div>
                       )}
                     </div>
 
-                    <div className="flex items-center bg-slate-50 rounded-lg p-1 border border-slate-100">
-                      <motion.button
-                        whileTap={{ scale: 0.9 }}
+                    <div className="flex items-center bg-slate-50 rounded-lg p-0.5 border border-slate-100">
+                      <button
                         onClick={() => handleUpdateQuantity(item.id, -1)}
-                        className="w-8 h-8 flex items-center justify-center text-titanium/80 hover:text-solar hover:bg-white rounded transition-all"
+                        className="w-7 h-7 flex items-center justify-center text-slate-600 hover:text-solar hover:bg-white rounded transition-all"
                       >
                         <Minus className="w-3 h-3" />
-                      </motion.button>
-                      <span className="w-10 text-center font-bold text-sm text-carbon">
+                      </button>
+                      <span className="w-8 text-center font-bold text-xs text-carbon">
                         {item.quantity}
                       </span>
-                      <motion.button
-                        whileTap={{ scale: 0.9 }}
+                      <button
                         onClick={() => handleUpdateQuantity(item.id, 1)}
-                        className="w-8 h-8 flex items-center justify-center text-titanium/80 hover:text-solar hover:bg-white rounded transition-all"
+                        className="w-7 h-7 flex items-center justify-center text-slate-600 hover:text-solar hover:bg-white rounded transition-all"
                       >
                         <Plus className="w-3 h-3" />
-                      </motion.button>
+                      </button>
                     </div>
                   </div>
                 </div>

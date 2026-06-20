@@ -92,21 +92,36 @@ export default function Search() {
     ...Array.from(new Set(products.map((p) => p.category))),
   ];
 
+  const normalizeArabic = (str: string) => {
+    return str
+      .toLowerCase()
+      .replace(/[أإآ]/g, 'ا')
+      .replace(/ة/g, 'ه')
+      .replace(/ى/g, 'ي')
+      .replace(/\s+/g, ' ')
+      .trim();
+  };
+
   const filteredProducts = useMemo(() => {
     return products.filter((p) => {
-      const searchTerms = query.toLowerCase().trim();
+      const searchTerms = normalizeArabic(query);
+      const name = normalizeArabic(p.name || "");
+      const brand = normalizeArabic(p.brand || "");
+      const category = normalizeArabic(p.category || "");
+
       const matchesQuery =
         !searchTerms ||
-        (p.name || "").toLowerCase().includes(searchTerms) ||
-        (p.brand || "").toLowerCase().includes(searchTerms) ||
-        (p.category || "").toLowerCase().includes(searchTerms);
+        name.includes(searchTerms) ||
+        brand.includes(searchTerms) ||
+        category.includes(searchTerms);
+      
       const matchesCategory =
         selectedCategory === "الكل" || p.category === selectedCategory;
       const matchesPrice = p.price >= priceRange[0] && p.price <= priceRange[1];
 
       return matchesQuery && matchesCategory && matchesPrice;
     });
-  }, [query, selectedCategory, priceRange]);
+  }, [query, selectedCategory, priceRange, products]);
 
   const displayedProducts = useMemo(() => {
     return filteredProducts.slice(0, itemsToShow);

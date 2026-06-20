@@ -44,7 +44,8 @@ import { useStore } from "@/context/StoreContext";
 import { Product } from "@/types";
 import ConfirmationModal from "@/components/ConfirmationModal";
 import { FloatingInput } from "@/components/FloatingInput";
-import { deleteImagesFromCloudinary, getCloudinaryUrlWithTransform } from "@/lib/cloudinary";
+import { deleteImagesFromCloudinary, getCloudinaryUrlWithTransform, base64ToFile } from "@/lib/cloudinary";
+import { CameraCapture } from "@/components/admin/CameraCapture";
 import { showLuxuryToast } from "@/lib/luxuryToast";
 
 const PREDEFINED_COLORS = [
@@ -159,6 +160,7 @@ export default function Products() {
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [showCamera, setShowCamera] = useState(false);
   const [removeBackground, setRemoveBackground] = useState(false);
   const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -404,14 +406,26 @@ export default function Products() {
       try {
         showLuxuryToast("info", { title: "تنبيه", description: `جاري رفع ${files.length} صور للخادم...` });
         const { uploadToCloudinary } = await import("../../lib/cloudinary");
-        const secureUrls = await Promise.all(
+
+        let secureUrls = await Promise.all(
           files.map((file) => uploadToCloudinary(file)),
         );
+
+        if (removeBackground) {
+          secureUrls = secureUrls.map(url => getCloudinaryUrlWithTransform(url));
+        }
+
         setFormData((prev) => ({
           ...prev,
           images: [...(prev.images || []), ...secureUrls],
         }));
-        showLuxuryToast("success", { title: "تم بنجاح!", description: "تم تجهيز الصور بنجاح" });
+
+        setRemoveBackground(false);
+
+        showLuxuryToast("success", { 
+          title: "تم بنجاح!", 
+          description: removeBackground ? "تم رفع الصور وإزالة الخلفيات بنجاح" : "تم تجهيز الصور بنجاح" 
+        });
       } catch (error: any) {
         console.error("Gallery images upload failed:", error);
         showLuxuryToast("error", { title: "فشل الرفع", description: error.message || "فشل في رفع بعض الصور" });
@@ -1223,6 +1237,14 @@ export default function Products() {
                           onChange={handleImageChange}
                         />
                       </label>
+                      <button
+                        type="button"
+                        onClick={() => setShowCamera(true)}
+                        className="flex items-center gap-2 text-xs font-bold text-solar uppercase tracking-widest hover:underline"
+                      >
+                        <Camera className="w-4 h-4" />
+                        التقاط من الكاميرا
+                      </button>
                       <label className="flex items-center gap-2 text-[10px] uppercase tracking-widest font-bold text-slate-500 cursor-pointer">
                         <input
                           type="checkbox"
@@ -1766,6 +1788,30 @@ export default function Products() {
                   </div>
                 </div>
               </form>
+              
+              {showCamera && (
+                <CameraCapture
+                  onCapture={async (imageSrc) => {
+                    try {
+                      showLuxuryToast("info", { title: "تنبيه", description: "جاري رفع الصورة..." });
+                      const file = base64ToFile(imageSrc, `camera_${Date.now()}.jpg`);
+                      const { uploadToCloudinary } = await import("../../lib/cloudinary");
+                      let secureUrl = await uploadToCloudinary(file);
+                      if (removeBackground) {
+                        secureUrl = getCloudinaryUrlWithTransform(secureUrl);
+                      }
+                      setFormData((prev) => ({ ...prev, image: secureUrl }));
+                      setShowCamera(false);
+                      setRemoveBackground(false);
+                      showLuxuryToast("success", { title: "تم بنجاح!", description: "تم التقاط الصورة ورفعها بنجاح" });
+                    } catch (error: any) {
+                      console.error("Camera upload failed:", error);
+                      showLuxuryToast("error", { title: "فشل الرفع", description: error.message || "فشل في رفع الصورة" });
+                    }
+                  }}
+                  onCancel={() => setShowCamera(false)}
+                />
+              )}
 
               {/* Modal Footer */}
               <div className="p-6 border-t border-slate-100 bg-slate-50/50 flex justify-end gap-3">

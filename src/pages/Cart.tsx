@@ -30,12 +30,13 @@ export default function Cart() {
     user,
     settings,
     shippingZones,
+    cities,
   } = useStore();
   const navigate = useNavigate();
   const [discountCodeInput, setDiscountCodeInput] = useState("");
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
   const [showCouponInput, setShowCouponInput] = useState(false);
-  const [selectedCity, setSelectedCity] = useState<string>("صنعاء");
+  const [selectedCity, setSelectedCity] = useState<string>(cities[0]?.name || "صنعاء");
 
   const getItemPrice = useCallback((item: any) => {
     if (item.selectedSize && item.product.sizePrices && item.product.sizePrices[item.selectedSize]) {
@@ -60,7 +61,14 @@ export default function Cart() {
   const shipping = useMemo(() => {
     if (subtotal === 0) return 0;
 
-    const zone = shippingZones.find((z) => z.cities.includes(selectedCity));
+    const cityData = selectedCity ? cities.find((c) => c.name === selectedCity) : null;
+    if (cityData?.shippingRate !== undefined && cityData.shippingRate > 0) {
+        return cityData.shippingRate;
+    }
+
+    const zone = selectedCity
+      ? shippingZones.find((z) => z.isActive && z.cities.includes(selectedCity))
+      : null;
     if (zone) {
       if (zone.freeThreshold && subtotal >= zone.freeThreshold) return 0;
       return zone.rate;
@@ -72,35 +80,13 @@ export default function Cart() {
     )
       return 0;
     return settings.shippingFee;
-  }, [subtotal, selectedCity, shippingZones, settings]);
+  }, [subtotal, selectedCity, shippingZones, settings, cities]);
 
   const allCities = useMemo(() => {
-    const defaultCities = [
-      "صنعاء",
-      "عدن",
-      "تعز",
-      "الحديدة",
-      "إب",
-      "ذمار",
-      "المكلا",
-      "حجة",
-      "صعدة",
-      "البيضاء",
-      "مأرب",
-      "عمران",
-      "الجوف",
-      "المهرة",
-      "سقطرى",
-      "شبوة",
-      "أبين",
-      "لحج",
-      "الضالع",
-      "ريمة",
-      "المحويت",
-    ];
+    const cityNames = cities.map(c => c.name);
     const zoneCities = shippingZones.flatMap((z) => z.cities);
-    return Array.from(new Set([...defaultCities, ...zoneCities])).sort();
-  }, [shippingZones]);
+    return Array.from(new Set([...cityNames, ...zoneCities])).sort();
+  }, [shippingZones, cities]);
 
   const discountAmount = useMemo(() => {
     if (!discount.code) return 0;
@@ -331,75 +317,6 @@ export default function Cart() {
               </motion.div>
             ))}
           </AnimatePresence>
-
-          {/* Mobile Discount Code (Visible only on small screens) */}
-          <motion.div variants={itemVariants} className="lg:hidden mb-4">
-            <button
-              onClick={handleToggleCouponInput}
-              className="text-sm font-bold text-carbon/60 hover:text-solar mb-3 flex items-center gap-2 transition-colors"
-            >
-              <Tag className="w-4 h-4" />
-              هل لديك كود خصم؟
-            </button>
-
-            <AnimatePresence>
-              {showCouponInput && !discount.code && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="overflow-hidden"
-                >
-                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 mt-1">
-                    <div className="flex gap-2">
-                      <div className="relative flex-1">
-                        <FloatingInput
-                          id="discountCode"
-                          label="أدخل الكود هنا"
-                          type="text"
-                          value={discountCodeInput}
-                          onChange={(e) => setDiscountCodeInput(e.target.value)}
-                          disabled={!!discount.code}
-                          bgClass="bg-white"
-                          containerClassName="h-14"
-                        />
-                      </div>
-                      <motion.button
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={handleApplyDiscount}
-                        disabled={!discountCodeInput || !!discount.code}
-                        className="bg-carbon hover:bg-carbon/90 text-white px-6 rounded-xl font-bold text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed shrink-0 h-14"
-                      >
-                        تطبيق
-                      </motion.button>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            <AnimatePresence>
-              {discount.code && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  className="mt-3 flex items-center justify-between text-xs font-bold bg-emerald-50 p-3 rounded-xl border border-emerald-100"
-                >
-                  <div className="flex items-center gap-2 text-emerald-600">
-                    <CheckCircle2 className="w-4 h-4" />
-                    تم تطبيق الخصم ({discount.code})
-                  </div>
-                  <button
-                    onClick={handleRemoveDiscount}
-                    className="text-red-500 hover:text-red-600 transition-colors"
-                  >
-                    إزالة
-                  </button>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </motion.div>
         </div>
 
         {/* Order Summary */}
@@ -425,20 +342,28 @@ export default function Cart() {
               </div>
 
               <div className="pt-4 border-t border-slate-50">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-bold text-titanium/60">
-                    تقدير الشحن إلى:
-                  </span>
+                <div className="mb-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-bold text-titanium/60">
+                      تقدير الشحن إلى:
+                    </span>
+                    <span className="text-[10px] text-solar font-bold">
+                      التوصيل: {shipping === 0 ? "مجاني" : formatPrice(shipping)}
+                    </span>
+                  </div>
                   <select
                     value={selectedCity}
                     onChange={(e) => setSelectedCity(e.target.value)}
-                    className="text-xs font-bold text-solar bg-transparent outline-none cursor-pointer"
+                    className="w-full text-xs font-bold text-carbon bg-slate-50 p-3 rounded-lg outline-none cursor-pointer border border-slate-100"
                   >
-                    {allCities.map((city) => (
-                      <option key={city} value={city}>
-                        {city}
-                      </option>
-                    ))}
+                    {allCities.map((city) => {
+                      const cityData = cities.find((c) => c.name === city);
+                      return (
+                        <option key={city} value={city}>
+                          {city} {cityData?.shippingRate ? `- ${formatPrice(cityData.shippingRate)}` : ""}
+                        </option>
+                      );
+                    })}
                   </select>
                 </div>
                 <div className="flex justify-between text-sm">
@@ -455,17 +380,6 @@ export default function Cart() {
                     )}
                   </span>
                 </div>
-                {shippingZones.find((z) => z.cities.includes(selectedCity))
-                  ?.estimatedDays && (
-                  <p className="text-[10px] text-titanium/40 mt-1 flex items-center gap-1">
-                    <Clock className="w-3 h-3" />
-                    مدة التوصيل المتوقعة:{" "}
-                    {
-                      shippingZones.find((z) => z.cities.includes(selectedCity))
-                        ?.estimatedDays
-                    }
-                  </p>
-                )}
               </div>
 
               <AnimatePresence>

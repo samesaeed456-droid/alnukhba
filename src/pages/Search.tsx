@@ -94,7 +94,7 @@ export default function Search() {
 
   const filteredProducts = useMemo(() => {
     return products.filter((p) => {
-      const searchTerms = debouncedQuery.toLowerCase().trim();
+      const searchTerms = query.toLowerCase().trim();
       const matchesQuery =
         !searchTerms ||
         (p.name || "").toLowerCase().includes(searchTerms) ||
@@ -106,7 +106,7 @@ export default function Search() {
 
       return matchesQuery && matchesCategory && matchesPrice;
     });
-  }, [debouncedQuery, selectedCategory, priceRange]);
+  }, [query, selectedCategory, priceRange]);
 
   const displayedProducts = useMemo(() => {
     return filteredProducts.slice(0, itemsToShow);

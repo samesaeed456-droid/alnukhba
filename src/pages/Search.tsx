@@ -25,6 +25,7 @@ import SEO from "../components/SEO";
 import { motion } from "motion/react";
 import { FastLink } from "../components/FastLink";
 import { FloatingInput } from "../components/FloatingInput";
+import { VoiceButton } from "../components/admin/VoiceButton";
 
 export default function Search() {
   const location = useLocation();
@@ -184,6 +185,7 @@ export default function Search() {
             iconPosition="start"
             endElement={
               <div className="flex items-center gap-1.5 bg-slate-50/80 p-1.5 rounded-xl border border-slate-100 backdrop-blur-sm ml-2">
+                <VoiceButton onTranscript={(tr) => setQuery((prev) => prev + " " + tr)} />
                 {query && (
                   <>
                     <motion.button

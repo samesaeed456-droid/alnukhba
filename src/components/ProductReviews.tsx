@@ -16,6 +16,7 @@ import { Review } from "../types";
 import { useStore } from "../context/StoreContext";
 import { motion, AnimatePresence } from "motion/react";
 import { Star, MessageSquare, Send, User, Check, AlertCircle, Image as ImageIcon, X, BadgeCheck, ChevronDown } from "lucide-react";
+import { VoiceButton } from "./admin/VoiceButton";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { toast } from "sonner";
@@ -193,12 +194,17 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ productId, productName 
                       ))}
                     </div>
 
-                    <textarea
-                      value={comment}
-                      onChange={(e) => setComment(e.target.value)}
-                      placeholder="اكتب رأيك الصادق هنا..."
-                      className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-5 text-sm font-bold focus:bg-white focus:ring-4 focus:ring-solar/10 focus:border-solar outline-none transition-all h-32 resize-none mb-6"
-                    />
+                    <div className="relative">
+                      <textarea
+                        value={comment}
+                        onChange={(e) => setComment(e.target.value)}
+                        placeholder="اكتب رأيك الصادق هنا..."
+                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-5 text-sm font-bold focus:bg-white focus:ring-4 focus:ring-solar/10 focus:border-solar outline-none transition-all h-32 resize-none mb-6"
+                      />
+                      <div className="absolute bottom-10 left-5">
+                       <VoiceButton onTranscript={(tr) => setComment((prev) => prev + " " + tr)} />
+                      </div>
+                    </div>
 
                     <button
                       disabled={isSubmitting}

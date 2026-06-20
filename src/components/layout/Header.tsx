@@ -43,6 +43,7 @@ import { FastLink } from "../FastLink";
 import Logo from "../Logo";
 import PriceDisplay from "../PriceDisplay";
 import { FloatingInput } from "../FloatingInput";
+import { VoiceButton } from "../admin/VoiceButton";
 import { prefetch } from "../../App";
 
 interface HeaderProps {
@@ -424,6 +425,11 @@ export default function Header({
                         bgClass="bg-white"
                         className="text-carbon placeholder-slate-400"
                         autoFocus
+                        endElement={
+                          <div className="absolute right-0 top-1/2 -translate-y-1/2">
+                             <VoiceButton onTranscript={(tr) => setSearchQuery((prev) => prev + " " + tr)} />
+                          </div>
+                        }
                       />
 
                       <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center gap-1.5 bg-slate-50 p-1 rounded-xl border border-slate-200 shadow-sm">
@@ -678,6 +684,9 @@ export default function Header({
                     className="w-full bg-white/10 text-white placeholder-white/40 px-5 py-3 pr-11 rounded-xl focus:outline-none focus:ring-2 focus:ring-solar/50 border border-white/10 text-sm font-medium"
                   />
                   <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40 group-focus-within:text-white transition-colors" />
+                  <div className="absolute left-2 top-1/2 -translate-y-1/2">
+                    <VoiceButton onTranscript={(tr) => setSearchQuery((prev) => prev + " " + tr)} />
+                  </div>
 
                   {searchQuery && (
                     <button

@@ -276,6 +276,12 @@ export default function Checkout() {
   const shipping = useMemo(() => {
     if (subtotal === 0 || shippingMethod !== "delivery") return 0;
 
+    // Check for city-specific shipping rate first
+    const cityData = cities.find((c) => c.name === formData.city);
+    if (cityData?.shippingRate !== undefined && cityData.shippingRate > 0) {
+      return cityData.shippingRate;
+    }
+
     // Find if the selected city is in any shipping zone
     const zone = shippingZones.find(
       (z) => z.isActive && z.cities.includes(formData.city),
@@ -294,7 +300,7 @@ export default function Checkout() {
     )
       return 0;
     return settings.shippingFee;
-  }, [subtotal, shippingMethod, formData.city, shippingZones, settings]);
+  }, [subtotal, shippingMethod, formData.city, shippingZones, settings, cities]);
 
   const calculateDiscount = useCallback(() => {
     if (!discount.code) return 0;

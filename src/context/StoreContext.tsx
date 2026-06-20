@@ -2168,10 +2168,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
           let shipping = 0;
           if (subtotal > 0 && shippingMethod === "delivery") {
+            const cityData = city ? cities.find((c) => c.name === city) : null;
             const zone = city
               ? shippingZones.find((z) => z.cities.includes(city))
               : null;
-            if (zone) {
+            
+            if (cityData?.shippingRate !== undefined) {
+              shipping = cityData.shippingRate;
+            } else if (zone) {
               shipping =
                 zone.freeThreshold && subtotal >= zone.freeThreshold
                   ? 0
@@ -2361,6 +2365,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       isPlacingOrder,
       shippingZones,
       settings,
+      cities,
     ],
   );
 

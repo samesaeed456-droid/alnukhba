@@ -432,6 +432,7 @@ export interface CityData {
   name: string;
   districts: string[];
   isActive?: boolean;
+  shippingRate?: number;
 }
 
 export interface ShippingZone {

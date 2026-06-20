@@ -46,6 +46,7 @@ const Logistics = () => {
     name: "",
     districts: [] as string[],
     newDistrict: "",
+    shippingRate: "",
   });
 
   const [confirmModal, setConfirmModal] = useState<{
@@ -210,6 +211,7 @@ const Logistics = () => {
     const data = {
       name: cityFormData.name,
       districts: cityFormData.districts,
+      shippingRate: parseFloat(cityFormData.shippingRate) || 0,
       isActive: true,
     };
 
@@ -319,6 +321,11 @@ const Logistics = () => {
                   </div>
                   <h3 className="text-sm font-black text-carbon truncate max-w-[120px]">{city.name}</h3>
                 </div>
+                {city.shippingRate !== undefined && (
+                  <span className="text-[10px] bg-solar/10 text-solar px-1.5 py-0.5 rounded font-black">
+                    {formatPrice(city.shippingRate)}
+                  </span>
+                )}
                 <div className="flex gap-1">
                   <button
                     onClick={() => {
@@ -327,6 +334,7 @@ const Logistics = () => {
                         name: city.name,
                         districts: city.districts || [],
                         newDistrict: "",
+                        shippingRate: city.shippingRate?.toString() || "",
                       });
                       setIsCityModalOpen(true);
                     }}
@@ -418,6 +426,19 @@ const Logistics = () => {
                       value={cityFormData.name}
                       onChange={(e) => setCityFormData({ ...cityFormData, name: e.target.value })}
                       placeholder="مثال: صنعاء، تعز، عدن..."
+                      className="w-full h-12 px-4 rounded-xl border border-gray-200 focus:ring-2 focus:ring-solar/30 focus:border-solar outline-none bg-white font-bold text-sm"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-gray-400 px-2 uppercase tracking-widest">
+                      سعر الشحن للمدينة
+                    </label>
+                    <input
+                      type="number"
+                      value={cityFormData.shippingRate}
+                      onChange={(e) => setCityFormData({ ...cityFormData, shippingRate: e.target.value })}
+                      placeholder="أدخل السعر..."
                       className="w-full h-12 px-4 rounded-xl border border-gray-200 focus:ring-2 focus:ring-solar/30 focus:border-solar outline-none bg-white font-bold text-sm"
                     />
                   </div>

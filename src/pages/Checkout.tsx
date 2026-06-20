@@ -95,6 +95,7 @@ export default function Checkout() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [orderComplete, setOrderComplete] = useState(false);
   const [lastOrderId, setLastOrderId] = useState("");
+  const [lastOrderTotal, setLastOrderTotal] = useState(0);
   const [orderedItems, setOrderedItems] = useState<typeof cart>([]);
   const [paymentMethod, setPaymentMethod] = useState<string>("");
   const [shippingMethod, setShippingMethod] = useState<"delivery" | "pickup">(
@@ -488,6 +489,7 @@ export default function Checkout() {
       }
 
       setLastOrderId(newOrderId);
+      setLastOrderTotal(total);
       setOrderComplete(true);
       window.scrollTo({ top: 0, behavior: "smooth" });
 
@@ -772,7 +774,7 @@ export default function Checkout() {
               إجمالي المبلغ
             </span>
             <div className="text-lg font-black text-solar">
-              <PriceDisplay price={total} />
+              <PriceDisplay price={lastOrderTotal} />
             </div>
           </div>
         </motion.div>
@@ -1897,21 +1899,39 @@ export default function Checkout() {
                   </div>
 
                   {/* Total Highlight */}
-                  <div className="bg-solar/10 p-4 sm:p-5 rounded-2xl border border-solar/20 flex items-center justify-between mt-2">
-                    <div className="text-right">
-                      <p className="text-sm font-bold text-carbon">
-                        الإجمالي النهائي
-                      </p>
-                      <p className="text-[10px] sm:text-xs text-titanium/80">
-                        شامل الضريبة والتوصيل
-                      </p>
+                  <div className="bg-slate-50 p-4 sm:p-5 rounded-2xl border border-slate-100 flex flex-col gap-3 mt-2">
+                    <div className="space-y-2 text-right">
+                      <div className="flex justify-between text-xs sm:text-sm font-bold text-slate-600">
+                        <span>المنتجات</span>
+                        <PriceDisplay price={subtotal} />
+                      </div>
+                      <div className="flex justify-between text-xs sm:text-sm font-bold text-slate-600">
+                        <span>التوصيل ({selectedCity})</span>
+                        <PriceDisplay price={shipping} />
+                      </div>
+                      {discountAmount > 0 && (
+                        <div className="flex justify-between text-xs sm:text-sm font-bold text-red-600">
+                          <span>الخصم</span>
+                          <span className="text-red-600">-{formatPrice(discountAmount)}</span>
+                        </div>
+                      )}
                     </div>
-                    <div className="text-left">
-                      <PriceDisplay
-                        price={total}
-                        numberClassName="text-lg sm:text-xl font-black text-carbon"
-                        currencyClassName="text-sm text-carbon/80"
-                      />
+                    <div className="border-t border-slate-200 pt-3 flex items-center justify-between">
+                      <div className="text-right">
+                        <p className="text-sm font-bold text-carbon">
+                          الإجمالي النهائي
+                        </p>
+                        <p className="text-[10px] sm:text-xs text-titanium/80">
+                          شامل الضريبة والتوصيل
+                        </p>
+                      </div>
+                      <div className="text-left">
+                        <PriceDisplay
+                          price={total}
+                          numberClassName="text-lg sm:text-xl font-black text-carbon"
+                          currencyClassName="text-sm text-carbon/80"
+                        />
+                      </div>
                     </div>
                   </div>
 

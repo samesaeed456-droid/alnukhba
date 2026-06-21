@@ -2232,7 +2232,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           const yy = String(now.getFullYear()).slice(-2);
           const mm = String(now.getMonth() + 1).padStart(2, "0");
           const dd = String(now.getDate()).padStart(2, "0");
-          const id = `NKH-${yy}${mm}${dd}-${nextSeq}-1`;
+          const randomSuffix = Math.floor(Math.random() * 999);
+          const printableId = `NKH-${yy}${mm}${dd}-${nextSeq}-${randomSuffix}`;
 
           // G. PERFORM ALL WRITES
           // Helper to remove undefined for Firestore
@@ -2248,7 +2249,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
           // 1. Create Order
           const newOrderData = cleanData({
-            id: id,
+            id: printableId,
             orderDocId: orderRef.id,
             userId: auth.currentUser?.uid || "guest",
             customerName:
@@ -3335,18 +3336,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const trackOrderById = React.useCallback(async (orderId: string) => {
     try {
-      // 1. Try exact match
-      let orderRef = doc(db, "orders", orderId);
-      let orderSnap = await getDoc(orderRef);
-
-      // 2. Try uppercase match if exact fails (common for sequential IDs like NKH-...)
-      if (!orderSnap.exists()) {
-        orderRef = doc(db, "orders", orderId.toUpperCase());
-        orderSnap = await getDoc(orderRef);
-      }
-
-      if (orderSnap.exists()) {
-        return { id: orderSnap.id, ...orderSnap.data() } as Order;
+      // Query by printable ID
+      const q = query(
+        collection(db, "orders"),
+        where("id", "==", orderId)
+      );
+      const snapshot = await getDocs(q);
+      
+      if (!snapshot.empty) {
+        return { id: snapshot.docs[0].id, ...snapshot.docs[0].data() } as Order;
       }
       return null;
     } catch (error) {

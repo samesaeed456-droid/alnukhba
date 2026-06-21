@@ -2241,6 +2241,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           };
 
           const orderRef = doc(collection(db, "orders"));
+          const now = new Date();
           const printableId = orderRef.id;
 
 

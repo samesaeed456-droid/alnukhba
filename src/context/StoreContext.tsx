@@ -767,7 +767,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         q,
         (snapshot) => {
           let data = snapshot.docs.map((doc) => ({
-            id: doc.id,
+            id: (doc.data() as any).id || doc.id,
+            orderDocId: doc.id,
             ...doc.data(),
           }));
 
@@ -2483,7 +2484,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         }
 
         const activeDb = adminAuth.currentUser ? adminDb : db;
-        await deleteDoc(doc(activeDb, "orders", id));
+        const documentId = orderToDelete?.orderDocId || id;
+        await deleteDoc(doc(activeDb, "orders", documentId));
         showToast("تم حذف الطلب بنجاح", "success");
         logActivity("حذف طلب", `تم حذف الطلب رقم: ${id}`);
       } catch (error) {

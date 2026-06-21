@@ -167,6 +167,7 @@ export interface Order {
   paymentAmount?: string;
   shippingMethod?: "delivery" | "pickup";
   deliveryInstructions?: string;
+  orderDocId?: string; // Add this
   currency: string;
   timeline?: {
     status: Order["status"];

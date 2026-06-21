@@ -820,6 +820,7 @@ export const updateDoc = async (docRef: any, data: any) => {
   }
 
   try {
+    console.log(`DEBUG: Updating table "${table}" with ID "${id}", data:`, JSON.stringify(updateData));
     const { error } = await client.from(table).update(updateData).eq(idColumn, id);
     if (error) {
       console.error(`Supabase UPDATE error into table "${table}":`, error);

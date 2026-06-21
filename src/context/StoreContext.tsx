@@ -3336,16 +3336,27 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const trackOrderById = React.useCallback(async (orderId: string) => {
     try {
-      // Query by printable ID
-      const q = query(
-        collection(db, "orders"),
-        where("id", "==", orderId)
-      );
-      const snapshot = await getDocs(q);
-      
-      if (!snapshot.empty) {
-        return { id: snapshot.docs[0].id, ...snapshot.docs[0].data() } as Order;
+      // 1. Try to fetch directly by document ID
+      const docRef = doc(db, "orders", orderId);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        return { id: docSnap.id, ...docSnap.data() } as Order;
       }
+
+      // 2. Query by 'id' field
+      const q1 = query(collection(db, "orders"), where("id", "==", orderId));
+      const snap1 = await getDocs(q1);
+      if (!snap1.empty) {
+        return { id: snap1.docs[0].id, ...snap1.docs[0].data() } as Order;
+      }
+
+      // 3. Query by 'orderDocId' field
+      const q2 = query(collection(db, "orders"), where("orderDocId", "==", orderId));
+      const snap2 = await getDocs(q2);
+      if (!snap2.empty) {
+        return { id: snap2.docs[0].id, ...snap2.docs[0].data() } as Order;
+      }
+      
       return null;
     } catch (error) {
       console.error("Error tracking order:", error);

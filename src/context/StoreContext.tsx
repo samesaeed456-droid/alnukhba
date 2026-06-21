@@ -2228,12 +2228,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           }
 
           // E. Generate Order ID
-          const now = new Date();
-          const yy = String(now.getFullYear()).slice(-2);
-          const mm = String(now.getMonth() + 1).padStart(2, "0");
-          const dd = String(now.getDate()).padStart(2, "0");
-          const randomSuffix = Math.floor(Math.random() * 999);
-          const printableId = `NKH-${yy}${mm}${dd}-${nextSeq}-${randomSuffix}`;
+
 
           // G. PERFORM ALL WRITES
           // Helper to remove undefined for Firestore
@@ -2246,11 +2241,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           };
 
           const orderRef = doc(collection(db, "orders"));
+          const printableId = orderRef.id;
+
 
           // 1. Create Order
           const newOrderData = cleanData({
             id: printableId,
-            orderDocId: orderRef.id,
             userId: auth.currentUser?.uid || "guest",
             customerName:
               customerName ||
@@ -3336,27 +3332,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const trackOrderById = React.useCallback(async (orderId: string) => {
     try {
-      // 1. Try to fetch directly by document ID
       const docRef = doc(db, "orders", orderId);
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
         return { id: docSnap.id, ...docSnap.data() } as Order;
       }
-
-      // 2. Query by 'id' field
-      const q1 = query(collection(db, "orders"), where("id", "==", orderId));
-      const snap1 = await getDocs(q1);
-      if (!snap1.empty) {
-        return { id: snap1.docs[0].id, ...snap1.docs[0].data() } as Order;
-      }
-
-      // 3. Query by 'orderDocId' field
-      const q2 = query(collection(db, "orders"), where("orderDocId", "==", orderId));
-      const snap2 = await getDocs(q2);
-      if (!snap2.empty) {
-        return { id: snap2.docs[0].id, ...snap2.docs[0].data() } as Order;
-      }
-      
       return null;
     } catch (error) {
       console.error("Error tracking order:", error);

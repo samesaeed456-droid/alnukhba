@@ -383,30 +383,51 @@ export default function Checkout() {
   const handleNextStep = useCallback(
     (currentStep: number) => {
       if (validateStep(currentStep)) {
-        if (
-          currentStep === 1 &&
-          selectedAddressId === "new" &&
-          saveAddress &&
-          user
-        ) {
+        if (currentStep === 1 && saveAddress && user) {
           const nameParts = formData.firstName.trim().split(/\s+/);
-          const newAddress: Address = {
-            id: crypto.randomUUID
-              ? crypto.randomUUID()
-              : Math.random().toString(36).substring(2, 15),
-            firstName: nameParts[0] || "",
-            lastName: nameParts.slice(1).join(" "),
-            address: formData.address,
-            city: formData.city,
-            district: formData.district,
-            phone: formData.phone,
-            countryCode: formData.countryCode,
-          };
-          updateUser({
-            ...user,
-            addresses: [...(user.addresses || []), newAddress],
-          });
-          setSelectedAddressId(newAddress.id);
+          const firstName = nameParts[0] || "";
+          const lastName = nameParts.slice(1).join(" ");
+          
+          if (selectedAddressId === "new") {
+            const newAddress: Address = {
+              id: crypto.randomUUID
+                ? crypto.randomUUID()
+                : Math.random().toString(36).substring(2, 15),
+              firstName,
+              lastName,
+              address: formData.address,
+              city: formData.city,
+              district: formData.district,
+              phone: formData.phone,
+              countryCode: formData.countryCode,
+            };
+            updateUser({
+              ...user,
+              addresses: [...(user.addresses || []), newAddress],
+            });
+            setSelectedAddressId(newAddress.id);
+          } else {
+            // Update existing
+            const updatedAddresses = (user.addresses || []).map(addr => {
+                if (addr.id === selectedAddressId) {
+                    return {
+                        ...addr,
+                        firstName,
+                        lastName,
+                        address: formData.address,
+                        city: formData.city,
+                        district: formData.district,
+                        phone: formData.phone,
+                        countryCode: formData.countryCode,
+                    };
+                }
+                return addr;
+            });
+            updateUser({
+              ...user,
+              addresses: updatedAddresses,
+            });
+          }
         }
         setStep(currentStep + 1);
         setFormErrors(false);

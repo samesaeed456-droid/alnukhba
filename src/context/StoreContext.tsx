@@ -2232,7 +2232,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           const yy = String(now.getFullYear()).slice(-2);
           const mm = String(now.getMonth() + 1).padStart(2, "0");
           const dd = String(now.getDate()).padStart(2, "0");
-          const id = `NKH-${yy}${mm}${dd}-${nextSeq}-${Math.floor(Math.random() * 1000)}`;
+          const id = `NKH-${yy}${mm}${dd}-${nextSeq}-1`;
 
           // G. PERFORM ALL WRITES
           // Helper to remove undefined for Firestore

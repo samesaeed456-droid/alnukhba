@@ -730,7 +730,7 @@ export default function Orders() {
                         </span>
                         <div className="flex items-center gap-2">
                           <span className="text-xs font-black text-carbon uppercase tracking-tighter">
-                            #{order.id.slice(-6).toUpperCase()}
+                            #{order.id}
                           </span>
                           {order.couponCode && (
                             <span className="text-[8px] bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded-md font-bold border border-emerald-100 uppercase tracking-tighter">

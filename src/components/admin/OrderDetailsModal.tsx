@@ -58,6 +58,9 @@ export default function OrderDetailsModal({
     cancelled: "ملغي",
   };
 
+  // Debug
+  console.log("Order details modal - order:", order);
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm overflow-y-auto"

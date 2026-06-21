@@ -155,7 +155,7 @@ const SUPABASE_ALLOWED_COLUMNS: Record<string, string[]> = {
     'sku', 'status'
   ],
   users: [
-    'uid', 'displayName', 'photoURL', 'role', 'name', 'phone', 'email', 'countryCode',
+    'uid', 'displayName', 'photoURL', 'role', 'name', 'phone', 'email', 'countryCode', 'avatar',
     'address', 'walletBalance', 'totalSpent', 'orderCount', 'lastOrderDate', 'joinDate',
     'isBlocked', 'isActive', 'isAdmin', 'adminRole', 'adminName', 'preferences', 'tags'
   ],

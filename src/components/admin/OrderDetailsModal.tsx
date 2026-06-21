@@ -15,6 +15,7 @@ import {
   Trash2,
   Maximize2,
   ExternalLink,
+  ListFilter,
 } from "lucide-react";
 import { Order } from "../../types";
 import { useStore } from "../../context/StoreContext";
@@ -277,6 +278,19 @@ export default function OrderDetailsModal({
                     </p>
                   </div>
                 </div>
+                {order.deliveryInstructions && (
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 shrink-0">
+                      <ListFilter className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">تعليمات التوصيل</p>
+                      <p className="text-sm font-bold text-carbon leading-relaxed">
+                        {order.deliveryInstructions}
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 

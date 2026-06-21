@@ -2312,12 +2312,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           if (userRef) {
             const currentUserData = userSnap?.data() as UserProfile;
             const newTransaction: Transaction = {
-              id: id,
+              id: printableId,
               amount: total,
               type: "purchase",
               date: new Date().toISOString(),
               status: "completed",
-              description: `طلب رقم: ${id}`,
+              description: `طلب رقم: ${printableId}`,
             };
 
             const updateData: any = {
@@ -2337,7 +2337,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             transaction.update(couponRefToUpdate, { usedCount: newUsedCount });
           }
 
-          return id;
+          return printableId;
         });
 
         // G. Post-Order cleanup (outside transaction)

@@ -1906,7 +1906,7 @@ export default function Checkout() {
                         <PriceDisplay price={subtotal} />
                       </div>
                       <div className="flex justify-between text-xs sm:text-sm font-bold text-slate-600">
-                        <span>التوصيل ({selectedCity})</span>
+                        <span>التوصيل ({formData.city})</span>
                         <PriceDisplay price={shipping} />
                       </div>
                       {discountAmount > 0 && (

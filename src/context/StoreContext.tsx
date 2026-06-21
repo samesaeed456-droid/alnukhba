@@ -705,6 +705,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         inventory_logs: setInventoryLogs,
         recharges: setRecharges,
         support_tickets: setSupportTickets,
+        products: setProducts,
+        categories: setCategories,
+        settings: setSettings,
       };
 
       const storageKeyMap: Record<string, string> = {
@@ -722,6 +725,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         inventory_logs: "store_inventory_logs",
         recharges: "store_recharges",
         support_tickets: "store_tickets",
+        products: "store_products",
+        categories: "store_categories",
+        settings: "store_settings",
       };
 
       if (!setterMap[colName]) {

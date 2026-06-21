@@ -128,13 +128,11 @@ export const useProductStore = create<ProductState>((set, get) => ({
   },
 
   addProduct: async (product) => {
-    const docRef = await addDoc(collection(db, "products"), {
+    await addDoc(collection(db, "products"), {
       ...product,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
-    const newProduct = { ...product, id: docRef.id } as Product;
-    get().setProducts([...get().products, newProduct]);
   },
 
   updateProduct: async (id, updates) => {
@@ -142,13 +140,10 @@ export const useProductStore = create<ProductState>((set, get) => ({
       ...updates,
       updatedAt: serverTimestamp(),
     });
-    const updatedProducts = get().products.map(p => p.id === id ? { ...p, ...updates } : p);
-    get().setProducts(updatedProducts);
   },
 
   deleteProduct: async (id) => {
     await deleteDoc(doc(db, "products", id));
-    get().setProducts(get().products.filter(p => p.id !== id));
   },
 
   updateStock: async (productId, newStock, reason) => {
@@ -174,10 +169,5 @@ export const useProductStore = create<ProductState>((set, get) => ({
         date: new Date().toISOString(),
       });
     }
-
-    const updatedProducts = get().products.map(p => 
-      p.id === productId ? { ...p, stockCount: newStock, inStock: newStock > 0 } : p
-    );
-    get().setProducts(updatedProducts);
   }
 }));

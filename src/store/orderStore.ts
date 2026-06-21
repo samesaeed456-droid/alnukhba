@@ -52,19 +52,15 @@ export const useOrderStore = create<OrderState>((set, get) => ({
     if (order?.userId) {
       await addDoc(collection(db, `users/${order.userId}/notifications`), {
           title: "تحديث حالة الطلب",
-          body: `تم تغيير حالة طلبك إلى ${status === 'processing' ? 'قيد المعالجة' : status === 'shipped' ? 'تم الشحن' : status === 'delivered' ? 'تم التوصيل' : status}`,
+          body: `تم تغيير حالة الطلب إلى ${status === 'processing' ? 'قيد المعالجة' : status === 'shipped' ? 'تم الشحن' : status === 'delivered' ? 'تم التوصيل' : status}`,
           type: 'order',
           createdAt: serverTimestamp(),
           isRead: false
       });
     }
-
-    const updatedOrders = get().orders.map(o => o.id === id ? { ...o, status } : o);
-    get().setOrders(updatedOrders);
   },
 
   deleteOrder: async (id) => {
     await deleteDoc(doc(db, "orders", id));
-    get().setOrders(get().orders.filter(o => o.id !== id));
   }
 }));

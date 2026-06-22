@@ -26,10 +26,10 @@ export default function Orders() {
   }, [syncOnDemand]);
 
   const userOrders = useMemo(() => {
-    if (user?.role === "admin") {
-      return orders.filter((o) => o.userId === user.uid);
+    if (user?.role === "admin" || user?.isAdmin) {
+      return orders;
     }
-    return orders;
+    return orders.filter((o) => o.userId === user?.uid);
   }, [orders, user]);
 
   const getStatusIcon = useCallback((status: string) => {

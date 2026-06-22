@@ -44,6 +44,7 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ productId, productName 
     
     const q = query(
       reviewsRef,
+      where("productId", "==", productId),
       orderBy("createdAt", "desc")
     );
     

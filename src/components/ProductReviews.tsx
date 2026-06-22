@@ -88,6 +88,7 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ productId, productName 
 
     setIsSubmitting(true);
     const path = `products/${productId}/reviews`;
+    console.log("DEBUG [ProductReviews]: Submitting review to:", path, "for productId:", productId);
     
     try {
       await addDoc(collection(db, "products", productId, "reviews"), {

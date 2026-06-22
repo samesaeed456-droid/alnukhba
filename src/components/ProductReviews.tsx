@@ -37,8 +37,11 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ productId, productName 
   const [showAll, setShowAll] = useState(false);
 
   useEffect(() => {
-    console.log("DEBUG: Setting up real-time listener for reviews for productId:", productId);
+    console.log("DEBUG [ProductReviews]: Setting up listener. Props.productId:", productId);
     const reviewsRef = collection(db, "products", productId, "reviews");
+    
+    console.log("DEBUG [ProductReviews]: Firestore path:", `products/${productId}/reviews`);
+    
     const q = query(
       reviewsRef,
       orderBy("createdAt", "desc")
@@ -57,15 +60,18 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ productId, productName 
         };
       }) as Review[];
       
-      console.log("DEBUG: Received real-time reviews:", reviewsData.length);
+      console.log("DEBUG [ProductReviews]: Received real-time reviews for productId:", productId, "Count:", reviewsData.length);
       setReviews(reviewsData);
       setIsLoading(false);
     }, (error) => {
-      console.error("Error fetching real-time reviews:", error);
+      console.error("Error fetching real-time reviews for", productId, ":", error);
       setIsLoading(false);
     });
 
-    return () => unsub();
+    return () => {
+      console.log("DEBUG [ProductReviews]: Cleaning up listener for", productId);
+      unsub();
+    };
   }, [productId]);
 
   const handleSubmitReview = async (e: React.FormEvent) => {

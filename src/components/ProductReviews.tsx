@@ -37,37 +37,35 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ productId, productName 
   const [showAll, setShowAll] = useState(false);
 
   useEffect(() => {
-    const fetchReviews = async () => {
-      setIsLoading(true);
-      try {
-        const reviewsRef = collection(db, "products", productId, "reviews");
-        const q = query(
-          reviewsRef,
-          orderBy("createdAt", "desc")
-        );
-        
-        const snapshot = await getDocs(q);
-        const reviewsData = snapshot.docs.map(doc => {
-          const rawDate = doc.data().createdAt;
-          const createdAt = (rawDate && typeof rawDate === 'object' && 'toDate' in rawDate)
-            ? (rawDate as any).toDate().toISOString()
-            : (typeof rawDate === 'string' ? rawDate : new Date().toISOString());
-          return {
-            id: doc.id,
-            ...doc.data(),
-            createdAt
-          };
-        }) as Review[];
-        
-        setReviews(reviewsData);
-      } catch (error) {
-        console.error("Error fetching reviews:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+    console.log("DEBUG: Setting up real-time listener for reviews for productId:", productId);
+    const reviewsRef = collection(db, "products", productId, "reviews");
+    const q = query(
+      reviewsRef,
+      orderBy("createdAt", "desc")
+    );
+    
+    const unsub = onSnapshot(q, (snapshot) => {
+      const reviewsData = snapshot.docs.map(doc => {
+        const rawDate = doc.data().createdAt;
+        const createdAt = (rawDate && typeof rawDate === 'object' && 'toDate' in rawDate)
+          ? (rawDate as any).toDate().toISOString()
+          : (typeof rawDate === 'string' ? rawDate : new Date().toISOString());
+        return {
+          id: doc.id,
+          ...doc.data(),
+          createdAt
+        };
+      }) as Review[];
+      
+      console.log("DEBUG: Received real-time reviews:", reviewsData.length);
+      setReviews(reviewsData);
+      setIsLoading(false);
+    }, (error) => {
+      console.error("Error fetching real-time reviews:", error);
+      setIsLoading(false);
+    });
 
-    fetchReviews();
+    return () => unsub();
   }, [productId]);
 
   const handleSubmitReview = async (e: React.FormEvent) => {

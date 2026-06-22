@@ -359,6 +359,28 @@ export default function Products() {
       }
     }
 
+    // Add any pending size/price inputs if user forgot to click "Add Size"
+    const sizeInput = document.getElementById("new-size-name") as HTMLInputElement;
+    const priceInput = document.getElementById("new-size-price") as HTMLInputElement;
+    const originalPriceInput = document.getElementById("new-size-original-price") as HTMLInputElement;
+    if (sizeInput?.value.trim()) {
+        const sizeVal = sizeInput.value.trim();
+        if (!finalFormData.sizes?.includes(sizeVal)) {
+            finalFormData.sizes = [...(finalFormData.sizes || []), sizeVal];
+            finalFormData.sizePrices = { ...(finalFormData.sizePrices || {}), [sizeVal]: Number(priceInput.value) || 0 };
+            finalFormData.sizeOriginalPrices = { ...(finalFormData.sizeOriginalPrices || {}), [sizeVal]: Number(originalPriceInput.value) || 0 };
+        }
+    }
+
+    // Add any pending technical specs if user forgot to click "Add Spec"
+    const specKeyInput = document.getElementById("new-spec-key") as HTMLInputElement;
+    const specValInput = document.getElementById("new-spec-value") as HTMLInputElement;
+    if (specKeyInput?.value.trim() && specValInput?.value.trim()) {
+        const key = specKeyInput.value.trim();
+        const value = specValInput.value.trim();
+        finalFormData.specs = { ...(finalFormData.specs || {}), [key]: value };
+    }
+
     if (editingProduct) {
       // Cleanup removed images from Cloudinary
       const oldImages = [editingProduct.image, ...(editingProduct.images || [])].filter(Boolean) as string[];
@@ -1595,12 +1617,12 @@ export default function Products() {
                                       const newOriginalPrices = { ...(formData.sizeOriginalPrices || {}) };
                                       delete newPrices[size];
                                       delete newOriginalPrices[size];
-                                      setFormData({ 
-                                        ...formData, 
+                                      setFormData(prev => ({ 
+                                        ...prev, 
                                         sizes: newSizes,
                                         sizePrices: newPrices,
                                         sizeOriginalPrices: newOriginalPrices
-                                      });
+                                      }));
                                     }}
                                     className="text-slate-400 hover:text-red-500 p-1 rounded-md transition-colors"
                                   >
@@ -1662,12 +1684,12 @@ export default function Products() {
                                       newOriginalPrices[sizeVal] = Number(originalPriceVal);
                                     }
                                     
-                                    setFormData({
-                                      ...formData,
+                                    setFormData(prev => ({
+                                      ...prev,
                                       sizes: newSizes,
                                       sizePrices: newPrices,
                                       sizeOriginalPrices: newOriginalPrices
-                                    });
+                                    }));
                                     
                                     sizeInput.value = "";
                                     priceInput.value = "";

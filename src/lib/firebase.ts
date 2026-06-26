@@ -91,6 +91,21 @@ export const adminDb = { type: 'db' };
 export const messaging: any = null;
 export const googleProvider: any = { providerId: "google.com" };
 
+const processFetchedData = (data: any) => {
+  if (data && typeof data === 'object') {
+    if (data.preferences) {
+      let pref = data.preferences;
+      if (typeof pref === 'string') {
+        try { pref = JSON.parse(pref); } catch(e) {}
+      }
+      if (pref && typeof pref === 'object' && pref.transactions !== undefined) {
+        data.transactions = pref.transactions;
+      }
+    }
+  }
+  return data;
+};
+
 // Custom classes to implement Firestore compatibility interfaces
 export class FakeDocSnapshot {
   id: string;
@@ -98,7 +113,7 @@ export class FakeDocSnapshot {
   ref: { id: string; path: string };
   constructor(id: string, data: any) {
     this.id = id;
-    this._data = data;
+    this._data = processFetchedData(data);
     this.ref = { id, path: id };
   }
   exists() {
@@ -157,7 +172,7 @@ const SUPABASE_ALLOWED_COLUMNS: Record<string, string[]> = {
   users: [
     'uid', 'displayName', 'photoURL', 'role', 'name', 'phone', 'email', 'countryCode', 'avatar',
     'address', 'walletBalance', 'totalSpent', 'orderCount', 'lastOrderDate', 'joinDate',
-    'isBlocked', 'isActive', 'isAdmin', 'adminRole', 'adminName', 'preferences', 'tags', 'transactions'
+    'isBlocked', 'isActive', 'isAdmin', 'adminRole', 'adminName', 'preferences', 'tags'
   ],
   orders: [
     'id', 'userId', 'customerName', 'customerPhone', 'customerImage', 'shippingAddress',
@@ -597,7 +612,20 @@ export const addDoc = async (collectionRef: any, data: any) => {
 
   const id = Math.random().toString(36).substring(2) + Date.now().toString(36);
   const idColumn = table === 'users' ? 'uid' : 'id';
-  const insertData = filterDataForTable(table, { ...data, [idColumn]: id });
+  
+  let dataToInsert = { ...data };
+  if (table === 'users' && dataToInsert.transactions !== undefined) {
+    const existingPref = typeof dataToInsert.preferences === 'string'
+      ? JSON.parse(dataToInsert.preferences)
+      : (dataToInsert.preferences || {});
+    dataToInsert.preferences = {
+      ...existingPref,
+      transactions: dataToInsert.transactions
+    };
+    delete dataToInsert.transactions;
+  }
+
+  const insertData = filterDataForTable(table, { ...dataToInsert, [idColumn]: id });
 
   for (const [k, v] of Object.entries(insertData)) {
     if (v && typeof v === 'object' && ((v as any).type === 'serverTimestamp' || '_methodName' in v)) {
@@ -706,6 +734,17 @@ export const setDoc = async (docRef: any, data: any, options?: any) => {
     }
   }
 
+  if (table === 'users' && mergedData.transactions !== undefined) {
+    const existingPref = typeof mergedData.preferences === 'string'
+      ? JSON.parse(mergedData.preferences)
+      : (mergedData.preferences || {});
+    mergedData.preferences = {
+      ...existingPref,
+      transactions: mergedData.transactions
+    };
+    delete mergedData.transactions;
+  }
+
   const upsertData = filterDataForTable(table, { ...mergedData, [idColumn]: id });
 
   for (const [k, v] of Object.entries(upsertData)) {
@@ -790,7 +829,31 @@ export const updateDoc = async (docRef: any, data: any) => {
   if (!client) throw new Error("Supabase is not connected");
 
   const idColumn = table === 'users' ? 'uid' : 'id';
-  const updateData = filterDataForTable(table, { ...data });
+  
+  let preparedData = { ...data };
+  if (table === 'users' && preparedData.transactions !== undefined) {
+    let currentPreferences = {};
+    try {
+      const { data: row } = await client.from(table).select('preferences').eq(idColumn, id).maybeSingle();
+      if (row && row.preferences) {
+        currentPreferences = typeof row.preferences === 'string'
+          ? JSON.parse(row.preferences)
+          : row.preferences;
+      }
+    } catch (e) {
+      console.warn("Failed to fetch existing preferences for merge:", e);
+    }
+
+    const newPref = {
+      ...currentPreferences,
+      ...(preparedData.preferences || {}),
+      transactions: preparedData.transactions
+    };
+    preparedData.preferences = newPref;
+    delete preparedData.transactions;
+  }
+
+  const updateData = filterDataForTable(table, preparedData);
 
   for (const [k, v] of Object.entries(updateData)) {
     if (v && typeof v === 'object' && ((v as any).type === 'serverTimestamp' || '_methodName' in v)) {

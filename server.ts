@@ -183,18 +183,60 @@ const createSupabaseFirebaseShim = (): any => {
               if (error || !data) {
                 return { exists: false, data: () => null };
               }
-              return { exists: true, data: () => data };
+              const processed = { ...data };
+              if (colName === 'users' && processed.preferences) {
+                let pref = processed.preferences;
+                if (typeof pref === 'string') {
+                  try { pref = JSON.parse(pref); } catch(e) {}
+                }
+                if (pref && typeof pref === 'object' && pref.transactions !== undefined) {
+                  processed.transactions = pref.transactions;
+                }
+              }
+              return { exists: true, data: () => processed };
             },
             async set(data: any) {
               if (!supabase) return;
               const idCol = colName === 'users' ? 'uid' : 'id';
-              const cleaned = cleanFieldsForSupabase(colName, { ...data, [idCol]: docId });
+              let dataToSet = { ...data };
+              if (colName === 'users' && dataToSet.transactions !== undefined) {
+                const existingPref = typeof dataToSet.preferences === 'string'
+                  ? JSON.parse(dataToSet.preferences)
+                  : (dataToSet.preferences || {});
+                dataToSet.preferences = {
+                  ...existingPref,
+                  transactions: dataToSet.transactions
+                };
+                delete dataToSet.transactions;
+              }
+              const cleaned = cleanFieldsForSupabase(colName, { ...dataToSet, [idCol]: docId });
               await supabase.from(colName).upsert(cleaned);
             },
             async update(data: any) {
               if (!supabase) return;
               const idCol = colName === 'users' ? 'uid' : 'id';
-              const cleaned = cleanFieldsForSupabase(colName, data);
+              let dataToUpdate = { ...data };
+              if (colName === 'users' && dataToUpdate.transactions !== undefined) {
+                let currentPreferences = {};
+                try {
+                  const { data: row } = await supabase.from(colName).select('preferences').eq(idCol, docId).maybeSingle();
+                  if (row && row.preferences) {
+                    currentPreferences = typeof row.preferences === 'string'
+                      ? JSON.parse(row.preferences)
+                      : row.preferences;
+                  }
+                } catch (e) {
+                  console.warn("Server failed to fetch existing preferences for merge:", e);
+                }
+
+                dataToUpdate.preferences = {
+                  ...currentPreferences,
+                  ...(dataToUpdate.preferences || {}),
+                  transactions: dataToUpdate.transactions
+                };
+                delete dataToUpdate.transactions;
+              }
+              const cleaned = cleanFieldsForSupabase(colName, dataToUpdate);
               await supabase.from(colName).update(cleaned).eq(idCol, docId);
             }
           };
@@ -211,7 +253,18 @@ const createSupabaseFirebaseShim = (): any => {
           if (!supabase) return { id: Math.random().toString(36) };
           const idCol = colName === 'users' ? 'uid' : 'id';
           const randomId = Math.random().toString(36).substring(2) + Date.now().toString(36);
-          const cleaned = cleanFieldsForSupabase(colName, { ...data, [idCol]: randomId });
+          let dataToAdd = { ...data };
+          if (colName === 'users' && dataToAdd.transactions !== undefined) {
+            const existingPref = typeof dataToAdd.preferences === 'string'
+              ? JSON.parse(dataToAdd.preferences)
+              : (dataToAdd.preferences || {});
+            dataToAdd.preferences = {
+              ...existingPref,
+              transactions: dataToAdd.transactions
+            };
+            delete dataToAdd.transactions;
+          }
+          const cleaned = cleanFieldsForSupabase(colName, { ...dataToAdd, [idCol]: randomId });
           const { data: inserted, error } = await supabase.from(colName).insert(cleaned).select(idCol).single();
           return { id: inserted?.[idCol] || randomId };
         },
@@ -237,10 +290,20 @@ const createSupabaseFirebaseShim = (): any => {
           }
           const docs = data.map((item: any) => {
             const idCol = colName === 'users' ? 'uid' : 'id';
+            const processed = { ...item };
+            if (colName === 'users' && processed.preferences) {
+              let pref = processed.preferences;
+              if (typeof pref === 'string') {
+                try { pref = JSON.parse(pref); } catch(e) {}
+              }
+              if (pref && typeof pref === 'object' && pref.transactions !== undefined) {
+                processed.transactions = pref.transactions;
+              }
+            }
             return {
-              id: item[idCol] || '',
+              id: processed[idCol] || '',
               exists: true,
-              data: () => item
+              data: () => processed
             };
           });
           return {

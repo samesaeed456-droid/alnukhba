@@ -71,7 +71,10 @@ const Hero = React.memo(() => {
     const filtered = banners
       .filter((b) => b.isActive && (!b.position || b.position === "hero"))
       .sort((a, b) => a.order - b.order);
-    if (filtered.length === 0) return defaultSlides;
+    if (filtered.length === 0) {
+      if (banners.length > 0) return [];
+      return defaultSlides;
+    }
 
     // Flatten banners that have multiple images
     const flattened: any[] = [];

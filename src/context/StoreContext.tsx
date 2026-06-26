@@ -1423,7 +1423,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     async (banner: Omit<Banner, "id">) => {
       const tempId = doc(collection(db, "banners")).id;
       const optimisticBanner = { ...banner, id: tempId } as Banner;
-      setBanners((prev) => [optimisticBanner, ...prev]);
+      setBanners((prev) => {
+        const next = [optimisticBanner, ...prev];
+        localStorage.setItem("store_banners", JSON.stringify(next));
+        return next;
+      });
 
       try {
         const activeDb = adminAuth.currentUser ? adminDb : db;
@@ -1435,7 +1439,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         showToast("تم إضافة البنر بنجاح");
         logActivity("إضافة بنر", `تم إضافة بنر جديد: ${banner.title}`);
       } catch (error) {
-        setBanners((prev) => prev.filter((b) => b.id !== tempId));
+        setBanners((prev) => {
+          const next = prev.filter((b) => b.id !== tempId);
+          localStorage.setItem("store_banners", JSON.stringify(next));
+          return next;
+        });
         handleFirestoreError(error, OperationType.CREATE, "banners");
       }
     },
@@ -1445,9 +1453,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const updateBanner = React.useCallback(
     async (id: string, updatedData: Partial<Banner>) => {
       const oldBanner = banners.find((b) => b.id === id);
-      setBanners((prev) =>
-        prev.map((b) => (b.id === id ? { ...b, ...updatedData } : b)),
-      );
+      setBanners((prev) => {
+        const next = prev.map((b) => (b.id === id ? { ...b, ...updatedData } : b));
+        localStorage.setItem("store_banners", JSON.stringify(next));
+        return next;
+      });
 
       try {
         if (
@@ -1488,7 +1498,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const deleteBanner = React.useCallback(
     async (id: string) => {
       const bannerToDelete = banners.find((b) => b.id === id);
-      setBanners((prev) => prev.filter((b) => b.id !== id));
+      setBanners((prev) => {
+        const next = prev.filter((b) => b.id !== id);
+        localStorage.setItem("store_banners", JSON.stringify(next));
+        return next;
+      });
 
       try {
         if (bannerToDelete) {

@@ -101,7 +101,10 @@ export default function Home() {
         .filter((b) => b.isActive && b.position === position)
         .sort((a, b) => a.order - b.order);
 
-      if (filtered.length === 0) return defaultBanners;
+      if (filtered.length === 0) {
+        if (banners.length > 0) return [];
+        return defaultBanners;
+      }
 
       // Flatten banners that have multiple images
       const flattened: { image: string; link: string }[] = [];

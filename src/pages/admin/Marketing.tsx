@@ -485,10 +485,7 @@ export default function Marketing() {
                           بنرات قسم الإلكترونيات
                         </option>
                         <option value="solar">بنرات قسم الطاقة الشمسية</option>
-                        <option value="accessories">
-                          بنرات قسم الإكسسوارات
-                        </option>
-                        <option value="batteries">بنرات قسم البطاريات</option>
+                        <option value="spare_parts">بنرات قسم قطع الغيار</option>
                       </select>
                     </div>
                     <div>

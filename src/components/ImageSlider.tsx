@@ -19,6 +19,8 @@ export default React.memo(function ImageSlider({
   height = "350px",
   mobileHeight = "140px",
 }: ImageSliderProps) {
+  if (!slides || slides.length === 0) return null;
+
   const [activeSlide, setActiveSlide] = useState(0);
   const [direction, setDirection] = useState(0);
 

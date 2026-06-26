@@ -157,7 +157,7 @@ const SUPABASE_ALLOWED_COLUMNS: Record<string, string[]> = {
   users: [
     'uid', 'displayName', 'photoURL', 'role', 'name', 'phone', 'email', 'countryCode', 'avatar',
     'address', 'walletBalance', 'totalSpent', 'orderCount', 'lastOrderDate', 'joinDate',
-    'isBlocked', 'isActive', 'isAdmin', 'adminRole', 'adminName', 'preferences', 'tags'
+    'isBlocked', 'isActive', 'isAdmin', 'adminRole', 'adminName', 'preferences', 'tags', 'transactions'
   ],
   orders: [
     'id', 'userId', 'customerName', 'customerPhone', 'customerImage', 'shippingAddress',

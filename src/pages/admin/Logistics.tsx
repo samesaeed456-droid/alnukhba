@@ -295,6 +295,7 @@ const Logistics = () => {
                 name: "",
                 districts: [],
                 newDistrict: "",
+                shippingRate: "",
               });
               setIsCityModalOpen(true);
             }}

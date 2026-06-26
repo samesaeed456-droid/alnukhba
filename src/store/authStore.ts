@@ -8,6 +8,7 @@ import {
   doc, 
   getDoc, 
   onAuthStateChanged,
+  onSnapshot,
   updateDoc,
   serverTimestamp,
 } from "../lib/firebase";
@@ -71,8 +72,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   initialize: () => {
+    let customerDocUnsub: (() => void) | null = null;
+
     // 1. Customer Auth Listener
     const unsubCustomer = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (customerDocUnsub) {
+        customerDocUnsub();
+        customerDocUnsub = null;
+      }
+
       if (firebaseUser) {
         let localSessionId = localStorage.getItem("local_session_id");
         if (!localSessionId) {
@@ -81,84 +89,89 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         }
 
         try {
-          const docSnap = await getDoc(doc(db, "users", firebaseUser.uid));
-          if (docSnap.exists()) {
-            const userData = { ...docSnap.data(), uid: docSnap.id } as UserProfile;
-            
-            // Basic validation
-            if (userData.isActive === false) {
-              await auth.signOut();
-              get().setUser(null);
-              set({ isAuthReady: true });
-              return;
-            }
+          customerDocUnsub = onSnapshot(doc(db, "users", firebaseUser.uid), async (docSnap) => {
+            if (docSnap.exists()) {
+              const userData = { ...docSnap.data(), uid: docSnap.id } as UserProfile;
+              
+              // Basic validation
+              if (userData.isActive === false) {
+                await auth.signOut();
+                get().setUser(null);
+                set({ isAuthReady: true });
+                return;
+              }
 
-            get().setUser(userData);
-            
-            // Session ping
-            const lastPing = localStorage.getItem("last_session_ping");
-            const now = Date.now();
-            if (!lastPing || now - parseInt(lastPing) > 600000) {
-              updateDoc(doc(db, "users", firebaseUser.uid), {
-                currentSessionId: localSessionId,
-                lastActive: new Date().toISOString(),
-                updatedAt: serverTimestamp(),
-              }).catch(() => {});
-              localStorage.setItem("last_session_ping", now.toString());
-            }
-
-            // Sync Permissions logic (Super Admin Rescue)
-            const hardcodedAdmins = [
-              "samesaeed456@gmail.com",
-              "samisaeed2027@gmail.com",
-              "samisaeed2025@gmail.com",
-              "967776668370@elite-store.local",
-            ];
-            const userEmail = (userData.email || "").toLowerCase();
-            if (hardcodedAdmins.includes(userEmail)) {
-              if (userData.role !== "admin" || userData.adminRole !== "super_admin" || !userData.permissions?.includes("all")) {
-                const updates: any = {
-                  role: "admin",
-                  adminRole: "super_admin",
-                  isAdmin: true,
-                  permissions: ["all"],
+              get().setUser(userData);
+              
+              // Session ping
+              const lastPing = localStorage.getItem("last_session_ping");
+              const now = Date.now();
+              if (!lastPing || now - parseInt(lastPing) > 600000) {
+                updateDoc(doc(db, "users", firebaseUser.uid), {
+                  currentSessionId: localSessionId,
+                  lastActive: new Date().toISOString(),
                   updatedAt: serverTimestamp(),
+                }).catch(() => {});
+                localStorage.setItem("last_session_ping", now.toString());
+              }
+
+              // Sync Permissions logic (Super Admin Rescue)
+              const hardcodedAdmins = [
+                "samesaeed456@gmail.com",
+                "samisaeed2027@gmail.com",
+                "samisaeed2025@gmail.com",
+                "967776668370@elite-store.local",
+              ];
+              const userEmail = (userData.email || "").toLowerCase();
+              if (hardcodedAdmins.includes(userEmail)) {
+                if (userData.role !== "admin" || userData.adminRole !== "super_admin" || !userData.permissions?.includes("all")) {
+                  const updates: any = {
+                    role: "admin",
+                    adminRole: "super_admin",
+                    isAdmin: true,
+                    permissions: ["all"],
+                    updatedAt: serverTimestamp(),
+                  };
+                  await updateDoc(doc(db, "users", firebaseUser.uid), updates);
+                  get().setUser({ ...userData, ...updates });
+                }
+              }
+
+              refreshNotificationToken();
+            } else {
+              // Check if super admin (could be a migration case)
+              const superAdmins = [
+                "samesaeed456@gmail.com",
+                "samisaeed2027@gmail.com",
+                "samisaeed2025@gmail.com",
+                "967776668370@elite-store.local",
+              ];
+              if (firebaseUser.email && superAdmins.includes(firebaseUser.email.toLowerCase())) {
+                const adminData: any = {
+                  uid: firebaseUser.uid,
+                  email: firebaseUser.email,
+                  role: "admin",
+                  isAdmin: true,
+                  displayName: "مدير النظام",
                 };
-                await updateDoc(doc(db, "users", firebaseUser.uid), updates);
-                get().setUser({ ...userData, ...updates });
+                get().setUser(adminData);
+              } else {
+                get().setUser(null);
               }
             }
-
-            refreshNotificationToken();
-          } else {
-            // Check if super admin (could be a migration case)
-            const superAdmins = [
-              "samesaeed456@gmail.com",
-              "samisaeed2027@gmail.com",
-              "samisaeed2025@gmail.com",
-              "967776668370@elite-store.local",
-            ];
-            if (firebaseUser.email && superAdmins.includes(firebaseUser.email.toLowerCase())) {
-              const adminData: any = {
-                uid: firebaseUser.uid,
-                email: firebaseUser.email,
-                role: "admin",
-                isAdmin: true,
-                displayName: "مدير النظام",
-              };
-              get().setUser(adminData);
-            } else {
-              get().setUser(null);
-            }
-          }
+            set({ isAuthReady: true });
+          }, (err) => {
+            console.warn("User onSnapshot listener error:", err);
+            set({ isAuthReady: true });
+          });
         } catch (error) {
           console.warn("Auth sync warning:", error);
           set({ isAuthReady: true });
         }
       } else {
         get().setUser(null);
+        set({ isAuthReady: true });
       }
-      set({ isAuthReady: true });
     });
 
     // 2. Admin Auth Listener
@@ -205,6 +218,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     return () => {
       unsubCustomer();
+      if (customerDocUnsub) {
+        customerDocUnsub();
+      }
       unsubAdmin();
     };
   },

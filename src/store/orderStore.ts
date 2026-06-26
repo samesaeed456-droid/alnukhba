@@ -42,25 +42,47 @@ export const useOrderStore = create<OrderState>((set, get) => ({
   },
 
   updateOrderStatus: async (id, status) => {
-    const order = get().orders.find(o => o.id === id);
-    
-    await updateDoc(doc(db, "orders", id), {
-      status,
-      updatedAt: serverTimestamp(),
-    });
+    const original = get().orders.find(o => o.id === id);
+    if (!original) return;
 
-    if (order?.userId) {
-      await addDoc(collection(db, `users/${order.userId}/notifications`), {
-          title: "تحديث حالة الطلب",
-          body: `تم تغيير حالة الطلب إلى ${status === 'processing' ? 'قيد المعالجة' : status === 'shipped' ? 'تم الشحن' : status === 'delivered' ? 'تم التوصيل' : status}`,
-          type: 'order',
-          createdAt: serverTimestamp(),
-          isRead: false
+    // Immediately update local state & localStorage
+    get().setOrders(prev => prev.map(o => o.id === id ? { ...o, status } : o));
+
+    try {
+      await updateDoc(doc(db, "orders", id), {
+        status,
+        updatedAt: serverTimestamp(),
       });
+
+      if (original.userId) {
+        await addDoc(collection(db, `users/${original.userId}/notifications`), {
+            title: "تحديث حالة الطلب",
+            body: `تم تغيير حالة الطلب إلى ${status === 'processing' ? 'قيد المعالجة' : status === 'shipped' ? 'تم الشحن' : status === 'delivered' ? 'تم التوصيل' : status}`,
+            type: 'order',
+            createdAt: serverTimestamp(),
+            isRead: false
+        });
+      }
+    } catch (error) {
+      // Rollback on failure
+      get().setOrders(prev => prev.map(o => o.id === id ? original : o));
+      throw error;
     }
   },
 
   deleteOrder: async (id) => {
-    await deleteDoc(doc(db, "orders", id));
+    const original = get().orders.find(o => o.id === id);
+    if (!original) return;
+
+    // Immediately update local state & localStorage
+    get().setOrders(prev => prev.filter(o => o.id !== id));
+
+    try {
+      await deleteDoc(doc(db, "orders", id));
+    } catch (error) {
+      // Rollback on failure
+      get().setOrders(prev => [...prev, original]);
+      throw error;
+    }
   }
 }));

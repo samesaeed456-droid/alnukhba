@@ -128,22 +128,65 @@ export const useProductStore = create<ProductState>((set, get) => ({
   },
 
   addProduct: async (product) => {
-    await addDoc(collection(db, "products"), {
+    const tempId = "temp-" + Math.random().toString(36).substring(2) + Date.now().toString(36);
+    const optimisticObj = {
       ...product,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    });
+      id: tempId,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    } as Product;
+
+    // Immediately update local state & localStorage
+    get().setProducts(prev => [optimisticObj, ...prev]);
+
+    try {
+      const docRef = await addDoc(collection(db, "products"), {
+        ...product,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+      // Replace temporary ID with actual db ID
+      get().setProducts(prev => prev.map(p => p.id === tempId ? { ...p, id: docRef.id } : p));
+    } catch (error) {
+      // Rollback on failure
+      get().setProducts(prev => prev.filter(p => p.id !== tempId));
+      throw error;
+    }
   },
 
   updateProduct: async (id, updates) => {
-    await updateDoc(doc(db, "products", id), {
-      ...updates,
-      updatedAt: serverTimestamp(),
-    });
+    const original = get().products.find(p => p.id === id);
+    if (!original) return;
+
+    // Immediately update local state & localStorage
+    get().setProducts(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
+
+    try {
+      await updateDoc(doc(db, "products", id), {
+        ...updates,
+        updatedAt: serverTimestamp(),
+      });
+    } catch (error) {
+      // Rollback on failure
+      get().setProducts(prev => prev.map(p => p.id === id ? original : p));
+      throw error;
+    }
   },
 
   deleteProduct: async (id) => {
-    await deleteDoc(doc(db, "products", id));
+    const original = get().products.find(p => p.id === id);
+    if (!original) return;
+
+    // Immediately update local state & localStorage
+    get().setProducts(prev => prev.filter(p => p.id !== id));
+
+    try {
+      await deleteDoc(doc(db, "products", id));
+    } catch (error) {
+      // Rollback on failure
+      get().setProducts(prev => [...prev, original]);
+      throw error;
+    }
   },
 
   updateStock: async (productId, newStock, reason) => {
@@ -151,23 +194,33 @@ export const useProductStore = create<ProductState>((set, get) => ({
     if (!product) return;
 
     const previousStock = product.stockCount || 0;
-    await updateDoc(doc(db, "products", productId), {
-      stockCount: newStock,
-      inStock: newStock > 0,
-      updatedAt: serverTimestamp(),
-    });
+    const previousInStock = product.inStock;
 
-    // Handle inventory log if needed (extracted logic simplified)
-    if (reason) {
-       await addDoc(collection(db, "inventory_logs"), {
-        productId,
-        productName: product.name,
-        change: newStock - previousStock,
-        previousStock,
-        newStock,
-        reason,
-        date: new Date().toISOString(),
+    // Immediately update local state & localStorage
+    get().setProducts(prev => prev.map(p => p.id === productId ? { ...p, stockCount: newStock, inStock: newStock > 0 } : p));
+
+    try {
+      await updateDoc(doc(db, "products", productId), {
+        stockCount: newStock,
+        inStock: newStock > 0,
+        updatedAt: serverTimestamp(),
       });
+
+      if (reason) {
+        await addDoc(collection(db, "inventory_logs"), {
+          productId,
+          productName: product.name,
+          change: newStock - previousStock,
+          previousStock,
+          newStock,
+          reason,
+          date: new Date().toISOString(),
+        });
+      }
+    } catch (error) {
+      // Rollback on failure
+      get().setProducts(prev => prev.map(p => p.id === productId ? { ...p, stockCount: previousStock, inStock: previousInStock } : p));
+      throw error;
     }
   }
 }));

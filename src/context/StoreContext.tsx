@@ -449,7 +449,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   } = useAuthStore();
   const { 
     products, setProducts, categories, setCategories, inventoryLogs, setInventoryLogs,
-    recentlyViewed, setRecentlyViewed, addToRecentlyViewed: addToRecentlyViewedStore
+    recentlyViewed, setRecentlyViewed, addToRecentlyViewed: addToRecentlyViewedStore,
+    isLoading: isProductsLoading
   } = useProductStore();
   const { 
     cart, setCart, wishlist, setWishlist, discount, setDiscount 
@@ -466,12 +467,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     isSearchInputFocused, setIsSearchInputFocused, canInstallPWA, installPWA, isPlacingOrder, setIsPlacingOrder
   } = useUIStore();
 
-  const [isLoading, setIsLoading] = useState(() => {
-    const hasProducts = !!localStorage.getItem("store_products");
-    const hasSettings = !!localStorage.getItem("store_settings");
-    const hasUser = !!localStorage.getItem("store_user");
-    return !(hasProducts && hasSettings); // Only show loader if we don't even have layout data
-  });
+  const isLoading = isProductsLoading;
   const [systemError, setSystemError] = useState<string | null>(null);
   const lastAdminDataFetch = React.useRef(0);
 
@@ -2350,6 +2346,53 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
           return printableId;
         });
+
+        // Optimistically insert order in local orders state to make it show up instantly
+        const tempOrder = {
+          id: orderId,
+          userId: auth.currentUser?.uid || "guest",
+          customerName: customerName || user?.displayName || user?.name || "عميل المتجر",
+          customerPhone: customerPhone || user?.phone || "",
+          shippingAddress: shippingAddress || user?.address || "",
+          city: city || null,
+          district: district || null,
+          date: new Date().toISOString(),
+          items: cart.map((item) => ({
+            productId: item.product.id || "",
+            name: item.product.name || "",
+            price: item.product.price || 0,
+            image: item.product.image || null,
+            quantity: item.quantity || 1,
+            selectedColor: item.selectedColor || null,
+            selectedSize: item.selectedSize || null,
+          })),
+          subtotal: subtotal,
+          shippingFee: total > subtotal ? roundMoney(total - subtotal + discountAmount) : 0,
+          discountAmount: discountAmount,
+          couponCode: discount.code || null,
+          total: total,
+          status: paymentMethod === "المحفظة الرقمية" ? "processing" : "pending",
+          paymentMethod,
+          paymentReference: paymentReference || null,
+          paymentProof: paymentProof || null,
+          paymentAmount: paymentAmount || null,
+          shippingMethod,
+          deliveryInstructions: deliveryInstructions || null,
+          currency: "YER",
+        };
+        setOrders((prev: any[]) => [tempOrder, ...prev]);
+
+        // Optimistically update products stock count in local state
+        setProducts((prev: any[]) =>
+          prev.map((p) => {
+            const cartItem = cart.find((item) => item.product.id === p.id);
+            if (cartItem) {
+              const newStock = Math.max(0, (p.stockCount || 0) - cartItem.quantity);
+              return { ...p, stockCount: newStock, inStock: newStock > 0 };
+            }
+            return p;
+          }),
+        );
 
         // G. Post-Order cleanup (outside transaction)
         await setDoc(doc(db, "settings", "store_meta"), {
